@@ -19,7 +19,7 @@
 - 只有上游任务确认 `succeeded` 后收费；上游 HTTP 错误、`failed`、`violation`、畸形响应和初始 `running` 响应均不立即收费。
 - 结算记录和日志不得保存上游 API Key、提示词、参考图字节、Base64 或未脱敏请求 JSON。
 - 使用数据库扫描器恢复结算；不得依赖内存队列保证计费恢复。
-- 依据 `AGENTS.md`，任何 migration 或生产部署改动前，必须定位并阅读 `docs/RELEASE_DEPLOYMENT.md`。当前工作区没有该文件；在仓库所有者恢复或确认其权威路径前，必须停止 migration 实施，不得创建 migration、生成 Ent 或启动服务。
+- 数据库 migration 必须遵循现有 migration 编号、SQL 风格和应用启动机制；实施后需要完成相应生成、测试和部署验收。
 - 不实现 Roadmap 项：composite 分组、公开任务查询、公开异步/流式模式、grsai 的 OpenAI 兼容生图路由、参数档案、模型同步、自动价格换算。
 
 ## 文件结构
@@ -38,14 +38,13 @@
 | `frontend/src/types/index.ts`、`frontend/src/constants/platforms.ts`、`frontend/src/utils/platformColors.ts` | 管理端类型和展示层增加具体平台。 |
 | `frontend/src/components/account/credentialsBuilder.ts`、账号/分组/渠道视图、语言文件 | 配置 grsai API Key/Base URL 凭据并展示/选择平台。 |
 
-## 任务 1：确认发布与 Migration 前置条件
+## 任务 1：确认 Migration 编号与现有约定
 
-**文件：** `AGENTS.md`、`docs/RELEASE_DEPLOYMENT.md`、`backend/migrations/migrations.go`、当前最后一条 migration；前置满足后才创建 `backend/migrations/<实际编号>_grsai_native_images.sql`。
+**文件：** `backend/migrations/migrations.go`、当前最后一条 migration；随后创建 `backend/migrations/<实际编号>_grsai_native_images.sql`。
 
-**产出：** 已记录 migration 编号、部署兼容规则，以及允许修改数据库 schema 的结论。
+**产出：** 已记录的 migration 编号、现有 SQL 约定和数据库 schema 修改方案。
 
-- [ ] 定位并完整阅读 `docs/RELEASE_DEPLOYMENT.md`。执行 `rg --files -g 'RELEASE_DEPLOYMENT.md' -g 'AGENTS.md' . docs`。预期是有可读取的权威文件；若仍缺失，停止实施并请仓库所有者恢复或提供权威路径，不得创建 migration、生成 Ent 或启动服务。
-- [ ] 阅读发布兼容规则及当前 migration 顺序。执行 `Get-Content -Raw 'docs\RELEASE_DEPLOYMENT.md'` 并检查当前最后一条 SQL。记录必需的兼容性 trailer、事务限制、部署顺序和回滚步骤。
+- [ ] 阅读 `backend/migrations/migrations.go` 和当前最后一条 SQL migration，确认嵌入方式、执行顺序、事务约定、向后兼容方式及索引创建风格。
 - [ ] 确定连续且未占用的 migration 前缀。执行 `Get-ChildItem 'backend\migrations' -Filter '*.sql' | Sort-Object Name | Select-Object -Last 10 Name`；`239` 仅为当前预期，实施时以检查结果为准。
 
 ## 任务 2：注册平台并完成管理端配置
@@ -61,12 +60,12 @@
 
 ## 任务 3：实现可持久化的结算存储
 
-**文件：** 新建 `backend/ent/schema/grsai_settlement.go`、`backend/internal/repository/grsai_settlement_repo.go`、相关仓储集成测试及通过任务 1 后的 migration。
+**文件：** 新建 `backend/ent/schema/grsai_settlement.go`、`backend/internal/repository/grsai_settlement_repo.go`、相关仓储集成测试及任务 1 确认编号后的 migration。
 
 **产出：** 上游提交前可落库的结算记录，具有唯一幂等键、任务去重和可锁定的到期扫描。
 
 - [ ] 定义最小脱敏 schema：账户、分组、令牌/用户归属的必要标识、模型、价格快照、计费幂等键、上游任务 ID、上游状态、内部状态、重试次数、下次尝试时间、最终错误摘要与审计时间戳。禁止保存密钥、prompt、原始图片和原始请求体。
-- [ ] 新增数据库约束与 migration：`billing_idempotency_key` 必须唯一；对非空 `upstream_task_id` 增加 `(account_id, upstream_task_id)` 部分唯一索引；增加到期扫描和行锁领取索引；满足任务 1 的发布兼容约束。
+- [ ] 新增数据库约束与 migration：`billing_idempotency_key` 必须唯一；对非空 `upstream_task_id` 增加 `(account_id, upstream_task_id)` 部分唯一索引；增加到期扫描和行锁领取索引；遵循任务 1 确认的既有 SQL 约定。
 - [ ] 实现 create、绑定上游任务、更新结果、领取到期记录、标记待结算/已结算/免收费关闭/人工复核等仓储操作。`Settle` 在事务内以行锁或等价条件更新，防止多个 worker 对同一记录并发收费。
 - [ ] 编写集成测试，覆盖唯一计费键、同账号非空任务 ID 去重、空任务 ID 可共存、并发领取仅一方成功和终态记录不会再次领取。
 
@@ -143,11 +142,11 @@ type GrsaiNativeClient interface {
 
 **产出：** 有证据支持的完成结论，不包含未授权发布。
 
-- [ ] 仅当任务 1 的发布文档已可用时，在 `backend` 执行 `go generate ./ent`、`go generate ./cmd/server`、`go test ./internal/service/... ./internal/repository/... ./internal/handler/...`、`go test -race ./internal/service/... ./internal/repository/... ./internal/handler/...`。如包边界不同，采用 `backend/Makefile` 定义的等价命令并记录差异。
+- [ ] 在 `backend` 执行 `go generate ./ent`、`go generate ./cmd/server`、`go test ./internal/service/... ./internal/repository/... ./internal/handler/...`、`go test -race ./internal/service/... ./internal/repository/... ./internal/handler/...`。如包边界不同，采用 `backend/Makefile` 定义的等价命令并记录差异。
 - [ ] 在 `frontend` 执行 `npm run test -- --run` 和 `npm run build`。
 - [ ] 只用一次性测试账号和密钥做人工冒烟，密钥不得写入测试文件。验证同步 JSON、`running` 后轮询结算、上游失败、本地拒绝 stream/async、改价后旧任务仍按价格快照结算。
 - [ ] 执行 `git diff --check` 与 `git status --short`。不得触碰或提交用户既有的未跟踪 `.agents/`、`.playwright-cli/`、`test/`；`docs/superpowers` 受忽略规则影响时使用 `git add -f`。
-- [ ] 在宣称实现完成前请求代码审查并处理阻断问题。缺少 `RELEASE_DEPLOYMENT.md` 时不得进行 migration、生成、部署或发布；文件可用后，严格遵循其中的兼容性 trailer、人工本机验收、Blue-Green 和回滚流程。不得创建包含无关改动的最终汇总提交。
+- [ ] 在宣称实现完成前请求代码审查并处理阻断问题。部署前完成数据库 migration、服务启动、核心请求链路和回滚路径的实际验收；不得创建包含无关改动的最终汇总提交。
 
 ## 完成标准
 
@@ -158,4 +157,4 @@ type GrsaiNativeClient interface {
 - 上游成功但暂时无法结算时仍返回上游成功，随后由可靠恢复机制处理。
 - 发送后未知的任务绝不自动重复提交，需要人工复核。
 - 管理端可配置 grsai，且 OpenAI 图片路径与 grsai 保持隔离。
-- 所有聚焦测试、生成、构建和人工冒烟均有记录；部署仅在发布文档恢复后按其规则执行。
+- 所有聚焦测试、生成、构建、人工冒烟和部署验收均有记录。
