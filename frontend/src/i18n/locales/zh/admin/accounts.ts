@@ -319,6 +319,7 @@ export default {
         minimax: 'MiniMax',
         opencode_go: 'OpenCode',
         typesafe: 'TypeSafe / Jev',
+        grsai: 'GRS.AI',
       },
       cnProviders: {
         accountMode: {
