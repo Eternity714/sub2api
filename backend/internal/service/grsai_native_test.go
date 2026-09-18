@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -77,10 +78,19 @@ func TestGrsaiNativeClientGenerateRejectsProtocolBoundaryViolations(t *testing.T
 		{name: "not json", body: `not-json ` + prompt},
 		{name: "json array", body: `[{"model":"x"}]`},
 		{name: "stream true", body: `{"prompt":"` + prompt + `","stream":true}`},
+		{name: "stream null", body: `{"prompt":"` + prompt + `","stream":null}`},
+		{name: "stream string", body: `{"prompt":"` + prompt + `","stream":"false"}`},
+		{name: "stream object", body: `{"prompt":"` + prompt + `","stream":{}}`},
 		{name: "async true", body: `{"prompt":"` + prompt + `","async":true}`},
+		{name: "async null", body: `{"prompt":"` + prompt + `","async":null}`},
+		{name: "async number", body: `{"prompt":"` + prompt + `","async":0}`},
+		{name: "async array", body: `{"prompt":"` + prompt + `","async":[]}`},
 		{name: "reply type stream", body: `{"prompt":"` + prompt + `","replyType":"stream"}`},
 		{name: "reply type async", body: `{"prompt":"` + prompt + `","replyType":"async"}`},
 		{name: "reply type wrong type", body: `{"prompt":"` + prompt + `","replyType":1}`},
+		{name: "duplicate stream", body: `{"stream":false,"stream":false}`},
+		{name: "duplicate async", body: `{"async":false,"async":true}`},
+		{name: "duplicate reply type", body: `{"replyType":"json","replyType":"json"}`},
 	}
 
 	for _, tt := range tests {
@@ -220,9 +230,9 @@ func TestGrsaiNativeClientReturnsRawBodyWithMalformedResponseError(t *testing.T)
 }
 
 func TestGrsaiNativeClientHTTPErrorStringDoesNotExposeResponseOrCredentials(t *testing.T) {
-	const secret = "sk-super-secret-value-that-must-be-redacted"
+	const secret = "opaque-real-account-token"
 	const echoedPrompt = "echoed private prompt"
-	body := `{"status":"failed","code":"unauthorized","error":"` + secret + ` ` + echoedPrompt + `"}`
+	body := `{"status":"failed","code":"unauthorized-` + secret + `","error":"` + secret + ` ` + echoedPrompt + `"}`
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = io.WriteString(w, body)
@@ -237,8 +247,11 @@ func TestGrsaiNativeClientHTTPErrorStringDoesNotExposeResponseOrCredentials(t *t
 	require.Equal(t, []byte(body), result.RawBody)
 	var httpErr *GrsaiHTTPError
 	require.ErrorAs(t, err, &httpErr)
-	require.Equal(t, "unauthorized", httpErr.ErrorCode)
+	require.NotContains(t, result.ErrorCode, secret)
+	require.Contains(t, result.ErrorCode, "REDACTED")
+	require.Equal(t, result.ErrorCode, httpErr.ErrorCode)
 	require.NotContains(t, result.ErrorMessage, secret)
+	require.Contains(t, result.ErrorMessage, "REDACTED")
 	require.NotContains(t, err.Error(), secret)
 	require.NotContains(t, err.Error(), echoedPrompt)
 }
@@ -263,10 +276,41 @@ func TestGrsaiNativeClientNetworkErrorDoesNotExposeAPIKey(t *testing.T) {
 func TestNewGrsaiNativeClientConfiguresTimeout(t *testing.T) {
 	input := &http.Client{}
 	client := NewGrsaiNativeClient(input)
+	httpClient, ok := client.(*GrsaiNativeHTTPClient)
 
-	require.NotSame(t, input, client.client)
-	require.Equal(t, grsaiRequestTimeout, client.client.Timeout)
-	require.Greater(t, client.client.Timeout, time.Duration(0))
+	require.True(t, ok)
+	require.NotSame(t, input, httpClient.client)
+	require.Equal(t, grsaiRequestTimeout, httpClient.client.Timeout)
+	require.Greater(t, httpClient.client.Timeout, time.Duration(0))
+}
+
+func TestGrsaiNativeClientPreservesPartialResponseOnReadError(t *testing.T) {
+	const secret = "account-key-without-known-prefix"
+	partial := []byte(`{"id":"partial-task"`)
+	client := NewGrsaiNativeClient(&http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusBadGateway,
+			Header:     make(http.Header),
+			Body: &failingReadCloser{
+				payload: partial,
+				err:     errors.New("upstream read failed for " + secret),
+			},
+		}, nil
+	})})
+
+	result, err := client.Result(
+		context.Background(),
+		grsaiTestAccount("https://api.grsai.example", secret),
+		"partial-task",
+	)
+
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), secret)
+	require.Contains(t, err.Error(), "REDACTED")
+	require.NotNil(t, result)
+	require.Equal(t, http.StatusBadGateway, result.HTTPStatus)
+	require.Equal(t, "partial-task", result.TaskID)
+	require.Equal(t, partial, result.RawBody)
 }
 
 func grsaiTestAccount(baseURL, apiKey string) *Account {
@@ -279,6 +323,30 @@ func grsaiTestAccount(baseURL, apiKey string) *Account {
 			"api_key":  apiKey,
 		},
 	}
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (fn roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return fn(req)
+}
+
+type failingReadCloser struct {
+	payload []byte
+	err     error
+}
+
+func (r *failingReadCloser) Read(p []byte) (int, error) {
+	if len(r.payload) == 0 {
+		return 0, r.err
+	}
+	n := copy(p, r.payload)
+	r.payload = r.payload[n:]
+	return n, nil
+}
+
+func (*failingReadCloser) Close() error {
+	return nil
 }
 
 func TestGrsaiNativeClientValidatesAccountAndTaskID(t *testing.T) {
