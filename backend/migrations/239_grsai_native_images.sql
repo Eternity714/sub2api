@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS grsai_settlements (
     upstream_status VARCHAR(32) NOT NULL DEFAULT 'not_submitted',
     internal_status VARCHAR(32) NOT NULL DEFAULT 'pending_upstream',
     retry_count INTEGER NOT NULL DEFAULT 0,
+    claim_version BIGINT NOT NULL DEFAULT 0,
     next_attempt_at TIMESTAMPTZ NOT NULL,
     last_error_summary VARCHAR(1024),
     settled_amount DECIMAL(20,10),
