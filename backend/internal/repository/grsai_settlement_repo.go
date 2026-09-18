@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 )
@@ -22,6 +23,7 @@ var (
 	ErrGrsaiSettlementNotFound     = errors.New("grsai settlement not found")
 	ErrGrsaiSettlementInvalidInput = errors.New("invalid grsai settlement input")
 	ErrGrsaiSettlementInvalidState = errors.New("invalid grsai settlement state")
+	ErrGrsaiSettlementClaimLost    = errors.New("grsai settlement claim lost")
 )
 
 type grsaiSettlementSQLExecutor interface {
@@ -71,6 +73,7 @@ type GrsaiSettlement struct {
 	UpstreamStatus        string
 	InternalStatus        string
 	RetryCount            int
+	ClaimVersion          int64
 	NextAttemptAt         time.Time
 	LastErrorSummary      *string
 	SettledAmount         *float64
@@ -82,6 +85,11 @@ type GrsaiSettlement struct {
 	ClosedAt              *time.Time
 }
 
+// GrsaiSettlementTxFunc applies the idempotent billing side effect inside the
+// same SQL transaction that marks the settlement complete. The callback must
+// not commit or roll back tx.
+type GrsaiSettlementTxFunc func(context.Context, *sql.Tx, *GrsaiSettlement) error
+
 func NewGrsaiSettlementRepository(db *sql.DB) *grsaiSettlementRepository {
 	return &grsaiSettlementRepository{db: db, sql: db}
 }
@@ -90,7 +98,9 @@ func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrs
 	params.Model = strings.TrimSpace(params.Model)
 	params.BillingIdempotencyKey = strings.TrimSpace(params.BillingIdempotencyKey)
 	if params.AccountID <= 0 || params.GroupID <= 0 || params.UserID <= 0 || params.APIKeyID <= 0 ||
-		params.Model == "" || params.BillingIdempotencyKey == "" || params.RequestedImageCount <= 0 {
+		params.Model == "" || params.BillingIdempotencyKey == "" || params.RequestedImageCount <= 0 ||
+		!isFiniteNonNegative(params.BaseUnitPrice) || !isFiniteNonNegative(params.GroupRateMultiplier) ||
+		!isFiniteNonNegative(params.AccountRateMultiplier) || !isFiniteNonNegative(params.BillableUnitPrice) {
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
 	if params.Currency == "" {
@@ -139,7 +149,7 @@ func (r *grsaiSettlementRepository) GetByID(ctx context.Context, id int64) (*Grs
 	return record, err
 }
 
-func (r *grsaiSettlementRepository) BindUpstreamTask(ctx context.Context, id int64, taskID, upstreamStatus string) (bool, error) {
+func (r *grsaiSettlementRepository) BindUpstreamTask(ctx context.Context, id, claimVersion int64, taskID, upstreamStatus string) (bool, error) {
 	taskID = strings.TrimSpace(taskID)
 	if taskID == "" {
 		return false, ErrGrsaiSettlementInvalidInput
@@ -149,39 +159,39 @@ func (r *grsaiSettlementRepository) BindUpstreamTask(ctx context.Context, id int
 	}
 	result, err := r.sql.ExecContext(ctx, `
 UPDATE grsai_settlements
-SET upstream_task_id = $2,
-    upstream_status = $3,
+SET upstream_task_id = $3,
+    upstream_status = $4,
     upstream_bound_at = COALESCE(upstream_bound_at, NOW()),
     updated_at = NOW()
 WHERE id = $1
+  AND claim_version = $2
   AND upstream_task_id IS NULL
-  AND internal_status NOT IN ('settled', 'closed_no_charge', 'manual_review')`, id, taskID, upstreamStatus)
+  AND internal_status = 'processing'`, id, claimVersion, taskID, upstreamStatus)
 	if err != nil {
 		return false, err
 	}
-	affected, err := result.RowsAffected()
-	return affected == 1, err
+	return claimedUpdateResult(result)
 }
 
-func (r *grsaiSettlementRepository) UpdateResult(ctx context.Context, id int64, upstreamStatus, errorSummary string, nextAttemptAt time.Time) (bool, error) {
+func (r *grsaiSettlementRepository) UpdateResult(ctx context.Context, id, claimVersion int64, upstreamStatus, errorSummary string, nextAttemptAt time.Time) (bool, error) {
 	upstreamStatus = strings.TrimSpace(upstreamStatus)
 	if upstreamStatus == "" || nextAttemptAt.IsZero() {
 		return false, ErrGrsaiSettlementInvalidInput
 	}
 	result, err := r.sql.ExecContext(ctx, `
 UPDATE grsai_settlements
-SET upstream_status = $2,
-    last_error_summary = NULLIF($3, ''),
-    next_attempt_at = $4,
+SET upstream_status = $3,
+    last_error_summary = NULLIF($4, ''),
+    next_attempt_at = $5,
     result_updated_at = NOW(),
     updated_at = NOW()
 WHERE id = $1
-  AND internal_status NOT IN ('settled', 'closed_no_charge', 'manual_review')`, id, upstreamStatus, errorSummary, nextAttemptAt)
+  AND claim_version = $2
+  AND internal_status = 'processing'`, id, claimVersion, upstreamStatus, errorSummary, nextAttemptAt)
 	if err != nil {
 		return false, err
 	}
-	affected, err := result.RowsAffected()
-	return affected == 1, err
+	return claimedUpdateResult(result)
 }
 
 func (r *grsaiSettlementRepository) ClaimDue(ctx context.Context, now time.Time, limit int, leaseUntil time.Time) ([]*GrsaiSettlement, error) {
@@ -207,6 +217,7 @@ WITH due AS (
 UPDATE grsai_settlements AS settlements
 SET internal_status = 'processing',
     retry_count = settlements.retry_count + 1,
+    claim_version = settlements.claim_version + 1,
     next_attempt_at = $3,
     updated_at = $1
 FROM due
@@ -231,24 +242,31 @@ RETURNING `+grsaiSettlementReturningColumns("settlements"), now, limit, leaseUnt
 	return records, nil
 }
 
-func (r *grsaiSettlementRepository) MarkPendingSettlement(ctx context.Context, id int64, nextAttemptAt time.Time) error {
+func (r *grsaiSettlementRepository) MarkPendingSettlement(ctx context.Context, id, claimVersion int64, nextAttemptAt time.Time) error {
 	if nextAttemptAt.IsZero() {
 		return ErrGrsaiSettlementInvalidInput
 	}
-	return r.transition(ctx, id, `
+	return r.transition(ctx, id, claimVersion, `
 UPDATE grsai_settlements
 SET internal_status = 'pending_settlement',
-    next_attempt_at = $2,
+    next_attempt_at = $3,
     last_error_summary = NULL,
     updated_at = NOW()
 WHERE id = $1
-  AND internal_status IN ('pending_upstream', 'processing')`, nextAttemptAt)
+  AND claim_version = $2
+  AND internal_status = 'processing'`, nextAttemptAt)
 }
 
-// Settle locks the record and performs the terminal transition in one
-// transaction. A second worker observes the terminal state and returns false.
-func (r *grsaiSettlementRepository) Settle(ctx context.Context, id int64, settledAmount float64) (bool, error) {
-	if r.db == nil || settledAmount < 0 {
+// Settle locks the claimed record, applies idempotent billing through apply,
+// and performs the terminal transition in the same transaction. A stale claim
+// is rejected before apply is called.
+func (r *grsaiSettlementRepository) Settle(
+	ctx context.Context,
+	id, claimVersion int64,
+	settledAmount float64,
+	apply GrsaiSettlementTxFunc,
+) (bool, error) {
+	if r.db == nil || apply == nil || !isFiniteNonNegative(settledAmount) {
 		return false, ErrGrsaiSettlementInvalidInput
 	}
 	tx, err := r.db.BeginTx(ctx, nil)
@@ -257,29 +275,40 @@ func (r *grsaiSettlementRepository) Settle(ctx context.Context, id int64, settle
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	var status string
-	if err := tx.QueryRowContext(ctx,
-		`SELECT internal_status FROM grsai_settlements WHERE id = $1 FOR UPDATE`, id).Scan(&status); err != nil {
+	record, err := scanGrsaiSettlement(tx.QueryRowContext(ctx, grsaiSettlementSelectSQL+" WHERE id = $1 FOR UPDATE", id))
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, ErrGrsaiSettlementNotFound
 		}
 		return false, err
 	}
-	if status == GrsaiSettlementStatusSettled {
+	if record.ClaimVersion != claimVersion {
+		return false, ErrGrsaiSettlementClaimLost
+	}
+	if record.InternalStatus == GrsaiSettlementStatusSettled {
 		return false, nil
 	}
-	if status != GrsaiSettlementStatusProcessing {
-		return false, fmt.Errorf("%w: cannot settle from %s", ErrGrsaiSettlementInvalidState, status)
+	if record.InternalStatus != GrsaiSettlementStatusProcessing {
+		return false, fmt.Errorf("%w: cannot settle from %s", ErrGrsaiSettlementInvalidState, record.InternalStatus)
 	}
-	if _, err := tx.ExecContext(ctx, `
+	if err := apply(ctx, tx, record); err != nil {
+		return false, err
+	}
+	result, err := tx.ExecContext(ctx, `
 UPDATE grsai_settlements
 SET internal_status = 'settled',
-    settled_amount = $2,
+    settled_amount = $3,
     settled_at = NOW(),
     closed_at = NOW(),
     last_error_summary = NULL,
     updated_at = NOW()
-WHERE id = $1`, id, settledAmount); err != nil {
+WHERE id = $1
+  AND claim_version = $2
+  AND internal_status = 'processing'`, id, claimVersion, settledAmount)
+	if err != nil {
+		return false, err
+	}
+	if _, err := claimedUpdateResult(result); err != nil {
 		return false, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -288,31 +317,33 @@ WHERE id = $1`, id, settledAmount); err != nil {
 	return true, nil
 }
 
-func (r *grsaiSettlementRepository) CloseNoCharge(ctx context.Context, id int64, summary string) error {
-	return r.transition(ctx, id, `
+func (r *grsaiSettlementRepository) CloseNoCharge(ctx context.Context, id, claimVersion int64, summary string) error {
+	return r.transition(ctx, id, claimVersion, `
 UPDATE grsai_settlements
 SET internal_status = 'closed_no_charge',
     settled_amount = 0,
-    last_error_summary = NULLIF($2, ''),
+    last_error_summary = NULLIF($3, ''),
     closed_at = NOW(),
     updated_at = NOW()
 WHERE id = $1
-  AND internal_status NOT IN ('settled', 'closed_no_charge', 'manual_review')`, summary)
+  AND claim_version = $2
+  AND internal_status = 'processing'`, summary)
 }
 
-func (r *grsaiSettlementRepository) MarkManualReview(ctx context.Context, id int64, summary string) error {
-	return r.transition(ctx, id, `
+func (r *grsaiSettlementRepository) MarkManualReview(ctx context.Context, id, claimVersion int64, summary string) error {
+	return r.transition(ctx, id, claimVersion, `
 UPDATE grsai_settlements
 SET internal_status = 'manual_review',
-    last_error_summary = NULLIF($2, ''),
+    last_error_summary = NULLIF($3, ''),
     closed_at = NOW(),
     updated_at = NOW()
 WHERE id = $1
-  AND internal_status NOT IN ('settled', 'closed_no_charge', 'manual_review')`, summary)
+  AND claim_version = $2
+  AND internal_status = 'processing'`, summary)
 }
 
-func (r *grsaiSettlementRepository) transition(ctx context.Context, id int64, query string, arg any) error {
-	result, err := r.sql.ExecContext(ctx, query, id, arg)
+func (r *grsaiSettlementRepository) transition(ctx context.Context, id, claimVersion int64, query string, arg any) error {
+	result, err := r.sql.ExecContext(ctx, query, id, claimVersion, arg)
 	if err != nil {
 		return err
 	}
@@ -321,7 +352,7 @@ func (r *grsaiSettlementRepository) transition(ctx context.Context, id int64, qu
 		return err
 	}
 	if affected == 0 {
-		return ErrGrsaiSettlementInvalidState
+		return ErrGrsaiSettlementClaimLost
 	}
 	return nil
 }
@@ -330,7 +361,7 @@ const grsaiSettlementSelectSQL = `
 SELECT id, account_id, group_id, user_id, api_key_id, model,
        base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
        requested_image_count, currency, billing_idempotency_key, upstream_task_id,
-       upstream_status, internal_status, retry_count, next_attempt_at, last_error_summary,
+       upstream_status, internal_status, retry_count, claim_version, next_attempt_at, last_error_summary,
        settled_amount, created_at, updated_at, upstream_bound_at, result_updated_at,
        settled_at, closed_at
 FROM grsai_settlements`
@@ -350,7 +381,7 @@ INSERT INTO grsai_settlements (
 RETURNING id, account_id, group_id, user_id, api_key_id, model,
           base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
           requested_image_count, currency, billing_idempotency_key, upstream_task_id,
-          upstream_status, internal_status, retry_count, next_attempt_at, last_error_summary,
+          upstream_status, internal_status, retry_count, claim_version, next_attempt_at, last_error_summary,
           settled_amount, created_at, updated_at, upstream_bound_at, result_updated_at,
           settled_at, closed_at`
 
@@ -359,7 +390,7 @@ func grsaiSettlementReturningColumns(alias string) string {
 		"id", "account_id", "group_id", "user_id", "api_key_id", "model",
 		"base_unit_price", "group_rate_multiplier", "account_rate_multiplier", "billable_unit_price",
 		"requested_image_count", "currency", "billing_idempotency_key", "upstream_task_id",
-		"upstream_status", "internal_status", "retry_count", "next_attempt_at", "last_error_summary",
+		"upstream_status", "internal_status", "retry_count", "claim_version", "next_attempt_at", "last_error_summary",
 		"settled_amount", "created_at", "updated_at", "upstream_bound_at", "result_updated_at",
 		"settled_at", "closed_at",
 	}
@@ -400,6 +431,7 @@ func scanGrsaiSettlement(scanner grsaiSettlementScanner) (*GrsaiSettlement, erro
 		&record.UpstreamStatus,
 		&record.InternalStatus,
 		&record.RetryCount,
+		&record.ClaimVersion,
 		&record.NextAttemptAt,
 		&lastErrorSummary,
 		&settledAmount,
@@ -435,4 +467,19 @@ func scanGrsaiSettlement(scanner grsaiSettlementScanner) (*GrsaiSettlement, erro
 		record.ClosedAt = &closedAt.Time
 	}
 	return record, nil
+}
+
+func claimedUpdateResult(result sql.Result) (bool, error) {
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	if affected == 0 {
+		return false, ErrGrsaiSettlementClaimLost
+	}
+	return true, nil
+}
+
+func isFiniteNonNegative(value float64) bool {
+	return value >= 0 && !math.IsNaN(value) && !math.IsInf(value, 0)
 }
