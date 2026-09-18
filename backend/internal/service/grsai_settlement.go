@@ -1,0 +1,345 @@
+package service
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"math"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
+
+type GrsaiSettlementState string
+
+const (
+	GrsaiStateSubmissionPending GrsaiSettlementState = "submission_pending"
+	GrsaiStateAwaitingResult GrsaiSettlementState = "awaiting_result"
+	GrsaiStateSettlementPending GrsaiSettlementState = "settlement_pending"
+	GrsaiStateSettled GrsaiSettlementState = "settled"
+	GrsaiStateClosedNoCharge GrsaiSettlementState = "closed_no_charge"
+	GrsaiStateUpstreamUnknown GrsaiSettlementState = "upstream_unknown"
+	GrsaiStateManualReview GrsaiSettlementState = "manual_review"
+
+	grsaiSettlementRetryDelay = time.Minute
+	grsaiSettlementLease = grsaiRequestTimeout + time.Minute
+)
+
+var (
+	ErrGrsaiSettlementNotFound = errors.New("grsai settlement not found")
+	ErrGrsaiSettlementInvalidInput = errors.New("invalid grsai settlement input")
+	ErrGrsaiSettlementInvalidState = errors.New("invalid grsai settlement state")
+	ErrGrsaiSettlementClaimLost = errors.New("grsai settlement claim lost")
+	ErrGrsaiSettlementPricingMissing = errors.New("grsai requires explicit flat image or per-request model pricing")
+)
+
+// These contracts live in service so the SQL repository can implement them
+// without introducing a service -> repository -> service import cycle.
+type CreateGrsaiSettlementParams struct {
+	AccountID int64
+	GroupID int64
+	UserID int64
+	APIKeyID int64
+	Model string
+	BaseUnitPrice float64
+	GroupRateMultiplier float64
+	AccountRateMultiplier float64
+	BillableUnitPrice float64
+	RequestedImageCount int
+	Currency string
+	BillingIdempotencyKey string
+	UpstreamTaskID *string
+	UpstreamStatus string
+	NextAttemptAt time.Time
+}
+
+type GrsaiSettlement struct {
+	ID int64
+	AccountID int64
+	GroupID int64
+	UserID int64
+	APIKeyID int64
+	Model string
+	BaseUnitPrice float64
+	GroupRateMultiplier float64
+	AccountRateMultiplier float64
+	BillableUnitPrice float64
+	RequestedImageCount int
+	Currency string
+	BillingIdempotencyKey string
+	UpstreamTaskID *string
+	UpstreamStatus string
+	InternalStatus string
+	RetryCount int
+	ClaimVersion int64
+	NextAttemptAt time.Time
+	LastErrorSummary *string
+	SettledAmount *float64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UpstreamBoundAt *time.Time
+	ResultUpdatedAt *time.Time
+	SettledAt *time.Time
+	ClosedAt *time.Time
+}
+
+// State projects the business state from the existing durable status pair.
+// "processing" is a leased ownership marker, never a business outcome.
+func (r *GrsaiSettlement) State() GrsaiSettlementState {
+	if r == nil { return GrsaiStateUpstreamUnknown }
+	switch r.InternalStatus {
+	case "settled": return GrsaiStateSettled
+	case "closed_no_charge": return GrsaiStateClosedNoCharge
+	case "manual_review": return GrsaiStateManualReview
+	case "pending_settlement": return GrsaiStateSettlementPending
+	}
+	switch r.UpstreamStatus {
+	case "not_submitted": return GrsaiStateSubmissionPending
+	case GrsaiUpstreamStatusSucceeded: return GrsaiStateSettlementPending
+	case GrsaiUpstreamStatusRunning, "queued": return GrsaiStateAwaitingResult
+	default: return GrsaiStateUpstreamUnknown
+	}
+}
+
+// The callback must use tx for every billing side effect, without committing it.
+type GrsaiSettlementTxFunc func(context.Context, *sql.Tx, *GrsaiSettlement) error
+
+type GrsaiSettlementRepository interface {
+	Create(context.Context, CreateGrsaiSettlementParams) (*GrsaiSettlement, error)
+	GetByID(context.Context, int64) (*GrsaiSettlement, error)
+	ClaimByID(context.Context, int64, time.Time, time.Time) (*GrsaiSettlement, error)
+	ClaimDue(context.Context, time.Time, int, time.Time) ([]*GrsaiSettlement, error)
+	BindUpstreamTask(context.Context, int64, int64, string, string) (bool, error)
+	UpdateResult(context.Context, int64, int64, string, string, time.Time) (bool, error)
+	MarkPendingSettlement(context.Context, int64, int64, time.Time) error
+	MarkPendingUpstream(context.Context, int64, int64, time.Time) error
+	Settle(context.Context, int64, int64, float64, GrsaiSettlementTxFunc) (bool, error)
+	CloseNoCharge(context.Context, int64, int64, string) error
+	MarkManualReview(context.Context, int64, int64, string) error
+}
+
+// UsageBillingTransactionalRepository is an optional extension implemented by
+// the existing billing repository. Ordinary Apply callers keep their API.
+type UsageBillingTransactionalRepository interface {
+	ApplyTx(context.Context, *sql.Tx, *UsageBillingCommand) (*UsageBillingApplyResult, error)
+}
+
+type GrsaiPricingResolver interface {
+	GrsaiUnitPrice(context.Context, string, *Group) (float64, error)
+}
+
+type GrsaiModelPricingResolver struct { Resolver *ModelPricingResolver }
+
+func (r *GrsaiModelPricingResolver) GrsaiUnitPrice(ctx context.Context, model string, group *Group) (float64, error) {
+	if r == nil || r.Resolver == nil || group == nil { return 0, ErrGrsaiSettlementPricingMissing }
+	resolved := r.Resolver.Resolve(ctx, PricingInput{Model: model, GroupID: &group.ID, Group: group})
+	if resolved == nil || (resolved.Source != PricingSourceGroup && resolved.Source != PricingSourceChannel) ||
+		(resolved.Mode != BillingModeImage && resolved.Mode != BillingModePerRequest) {
+		return 0, ErrGrsaiSettlementPricingMissing
+	}
+	// Native model-specific options are opaque. Reject tiered prices instead of
+	// guessing a size/quality tier or treating a token price as an image price.
+	if len(resolved.RequestTiers) > 0 || resolved.channelPricing == nil || resolved.channelPricing.PerRequestPrice == nil {
+		return 0, ErrGrsaiSettlementPricingMissing
+	}
+	if !grsaiFiniteNonNegative(resolved.DefaultPerRequestPrice) { return 0, ErrGrsaiSettlementPricingMissing }
+	return resolved.DefaultPerRequestPrice, nil
+}
+
+type GrsaiSettlementService struct {
+	Repo GrsaiSettlementRepository
+	Billing UsageBillingTransactionalRepository
+	Pricing GrsaiPricingResolver
+	UsageLogRepo UsageLogRepository
+	AuthCache APIKeyAuthCacheInvalidator
+}
+
+type GrsaiPrepareInput struct {
+	Account *Account
+	APIKey *APIKey
+	Model string
+	ImageCount int
+	// Pass the existing user/group rate resolver's result when it overrides the
+	// group default. Independent image rates still take precedence.
+	EffectiveGroupMultiplier *float64
+}
+
+// Prepare persists and claims the immutable snapshot. The caller may send
+// Generate only after this succeeds, and must never resend it on Finish errors.
+func (s *GrsaiSettlementService) Prepare(ctx context.Context, input GrsaiPrepareInput) (*GrsaiSettlement, error) {
+	if s == nil || s.Repo == nil || s.Pricing == nil || s.Billing == nil || input.Account == nil || input.APIKey == nil || input.APIKey.Group == nil {
+		return nil, ErrGrsaiSettlementInvalidInput
+	}
+	group := input.APIKey.Group
+	if input.Account.Platform != PlatformGrsai || input.Account.Type != AccountTypeAPIKey || group.Platform != PlatformGrsai ||
+		input.Account.ID <= 0 || input.APIKey.ID <= 0 || input.APIKey.UserID <= 0 || group.ID <= 0 ||
+		input.APIKey.GroupID == nil || *input.APIKey.GroupID != group.ID || input.ImageCount <= 0 ||
+		strings.TrimSpace(input.Model) == "" || group.SubscriptionType == SubscriptionTypeSubscription {
+		return nil, ErrGrsaiSettlementInvalidInput
+	}
+	base, err := s.Pricing.GrsaiUnitPrice(ctx, strings.TrimSpace(input.Model), group)
+	if err != nil { return nil, err }
+	groupRate := group.RateMultiplier
+	if input.EffectiveGroupMultiplier != nil { groupRate = *input.EffectiveGroupMultiplier }
+	groupRate = resolveImageRateMultiplier(input.APIKey, groupRate)
+	accountRate := input.Account.BillingRateMultiplier()
+	if !grsaiFiniteNonNegative(base) || !grsaiFiniteNonNegative(groupRate) || !grsaiFiniteNonNegative(accountRate) {
+		return nil, ErrGrsaiSettlementPricingMissing
+	}
+	// Match the persisted DECIMAL scales before deriving the billable price.
+	base, _ = decimal.NewFromFloat(base).Round(10).Float64()
+	groupRate, _ = decimal.NewFromFloat(groupRate).Round(4).Float64()
+	accountRate, _ = decimal.NewFromFloat(accountRate).Round(4).Float64()
+	billable, _ := decimal.NewFromFloat(base).Mul(decimal.NewFromFloat(groupRate)).Mul(decimal.NewFromFloat(accountRate)).Round(10).Float64()
+	if !grsaiFiniteNonNegative(billable) { return nil, ErrGrsaiSettlementPricingMissing }
+	now := time.Now()
+	record, err := s.Repo.Create(ctx, CreateGrsaiSettlementParams{
+		AccountID: input.Account.ID, GroupID: group.ID, UserID: input.APIKey.UserID, APIKeyID: input.APIKey.ID,
+		Model: strings.TrimSpace(input.Model), BaseUnitPrice: base, GroupRateMultiplier: groupRate,
+		AccountRateMultiplier: accountRate, BillableUnitPrice: billable, RequestedImageCount: input.ImageCount,
+		Currency: "USD", BillingIdempotencyKey: "grsai_submission:" + uuid.NewString(), UpstreamStatus: "not_submitted",
+		// Keep the scanner out of the create -> initial claim window.
+		NextAttemptAt: now.Add(grsaiSettlementLease),
+	})
+	if err != nil { return nil, err }
+	return s.Repo.ClaimByID(ctx, record.ID, now, now.Add(grsaiSettlementLease))
+}
+
+type GrsaiSettlementOutcome struct {
+	Upstream *GrsaiUpstreamResult
+	UpstreamError error
+	SettlementError error
+	State GrsaiSettlementState
+}
+
+// Finish keeps protocol errors separate from local accounting errors. In
+// particular SettlementError must never replace a successful upstream body.
+// A disconnected client must not cancel recording the already obtained result.
+func (s *GrsaiSettlementService) Finish(ctx context.Context, claim *GrsaiSettlement, upstream *GrsaiUpstreamResult, upstreamErr error) *GrsaiSettlementOutcome {
+	out := &GrsaiSettlementOutcome{Upstream: upstream, UpstreamError: upstreamErr, State: GrsaiStateUpstreamUnknown}
+	if s == nil || s.Repo == nil || claim == nil { out.SettlementError = ErrGrsaiSettlementInvalidInput; return out }
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	defer cancel()
+	record, err := s.Repo.GetByID(ctx, claim.ID)
+	if err != nil { out.SettlementError = err; return out }
+	out.State = record.State()
+	if record.InternalStatus == "settled" || record.InternalStatus == "closed_no_charge" || record.InternalStatus == "manual_review" { return out }
+	if record.ClaimVersion != claim.ClaimVersion || record.InternalStatus != "processing" {
+		out.SettlementError = ErrGrsaiSettlementClaimLost
+		return out
+	}
+	if record.UpstreamStatus == GrsaiUpstreamStatusSucceeded {
+		_, out.SettlementError = s.Settle(ctx, record.ID, record.ClaimVersion)
+	} else {
+		out.SettlementError = s.recordResult(ctx, record, upstream, upstreamErr)
+	}
+	if updated, readErr := s.Repo.GetByID(ctx, record.ID); readErr == nil { out.State = updated.State() }
+	return out
+}
+
+func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *GrsaiSettlement, upstream *GrsaiUpstreamResult, upstreamErr error) error {
+	status := "unknown"
+	if upstream != nil && upstreamErr == nil && (upstream.HTTPStatus == 0 || (upstream.HTTPStatus >= 200 && upstream.HTTPStatus < 300)) {
+		switch upstream.Status {
+		case GrsaiUpstreamStatusSucceeded, GrsaiUpstreamStatusFailed, GrsaiUpstreamStatusViolation, GrsaiUpstreamStatusRunning:
+			status = upstream.Status
+		}
+	}
+	if upstream != nil && strings.TrimSpace(upstream.TaskID) != "" {
+		taskID := strings.TrimSpace(upstream.TaskID)
+		if record.UpstreamTaskID != nil && *record.UpstreamTaskID != taskID {
+			return s.Repo.MarkManualReview(ctx, record.ID, record.ClaimVersion, "upstream task identity conflict")
+		}
+		if record.UpstreamTaskID == nil {
+			if _, err := s.Repo.BindUpstreamTask(ctx, record.ID, record.ClaimVersion, taskID, status); err != nil { return err }
+			record.UpstreamTaskID = &taskID
+		}
+	}
+	if status == GrsaiUpstreamStatusRunning && record.UpstreamTaskID == nil { status = "unknown" }
+	next := time.Now().Add(grsaiSettlementRetryDelay)
+	// Persist only fixed summaries; upstream errors can contain prompts or keys.
+	summary := ""
+	if status == "unknown" { summary = "upstream outcome unknown; do not resubmit" }
+	if _, err := s.Repo.UpdateResult(ctx, record.ID, record.ClaimVersion, status, summary, next); err != nil { return err }
+	switch status {
+	case GrsaiUpstreamStatusSucceeded:
+		_, err := s.Settle(ctx, record.ID, record.ClaimVersion)
+		return err
+	case GrsaiUpstreamStatusFailed, GrsaiUpstreamStatusViolation:
+		return s.Repo.CloseNoCharge(ctx, record.ID, record.ClaimVersion, "upstream "+status)
+	default:
+		return s.Repo.MarkPendingUpstream(ctx, record.ID, record.ClaimVersion, next)
+	}
+}
+
+// Settle operates on an existing claim (from Prepare or ClaimDue). It never
+// reads live pricing, reissues Generate, or owns a second balance transaction.
+func (s *GrsaiSettlementService) Settle(ctx context.Context, id, claimVersion int64) (bool, error) {
+	if s == nil || s.Repo == nil || s.Billing == nil { return false, ErrGrsaiSettlementInvalidInput }
+	record, err := s.Repo.GetByID(ctx, id)
+	if err != nil { return false, err }
+	if record.ClaimVersion != claimVersion { return false, ErrGrsaiSettlementClaimLost }
+	if record.InternalStatus == "settled" { return false, nil }
+	if record.InternalStatus != "processing" || record.UpstreamStatus != GrsaiUpstreamStatusSucceeded {
+		return false, ErrGrsaiSettlementInvalidState
+	}
+	cmd, err := grsaiBillingCommand(record)
+	if err != nil { return false, err }
+	applied, err := s.Repo.Settle(ctx, id, claimVersion, cmd.BalanceCost, func(txCtx context.Context, tx *sql.Tx, locked *GrsaiSettlement) error {
+		if locked.UpstreamStatus != GrsaiUpstreamStatusSucceeded { return ErrGrsaiSettlementInvalidState }
+		lockedCommand, buildErr := grsaiBillingCommand(locked)
+		if buildErr != nil { return buildErr }
+		if lockedCommand.RequestFingerprint != cmd.RequestFingerprint { return ErrUsageBillingRequestConflict }
+		_, applyErr := s.Billing.ApplyTx(txCtx, tx, lockedCommand)
+		return applyErr
+	})
+	if err != nil {
+		if !errors.Is(err, ErrGrsaiSettlementClaimLost) {
+			if retryErr := s.Repo.MarkPendingSettlement(ctx, id, claimVersion, time.Now().Add(grsaiSettlementRetryDelay)); retryErr != nil {
+				return false, errors.Join(err, retryErr)
+			}
+		}
+		return false, err
+	}
+	if applied {
+		if s.AuthCache != nil { s.AuthCache.InvalidateAuthCacheByUserID(ctx, record.UserID) }
+		s.recordUsage(ctx, record, cmd)
+	}
+	return applied, nil
+}
+
+func grsaiBillingCommand(record *GrsaiSettlement) (*UsageBillingCommand, error) {
+	if record == nil || record.ID <= 0 || record.RequestedImageCount <= 0 || record.Currency != "USD" ||
+		!grsaiFiniteNonNegative(record.BillableUnitPrice) || !grsaiFiniteNonNegative(record.BaseUnitPrice) ||
+		!grsaiFiniteNonNegative(record.AccountRateMultiplier) { return nil, ErrGrsaiSettlementInvalidInput }
+	count := decimal.NewFromInt(int64(record.RequestedImageCount))
+	amount, _ := decimal.NewFromFloat(record.BillableUnitPrice).Mul(count).Float64()
+	accountCost, _ := decimal.NewFromFloat(record.BaseUnitPrice).Mul(count).Mul(decimal.NewFromFloat(record.AccountRateMultiplier)).Float64()
+	if !grsaiFiniteNonNegative(amount) || !grsaiFiniteNonNegative(accountCost) { return nil, ErrGrsaiSettlementInvalidInput }
+	cmd := &UsageBillingCommand{RequestID: GrsaiSettlementRequestID(record.ID), APIKeyID: record.APIKeyID,
+		UserID: record.UserID, AccountID: record.AccountID, AccountType: AccountTypeAPIKey, Model: record.Model,
+		BillingType: BillingTypeBalance, ImageCount: record.RequestedImageCount, MediaType: "image",
+		BalanceCost: amount, APIKeyQuotaCost: amount, APIKeyRateLimitCost: amount, AccountQuotaCost: accountCost}
+	cmd.Normalize()
+	return cmd, nil
+}
+
+func (s *GrsaiSettlementService) recordUsage(ctx context.Context, record *GrsaiSettlement, cmd *UsageBillingCommand) {
+	if s.UsageLogRepo == nil { return }
+	mode, endpoint := string(BillingModeImage), "/v1/api/generate"
+	baseCost := record.BaseUnitPrice * float64(record.RequestedImageCount)
+	usage := &UsageLog{UserID: record.UserID, APIKeyID: record.APIKeyID, AccountID: record.AccountID,
+		GroupID: &record.GroupID, RequestID: cmd.RequestID, Model: record.Model, RequestedModel: record.Model,
+		ImageCount: record.RequestedImageCount, ImageOutputCost: baseCost, TotalCost: baseCost, ActualCost: cmd.BalanceCost,
+		RateMultiplier: record.GroupRateMultiplier, AccountRateMultiplier: &record.AccountRateMultiplier,
+		BillingType: BillingTypeBalance, RequestType: RequestTypeSync, BillingMode: &mode,
+		InboundEndpoint: &endpoint, UpstreamEndpoint: &endpoint, CreatedAt: time.Now()}
+	writeUsageLogBestEffort(ctx, s.UsageLogRepo, usage, "service.grsai_settlement")
+}
+
+func GrsaiSettlementRequestID(id int64) string { return fmt.Sprintf("grsai_settlement:%d", id) }
+
+func grsaiFiniteNonNegative(value float64) bool { return value >= 0 && !math.IsNaN(value) && !math.IsInf(value, 0) }
