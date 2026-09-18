@@ -109,6 +109,7 @@ export default {
         deepseek: 'DeepSeek',
         minimax: 'MiniMax',
         opencode_go: 'OpenCode',
+        grsai: 'GRS.AI',
       },
       cnProviders: {
         accountMode: {

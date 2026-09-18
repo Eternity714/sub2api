@@ -704,6 +704,26 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     expect(createOpenAICodexPATMock.mock.calls[0]?.[0]?.extra?.openai_long_context_billing_enabled).toBe(true)
   })
 
+  it('submits a GRS.AI API key account with its independent Base URL', async () => {
+    const wrapper = mountModal()
+    await selectButtonByText(wrapper, 'GRS.AI')
+    await wrapper.get('form#create-account-form input[type="text"]').setValue('GRS.AI image account')
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('grsai-api-key')
+
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(createAccountMock).toHaveBeenCalledTimes(1)
+    expect(createAccountMock.mock.calls[0]?.[0]).toMatchObject({
+      platform: 'grsai',
+      type: 'apikey',
+      credentials: {
+        base_url: 'https://api.grsai.com',
+        api_key: 'grsai-api-key'
+      }
+    })
+  })
+
   it('sends explicit false for Codex PAT import after the toggle is changed back', async () => {
     const wrapper = await openCodexImportStep(2)
     await wrapper.get('[data-testid="import-codex-pat"]').trigger('click')
