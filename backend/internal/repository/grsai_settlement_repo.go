@@ -8,6 +8,8 @@ import (
 	"math"
 	"strings"
 	"time"
+
+	"github.com/Wei-Shaw/sub2api/internal/service"
 )
 
 const (
@@ -20,10 +22,10 @@ const (
 )
 
 var (
-	ErrGrsaiSettlementNotFound     = errors.New("grsai settlement not found")
-	ErrGrsaiSettlementInvalidInput = errors.New("invalid grsai settlement input")
-	ErrGrsaiSettlementInvalidState = errors.New("invalid grsai settlement state")
-	ErrGrsaiSettlementClaimLost    = errors.New("grsai settlement claim lost")
+	ErrGrsaiSettlementNotFound     = service.ErrGrsaiSettlementNotFound
+	ErrGrsaiSettlementInvalidInput = service.ErrGrsaiSettlementInvalidInput
+	ErrGrsaiSettlementInvalidState = service.ErrGrsaiSettlementInvalidState
+	ErrGrsaiSettlementClaimLost    = service.ErrGrsaiSettlementClaimLost
 )
 
 type grsaiSettlementSQLExecutor interface {
@@ -37,58 +39,15 @@ type grsaiSettlementRepository struct {
 	sql grsaiSettlementSQLExecutor
 }
 
-type CreateGrsaiSettlementParams struct {
-	AccountID            int64
-	GroupID              int64
-	UserID               int64
-	APIKeyID             int64
-	Model                string
-	BaseUnitPrice         float64
-	GroupRateMultiplier   float64
-	AccountRateMultiplier float64
-	BillableUnitPrice     float64
-	RequestedImageCount   int
-	Currency              string
-	BillingIdempotencyKey string
-	UpstreamTaskID        *string
-	UpstreamStatus        string
-	NextAttemptAt         time.Time
-}
-
-type GrsaiSettlement struct {
-	ID                    int64
-	AccountID             int64
-	GroupID               int64
-	UserID                int64
-	APIKeyID              int64
-	Model                 string
-	BaseUnitPrice         float64
-	GroupRateMultiplier   float64
-	AccountRateMultiplier float64
-	BillableUnitPrice     float64
-	RequestedImageCount   int
-	Currency              string
-	BillingIdempotencyKey string
-	UpstreamTaskID        *string
-	UpstreamStatus        string
-	InternalStatus        string
-	RetryCount            int
-	ClaimVersion          int64
-	NextAttemptAt         time.Time
-	LastErrorSummary      *string
-	SettledAmount         *float64
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
-	UpstreamBoundAt       *time.Time
-	ResultUpdatedAt       *time.Time
-	SettledAt             *time.Time
-	ClosedAt              *time.Time
-}
+type CreateGrsaiSettlementParams = service.CreateGrsaiSettlementParams
+type GrsaiSettlement = service.GrsaiSettlement
 
 // GrsaiSettlementTxFunc applies the idempotent billing side effect inside the
 // same SQL transaction that marks the settlement complete. The callback must
 // not commit or roll back tx.
-type GrsaiSettlementTxFunc func(context.Context, *sql.Tx, *GrsaiSettlement) error
+type GrsaiSettlementTxFunc = service.GrsaiSettlementTxFunc
+
+var _ service.GrsaiSettlementRepository = (*grsaiSettlementRepository)(nil)
 
 func NewGrsaiSettlementRepository(db *sql.DB) *grsaiSettlementRepository {
 	return &grsaiSettlementRepository{db: db, sql: db}
@@ -149,6 +108,42 @@ func (r *grsaiSettlementRepository) GetByID(ctx context.Context, id int64) (*Grs
 	return record, err
 }
 
+// ClaimByID is for an immediate request or an explicit retry. Active leases
+// cannot be stolen; expired leases use the same increasing fence as ClaimDue.
+func (r *grsaiSettlementRepository) ClaimByID(ctx context.Context, id int64, now, leaseUntil time.Time) (*GrsaiSettlement, error) {
+	if id <= 0 || now.IsZero() || !leaseUntil.After(now) {
+		return nil, ErrGrsaiSettlementInvalidInput
+	}
+	record, err := scanGrsaiSettlement(r.sql.QueryRowContext(ctx, `
+UPDATE grsai_settlements
+SET internal_status = 'processing',
+    claim_version = claim_version + 1,
+    next_attempt_at = $3,
+    updated_at = $2
+WHERE id = $1
+  AND (internal_status IN ('pending_upstream', 'pending_settlement')
+       OR (internal_status = 'processing' AND next_attempt_at <= $2))
+RETURNING `+grsaiSettlementReturningColumns("grsai_settlements"), id, now, leaseUntil))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrGrsaiSettlementClaimLost
+	}
+	return record, err
+}
+
+func (r *grsaiSettlementRepository) MarkPendingUpstream(ctx context.Context, id, claimVersion int64, nextAttemptAt time.Time) error {
+	if nextAttemptAt.IsZero() {
+		return ErrGrsaiSettlementInvalidInput
+	}
+	return r.transition(ctx, id, claimVersion, `
+UPDATE grsai_settlements
+SET internal_status = 'pending_upstream',
+    next_attempt_at = $3,
+    updated_at = NOW()
+WHERE id = $1
+  AND claim_version = $2
+  AND internal_status = 'processing'`, nextAttemptAt)
+}
+
 func (r *grsaiSettlementRepository) BindUpstreamTask(ctx context.Context, id, claimVersion int64, taskID, upstreamStatus string) (bool, error) {
 	taskID = strings.TrimSpace(taskID)
 	if taskID == "" {
@@ -187,7 +182,8 @@ SET upstream_status = $3,
     updated_at = NOW()
 WHERE id = $1
   AND claim_version = $2
-  AND internal_status = 'processing'`, id, claimVersion, upstreamStatus, errorSummary, nextAttemptAt)
+  AND internal_status = 'processing'
+  AND (upstream_status NOT IN ('succeeded', 'failed', 'violation') OR upstream_status = $3)`, id, claimVersion, upstreamStatus, errorSummary, nextAttemptAt)
 	if err != nil {
 		return false, err
 	}
