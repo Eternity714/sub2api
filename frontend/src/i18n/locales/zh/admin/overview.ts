@@ -917,6 +917,7 @@ export default {
         deepseek: 'DeepSeek',
         minimax: 'MiniMax',
         opencode_go: 'OpenCode',
+        grsai: 'GRS.AI',
         composite: 'Composite',
       },
       saving: '保存中...',

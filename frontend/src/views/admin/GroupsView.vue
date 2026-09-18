@@ -4614,7 +4614,7 @@ const platformFilterOptions = computed(() => [
 ]);
 
 const compositeRoutePlatformOptions = computed(() => [
-  ...CONCRETE_PLATFORM_OPTIONS,
+  ...CONCRETE_PLATFORM_OPTIONS.filter((option) => option.value !== 'grsai'),
 ]);
 
 const compositeRouteEndpointOptions = computed(() => [
