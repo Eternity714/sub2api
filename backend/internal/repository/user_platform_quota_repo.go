@@ -491,11 +491,11 @@ func (r *userPlatformQuotaRepository) BatchSnapshotUsage(ctx context.Context, sn
 	return nil
 }
 
-// validateQuotaPlatforms 在原生 SQL 写入前校验平台须为平台清单中的具体平台，
+// validateQuotaPlatforms 在原生 SQL 写入前校验平台须已接入平台额度计量，
 // 取代迁移 242 删除的 user_platform_quotas_platform_check 约束（原生 SQL 不经过 ent Validate）。
 func validateQuotaPlatforms(records []UserPlatformQuotaRecord) error {
 	for _, rec := range records {
-		if !domain.IsConcretePlatform(rec.Platform) {
+		if !domain.IsQuotaPlatform(rec.Platform) {
 			return fmt.Errorf("user_platform_quotas: platform %q is not allowed", rec.Platform)
 		}
 	}
