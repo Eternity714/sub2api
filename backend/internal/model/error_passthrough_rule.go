@@ -45,6 +45,7 @@ const (
 	PlatformZhipu       = domain.PlatformZhipu
 	PlatformDeepseek    = domain.PlatformDeepseek
 	PlatformMiniMax     = domain.PlatformMiniMax
+	PlatformGrsai       = domain.PlatformGrsai
 	PlatformOpenCodeGo  = domain.PlatformOpenCodeGo
 	PlatformTypeSafe    = domain.PlatformTypeSafe
 )
@@ -61,6 +62,7 @@ func AllPlatforms() []string {
 		PlatformZhipu,
 		PlatformDeepseek,
 		PlatformMiniMax,
+		PlatformGrsai,
 		PlatformOpenCodeGo,
 		PlatformTypeSafe,
 	}
