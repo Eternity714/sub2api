@@ -30,14 +30,14 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { PlatformQuotaItem } from '@/api/admin/users'
-import { listPlatformIds } from '@/constants/platformCatalog'
+import { quotaPlatformIds } from '@/constants/platformCatalog'
 
 const props = defineProps<{ quotas?: PlatformQuotaItem[] }>()
 const { t } = useI18n()
 
 // 按平台清单顺序展示；未登记的平台排在最后。
 function platformRank(platform: string): number {
-  const index = listPlatformIds().indexOf(platform)
+  const index = quotaPlatformIds().indexOf(platform)
   return index === -1 ? Number.MAX_SAFE_INTEGER : index
 }
 
@@ -45,6 +45,7 @@ function platformRank(platform: string): number {
 const configured = computed(() => {
   if (!props.quotas) return []
   return props.quotas
+    .filter(q => q.platform !== 'grsai')
     .filter(
       (q) =>
         q.daily_limit_usd != null ||

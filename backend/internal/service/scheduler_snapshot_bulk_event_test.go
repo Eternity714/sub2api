@@ -129,6 +129,17 @@ func TestSchedulerBulkAccountEventScopesCNRebuildToFreshPlatform(t *testing.T) {
 	}
 }
 
+func TestSchedulerBulkAccountEventScopesGrsaiRebuildToFreshPlatform(t *testing.T) {
+	cache := newBulkEventSnapshotCache()
+	repo := newBulkEventAccountRepo(&Account{ID: 1, Platform: PlatformGrsai, GroupIDs: []int64{12}})
+	svc := newBulkEventTestService(cache, repo)
+
+	err := svc.handleBulkAccountEvent(context.Background(), bulkEventPayload([]int64{1}, []int64{11}), make(map[batchSeenKey]struct{}))
+
+	require.NoError(t, err)
+	require.ElementsMatch(t, schedulerBucketsForTest([]int64{11, 12}, PlatformGrsai), cache.capturedBuckets())
+}
+
 func TestSchedulerBulkAccountEventRebuildsOpenAIUngroupedBucket(t *testing.T) {
 	cache := newBulkEventSnapshotCache()
 	repo := newBulkEventAccountRepo(&Account{ID: 6, Platform: PlatformOpenAI})

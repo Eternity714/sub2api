@@ -8976,7 +8976,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from "vue";
-import { listPlatformIds } from "@/constants/platformCatalog";
+import { quotaPlatformIds } from "@/constants/platformCatalog";
 import { useI18n } from "vue-i18n";
 import { adminAPI } from "@/api";
 import {
@@ -9770,7 +9770,7 @@ const schedulingThresholdPlatforms = SCHEDULING_THRESHOLD_PLATFORMS;
 // 平台限额表格的行：平台清单顺序中、已在归一化 map 里的平台（清单晚于设置加载时
 // 不渲染尚未归一化的平台，保持模板非空绑定）。
 function platformQuotaRows(map: DefaultPlatformQuotasMap | undefined): string[] {
-  return listPlatformIds().filter((platform) => !!map?.[platform]);
+  return quotaPlatformIds().filter((platform) => !!map?.[platform]);
 }
 
 const form = reactive<SettingsForm>({

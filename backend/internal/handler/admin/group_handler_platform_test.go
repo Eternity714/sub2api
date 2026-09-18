@@ -30,6 +30,7 @@ func TestGroupPlatformBinding_AllowedPlatforms(t *testing.T) {
 		"kimi", "zhipu", "deepseek", "minimax", "opencode_go", "composite",
 		"typesafe",
 		"command_code", "cline",
+		"grsai",
 	}
 	for _, platform := range allowed {
 		t.Run("create_"+platform, func(t *testing.T) {
@@ -85,4 +86,9 @@ func TestCompositeRouteTargetPlatform_AllowsConcreteProviders(t *testing.T) {
 func TestCompositeRouteTargetPlatform_RejectsComposite(t *testing.T) {
 	var req CompositeRouteRequest
 	require.Error(t, bindGroupPlatformJSON(t, &req, `{"public_model":"m","target_platform":"composite"}`))
+}
+
+func TestCompositeRouteTargetPlatform_RejectsGrsai(t *testing.T) {
+	var req CompositeRouteRequest
+	require.Error(t, bindGroupPlatformJSON(t, &req, `{"public_model":"m","target_platform":"grsai"}`))
 }

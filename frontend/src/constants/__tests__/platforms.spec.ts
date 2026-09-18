@@ -6,6 +6,7 @@ import {
   compositePrecedencePlatformIds,
   listPlatformIds,
   platformDisplayName,
+  quotaPlatformIds,
   resetPlatformCatalog,
   setPlatformCatalog
 } from '@/constants/platformCatalog'
@@ -13,7 +14,7 @@ import { platformLabel } from '@/utils/platformColors'
 import { normalizePlatformQuotasMap, sanitizePlatformQuotasMap } from '@/api/admin/settings'
 import { platformQuotaPlatforms } from '@/api/admin/users'
 
-// 改为读取平台清单之前的平台字面量，加上之后内置登记的 Command Code。
+// 改为读取平台清单之前的平台字面量，加上之后内置登记的平台。
 const concretePlatforms = [
   'anthropic',
   'openai',
@@ -27,7 +28,8 @@ const concretePlatforms = [
   'opencode_go',
   'typesafe',
   'command_code',
-  'cline'
+  'cline',
+  'grsai'
 ]
 
 describe('platform option catalogs', () => {
@@ -64,7 +66,7 @@ describe('platform catalog with a newly registered platform', () => {
     ])
     expect(CONCRETE_PLATFORM_OPTIONS.map((option) => option.label)).toEqual([
       'Anthropic', 'OpenAI', 'Gemini', 'Antigravity', 'Grok',
-      'Kimi', 'Zhipu GLM', 'DeepSeek', 'MiniMax', 'OpenCode', 'TypeSafe / Jev', 'Command Code', 'Cline'
+      'Kimi', 'Zhipu GLM', 'DeepSeek', 'MiniMax', 'OpenCode', 'TypeSafe / Jev', 'Command Code', 'Cline', 'GRS.AI'
     ])
     expect(platformLabel('zhipu')).toBe('Zhipu GLM')
     expect(platformLabel('composite')).toBe('Composite')
@@ -87,7 +89,9 @@ describe('platform catalog with a newly registered platform', () => {
     expect(platformDisplayName('acme_router')).toBe('Acme Router')
     expect(platformLabel('unregistered')).toBe('unregistered')
     expect(platformQuotaPlatforms()).toContain('acme_router')
-    expect(Object.keys(normalizePlatformQuotasMap())).toEqual([...concretePlatforms, 'acme_router'])
+    expect(platformQuotaPlatforms()).not.toContain('grsai')
+    expect(quotaPlatformIds()).toEqual([...concretePlatforms.filter(platform => platform !== 'grsai'), 'acme_router'])
+    expect(Object.keys(normalizePlatformQuotasMap())).toEqual([...concretePlatforms.filter(platform => platform !== 'grsai'), 'acme_router'])
     expect(sanitizePlatformQuotasMap({ acme_router: { daily: 5, weekly: -1, monthly: null } }).acme_router).toEqual({
       daily: 5,
       weekly: null,
