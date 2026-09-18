@@ -1,722 +1,161 @@
-# grsai Native Images Implementation Plan
+# grsai 原生生图实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `product-dev-suite:subagent-driven-development` (recommended) or `product-dev-suite:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **给执行型智能体：** 必须按任务逐项实施和复核。本文件中的复选框用于记录进度；每完成一个任务，先运行该任务的测试，再继续下一个任务。
 
-**Goal:** Add the first-phase `platform=grsai` native image-generation gateway at `POST /v1/api/generate`, with per-model price snapshots and durable, idempotent settlement.
+**目标：** 在 `POST /v1/api/generate` 增加第一阶段 `platform=grsai` 原生生图网关，支持按模型保存价格快照，并以可持久化、幂等的方式结算。
 
-**Architecture:** A dedicated `GrsaiGatewayHandler` authenticates and schedules only grsai groups, then calls a native grsai client without translating model-specific parameters. A database-backed settlement record is created before upstream submission; terminal success is charged through the existing atomic usage-billing repository, while a separate recovery runtime polls known running tasks and retries pending settlement.
+**架构：** 专用 `GrsaiGatewayHandler` 只认证和调度 grsai 分组，再调用原生 grsai 客户端，不转换模型特有参数。提交上游之前落库结算记录；仅上游终态 `succeeded` 才经已有原子用量计费仓储收费。独立恢复运行时轮询已知运行中的任务，并重试待结算记录。
 
-**Tech Stack:** Go, Gin, Ent, PostgreSQL SQL migrations, Google Wire, Vue 3, TypeScript, Vitest, Go unit/integration tests.
+**技术栈：** Go、Gin、Ent、PostgreSQL SQL migration、Google Wire、Vue 3、TypeScript、Vitest、Go 单元/集成测试。
 
-**Spec:** `docs/superpowers/specs/2026-09-18-grsai-native-images-design.md`
+**设计依据：** `docs/superpowers/specs/2026-09-18-grsai-native-images-design.md`
 
-## Global Constraints
+## 全局约束
 
-- The only new public route is `POST /v1/api/generate`; do not add a root alias or public task-result route.
-- Accept only JSON `replyType`; normalize omission to `json`, and reject `stream=true` or `async=true` locally.
-- Require a direct `platform=grsai` group in phase 1; composite support remains Roadmap work.
-- Preserve model-specific request fields unchanged and do not add per-model parameter profiles in this phase.
-- Charge only after an upstream task is confirmed `succeeded`; upstream HTTP errors, `failed`, `violation`, malformed responses, and initial `running` responses do not immediately charge.
-- Do not store upstream API keys, prompt text, reference-image bytes, Base64, or unredacted request JSON in settlement records or logs.
-- Use a durable database scanner for settlement recovery. Do not depend on an in-memory queue for billing recovery.
-- Before any migration or production deployment change, locate and read `docs/RELEASE_DEPLOYMENT.md` as required by `AGENTS.md`. The current checkout does not contain that file; implementation must stop before migration work until its authoritative location is restored or confirmed by the repository owner.
-- Keep Roadmap items out of this implementation: composite groups, public task lookup, public async/streaming modes, OpenAI-compatible grsai image routes, parameter profiles, model sync, and automatic price conversion.
+- 唯一新增公开路由为 `POST /v1/api/generate`；不增加根路径别名或公开任务查询路由。
+- 仅接受 JSON `replyType`；缺省时归一为 `json`，本地拒绝 `stream=true` 和 `async=true`。
+- 第一阶段只允许直接 `platform=grsai` 分组；composite 支持留在 Roadmap。
+- 不改写模型特有请求字段，本阶段不建立按模型参数档案。
+- 只有上游任务确认 `succeeded` 后收费；上游 HTTP 错误、`failed`、`violation`、畸形响应和初始 `running` 响应均不立即收费。
+- 结算记录和日志不得保存上游 API Key、提示词、参考图字节、Base64 或未脱敏请求 JSON。
+- 使用数据库扫描器恢复结算；不得依赖内存队列保证计费恢复。
+- 依据 `AGENTS.md`，任何 migration 或生产部署改动前，必须定位并阅读 `docs/RELEASE_DEPLOYMENT.md`。当前工作区没有该文件；在仓库所有者恢复或确认其权威路径前，必须停止 migration 实施，不得创建 migration、生成 Ent 或启动服务。
+- 不实现 Roadmap 项：composite 分组、公开任务查询、公开异步/流式模式、grsai 的 OpenAI 兼容生图路由、参数档案、模型同步、自动价格换算。
 
----
+## 文件结构
 
-## File Structure
-
-| Path | Responsibility |
+| 路径 | 职责 |
 | --- | --- |
-| `backend/internal/domain/constants.go` and `backend/internal/service/domain_constants.go` | Define `PlatformGrsai` alongside other concrete platforms. |
-| `backend/ent/schema/grsai_settlement.go` | Durable settlement entity and indexes. |
-| `backend/migrations/239_grsai_native_images.sql` | Add `grsai_settlements` with upgrade-safe indexes; reserve a different next number if 239 is occupied when implementation starts. |
-| `backend/internal/repository/grsai_settlement_repo.go` | Ent-backed create, transition, due-scan, row-lock, and atomic settlement persistence. |
-| `backend/internal/service/grsai_native.go` | Native request validation, response decoding, URL construction, and HTTP client interface. |
-| `backend/internal/service/grsai_settlement.go` | State machine, price snapshots, usage-log construction, and idempotent billing orchestration. |
-| `backend/internal/service/grsai_settlement_recovery.go` | Database polling, result reconciliation, retry backoff, and manual-review escalation. |
-| `backend/internal/handler/grsai_gateway_handler.go` | Authenticated request flow, scheduler integration, upstream call, response passthrough, and immediate settlement trigger. |
-| `backend/internal/handler/handler.go`, `backend/internal/handler/wire.go`, `backend/internal/service/wire.go`, `backend/cmd/server/wire.go`, `backend/cmd/server/wire_gen.go` | Register the handler and worker runtime through existing Wire composition. |
-| `backend/internal/server/routes/gateway.go` | Register and platform-gate `/v1/api/generate`. |
-| `frontend/src/types/index.ts`, `frontend/src/constants/platforms.ts`, `frontend/src/utils/platformColors.ts` | Add the concrete platform to admin and display types. |
-| `frontend/src/components/account/credentialsBuilder.ts`, account/group/channel views, locale files | Configure grsai API-key/Base-URL credentials and show/select the platform. |
-| Focused `*_test.go` and `*.spec.ts` files listed per task | Lock the protocol, state, billing, platform, and UI contracts. |
+| `backend/internal/domain/constants.go`、`backend/internal/service/domain_constants.go` | 与其他具体平台并列定义 `PlatformGrsai`。 |
+| `backend/ent/schema/grsai_settlement.go` | 持久化结算实体与索引。 |
+| `backend/migrations/239_grsai_native_images.sql` | 创建 `grsai_settlements` 和升级安全索引；实施时若 `239` 被占用，使用实际下一个编号。 |
+| `backend/internal/repository/grsai_settlement_repo.go` | Ent 的创建、状态迁移、到期扫描、行锁与原子结算持久化。 |
+| `backend/internal/service/grsai_native.go` | 原生请求校验、响应解析、URL 构造和 HTTP 客户端接口。 |
+| `backend/internal/service/grsai_settlement.go` | 状态机、价格快照、用量日志构造与幂等计费编排。 |
+| `backend/internal/service/grsai_settlement_recovery.go` | 数据库轮询、结果对账、退避重试和人工复核升级。 |
+| `backend/internal/handler/grsai_gateway_handler.go` | 鉴权请求流、调度器集成、上游调用、响应透传和即时结算触发。 |
+| `backend/internal/server/routes/gateway.go` | 注册并进行平台隔离的 `/v1/api/generate`。 |
+| `frontend/src/types/index.ts`、`frontend/src/constants/platforms.ts`、`frontend/src/utils/platformColors.ts` | 管理端类型和展示层增加具体平台。 |
+| `frontend/src/components/account/credentialsBuilder.ts`、账号/分组/渠道视图、语言文件 | 配置 grsai API Key/Base URL 凭据并展示/选择平台。 |
 
-### Task 1: Verify the Release and Migration Preconditions
+## 任务 1：确认发布与 Migration 前置条件
 
-**Files:**
-- Verify: `AGENTS.md`
-- Verify: `docs/RELEASE_DEPLOYMENT.md`
-- Verify: `backend/migrations/migrations.go`
-- Verify: `backend/migrations/238_opencode_go_platform.sql`
-- Create only after the prerequisite is satisfied: `backend/migrations/239_grsai_native_images.sql`
+**文件：** `AGENTS.md`、`docs/RELEASE_DEPLOYMENT.md`、`backend/migrations/migrations.go`、当前最后一条 migration；前置满足后才创建 `backend/migrations/<实际编号>_grsai_native_images.sql`。
 
-**Consumes:** The approved native-image specification.
+**产出：** 已记录 migration 编号、部署兼容规则，以及允许修改数据库 schema 的结论。
 
-**Produces:** A documented migration number, deployment compatibility rules, and a green light to modify database schema.
+- [ ] 定位并完整阅读 `docs/RELEASE_DEPLOYMENT.md`。执行 `rg --files -g 'RELEASE_DEPLOYMENT.md' -g 'AGENTS.md' . docs`。预期是有可读取的权威文件；若仍缺失，停止实施并请仓库所有者恢复或提供权威路径，不得创建 migration、生成 Ent 或启动服务。
+- [ ] 阅读发布兼容规则及当前 migration 顺序。执行 `Get-Content -Raw 'docs\RELEASE_DEPLOYMENT.md'` 并检查当前最后一条 SQL。记录必需的兼容性 trailer、事务限制、部署顺序和回滚步骤。
+- [ ] 确定连续且未占用的 migration 前缀。执行 `Get-ChildItem 'backend\migrations' -Filter '*.sql' | Sort-Object Name | Select-Object -Last 10 Name`；`239` 仅为当前预期，实施时以检查结果为准。
 
-- [ ] **Step 1: Locate the required release document before editing migration-related code**
+## 任务 2：注册平台并完成管理端配置
 
-Run:
+**文件：** `backend/internal/domain/constants.go`、`backend/internal/service/domain_constants.go`、`backend/internal/service/account_service.go`、`backend/internal/handler/admin_group.go`、`backend/internal/service/scheduler_snapshot_service.go`、`backend/internal/service/composite_platform.go`、`backend/internal/model/error_passthrough_rule.go`；前端 `frontend/src/types/index.ts`、`frontend/src/constants/platforms.ts`、`frontend/src/utils/platformColors.ts`、`frontend/src/components/account/credentialsBuilder.ts` 及相应账号/分组/渠道视图与语言文件。
 
-```powershell
-rg --files -g 'RELEASE_DEPLOYMENT.md' -g 'AGENTS.md' . docs
-```
+**产出：** 管理端可创建和编辑 `platform=grsai` 账号、分组和渠道，调度快照能识别它。
 
-Expected: an authoritative `docs/RELEASE_DEPLOYMENT.md` is present and can be read. If it is still absent, stop implementation and ask the repository owner to restore it or provide its authority path; do not create a migration, regenerate Ent, or start the server.
+- [ ] 定义独立常量 `PlatformGrsai = "grsai"`，加入所有持久化校验、账号平台列表、分组平台列表和调度快照；错误、筛选项和标签遵循现有中文文案风格。
+- [ ] 接入账号凭据与管理端展示，复用现有 Base URL/API Key 的构造和敏感字段处理模式；平台目录、颜色、类型、表单选择器、筛选器、新建和编辑流程均要包含 grsai。
+- [ ] 维持传输层隔离：不得将 grsai 加入 OpenAI-compatible、OpenAI 特有图片路由或任何按 OpenAI 协议发送请求的 switch；在 Roadmap 完成前，composite 显式拒绝或排除 grsai。
+- [ ] 补充平台注册回归测试：grsai 可保存和展示；不被 OpenAI transport 枚举选中；第一阶段 composite 不能将其作为成员。
 
-- [ ] **Step 2: Read release compatibility rules and inspect current migration ordering**
+## 任务 3：实现可持久化的结算存储
 
-Run:
+**文件：** 新建 `backend/ent/schema/grsai_settlement.go`、`backend/internal/repository/grsai_settlement_repo.go`、相关仓储集成测试及通过任务 1 后的 migration。
 
-```powershell
-Get-Content -Raw 'docs\RELEASE_DEPLOYMENT.md'
-Get-Content -Raw 'backend\migrations\238_opencode_go_platform.sql'
-```
+**产出：** 上游提交前可落库的结算记录，具有唯一幂等键、任务去重和可锁定的到期扫描。
 
-Expected: capture the required compatibility trailer, transaction constraints, deployment order, and rollback procedure in the implementation PR description before creating the next migration.
+- [ ] 定义最小脱敏 schema：账户、分组、令牌/用户归属的必要标识、模型、价格快照、计费幂等键、上游任务 ID、上游状态、内部状态、重试次数、下次尝试时间、最终错误摘要与审计时间戳。禁止保存密钥、prompt、原始图片和原始请求体。
+- [ ] 新增数据库约束与 migration：`billing_idempotency_key` 必须唯一；对非空 `upstream_task_id` 增加 `(account_id, upstream_task_id)` 部分唯一索引；增加到期扫描和行锁领取索引；满足任务 1 的发布兼容约束。
+- [ ] 实现 create、绑定上游任务、更新结果、领取到期记录、标记待结算/已结算/免收费关闭/人工复核等仓储操作。`Settle` 在事务内以行锁或等价条件更新，防止多个 worker 对同一记录并发收费。
+- [ ] 编写集成测试，覆盖唯一计费键、同账号非空任务 ID 去重、空任务 ID 可共存、并发领取仅一方成功和终态记录不会再次领取。
 
-- [ ] **Step 3: Confirm the next migration prefix is unused**
+## 任务 4：实现原生 grsai 协议客户端
 
-Run:
+**文件：** 新建 `backend/internal/service/grsai_native.go` 和 `backend/internal/service/grsai_native_test.go`。
 
-```powershell
-Test-Path 'backend\migrations\239_grsai_native_images.sql'
-```
+**产出：** 可测试、不会改写模型特有参数的上游客户端。
 
-Expected: `False`; if `True`, choose the next unused zero-padded number and update every reference in this plan while implementing.
-
-- [ ] **Step 4: Leave migration creation to the persistence task**
-
-Do not commit a migration at this point. The migration belongs to Task 3 after the Ent schema and its tests exist.
-
-### Task 2: Add `grsai` as a Concrete Configurable Platform
-
-**Files:**
-- Modify: `backend/internal/domain/constants.go`
-- Modify: `backend/internal/service/domain_constants.go`
-- Modify: `backend/internal/service/account_service.go`
-- Modify: `backend/internal/service/admin_group.go`
-- Modify: `backend/internal/service/scheduler_snapshot_service.go`
-- Modify: `backend/internal/service/composite_platform.go`
-- Modify: `backend/internal/model/error_passthrough_rule.go`
-- Modify: `frontend/src/types/index.ts`
-- Modify: `frontend/src/constants/platforms.ts`
-- Modify: `frontend/src/utils/platformColors.ts`
-- Modify: `frontend/src/components/account/credentialsBuilder.ts`
-- Modify: `frontend/src/components/account/CreateAccountModal.vue`
-- Modify: `frontend/src/components/account/EditAccountModal.vue`
-- Modify: `frontend/src/i18n/locales/zh/admin/accounts.ts`
-- Modify: `frontend/src/i18n/locales/en/admin/accounts.ts`
-- Test: `backend/internal/handler/admin/group_handler_platform_test.go`
-- Test: `backend/internal/service/grsai_platform_test.go`
-- Test: `frontend/src/constants/__tests__/platforms.spec.ts`
-- Test: `frontend/src/components/account/__tests__/credentialsBuilder.spec.ts`
-
-**Consumes:** `PlatformGrsai = "grsai"` in domain constants.
-
-**Produces:** Valid account and group platform values, scheduler buckets, API DTOs, and admin controls that can create grsai configuration without treating it as OpenAI.
-
-- [ ] **Step 1: Write failing backend platform-validation tests**
-
-Add table rows that create an API-key account and a normal group using `service.PlatformGrsai`, and assert that an unsupported arbitrary string is still rejected.
-
-```go
-{
-    name: "grsai platform is accepted",
-    platform: service.PlatformGrsai,
-    wantErr: false,
-}
-```
-
-- [ ] **Step 2: Run the focused backend tests and confirm the new platform is rejected before implementation**
-
-Run:
-
-```powershell
-go test -tags=unit ./internal/handler/admin ./internal/service -run 'GrsaiPlatform|GroupHandlerPlatform' -count=1
-```
-
-Expected: FAIL because `PlatformGrsai` and the allow-list entries do not exist.
-
-- [ ] **Step 3: Add the platform constant and update every concrete-platform enumeration**
-
-Define the same value in domain and service aliases:
-
-```go
-const PlatformGrsai = "grsai"
-```
-
-Add it to validation and scheduler lists that currently include `PlatformOpenCodeGo`, including the concrete account platform list in `scheduler_snapshot_service.go`. Do not add it to OpenAI-compatible endpoint switches, token refreshers, or OpenAI-specific upstream billing probes.
-
-- [ ] **Step 4: Add failing frontend catalog and credential tests**
-
-Assert the catalog exposes `grsai`, `GroupPlatform` and `AccountPlatform` accept it, and account credential construction accepts only an API key plus a normalized Base URL for this platform.
-
-```ts
-expect(CONCRETE_PLATFORM_OPTIONS).toContainEqual({ value: 'grsai', label: 'grsai' })
-expect(buildCredentials('grsai', { apiKey: 'sk-test', baseUrl: 'https://example.test/' }))
-  .toEqual({ api_key: 'sk-test', base_url: 'https://example.test' })
-```
-
-- [ ] **Step 5: Implement the frontend platform catalog and account form behavior**
-
-Extend the union types and `CONCRETE_PLATFORM_OPTIONS`; add a non-OpenAI color entry and localized `grsai` label. In `credentialsBuilder.ts`, serialize credentials as `api_key` and normalized `base_url`; make the create/edit forms expose those fields only for grsai. Reuse existing sensitive-field masking and never render the saved API key in plaintext.
-
-- [ ] **Step 6: Run platform and UI tests**
-
-Run:
-
-```powershell
-go test -tags=unit ./internal/handler/admin ./internal/service -run 'GrsaiPlatform|GroupHandlerPlatform' -count=1
-npm --prefix frontend test -- --run src/constants/__tests__/platforms.spec.ts src/components/account/__tests__/credentialsBuilder.spec.ts
-```
-
-Expected: PASS.
-
-- [ ] **Step 7: Commit the platform slice**
-
-```powershell
-git add -- backend/internal/domain/constants.go backend/internal/service/domain_constants.go backend/internal/service/account_service.go backend/internal/service/admin_group.go backend/internal/service/scheduler_snapshot_service.go backend/internal/service/composite_platform.go backend/internal/model/error_passthrough_rule.go backend/internal/handler/admin/group_handler_platform_test.go backend/internal/service/grsai_platform_test.go frontend/src/types/index.ts frontend/src/constants/platforms.ts frontend/src/constants/__tests__/platforms.spec.ts frontend/src/utils/platformColors.ts frontend/src/components/account/credentialsBuilder.ts frontend/src/components/account/CreateAccountModal.vue frontend/src/components/account/EditAccountModal.vue frontend/src/components/account/__tests__/credentialsBuilder.spec.ts frontend/src/i18n/locales/zh/admin/accounts.ts frontend/src/i18n/locales/en/admin/accounts.ts
-git commit -m "feat: 增加 grsai 平台配置"
-```
-
-### Task 3: Create Durable Settlement Storage and Repository Operations
-
-**Files:**
-- Create: `backend/ent/schema/grsai_settlement.go`
-- Create: `backend/internal/repository/grsai_settlement_repo.go`
-- Create: `backend/internal/repository/grsai_settlement_repo_integration_test.go`
-- Create: `backend/migrations/239_grsai_native_images.sql`
-- Modify: `backend/internal/repository/wire.go`
-- Modify generated: `backend/ent/...`
-- Modify generated: `backend/cmd/server/wire_gen.go`
-- Test: `backend/internal/repository/grsai_settlement_repo_integration_test.go`
-
-**Consumes:** `PlatformGrsai`; the release/migration precondition from Task 1.
-
-**Produces:** `GrsaiSettlementRepository`, row states, unique idempotency keys, due-record scanning, and a generated Ent client.
-
-- [ ] **Step 1: Write an integration test for the state transition and uniqueness contract**
-
-Create two records with the same `billing_idempotency_key`, then assert only one is created. Set an upstream task ID twice for the same account and assert the partial unique constraint rejects the second record. Assert the due query returns only `awaiting_result`, `settlement_pending`, and expired `submission_pending` records.
-
-```go
-created, err := repo.Create(ctx, GrsaiSettlementCreateParams{
-    SettlementID: "grsai_settlement_test_1",
-    BillingIdempotencyKey: "grsai:settlement:1",
-    Status: service.GrsaiSettlementStatusSubmissionPending,
-})
-require.NoError(t, err)
-require.True(t, created)
-```
-
-- [ ] **Step 2: Run the integration test and confirm it fails because the schema/repository are absent**
-
-Run the repository integration test using the project's existing PostgreSQL test setup. Do not replace it with an in-memory mock because partial unique indexes and row locking are part of the contract.
-
-```powershell
-go test -tags=integration ./internal/repository -run 'GrsaiSettlement' -count=1
-```
-
-Expected: FAIL because `GrsaiSettlementRepository` and Ent schema do not exist.
-
-- [ ] **Step 3: Define the Ent schema and migration**
-
-Create `GrsaiSettlement` with these fields: internal settlement ID; status; user/API-key/group/account/channel IDs; requested, mapped, and billing model; price snapshot; request SHA-256; upstream task ID/status/HTTP status; billing idempotency key; retry count; next-retry and submission timestamps; redacted last error; manual-review reason; settled timestamp; created/updated timestamps.
-
-Use `decimal(20,10)` for the price snapshot. Add a unique index on `billing_idempotency_key`, a partial unique index on `(account_id, upstream_task_id)` where the task ID is nonempty, and due-scan indexes on `(status, next_retry_at)` and `submission_started_at`. The SQL migration must use idempotent DDL and must not alter an existing migration file.
-
-- [ ] **Step 4: Implement repository methods with transactional compare-and-set semantics**
-
-Define this service-facing interface:
-
-```go
-type GrsaiSettlementRepository interface {
-    Create(context.Context, GrsaiSettlementCreateParams) (*GrsaiSettlement, error)
-    RecordUpstream(context.Context, GrsaiRecordUpstreamParams) (*GrsaiSettlement, error)
-    ClaimDue(context.Context, time.Time, int) ([]*GrsaiSettlement, error)
-    MarkClosedNoCharge(context.Context, string, GrsaiTerminalParams) error
-    MarkManualReview(context.Context, string, string) error
-    Settle(context.Context, string, func(context.Context, *GrsaiSettlement) error) error
-}
-
-type GrsaiSettlementCreateParams struct {
-    SettlementID, BillingIdempotencyKey, Status string
-    UserID, APIKeyID, GroupID, AccountID, ChannelID int64
-    RequestedModel, MappedModel, BillingModel string
-    PriceSnapshot float64
-    RequestHash string
-    SubmissionStartedAt time.Time
-}
-
-type GrsaiRecordUpstreamParams struct {
-    SettlementID, TaskID, Status, ErrorCode, ErrorText string
-    HTTPStatus int
-    NextRetryAt *time.Time
-}
-
-type GrsaiTerminalParams struct {
-    HTTPStatus int
-    UpstreamStatus, ErrorCode, ErrorText string
-}
-```
-
-`Settle` must lock one settlement row, accept only `settlement_pending`, execute the supplied billing callback in the same database transaction, and mark the row `settled` only after the callback succeeds. A second worker must observe `settled` and return without another callback.
-
-- [ ] **Step 5: Generate Ent and Wire code, then re-run tests**
-
-Run:
-
-```powershell
-go generate ./ent
-go generate ./cmd/server
-go test -tags=integration ./internal/repository -run 'GrsaiSettlement' -count=1
-```
-
-Expected: PASS, including duplicate-key and concurrent-settlement coverage.
-
-- [ ] **Step 6: Commit the persistence slice**
-
-```powershell
-git add backend/ent backend/internal/repository backend/migrations/239_grsai_native_images.sql backend/cmd/server/wire_gen.go
-git commit -m "feat: 增加 grsai 结算持久化"
-```
-
-### Task 4: Implement Native grsai Protocol Parsing and HTTP Client
-
-**Files:**
-- Create: `backend/internal/service/grsai_native.go`
-- Create: `backend/internal/service/grsai_native_test.go`
-- Modify: `backend/internal/service/wire.go`
-
-**Consumes:** `service.Account` credentials (`api_key`, `base_url`) and durable settlement types from Task 3.
-
-**Produces:** A testable `GrsaiNativeClient` that submits `/v1/api/generate` and internally retrieves `/v1/api/result` without exposing either transport to public routing.
-
-- [ ] **Step 1: Write failing protocol tests with an `httptest.Server`**
-
-Cover missing `model`, malformed JSON, missing/incorrect `replyType`, `stream=true`, `async=true`, trailing-slash Base URL normalization, authorization placement, raw non-2xx passthrough, and the four recognized statuses.
-
-```go
-result, err := client.Generate(ctx, account, []byte(`{"model":"nano-banana-2","prompt":"x"}`))
-require.NoError(t, err)
-require.JSONEq(t, `{"status":"succeeded","id":"task_1","results":[]}`, string(result.Body))
-```
-
-- [ ] **Step 2: Run the tests and confirm they fail before client implementation**
-
-Run:
-
-```powershell
-go test -tags=unit ./internal/service -run 'GrsaiNative' -count=1
-```
-
-Expected: FAIL because `GrsaiNativeClient` is absent.
-
-- [ ] **Step 3: Define protocol types and validation**
-
-Use these stable interfaces:
+- [ ] 定义以下接口及响应模型：
 
 ```go
 type GrsaiNativeClient interface {
     Generate(ctx context.Context, account *Account, body []byte) (*GrsaiUpstreamResult, error)
     Result(ctx context.Context, account *Account, taskID string) (*GrsaiUpstreamResult, error)
 }
-
-type GrsaiUpstreamResult struct {
-    HTTPStatus int
-    Body       []byte
-    TaskID     string
-    Status     string
-    ErrorCode  string
-    ErrorText  string
-}
 ```
 
-Validate only JSON shape, nonempty `model`, `replyType`, `stream`, and `async`. Insert `replyType:"json"` when omitted; when serialization is required for that insertion, preserve every other field's JSON value without normalization, filtering, or model-specific rewriting. Classify only `running`, `succeeded`, `failed`, and `violation` as recognized task statuses.
+响应模型保留原始响应 body（仅回传和受控解析）及标准化任务 ID、状态、错误码、错误信息；不得在日志记录 prompt 或 API Key。
 
-- [ ] **Step 4: Implement safe upstream transport**
+- [ ] 以账号 Base URL 可靠拼接 `/v1/api/generate`，内部轮询拼接 `/v1/api/result?id=...`；按 grsai 认证规范发送密钥，配置超时并保留可诊断但不泄密的 HTTP 错误上下文。
+- [ ] 仅做协议边界校验：拒绝非 JSON body、`stream=true`、`async=true` 和非法或非 `json` 的 `replyType`；缺省 `replyType` 写入 `json`。其余 `aspectRatio`、`imageSize`、`quality`、`background`、`images` 及未来字段原样发送。
+- [ ] 使用 `httptest` 覆盖路径、鉴权头、正文原样透传、replyType 默认值、stream/async 拒绝、终态/运行中/失败/违规解析、畸形 body 和网络错误。
 
-Read `api_key` and `base_url` from the selected account; reject missing credentials before any request. Use a configured HTTP client with context cancellation, call `/v1/api/generate` or `/v1/api/result?id=<escaped-task-id>`, and retain raw response bytes for handler passthrough. Limit error snippets and never log credential values or raw prompt/image payloads.
+## 任务 5：实现价格快照与结算服务
 
-- [ ] **Step 5: Run tests**
+**文件：** 新建 `backend/internal/service/grsai_settlement.go` 和测试；参考 `backend/internal/service/openai_gateway_usage.go`、`backend/internal/service/gateway_usage_billing.go`、`backend/internal/service/batch_image_settlement.go`。
 
-Run:
+**产出：** 仅为 `succeeded` 结算、按提交时价格收费的幂等状态机。
 
-```powershell
-go test -tags=unit ./internal/service -run 'GrsaiNative' -count=1
-```
+- [ ] 定义并限制状态迁移：`submission_pending`、`awaiting_result`、`settlement_pending`、`settled`、`closed_no_charge`、`upstream_unknown`、`manual_review`。重复执行不得改变已结算金额。
+- [ ] 在调用上游前用当前账号/分组/模型定价规则计算并保存价格快照。恢复任务永久使用此快照，管理员之后改价不得改变历史扣费。
+- [ ] 复用既有 `UsageBillingRepository.Apply` 或 `applyUsageBilling` 写入余额、额度和用量日志，稳定内部请求 ID 为 `grsai_settlement:<settlement-id>`；不得实现第二套余额扣减逻辑。
+- [ ] 若上游成功而即时计费临时失败，仍返回上游成功，记录保持 `settlement_pending` 并由恢复机制处理；不得将成功伪装为失败，也不得自动重发生成请求。
+- [ ] 测试 succeeded 仅收费一次、failed/violation/畸形响应不收费、价格快照不受改价影响、重复 worker 幂等、计费失败可重试和已结算记录不再次扣款。
 
-Expected: PASS.
+## 任务 6：实现恢复运行时
 
-- [ ] **Step 6: Commit the protocol slice**
+**文件：** 新建 `backend/internal/service/grsai_settlement_recovery.go` 和测试；修改配置类型、默认值及 Wire/runtime 生命周期装配；参考 `backend/internal/service/batch_image_worker_runtime.go`。
 
-```powershell
-git add backend/internal/service/grsai_native.go backend/internal/service/grsai_native_test.go backend/internal/service/wire.go
-git commit -m "feat: 增加 grsai 原生请求客户端"
-```
+**产出：** 可重启、可重试、不会重复提交上游的数据库驱动恢复机制。
 
-### Task 5: Implement Price Snapshots and Idempotent grsai Settlement
+- [ ] 增加 `grsai_settlement` 配置：`enabled`、扫描间隔、单批上限、无任务 ID 的提交未知超时；采用项目既有配置载入和默认值模式。
+- [ ] 对有任务 ID 的 `awaiting_result` 记录调用内部结果接口：`running` 按退避继续轮询，`succeeded` 转入结算，`failed`/`violation` 免收费关闭，畸形结果保留可重试诊断。
+- [ ] 请求可能已发送但未取得可解析响应或任务 ID 时绝不自动重新提交；超过配置超时后标记 `manual_review`，记录高优先级运维错误且不收费。
+- [ ] 对 `settlement_pending` 按 1 分钟、5 分钟、15 分钟、1 小时、6 小时重试，超过次数转 `manual_review`；调度完全依赖数据库 `next_attempt_at`，重启不得丢失。
+- [ ] 按现有 runtime 的启动/停止模式通过 Wire 接入。测试扫描、行锁竞争、运行中轮询、成功结算、失败关闭、退避序列、重启恢复和未知提交不重发。
 
-**Files:**
-- Create: `backend/internal/service/grsai_settlement.go`
-- Create: `backend/internal/service/grsai_settlement_test.go`
-- Modify: `backend/internal/service/model_pricing_resolver.go`
-- Modify: `backend/internal/service/usage_billing.go`
-- Modify: `backend/internal/service/wire.go`
+## 任务 7：实现 Handler 和公开路由
 
-**Consumes:** `GrsaiSettlementRepository`, `ModelPricingResolver`, `UsageBillingRepository.Apply`, and `applyUsageBilling`.
+**文件：** 新建 `backend/internal/handler/grsai_gateway_handler.go` 和测试；修改 `backend/internal/handler/handler.go`、`backend/internal/handler/wire.go`、`backend/internal/service/wire.go`、`backend/cmd/server/wire.go`、生成的 `backend/cmd/server/wire_gen.go`、`backend/internal/server/routes/gateway.go`。
 
-**Produces:** `GrsaiSettlementService` that resolves the configured model price before submission, snapshots it, and charges at most once after confirmed success.
+**产出：** 完整、平台隔离的 `POST /v1/api/generate` 请求链路。
 
-- [ ] **Step 1: Write failing settlement state-machine tests**
+- [ ] 复用鉴权、模型白名单、图片权限、内容审核、并发控制、计费资格校验和调度器。选择账号后必须验证 `getGroupPlatform(c) == service.PlatformGrsai`，否则按既有网关错误格式拒绝。
+- [ ] 在上游提交前读取价格并创建 `submission_pending` 记录，生成稳定计费幂等键；仅记录成功持久化后才发出上游 HTTP 请求。
+- [ ] 获取上游响应后，先持久化任务 ID 与上游状态，再回传原始 JSON：`succeeded` 触发即时结算；`running` 交由内部轮询；`failed`/`violation` 免收费关闭；HTTP 错误和畸形响应不收费。响应后不得 failover 或重新提交。
+- [ ] 只在 `/v1` 网关组注册 `gateway.POST("/api/generate", handlers.GrsaiGateway.Generate)`；不注册 `/api/result`、根路径别名，也不修改 `/v1/images/generations` 协议语义。
+- [ ] 测试鉴权、仅 grsai 分组、参数透传、replyType 归一、stream/async 拒绝、succeeded 单次收费、running 不立即收费、失败/违规/HTTP 错误不收费、即时结算失败仍成功回传及未知提交不重发。
 
-Test all terminal rules: `succeeded` moves to pending settlement and charges exactly once; `failed`, `violation`, malformed bodies, and HTTP failures close without billing; `running` remains uncharged; repeated `Settle` calls use one stable billing request ID; a transient billing error schedules the 1m/5m/15m/1h/6h sequence before `manual_review`.
+## 任务 8：完成管理端体验与隔离回归
 
-```go
-require.NoError(t, service.RecordSucceeded(ctx, settlementID, upstream))
-require.NoError(t, service.Settle(ctx, settlementID))
-require.NoError(t, service.Settle(ctx, settlementID))
-require.Equal(t, 1, billing.ApplyCalls())
-```
+**文件：** 修改任务 2 列出的账号、分组、渠道组件与语言文件；新增/修改对应 `*.spec.ts`；修改后端平台隔离回归测试。
 
-- [ ] **Step 2: Run the focused service tests and confirm they fail**
+**产出：** 管理员可正确配置 grsai，其他平台的图片能力不会误选 grsai。
 
-Run:
+- [ ] 验证新建、编辑、筛选、详情和模型定价界面均可展示和保存 grsai，Base URL/API Key 字段沿用既有敏感数据处理方式。
+- [ ] 断言 composite 分组被拒绝；OpenAI 图片路由永远不会选中 grsai 账号；grsai 原生路由不能选中非 grsai 直接分组。
+- [ ] 在前端运行 `npm run test -- --run <相关 spec 文件>`，确保类型、平台选项、凭据构造和表单回归测试通过。
 
-```powershell
-go test -tags=unit ./internal/service -run 'GrsaiSettlement' -count=1
-```
+## 任务 9：完成全量验证与交付准备
 
-Expected: FAIL because the settlement service and price snapshot resolver are absent.
+**文件：** 全部上述实现与测试文件。
 
-- [ ] **Step 3: Implement stable pricing and billing inputs**
+**产出：** 有证据支持的完成结论，不包含未授权发布。
 
-Define `GrsaiPriceSnapshot` from the same channel/model pricing resolution used by normal channels, after channel mapping and before upstream submission. Persist the resolved billable model, selected account/channel IDs, per-success price, group multiplier, account multiplier, and pricing timestamp. Reject missing price before calling upstream.
+- [ ] 仅当任务 1 的发布文档已可用时，在 `backend` 执行 `go generate ./ent`、`go generate ./cmd/server`、`go test ./internal/service/... ./internal/repository/... ./internal/handler/...`、`go test -race ./internal/service/... ./internal/repository/... ./internal/handler/...`。如包边界不同，采用 `backend/Makefile` 定义的等价命令并记录差异。
+- [ ] 在 `frontend` 执行 `npm run test -- --run` 和 `npm run build`。
+- [ ] 只用一次性测试账号和密钥做人工冒烟，密钥不得写入测试文件。验证同步 JSON、`running` 后轮询结算、上游失败、本地拒绝 stream/async、改价后旧任务仍按价格快照结算。
+- [ ] 执行 `git diff --check` 与 `git status --short`。不得触碰或提交用户既有的未跟踪 `.agents/`、`.playwright-cli/`、`test/`；`docs/superpowers` 受忽略规则影响时使用 `git add -f`。
+- [ ] 在宣称实现完成前请求代码审查并处理阻断问题。缺少 `RELEASE_DEPLOYMENT.md` 时不得进行 migration、生成、部署或发布；文件可用后，严格遵循其中的兼容性 trailer、人工本机验收、Blue-Green 和回滚流程。不得创建包含无关改动的最终汇总提交。
 
-Build a `UsageLog` with `RequestID` equal to `grsai_settlement:<settlement-id>`, `BillingModeImage`, `RequestTypeSync`, `ImageCount: 1`, the original public model, mapped model, selected account, group, endpoint `/v1/api/generate`, and upstream endpoint `/v1/api/generate`. Invoke `applyUsageBilling` through `UsageBillingRepository.Apply` inside the repository settlement transaction.
+## 完成标准
 
-- [ ] **Step 4: Implement explicit transitions and retry policy**
-
-Use these status constants consistently:
-
-```go
-const (
-    GrsaiSettlementStatusSubmissionPending = "submission_pending"
-    GrsaiSettlementStatusAwaitingResult    = "awaiting_result"
-    GrsaiSettlementStatusSettlementPending = "settlement_pending"
-    GrsaiSettlementStatusSettled           = "settled"
-    GrsaiSettlementStatusClosedNoCharge    = "closed_no_charge"
-    GrsaiSettlementStatusUpstreamUnknown   = "upstream_unknown"
-    GrsaiSettlementStatusManualReview      = "manual_review"
-)
-```
-
-Only `succeeded` can transition to `settlement_pending`. Schedule retries at 1 minute, 5 minutes, 15 minutes, 1 hour, and 6 hours. After the fifth billing failure, persist `manual_review`, retain the upstream task ID and price snapshot, and emit the existing high-severity operational error path. Do not re-submit an image request from the settlement service.
-
-- [ ] **Step 5: Run unit and race-focused tests**
-
-Run:
-
-```powershell
-go test -tags=unit ./internal/service -run 'GrsaiSettlement' -count=1
-go test -race -tags=unit ./internal/service -run 'GrsaiSettlement.*Idempotent|GrsaiSettlement.*Concurrent' -count=1
-```
-
-Expected: PASS with one billing application per settlement ID.
-
-- [ ] **Step 6: Commit the settlement slice**
-
-```powershell
-git add backend/internal/service/grsai_settlement.go backend/internal/service/grsai_settlement_test.go backend/internal/service/model_pricing_resolver.go backend/internal/service/usage_billing.go backend/internal/service/wire.go
-git commit -m "feat: 增加 grsai 幂等结算"
-```
-
-### Task 6: Add Database-Driven Reconciliation and Recovery Runtime
-
-**Files:**
-- Create: `backend/internal/service/grsai_settlement_recovery.go`
-- Create: `backend/internal/service/grsai_settlement_recovery_test.go`
-- Modify: `backend/internal/config/config.go`
-- Modify: `backend/internal/config/config_test.go`
-- Modify: `backend/internal/service/wire.go`
-- Modify: `backend/cmd/server/wire.go`
-- Modify generated: `backend/cmd/server/wire_gen.go`
-- Test: `backend/internal/service/grsai_settlement_recovery_test.go`
-
-**Consumes:** Task 4 native result client and Task 5 settlement state machine.
-
-**Produces:** A lifecycle-managed runtime that scans durable records, reconciles known task IDs, retries settlement, and quarantines unknown submissions.
-
-- [ ] **Step 1: Write failing recovery tests with fake repository and native client**
-
-Cover: a due `running` task becomes `settlement_pending` after an internal `succeeded` response; a `failed` response closes without charge; an expired `submission_pending` record with no task ID becomes `manual_review`; retries use their persisted `next_retry_at`; two runtime instances claiming the same row execute billing once.
-
-```go
-processed, err := recovery.RunOnce(ctx)
-require.NoError(t, err)
-require.Equal(t, 1, processed)
-require.Equal(t, GrsaiSettlementStatusManualReview, repo.Status("unknown_1"))
-```
-
-- [ ] **Step 2: Run the recovery tests and confirm they fail**
-
-Run:
-
-```powershell
-go test -tags=unit ./internal/service -run 'GrsaiSettlementRecovery' -count=1
-```
-
-Expected: FAIL because `GrsaiSettlementRecoveryRuntime` is absent.
-
-- [ ] **Step 3: Add bounded runtime configuration and defaults**
-
-Add a `grsai_settlement` config block with `enabled`, `scan_interval_seconds`, `scan_limit`, and `submission_unknown_after_seconds`. Default it disabled and use conservative values that process at most 100 records per scan. Retain the fixed five-step billing retry schedule from Task 5 rather than exposing conflicting retry-duration settings.
-
-```go
-type GrsaiSettlementConfig struct {
-    Enabled                        bool `mapstructure:"enabled"`
-    ScanIntervalSeconds            int  `mapstructure:"scan_interval_seconds"`
-    ScanLimit                      int  `mapstructure:"scan_limit"`
-    SubmissionUnknownAfterSeconds  int  `mapstructure:"submission_unknown_after_seconds"`
-}
-```
-
-- [ ] **Step 4: Implement the scanner and runtime lifecycle**
-
-Define:
-
-```go
-type GrsaiSettlementRecoveryRuntime struct {
-    repo       GrsaiSettlementRepository
-    settlement *GrsaiSettlementService
-    native     GrsaiNativeClient
-    cfg        GrsaiSettlementConfig
-    mu         sync.Mutex
-    cancel     context.CancelFunc
-    done       chan struct{}
-}
-func (r *GrsaiSettlementRecoveryRuntime) Start()
-func (r *GrsaiSettlementRecoveryRuntime) Stop()
-func (r *GrsaiSettlementRecoveryRuntime) RunOnce(ctx context.Context) (int, error)
-```
-
-For known IDs in `awaiting_result` or `upstream_unknown`, call the internal `Result` client; for `settlement_pending`, invoke `Settle`; for expired `submission_pending` without an ID, mark `manual_review`. Start it through Wire with an application-scoped context and stop it through the existing server cleanup lifecycle. Never expose its result endpoint through Gin routes.
-
-- [ ] **Step 5: Generate Wire code and run tests**
-
-Run:
-
-```powershell
-go generate ./cmd/server
-go test -tags=unit ./internal/config ./internal/service -run 'GrsaiSettlementRecovery|GrsaiSettlementConfig' -count=1
-```
-
-Expected: PASS.
-
-- [ ] **Step 6: Commit the recovery slice**
-
-```powershell
-git add -- backend/internal/config/config.go backend/internal/config/config_test.go backend/internal/service/grsai_settlement_recovery.go backend/internal/service/grsai_settlement_recovery_test.go backend/internal/service/wire.go backend/cmd/server/wire.go backend/cmd/server/wire_gen.go
-git commit -m "feat: 增加 grsai 结算恢复任务"
-```
-
-### Task 7: Add the Native Handler and Route Without Changing OpenAI Images
-
-**Files:**
-- Create: `backend/internal/handler/grsai_gateway_handler.go`
-- Create: `backend/internal/handler/grsai_gateway_handler_test.go`
-- Modify: `backend/internal/handler/handler.go`
-- Modify: `backend/internal/handler/wire.go`
-- Modify: `backend/internal/server/routes/gateway.go`
-- Modify: `backend/internal/server/routes/gateway_test.go`
-- Modify generated: `backend/cmd/server/wire_gen.go`
-
-**Consumes:** Tasks 2-6 and the existing API-key middleware, group allow-list, image-generation gate, billing eligibility service, and account scheduler.
-
-**Produces:** `GrsaiGatewayHandler.Generate`, registered only at `POST /v1/api/generate` and isolated from `/v1/images/generations`.
-
-- [ ] **Step 1: Write handler and route tests before implementation**
-
-Assert all of the following: grsai group + `succeeded` returns upstream status/body and creates one settlement; direct non-grsai groups get local `404`; `replyType` violation and `stream`/`async` are local `400` with zero upstream calls; upstream `failed`/`violation`/HTTP errors pass through with zero billing; `running` passes through and persists `awaiting_result`; OpenAI `/v1/images/generations` remains handled by `OpenAIGatewayHandler.Images`.
-
-```go
-req := httptest.NewRequest(http.MethodPost, "/v1/api/generate", strings.NewReader(`{"model":"nano-banana-2"}`))
-req.Header.Set("Authorization", "Bearer sk-test")
-router.ServeHTTP(rec, req)
-require.Equal(t, http.StatusOK, rec.Code)
-require.JSONEq(t, `{"id":"task_1","status":"succeeded","results":[]}`, rec.Body.String())
-```
-
-- [ ] **Step 2: Run the focused tests and confirm they fail**
-
-Run:
-
-```powershell
-go test -tags=unit ./internal/handler ./internal/server/routes -run 'GrsaiGenerate|GrsaiRoute|OpenAIImagesRoute' -count=1
-```
-
-Expected: FAIL because the route and handler do not exist.
-
-- [ ] **Step 3: Implement `GrsaiGatewayHandler.Generate` using existing gateway controls**
-
-The handler must retrieve the API key and authenticated subject, read a bounded JSON body, apply the native protocol validator, call `GroupAllowsImageGeneration`, invoke security audit using a grsai-native protocol label, acquire image/user/account slots, call `CheckBillingEligibility`, resolve channel mapping and selected account, and create the pre-submission settlement record before `Generate`.
-
-On an upstream response, persist `TaskID` and status before writing the raw body. Immediately call settlement for `succeeded`; if billing fails, log the operation error and still write the upstream success response. Release every acquired slot on all return paths. Do not add OpenAI failover after a raw upstream response, because resubmission can generate a duplicate image.
-
-- [ ] **Step 4: Register the handler and platform gate**
-
-Add `GrsaiGateway *GrsaiGatewayHandler` to `Handlers` and Wire providers. In `RegisterGatewayRoutes`, register `gateway.POST("/api/generate", grsaiHandler)` under the existing `/v1` middleware chain. The route gate must require `getGroupPlatform(c) == service.PlatformGrsai`; all other platforms return the existing not-supported `404` envelope and mark the local feature-gate ops reason.
-
-- [ ] **Step 5: Run focused tests and compile the server**
-
-Run:
-
-```powershell
-go generate ./cmd/server
-go test -tags=unit ./internal/handler ./internal/server/routes -run 'GrsaiGenerate|GrsaiRoute|OpenAIImagesRoute' -count=1
-go test ./cmd/server ./internal/handler ./internal/server/routes -run '^$'
-```
-
-Expected: PASS.
-
-- [ ] **Step 6: Commit the gateway slice**
-
-```powershell
-git add -- backend/internal/handler/grsai_gateway_handler.go backend/internal/handler/grsai_gateway_handler_test.go backend/internal/handler/handler.go backend/internal/handler/wire.go backend/internal/server/routes/gateway.go backend/internal/server/routes/gateway_test.go backend/cmd/server/wire_gen.go
-git commit -m "feat: 接入 grsai 原生生图网关"
-```
-
-### Task 8: Complete Admin Experience and Platform-Isolation Regression Coverage
-
-**Files:**
-- Modify: `frontend/src/views/admin/GroupsView.vue`
-- Modify: `frontend/src/views/admin/ChannelsView.vue`
-- Modify: `frontend/src/components/common/PlatformIcon.vue`
-- Modify: `frontend/src/utils/keyGroupProviders.ts`
-- Modify: `frontend/src/views/admin/__tests__/channelPlatformOptions.spec.ts`
-- Modify: `frontend/src/views/admin/__tests__/GroupsView.compositePlatforms.spec.ts`
-- Create: `frontend/src/views/admin/__tests__/grsaiPlatform.spec.ts`
-- Test: `backend/internal/service/composite_platform_test.go`
-- Test: `backend/internal/server/routes/gateway_model_allowlist_test.go`
-
-**Consumes:** Platform catalog from Task 2 and route isolation from Task 7.
-
-**Produces:** Operators can select/filter grsai accounts, groups, and channels; composite groups and existing OpenAI routes remain outside the first-phase native handler.
-
-- [ ] **Step 1: Write failing UI tests for direct grsai configuration**
-
-Verify the platform is available in account, group, and channel filters; credentials display the Base URL field; and a user key associated with a grsai group is shown as a valid group option.
-
-```ts
-expect(screen.getByRole('option', { name: 'grsai' })).toBeInTheDocument()
-expect(screen.getByLabelText(/Base URL/i)).toBeVisible()
-```
-
-- [ ] **Step 2: Run the UI tests and confirm they fail**
-
-Run:
-
-```powershell
-npm --prefix frontend test -- --run src/views/admin/__tests__/grsaiPlatform.spec.ts
-```
-
-Expected: FAIL before the views consume the new platform catalog.
-
-- [ ] **Step 3: Implement catalog-driven admin UI support**
-
-Use `CONCRETE_PLATFORM_OPTIONS` as the single source for selectors and filters. Update icon/provider maps with a safe grsai fallback, add translations, and ensure account forms retain `api_key` masking and `base_url` normalization after edit. Do not add a grsai option to OpenAI image configuration toggles that route `/v1/images/generations`.
-
-- [ ] **Step 4: Add backend regression tests for phase boundaries**
-
-Add cases proving a composite group is rejected at `/v1/api/generate`, a grsai account is not selected by OpenAI image routes, and group model allow-list enforcement occurs before native account selection.
-
-- [ ] **Step 5: Run UI and isolation tests**
-
-Run:
-
-```powershell
-npm --prefix frontend test -- --run src/views/admin/__tests__/grsaiPlatform.spec.ts src/views/admin/__tests__/channelPlatformOptions.spec.ts
-go test -tags=unit ./internal/service ./internal/server/routes -run 'Grsai|CompositePlatform|GatewayModelAllowlist' -count=1
-```
-
-Expected: PASS.
-
-- [ ] **Step 6: Commit the admin and isolation slice**
-
-```powershell
-git add -- frontend/src/views/admin/GroupsView.vue frontend/src/views/admin/ChannelsView.vue frontend/src/components/common/PlatformIcon.vue frontend/src/utils/keyGroupProviders.ts frontend/src/views/admin/__tests__/channelPlatformOptions.spec.ts frontend/src/views/admin/__tests__/GroupsView.compositePlatforms.spec.ts frontend/src/views/admin/__tests__/grsaiPlatform.spec.ts backend/internal/service/composite_platform_test.go backend/internal/server/routes/gateway_model_allowlist_test.go
-git commit -m "feat: 完善 grsai 管理配置与隔离测试"
-```
-
-### Task 9: Execute End-to-End Verification and Release Gates
-
-**Files:**
-- Modify only when test observations reveal a defect: files owned by Tasks 2-8
-- Verify: `test/test_images_api.py`
-- Verify: `docs/superpowers/specs/2026-09-18-grsai-native-images-design.md`
-
-**Consumes:** Completed, reviewed Tasks 1-8.
-
-**Produces:** Evidence that the first-phase native protocol, durable settlement, and existing image/chat behavior are safe to release.
-
-- [ ] **Step 1: Run generation, formatting, and package compilation checks**
-
-Run:
-
-```powershell
-go generate ./ent
-go generate ./cmd/server
-gofmt -w backend/internal/domain/constants.go backend/internal/service/domain_constants.go backend/internal/service/account_service.go backend/internal/service/admin_group.go backend/internal/service/scheduler_snapshot_service.go backend/internal/service/composite_platform.go backend/internal/service/grsai_native.go backend/internal/service/grsai_native_test.go backend/internal/service/grsai_settlement.go backend/internal/service/grsai_settlement_test.go backend/internal/service/grsai_settlement_recovery.go backend/internal/service/grsai_settlement_recovery_test.go backend/internal/service/model_pricing_resolver.go backend/internal/service/usage_billing.go backend/internal/service/wire.go backend/internal/repository/grsai_settlement_repo.go backend/internal/repository/grsai_settlement_repo_integration_test.go backend/internal/handler/grsai_gateway_handler.go backend/internal/handler/grsai_gateway_handler_test.go backend/internal/handler/handler.go backend/internal/handler/wire.go backend/internal/server/routes/gateway.go backend/internal/server/routes/gateway_test.go
-go test ./internal/config ./internal/service ./internal/repository ./internal/handler ./internal/server/routes -run '^$'
-```
-
-Expected: generated files are current and compilation succeeds. Review `git diff` after `gofmt`; retain only grsai-related formatting changes.
-
-- [ ] **Step 2: Run the full focused Go regression suite**
-
-Run:
-
-```powershell
-go test -tags=unit ./internal/service ./internal/repository ./internal/handler ./internal/server/routes -run 'Grsai|OpenAIImages|CompositePlatform|GatewayModelAllowlist|BatchImageSettlement' -count=1
-go test -race -tags=unit ./internal/service ./internal/repository -run 'GrsaiSettlement' -count=1
-```
-
-Expected: all success, failure, running reconciliation, duplicate billing, and unknown-submission tests pass.
-
-- [ ] **Step 3: Run frontend checks**
-
-Run:
-
-```powershell
-npm --prefix frontend test -- --run src/constants/__tests__/platforms.spec.ts src/components/account/__tests__/credentialsBuilder.spec.ts src/views/admin/__tests__/grsaiPlatform.spec.ts
-npm --prefix frontend run build
-```
-
-Expected: platform types, admin forms, and production build pass.
-
-- [ ] **Step 4: Run a manual native smoke test with a disposable configured account**
-
-Use a temporary grsai group and a non-production user API key. Submit a known low-cost model through `/v1/api/generate` with `replyType=json`; verify raw response passthrough, exactly one settlement row, exactly one usage log, and one balance deduction only after `succeeded`. Then test a deliberately invalid model parameter and verify the upstream response returns without a charge.
-
-Do not place any real credential in source, fixtures, test output, or commit history.
-
-- [ ] **Step 5: Run repository hygiene checks**
-
-Run:
-
-```powershell
-git diff --check
-git status --short
-```
-
-Expected: no whitespace errors; staged changes are limited to the grsai feature, generated Ent/Wire output, migration, tests, and necessary documentation. Preserve the user's existing untracked `.agents/`, `.playwright-cli/`, and `test/` content.
-
-- [ ] **Step 6: Run the release gate after reading the required release document**
-
-Apply the compatibility, migration, Blue-Green, approval, and rollback checks in `docs/RELEASE_DEPLOYMENT.md`. Do not deploy, tag, or modify production state from this implementation plan.
-
-- [ ] **Step 7: Request code review with complete verification evidence**
-
-All implementation changes are committed in the focused tasks above. Do not create a catch-all commit or stage broad directories during release verification. Request review with the test evidence, migration compatibility note, and the explicit residual risk for the upstream submit-to-task-ID uncertainty window.
+- `platform=grsai` 是独立平台，不是 OpenAI 兼容通道别名。
+- 第一阶段唯一公开入口为 `POST /v1/api/generate`，且仅服务直接 grsai 分组。
+- 模型特有字段完整透传；`replyType` 缺省为 `json`；明确拒绝 `stream` 和 `async`。
+- 只有确认成功的任务才收费，任意重试最多扣款一次。
+- 上游成功但暂时无法结算时仍返回上游成功，随后由可靠恢复机制处理。
+- 发送后未知的任务绝不自动重复提交，需要人工复核。
+- 管理端可配置 grsai，且 OpenAI 图片路径与 grsai 保持隔离。
+- 所有聚焦测试、生成、构建和人工冒烟均有记录；部署仅在发布文档恢复后按其规则执行。
