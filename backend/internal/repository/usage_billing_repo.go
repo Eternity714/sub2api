@@ -15,6 +15,8 @@ type usageBillingRepository struct {
 	db *sql.DB
 }
 
+var _ service.UsageBillingTransactionalRepository = (*usageBillingRepository)(nil)
+
 func NewUsageBillingRepository(_ *dbent.Client, sqlDB *sql.DB) service.UsageBillingRepository {
 	return &usageBillingRepository{db: sqlDB}
 }
@@ -42,6 +44,35 @@ func (r *usageBillingRepository) Apply(ctx context.Context, cmd *service.UsageBi
 		}
 	}()
 
+	result, err := r.ApplyTx(ctx, tx, cmd)
+	if err != nil {
+		return nil, err
+	}
+	if !result.Applied {
+		return result, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	tx = nil
+	return result, nil
+}
+
+// ApplyTx shares the caller's transaction; it never commits or rolls it back.
+// Both standalone billing and GRS.AI settlement use the same dedup and effects.
+func (r *usageBillingRepository) ApplyTx(ctx context.Context, tx *sql.Tx, cmd *service.UsageBillingCommand) (*service.UsageBillingApplyResult, error) {
+	if tx == nil || cmd == nil {
+		return nil, errors.New("usage billing transaction and command are required")
+	}
+	// Work on a copy: Normalize computes the fingerprint before quantization,
+	// and repeated calls must retain the exact original fingerprint.
+	copy := *cmd
+	cmd = &copy
+	cmd.Normalize()
+	if cmd.RequestID == "" {
+		return nil, service.ErrUsageBillingRequestIDRequired
+	}
 	applied, err := r.claimUsageBillingKey(ctx, tx, cmd)
 	if err != nil {
 		return nil, err
@@ -49,16 +80,10 @@ func (r *usageBillingRepository) Apply(ctx context.Context, cmd *service.UsageBi
 	if !applied {
 		return &service.UsageBillingApplyResult{Applied: false}, nil
 	}
-
 	result := &service.UsageBillingApplyResult{Applied: true}
 	if err := r.applyUsageBillingEffects(ctx, tx, cmd, result); err != nil {
 		return nil, err
 	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-	tx = nil
 	return result, nil
 }
 
