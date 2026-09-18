@@ -48,9 +48,9 @@ func (CompositeModelRoute) Fields() []ent.Field {
 			MaxLen(50).
 			Default(domain.PlatformOpenAI).
 			Validate(func(s string) error {
-				// 目标平台须为平台清单中的具体平台；数据库不再维护 CHECK 约束。
-				if !domain.IsConcretePlatform(s) {
-					return fmt.Errorf("target_platform %q is not a concrete platform", s)
+				// 目标平台须已接入组合路由；原生媒体平台仍不支持组合路由。
+				if !domain.IsCompositeTargetPlatform(s) {
+					return fmt.Errorf("target_platform %q is not supported by composite routing", s)
 				}
 				return nil
 			}).

@@ -278,6 +278,12 @@
           }
         ]
       }
+    },
+    {
+      "id": "grsai",
+      "display_name": "GRS.AI",
+      "gateway": "grsai",
+      "cn_provider": false
     }
   ],
   "composite_precedence": [

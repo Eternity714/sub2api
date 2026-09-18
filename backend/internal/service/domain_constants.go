@@ -52,6 +52,7 @@ const (
 	PlatformTypeSafe    = domain.PlatformTypeSafe
 	PlatformCommandCode = domain.PlatformCommandCode
 	PlatformCline       = domain.PlatformCline
+	PlatformGrsai       = domain.PlatformGrsai
 	PlatformComposite   = domain.PlatformComposite
 	// PlatformKiro is retained for unsupported-platform threshold tests and legacy
 	// account rows. Scheduling-threshold evaluation never pauses kiro accounts.
@@ -127,9 +128,9 @@ func IsMultiProtocolAPIKeyProvider(platform string) bool {
 	return LookupProviderProfile(platform) != nil
 }
 
-// AllowedQuotaPlatforms 是允许设置 user × platform quota 的平台列表：全部已登记的
-// 具体平台（domain/platforms.go），ent/schema/user_platform_quota.go 的校验同源。
-var AllowedQuotaPlatforms = domain.ConcretePlatformIDs()
+// AllowedQuotaPlatforms 是支持 user × platform quota 的平台列表，不含原生媒体
+// 平台；与 ent/schema/user_platform_quota.go 的校验同源。
+var AllowedQuotaPlatforms = domain.QuotaPlatformIDs()
 
 // AllowedSchedulingThresholdPlatforms 是允许设置账号自动停调阈值的平台列表。
 // openai/anthropic/grok 有原生用量窗口；kimi/zhipu/minimax 的 Coding Plan 同样暴露

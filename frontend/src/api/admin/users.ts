@@ -4,7 +4,7 @@
  */
 
 import { apiClient } from '../client'
-import { listPlatformIds } from '@/constants/platformCatalog'
+import { quotaPlatformIds } from '@/constants/platformCatalog'
 import type { AccountPlatform, AdminUser, UpdateUserRequest, PaginatedResponse, ApiKey } from '@/types'
 
 export interface AdminBindAuthIdentityChannelRequest {
@@ -331,9 +331,9 @@ export async function bindUserAuthIdentity(
 /**
  * Platform quota types
  */
-// 与后端 AllowedQuotaPlatforms 同源：平台清单中的全部具体平台。
+// 与后端 AllowedQuotaPlatforms 同源：已接入平台额度计量的具体平台。
 export function platformQuotaPlatforms(): PlatformQuotaPlatform[] {
-  return listPlatformIds()
+  return quotaPlatformIds()
 }
 export type PlatformQuotaPlatform = AccountPlatform
 export type PlatformQuotaWindow = 'daily' | 'weekly' | 'monthly'

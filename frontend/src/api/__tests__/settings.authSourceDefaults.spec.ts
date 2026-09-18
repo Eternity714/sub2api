@@ -8,7 +8,7 @@ import {
   type UpdateSettingsRequest,
   type DefaultPlatformQuotasMap,
 } from "@/api/admin/settings";
-import { listPlatformIds } from "@/constants/platformCatalog";
+import { quotaPlatformIds } from "@/constants/platformCatalog";
 
 /** 与后端 AllowedQuotaPlatforms 一致的全部具体平台（平台清单）。 */
 const quotaPlatforms = [
@@ -245,10 +245,11 @@ describe("normalizePlatformQuotasMap", () => {
     expect(result.opencode_go).toEqual({ daily: null, weekly: null, monthly: null });
   });
 
-  it("无参数时返回平台清单中的全部平台全 null", () => {
-    const result = normalizePlatformQuotasMap();
-    expect(listPlatformIds()).toEqual(quotaPlatforms);
+  it("返回支持额度的平台全 null，忽略未接入额度的原生媒体平台", () => {
+    const result = normalizePlatformQuotasMap({ grsai: { daily: 5, weekly: null, monthly: null } });
+    expect(quotaPlatformIds()).toEqual(quotaPlatforms);
     expect(Object.keys(result)).toEqual(quotaPlatforms);
+    expect(result).not.toHaveProperty('grsai');
     for (const v of Object.values(result)) {
       expect(v).toEqual({ daily: null, weekly: null, monthly: null });
     }
@@ -294,9 +295,10 @@ describe("sanitizePlatformQuotasMap", () => {
     expect(result.gemini?.weekly).toBe(null);
   });
 
-  it("缺失平台填充为全 null", () => {
-    const result = sanitizePlatformQuotasMap({});
+  it("缺失平台填充为全 null，忽略未接入额度的原生媒体平台", () => {
+    const result = sanitizePlatformQuotasMap({ grsai: { daily: 5, weekly: null, monthly: null } });
     expect(Object.keys(result)).toEqual(quotaPlatforms);
+    expect(result).not.toHaveProperty('grsai');
     for (const v of Object.values(result)) {
       expect(v).toEqual({ daily: null, weekly: null, monthly: null });
     }

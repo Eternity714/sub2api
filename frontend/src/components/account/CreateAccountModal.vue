@@ -263,6 +263,19 @@
             <PlatformIcon :platform="spec.id" size="sm" />
             {{ spec.display_name }}
           </button>
+          <button
+            type="button"
+            @click="form.platform = 'grsai'; accountCategory = 'apikey'"
+            :class="[
+              'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-all',
+              form.platform === 'grsai'
+                ? 'bg-white text-lime-700 shadow-sm dark:bg-dark-600 dark:text-lime-300'
+                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+            ]"
+          >
+            <PlatformIcon platform="grsai" size="sm" />
+            GRS.AI
+          </button>
         </div>
       </div>
 
@@ -4122,6 +4135,8 @@ const apiKeyBaseUrlPlaceholder = computed(() => {
       return 'https://api.x.ai/v1'
     case 'typesafe':
       return 'https://api.typesafe.ai'
+    case 'grsai':
+      return 'https://api.grsai.com'
     default:
       return 'https://api.anthropic.com'
   }
@@ -4143,6 +4158,7 @@ const apiKeyValuePlaceholder = computed(() => {
       return 'sk-...'
     case 'minimax':
     case 'opencode_go':
+    case 'grsai':
       return 'sk-...'
     case 'typesafe':
       return 'ts-...'
@@ -4957,7 +4973,9 @@ watch(
               ? 'https://api.x.ai/v1'
               : newPlatform === 'typesafe'
                 ? 'https://api.typesafe.ai'
-              : 'https://api.anthropic.com'
+                : newPlatform === 'grsai'
+                  ? 'https://api.grsai.com'
+                  : 'https://api.anthropic.com'
     }
     // Clear model-related settings
     allowedModels.value = []
@@ -5893,7 +5911,9 @@ const handleSubmit = async () => {
           ? 'https://api.x.ai/v1'
           : form.platform === 'typesafe'
             ? 'https://api.typesafe.ai'
-          : 'https://api.anthropic.com'
+            : form.platform === 'grsai'
+              ? 'https://api.grsai.com'
+              : 'https://api.anthropic.com'
 
   // Build credentials with optional model mapping
   const credentials: Record<string, unknown> = {
