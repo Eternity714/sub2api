@@ -39,9 +39,9 @@ func (UserPlatformQuota) Fields() []ent.Field {
 			MaxLen(32).
 			NotEmpty().
 			Validate(func(s string) error {
-				// 平台白名单为平台清单（domain/platforms.go）中的全部具体平台，
+				// 平台白名单为平台清单（domain/platforms.go）中已接入额度计量的平台，
 				// 与 service.AllowedQuotaPlatforms 同源；数据库不再维护 CHECK 约束。
-				if !domain.IsConcretePlatform(s) {
+				if !domain.IsQuotaPlatform(s) {
 					return fmt.Errorf("platform %q is not allowed", s)
 				}
 				return nil

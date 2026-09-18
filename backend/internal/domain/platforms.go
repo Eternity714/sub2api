@@ -19,6 +19,8 @@ const (
 	PlatformGatewayGemini PlatformGateway = "gemini"
 	// PlatformGatewayAntigravity 由 Antigravity 网关处理。
 	PlatformGatewayAntigravity PlatformGateway = "antigravity"
+	// PlatformGatewayGrsai 由 GRS.AI 原生图片与视频网关处理。
+	PlatformGatewayGrsai PlatformGateway = "grsai"
 )
 
 // PlatformSpec 描述一个具体（非 composite）平台。
@@ -48,6 +50,7 @@ var platformList = []PlatformSpec{
 	{ID: PlatformTypeSafe, DisplayName: "TypeSafe / Jev", Gateway: PlatformGatewayAnthropic, LiteLLMProvider: "typesafe"},
 	{ID: PlatformCommandCode, DisplayName: "Command Code", Gateway: PlatformGatewayOpenAI},
 	{ID: PlatformCline, DisplayName: "Cline", Gateway: PlatformGatewayOpenAI},
+	{ID: PlatformGrsai, DisplayName: "GRS.AI", Gateway: PlatformGatewayGrsai},
 }
 
 var platformIndex = func() map[string]int {
@@ -80,6 +83,17 @@ func IsConcretePlatform(id string) bool {
 	return ok
 }
 
+// IsCompositeTargetPlatform 排除尚未接入组合路由的原生媒体平台。
+func IsCompositeTargetPlatform(id string) bool {
+	return IsConcretePlatform(id) && id != PlatformGrsai
+}
+
+// IsQuotaPlatform 报告平台是否已接入 user × platform 额度计量。
+// GRS.AI 原生媒体结算尚未累计平台用量，保持不允许设置平台额度。
+func IsQuotaPlatform(id string) bool {
+	return IsConcretePlatform(id) && id != PlatformGrsai
+}
+
 // IsGroupPlatform 报告 id 是否可作为分组平台（具体平台或 composite）。
 func IsGroupPlatform(id string) bool {
 	return id == PlatformComposite || IsConcretePlatform(id)
@@ -88,6 +102,11 @@ func IsGroupPlatform(id string) bool {
 // ConcretePlatformIDs 返回全部具体平台标识，按展示顺序。
 func ConcretePlatformIDs() []string {
 	return PlatformIDsWhere(func(PlatformSpec) bool { return true })
+}
+
+// QuotaPlatformIDs 返回支持 user × platform 额度的平台标识，按展示顺序。
+func QuotaPlatformIDs() []string {
+	return PlatformIDsWhere(func(spec PlatformSpec) bool { return IsQuotaPlatform(spec.ID) })
 }
 
 // PlatformIDsWhere 返回满足条件的具体平台标识，按展示顺序。
@@ -117,6 +136,9 @@ func CompositePrecedencePlatformIDs() []string {
 		}
 	}
 	for _, spec := range platformList {
+		if !IsCompositeTargetPlatform(spec.ID) {
+			continue
+		}
 		if _, ok := seen[spec.ID]; !ok {
 			out = append(out, spec.ID)
 		}

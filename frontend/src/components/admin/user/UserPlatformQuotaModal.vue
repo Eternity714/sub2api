@@ -120,6 +120,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { adminAPI } from '@/api/admin'
 import { platformQuotaPlatforms } from '@/api/admin/users'
+import { isQuotaPlatform } from '@/constants/platformCatalog'
 import type { AdminUser, PlatformQuotaItem, PlatformQuotaPlatform, PlatformQuotaWindow } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 
@@ -153,6 +154,7 @@ const savedConfigured = ref<Set<PlatformQuotaPlatform>>(new Set())
 function configuredPlatforms(items: PlatformQuotaItem[]): Set<PlatformQuotaPlatform> {
   const out = new Set<PlatformQuotaPlatform>()
   for (const it of items) {
+    if (!isQuotaPlatform(it.platform)) continue
     if (it.daily_limit_usd != null || it.weekly_limit_usd != null || it.monthly_limit_usd != null) {
       out.add(it.platform)
     }

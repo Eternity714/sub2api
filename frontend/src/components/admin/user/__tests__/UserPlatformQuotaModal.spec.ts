@@ -101,7 +101,10 @@ describe('UserPlatformQuotaModal', () => {
     expect(apiMocks.getPlatformQuotas).toHaveBeenCalledWith(99)
   })
 
-  it('renders all thirteen supported platforms with empty limits', async () => {
+  it('renders all thirteen quota platforms and excludes native media limits from save', async () => {
+    apiMocks.getPlatformQuotas.mockResolvedValueOnce({
+      platform_quotas: [{ platform: 'grsai', daily_limit_usd: 5 }],
+    })
     const w = await mountAndOpen()
     const rows = w.findAll('tbody tr')
     expect(rows.map(row => row.find('td').text())).toEqual([
@@ -113,6 +116,10 @@ describe('UserPlatformQuotaModal', () => {
       expect(inputs).toHaveLength(3)
       expect(inputs.map(input => input.element.value)).toEqual(['', '', ''])
     }
+    await w.findAll('button').find(b => b.text() === 'admin.users.platformQuota.save')!.trigger('click')
+    await flushPromises()
+    expect(apiMocks.updatePlatformQuotas).toHaveBeenCalledTimes(1)
+    expect(apiMocks.updatePlatformQuotas.mock.calls[0][1].map((row: PlatformQuotaUpdateItem) => row.platform)).not.toContain('grsai')
     w.unmount()
   })
 
