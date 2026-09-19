@@ -17,12 +17,14 @@ import (
 
 type grsaiFailAfterBilling struct {
 	inner service.UsageBillingTransactionalRepository
-	fail bool
+	fail  bool
 }
 
 func (b *grsaiFailAfterBilling) ApplyTx(ctx context.Context, tx *sql.Tx, cmd *service.UsageBillingCommand) (*service.UsageBillingApplyResult, error) {
 	result, err := b.inner.ApplyTx(ctx, tx, cmd)
-	if err == nil && b.fail { return nil, errors.New("injected failure after real billing effects") }
+	if err == nil && b.fail {
+		return nil, errors.New("injected failure after real billing effects")
+	}
 	return result, err
 }
 
@@ -30,9 +32,9 @@ func grsaiRealBillingFixture(t *testing.T) (*grsaiSettlementRepository, *service
 	t.Helper()
 	ctx := context.Background()
 	client := testEntClient(t)
-	user := mustCreateUser(t, client, &service.User{Email: "grsai-bill-"+uuid.NewString()+"@example.com", PasswordHash: "hash", Balance: 100})
-	key := mustCreateApiKey(t, client, &service.APIKey{UserID: user.ID, Key: "sk-grsai-bill-"+uuid.NewString(), Name: "grsai-bill", Quota: 100})
-	account := mustCreateAccount(t, client, &service.Account{Name: "grsai-bill-"+uuid.NewString(), Type: service.AccountTypeAPIKey})
+	user := mustCreateUser(t, client, &service.User{Email: "grsai-bill-" + uuid.NewString() + "@example.com", PasswordHash: "hash", Balance: 100})
+	key := mustCreateApiKey(t, client, &service.APIKey{UserID: user.ID, Key: "sk-grsai-bill-" + uuid.NewString(), Name: "grsai-bill", Quota: 100})
+	account := mustCreateAccount(t, client, &service.Account{Name: "grsai-bill-" + uuid.NewString(), Type: service.AccountTypeAPIKey})
 	params := grsaiSettlementTestParams(t, "real-billing")
 	params.UserID, params.APIKeyID, params.AccountID = user.ID, key.ID, account.ID
 	params.BaseUnitPrice, params.GroupRateMultiplier, params.AccountRateMultiplier = 0.1, 2, 3
@@ -108,9 +110,15 @@ func TestGrsaiSettlementService_ConcurrentSuccessChargesOnce(t *testing.T) {
 	wg.Wait()
 	close(errs)
 	close(results)
-	for settleErr := range errs { require.NoError(t, settleErr) }
+	for settleErr := range errs {
+		require.NoError(t, settleErr)
+	}
 	winners := 0
-	for applied := range results { if applied { winners++ } }
+	for applied := range results {
+		if applied {
+			winners++
+		}
+	}
 	require.Equal(t, 1, winners)
 	assertGrsaiBalanceAndQuota(t, record, 98.8, 1.2)
 	_, err = repo.ClaimByID(ctx, record.ID, time.Now().Add(time.Hour), time.Now().Add(2*time.Hour))
