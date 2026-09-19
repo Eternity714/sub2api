@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -138,14 +139,22 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		return
 	}
 	account := selection.Account
-	if selection.ReleaseFunc != nil {
-		defer wrapReleaseOnDone(c.Request.Context(), selection.ReleaseFunc)()
-	}
 	if account.Platform != service.PlatformGrsai || account.Type != service.AccountTypeAPIKey {
+		if selection.ReleaseFunc != nil {
+			wrapReleaseOnDone(c.Request.Context(), selection.ReleaseFunc)()
+		}
 		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "No available GRS.AI accounts")
 		return
 	}
 	setOpsSelectedAccount(c, account.ID, account.Platform)
+
+	accountRelease, acquired := h.acquireAccountSlot(c, selection, &streamStarted, reqLog)
+	if !acquired {
+		return
+	}
+	if accountRelease != nil {
+		defer wrapReleaseOnDone(c.Request.Context(), accountRelease)()
+	}
 
 	groupRate := h.gatewayService.ResolveUserGroupRateMultiplier(c.Request.Context(), apiKey.UserID, apiKey.Group.ID, apiKey.Group.RateMultiplier)
 	settlement, err := h.settlementService.Prepare(c.Request.Context(), service.GrsaiPrepareInput{
@@ -171,7 +180,7 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		if status == 0 {
 			status = http.StatusBadGateway
 		}
-		c.Data(status, "application/json", upstream.RawBody)
+		c.Data(status, "application/json", redactGrsaiUpstreamBody(upstream.RawBody, account))
 		return
 	}
 	if upstreamErr != nil {
@@ -180,6 +189,80 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		return
 	}
 	h.errorResponse(c, http.StatusBadGateway, "api_error", "GRS.AI upstream returned an invalid response")
+}
+
+// acquireAccountSlot honors the scheduler's immediate lease or its bounded
+// WaitPlan. A native GRS.AI request must not create a settlement or reach the
+// upstream until this returns an acquired account slot.
+func (h *GrsaiGatewayHandler) acquireAccountSlot(
+	c *gin.Context,
+	selection *service.AccountSelectionResult,
+	streamStarted *bool,
+	reqLog *zap.Logger,
+) (func(), bool) {
+	if selection == nil || selection.Account == nil {
+		markOpsRoutingCapacityLimited(c)
+		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "No available GRS.AI accounts")
+		return nil, false
+	}
+	if selection.Acquired {
+		return selection.ReleaseFunc, true
+	}
+	if selection.WaitPlan == nil {
+		markOpsRoutingCapacityLimited(c)
+		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "No available GRS.AI accounts")
+		return nil, false
+	}
+
+	account := selection.Account
+	accountWaitCounted := false
+	canWait, waitErr := h.concurrencyHelper.IncrementAccountWaitCount(c.Request.Context(), account.ID, selection.WaitPlan.MaxWaiting)
+	if waitErr != nil {
+		reqLog.Warn("grsai.account_wait_counter_increment_failed", zap.Int64("account_id", account.ID), zap.Error(waitErr))
+	} else if !canWait {
+		reqLog.Info("grsai.account_wait_queue_full", zap.Int64("account_id", account.ID), zap.Int("max_waiting", selection.WaitPlan.MaxWaiting))
+		h.errorResponse(c, http.StatusTooManyRequests, "rate_limit_error", "Too many pending requests, please retry later")
+		return nil, false
+	} else {
+		accountWaitCounted = true
+	}
+	releaseWait := func() {
+		if accountWaitCounted {
+			h.concurrencyHelper.DecrementAccountWaitCount(c.Request.Context(), account.ID)
+			accountWaitCounted = false
+		}
+	}
+	defer releaseWait()
+
+	release, err := h.concurrencyHelper.AcquireAccountSlotWithWaitTimeout(
+		c,
+		account.ID,
+		selection.WaitPlan.MaxConcurrency,
+		selection.WaitPlan.Timeout,
+		false,
+		streamStarted,
+	)
+	if err != nil {
+		reqLog.Warn("grsai.account_slot_acquire_failed", zap.Int64("account_id", account.ID), zap.Error(err))
+		status, errType, _, message := concurrencyErrorResponse(err, "account")
+		h.errorResponse(c, status, errType, message)
+		return nil, false
+	}
+	return release, true
+}
+
+// redactGrsaiUpstreamBody is intentionally byte-preserving except for exact
+// occurrences of the selected account credential. Providers sometimes echo
+// credentials in JSON and sometimes in plain-text error bodies.
+func redactGrsaiUpstreamBody(raw []byte, account *service.Account) []byte {
+	if len(raw) == 0 || account == nil {
+		return raw
+	}
+	apiKey := strings.TrimSpace(account.GetCredential("api_key"))
+	if apiKey == "" {
+		return raw
+	}
+	return bytes.ReplaceAll(raw, []byte(apiKey), []byte("REDACTED"))
 }
 
 func (h *GrsaiGatewayHandler) checkSecurityAudit(c *gin.Context, reqLog *zap.Logger, apiKey *service.APIKey, subject middleware2.AuthSubject, model string, body []byte) *securityaudit.Decision {
