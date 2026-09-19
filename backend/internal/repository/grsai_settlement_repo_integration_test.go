@@ -26,12 +26,13 @@ func TestGrsaiSettlementRepository_DerivesUniqueBillingIdempotencyKeyFromSettlem
 
 	firstRecord, err := repo.Create(ctx, first)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, firstRecord)
 	secondRecord, err := repo.Create(ctx, second)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, secondRecord)
 	require.Equal(t, service.GrsaiSettlementRequestID(firstRecord.ID), firstRecord.BillingIdempotencyKey)
 	require.Equal(t, service.GrsaiSettlementRequestID(secondRecord.ID), secondRecord.BillingIdempotencyKey)
 	require.NotEqual(t, firstRecord.BillingIdempotencyKey, secondRecord.BillingIdempotencyKey)
-	cleanupGrsaiSettlements(t, firstRecord.BillingIdempotencyKey, secondRecord.BillingIdempotencyKey)
 }
 
 func TestGrsaiSettlementRepository_DeduplicatesNonEmptyTaskWithinAccount(t *testing.T) {
@@ -45,14 +46,14 @@ func TestGrsaiSettlementRepository_DeduplicatesNonEmptyTaskWithinAccount(t *test
 	second.UpstreamTaskID = &taskID
 	otherAccount.UpstreamTaskID = &taskID
 	otherAccount.AccountID = first.AccountID + 1
-	cleanupGrsaiSettlements(t, first.BillingIdempotencyKey, second.BillingIdempotencyKey, otherAccount.BillingIdempotencyKey)
-
-	_, err := repo.Create(ctx, first)
+	firstRecord, err := repo.Create(ctx, first)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, firstRecord)
 	_, err = repo.Create(ctx, second)
 	requirePostgresUniqueViolation(t, err, "grsai_settlements_account_upstream_task_uq")
-	_, err = repo.Create(ctx, otherAccount)
+	otherAccountRecord, err := repo.Create(ctx, otherAccount)
 	require.NoError(t, err, "different accounts may receive the same provider task identifier")
+	cleanupCreatedGrsaiSettlements(t, otherAccountRecord)
 }
 
 func TestGrsaiSettlementRepository_AllowsMultipleEmptyTaskIDs(t *testing.T) {
@@ -66,14 +67,15 @@ func TestGrsaiSettlementRepository_AllowsMultipleEmptyTaskIDs(t *testing.T) {
 	second.UpstreamTaskID = &emptyTaskID
 	second.AccountID = first.AccountID
 	third.AccountID = first.AccountID
-	cleanupGrsaiSettlements(t, first.BillingIdempotencyKey, second.BillingIdempotencyKey, third.BillingIdempotencyKey)
-
-	_, err := repo.Create(ctx, first)
+	firstRecord, err := repo.Create(ctx, first)
 	require.NoError(t, err)
-	_, err = repo.Create(ctx, second)
+	cleanupCreatedGrsaiSettlements(t, firstRecord)
+	secondRecord, err := repo.Create(ctx, second)
 	require.NoError(t, err)
-	_, err = repo.Create(ctx, third)
+	cleanupCreatedGrsaiSettlements(t, secondRecord)
+	thirdRecord, err := repo.Create(ctx, third)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, thirdRecord)
 }
 
 func TestGrsaiSettlementRepository_BindAndUpdateSanitizedResult(t *testing.T) {
@@ -81,9 +83,9 @@ func TestGrsaiSettlementRepository_BindAndUpdateSanitizedResult(t *testing.T) {
 	repo := NewGrsaiSettlementRepository(integrationDB)
 	params := grsaiSettlementTestParams(t, "bind-result")
 	params.NextAttemptAt = time.Now().UTC().Add(-time.Minute)
-	cleanupGrsaiSettlements(t, params.BillingIdempotencyKey)
 	record, err := repo.Create(ctx, params)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
 	claimed, err := repo.ClaimDue(ctx, time.Now().UTC(), 1, time.Now().UTC().Add(time.Minute))
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
@@ -113,9 +115,9 @@ func TestGrsaiSettlementRepository_ConcurrentClaimHasSingleWinner(t *testing.T) 
 	repo := NewGrsaiSettlementRepository(integrationDB)
 	params := grsaiSettlementTestParams(t, "claim-single-winner")
 	params.NextAttemptAt = time.Now().UTC().Add(-time.Minute)
-	cleanupGrsaiSettlements(t, params.BillingIdempotencyKey)
 	created, err := repo.Create(ctx, params)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, created)
 
 	start := make(chan struct{})
 	results := make(chan []*GrsaiSettlement, 2)
@@ -159,17 +161,15 @@ func TestGrsaiSettlementRepository_TerminalRecordsAreNotClaimed(t *testing.T) {
 	settledParams.NextAttemptAt = now.Add(-time.Minute)
 	freeParams := grsaiSettlementTestParams(t, "terminal-free")
 	reviewParams := grsaiSettlementTestParams(t, "terminal-review")
-	cleanupGrsaiSettlements(t,
-		settledParams.BillingIdempotencyKey,
-		freeParams.BillingIdempotencyKey,
-		reviewParams.BillingIdempotencyKey,
-	)
 	settled, err := repo.Create(ctx, settledParams)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, settled)
 	free, err := repo.Create(ctx, freeParams)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, free)
 	review, err := repo.Create(ctx, reviewParams)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, review)
 
 	claimed, err := repo.ClaimDue(ctx, now, 1, now.Add(time.Minute))
 	require.NoError(t, err)
@@ -211,9 +211,9 @@ func TestGrsaiSettlementRepository_ConcurrentSettleHasSingleWinner(t *testing.T)
 	now := time.Now().UTC()
 	params := grsaiSettlementTestParams(t, "settle-single-winner")
 	params.NextAttemptAt = now.Add(-time.Minute)
-	cleanupGrsaiSettlements(t, params.BillingIdempotencyKey)
 	record, err := repo.Create(ctx, params)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
 	claimed, err := repo.ClaimDue(ctx, now, 1, now.Add(time.Minute))
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
@@ -308,9 +308,9 @@ func TestGrsaiSettlementRepository_RejectsExpiredClaimHolder(t *testing.T) {
 			now := time.Now().UTC()
 			params := grsaiSettlementTestParams(t, "expired-claim-"+tt.name)
 			params.NextAttemptAt = now.Add(-time.Minute)
-			cleanupGrsaiSettlements(t, params.BillingIdempotencyKey)
 			record, err := repo.Create(ctx, params)
 			require.NoError(t, err)
+			cleanupCreatedGrsaiSettlements(t, record)
 
 			first, err := repo.ClaimDue(ctx, now, 1, now.Add(time.Minute))
 			require.NoError(t, err)
@@ -335,6 +335,7 @@ func TestGrsaiSettlementRepository_SettleCommitsBillingAndTerminalStateAtomicall
 	params.NextAttemptAt = now.Add(-time.Minute)
 	record, err := repo.Create(ctx, params)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
 	cleanupGrsaiBillingMarker(t, record.BillingIdempotencyKey, record.APIKeyID)
 	claimed, err := repo.ClaimDue(ctx, now, 1, now.Add(time.Minute))
 	require.NoError(t, err)
@@ -373,7 +374,6 @@ VALUES ($1, $2, $3)`, locked.BillingIdempotencyKey, locked.APIKeyID, fingerprint
 	require.Equal(t, GrsaiSettlementStatusSettled, got.InternalStatus)
 	require.NotNil(t, got.SettledAmount)
 	require.InDelta(t, 0.02, *got.SettledAmount, 0.0000000001)
-	cleanupGrsaiSettlements(t, record.BillingIdempotencyKey)
 }
 
 func TestGrsaiSettlementRepository_RejectsNonFinitePrices(t *testing.T) {
@@ -402,9 +402,9 @@ func TestGrsaiSettlementRepository_RejectsNonFiniteSettledAmount(t *testing.T) {
 	now := time.Now().UTC()
 	params := grsaiSettlementTestParams(t, "non-finite-settle")
 	params.NextAttemptAt = now.Add(-time.Minute)
-	cleanupGrsaiSettlements(t, params.BillingIdempotencyKey)
 	record, err := repo.Create(ctx, params)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
 	claimed, err := repo.ClaimDue(ctx, now, 1, now.Add(time.Minute))
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
@@ -442,14 +442,16 @@ func grsaiSettlementTestParams(t *testing.T, suffix string) CreateGrsaiSettlemen
 	}
 }
 
-func cleanupGrsaiSettlements(t *testing.T, keys ...string) {
+func cleanupCreatedGrsaiSettlements(t *testing.T, records ...*GrsaiSettlement) {
 	t.Helper()
-	_, err := integrationDB.ExecContext(context.Background(),
-		`DELETE FROM grsai_settlements WHERE billing_idempotency_key = ANY($1)`, pq.Array(keys))
-	require.NoError(t, err)
+	ids := make([]int64, 0, len(records))
+	for _, record := range records {
+		require.NotNil(t, record)
+		ids = append(ids, record.ID)
+	}
 	t.Cleanup(func() {
 		_, cleanupErr := integrationDB.ExecContext(context.Background(),
-			`DELETE FROM grsai_settlements WHERE billing_idempotency_key = ANY($1)`, pq.Array(keys))
+			`DELETE FROM grsai_settlements WHERE id = ANY($1)`, pq.Array(ids))
 		require.NoError(t, cleanupErr)
 	})
 }
