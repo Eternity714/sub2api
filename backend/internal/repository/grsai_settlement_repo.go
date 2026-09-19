@@ -243,6 +243,7 @@ func (r *grsaiSettlementRepository) MarkPendingSettlement(ctx context.Context, i
 	return r.transition(ctx, id, claimVersion, `
 UPDATE grsai_settlements
 SET internal_status = 'pending_settlement',
+	settlement_retry_count = settlement_retry_count + 1,
     next_attempt_at = $3,
     last_error_summary = NULL,
     updated_at = NOW()
@@ -355,7 +356,7 @@ const grsaiSettlementSelectSQL = `
 SELECT id, account_id, group_id, user_id, api_key_id, model,
        base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
        requested_image_count, currency, billing_idempotency_key, upstream_task_id,
-       upstream_status, internal_status, retry_count, claim_version, next_attempt_at, last_error_summary,
+	       upstream_status, internal_status, retry_count, settlement_retry_count, claim_version, next_attempt_at, last_error_summary,
        settled_amount, created_at, updated_at, upstream_bound_at, result_updated_at,
        settled_at, closed_at
 FROM grsai_settlements`
@@ -378,7 +379,7 @@ INSERT INTO grsai_settlements (
 RETURNING id, account_id, group_id, user_id, api_key_id, model,
           base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
           requested_image_count, currency, billing_idempotency_key, upstream_task_id,
-          upstream_status, internal_status, retry_count, claim_version, next_attempt_at, last_error_summary,
+	          upstream_status, internal_status, retry_count, settlement_retry_count, claim_version, next_attempt_at, last_error_summary,
           settled_amount, created_at, updated_at, upstream_bound_at, result_updated_at,
           settled_at, closed_at`
 
@@ -387,7 +388,7 @@ func grsaiSettlementReturningColumns(alias string) string {
 		"id", "account_id", "group_id", "user_id", "api_key_id", "model",
 		"base_unit_price", "group_rate_multiplier", "account_rate_multiplier", "billable_unit_price",
 		"requested_image_count", "currency", "billing_idempotency_key", "upstream_task_id",
-		"upstream_status", "internal_status", "retry_count", "claim_version", "next_attempt_at", "last_error_summary",
+		"upstream_status", "internal_status", "retry_count", "settlement_retry_count", "claim_version", "next_attempt_at", "last_error_summary",
 		"settled_amount", "created_at", "updated_at", "upstream_bound_at", "result_updated_at",
 		"settled_at", "closed_at",
 	}
@@ -428,6 +429,7 @@ func scanGrsaiSettlement(scanner grsaiSettlementScanner) (*GrsaiSettlement, erro
 		&record.UpstreamStatus,
 		&record.InternalStatus,
 		&record.RetryCount,
+		&record.SettlementRetryCount,
 		&record.ClaimVersion,
 		&record.NextAttemptAt,
 		&lastErrorSummary,

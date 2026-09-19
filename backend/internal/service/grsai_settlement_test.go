@@ -73,6 +73,10 @@ func (r *grsaiSettlementMemoryRepo) UpdateResult(_ context.Context, _, v int64, 
 		return false, err
 	}
 	r.record.UpstreamStatus = status
+	r.record.LastErrorSummary = nil
+	if summary != "" {
+		r.record.LastErrorSummary = &summary
+	}
 	r.record.NextAttemptAt = next
 	return true, nil
 }
@@ -82,6 +86,7 @@ func (r *grsaiSettlementMemoryRepo) MarkPendingSettlement(_ context.Context, _, 
 		return err
 	}
 	r.record.InternalStatus = "pending_settlement"
+	r.record.SettlementRetryCount++
 	r.record.NextAttemptAt = next
 	return nil
 }
@@ -233,6 +238,40 @@ func TestGrsaiSettlementNonSuccessNeverBills(t *testing.T) {
 				require.Nil(t, repo.record.UpstreamTaskID)
 				require.Equal(t, "not_submitted", repo.record.UpstreamStatus)
 			}
+		})
+	}
+}
+
+func TestGrsaiSettlementKnownResultPollTemporaryFailuresRetry(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		upstream *GrsaiUpstreamResult
+		err      error
+		want     string
+	}{
+		{name: "rate limited", upstream: &GrsaiUpstreamResult{HTTPStatus: 429}, err: &GrsaiHTTPError{Operation: "result", StatusCode: 429}, want: "HTTP 429"},
+		{name: "server error", upstream: &GrsaiUpstreamResult{HTTPStatus: 502}, err: &GrsaiHTTPError{Operation: "result", StatusCode: 502}, want: "HTTP 502"},
+		{name: "transport", err: errors.New("connection reset by peer"), want: "transport failure"},
+		{name: "malformed", upstream: &GrsaiUpstreamResult{HTTPStatus: 200}, err: ErrGrsaiInvalidResponse, want: "invalid response"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			s, repo, billing, claim, _ := grsaiSettlementFixture(t)
+			knownTaskID := "already-submitted-task"
+			repo.record.UpstreamTaskID = &knownTaskID
+			repo.record.UpstreamStatus = GrsaiUpstreamStatusRunning
+			claim.UpstreamTaskID = &knownTaskID
+			claim.UpstreamStatus = GrsaiUpstreamStatusRunning
+			retryAt := time.Now().Add(2 * time.Minute)
+
+			out := s.FinishAt(context.Background(), claim, tt.upstream, tt.err, retryAt)
+
+			require.NoError(t, out.SettlementError)
+			require.Equal(t, "pending_upstream", repo.record.InternalStatus)
+			require.Equal(t, "unknown", repo.record.UpstreamStatus)
+			require.WithinDuration(t, retryAt, repo.record.NextAttemptAt, time.Millisecond)
+			require.NotNil(t, repo.record.LastErrorSummary)
+			require.Contains(t, *repo.record.LastErrorSummary, tt.want)
+			require.Empty(t, billing.commands)
 		})
 	}
 }
