@@ -145,6 +145,20 @@ func ProvideOpenAIGatewayHandler(
 	return h
 }
 
+func ProvideGrsaiGatewayHandler(
+	gatewayService *service.GatewayService,
+	concurrencyService *service.ConcurrencyService,
+	billingCacheService *service.BillingCacheService,
+	nativeClient service.GrsaiNativeClient,
+	settlementService *service.GrsaiSettlementService,
+	contentModerationService *service.ContentModerationService,
+	coordinator *securityaudit.Coordinator,
+) *GrsaiGatewayHandler {
+	h := NewGrsaiGatewayHandler(gatewayService, concurrencyService, billingCacheService, nativeClient, settlementService, contentModerationService)
+	h.securityAuditCoordinator = coordinator
+	return h
+}
+
 func ProvideBatchImageHandler(
 	batchService *service.BatchImagePublicService,
 	download *service.BatchImageDownloadService,
@@ -191,6 +205,7 @@ func ProvideHandlers(
 	adminHandlers *AdminHandlers,
 	gatewayHandler *GatewayHandler,
 	openaiGatewayHandler *OpenAIGatewayHandler,
+	grsaiGatewayHandler *GrsaiGatewayHandler,
 	settingHandler *SettingHandler,
 	totpHandler *TotpHandler,
 	passkeyHandler *PasskeyHandler,
@@ -217,6 +232,7 @@ func ProvideHandlers(
 		Admin:            adminHandlers,
 		Gateway:          gatewayHandler,
 		OpenAIGateway:    openaiGatewayHandler,
+		GrsaiGateway:     grsaiGatewayHandler,
 		Setting:          settingHandler,
 		Totp:             totpHandler,
 		Passkey:          passkeyHandler,
@@ -243,6 +259,7 @@ var ProviderSet = wire.NewSet(
 	NewChannelMonitorV2Handler,
 	ProvideGatewayHandler,
 	ProvideOpenAIGatewayHandler,
+	ProvideGrsaiGatewayHandler,
 	NewTotpHandler,
 	NewPasskeyHandler,
 	ProvideSettingHandler,
