@@ -107,6 +107,7 @@ func provideCleanup(
 	geminiCachedContent *service.GeminiCachedContentService,
 	batchImageCleanup *service.BatchImageCleanupService,
 	batchImageWorker *service.BatchImageWorkerRuntime,
+	grsaiSettlementRecovery *service.GrsaiSettlementRecoveryRuntime,
 	pricing *service.PricingService,
 	emailQueue *service.EmailQueueService,
 	billingCache *service.BillingCacheService,
@@ -260,6 +261,12 @@ func provideCleanup(
 			{"BatchImageWorkerRuntime", func() error {
 				if batchImageWorker != nil {
 					batchImageWorker.Stop()
+				}
+				return nil
+			}},
+			{"GrsaiSettlementRecoveryRuntime", func() error {
+				if grsaiSettlementRecovery != nil {
+					grsaiSettlementRecovery.Stop()
 				}
 				return nil
 			}},
