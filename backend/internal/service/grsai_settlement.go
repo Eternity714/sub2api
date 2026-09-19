@@ -72,17 +72,21 @@ type GrsaiSettlement struct {
 	UpstreamTaskID        *string
 	UpstreamStatus        string
 	InternalStatus        string
-	RetryCount            int
-	ClaimVersion          int64
-	NextAttemptAt         time.Time
-	LastErrorSummary      *string
-	SettledAmount         *float64
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
-	UpstreamBoundAt       *time.Time
-	ResultUpdatedAt       *time.Time
-	SettledAt             *time.Time
-	ClosedAt              *time.Time
+	// RetryCount records worker claims, while SettlementRetryCount only records
+	// failed billing attempts. They must remain independent: a long-running
+	// upstream task can be polled many times before its first settlement retry.
+	RetryCount           int
+	SettlementRetryCount int
+	ClaimVersion         int64
+	NextAttemptAt        time.Time
+	LastErrorSummary     *string
+	SettledAmount        *float64
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	UpstreamBoundAt      *time.Time
+	ResultUpdatedAt      *time.Time
+	SettledAt            *time.Time
+	ClosedAt             *time.Time
 }
 
 // State projects the business state from the existing durable status pair.
@@ -279,6 +283,18 @@ func (s *GrsaiSettlementService) FinishAt(ctx context.Context, claim *GrsaiSettl
 }
 
 func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *GrsaiSettlement, upstream *GrsaiUpstreamResult, upstreamErr error, retryAt time.Time) error {
+	// Once a task ID is durable, a result query is never an initial submission.
+	// Retry temporary query failures rather than converting a potentially
+	// successful upstream task into a free terminal record. Initial Generate
+	// HTTP failures deliberately retain the no-charge behavior below.
+	if record.UpstreamTaskID != nil && *record.UpstreamTaskID != "" {
+		if grsaiResultPollRetryable(upstream, upstreamErr) {
+			return s.deferResultPoll(ctx, record, grsaiResultPollFailureSummary(upstream, upstreamErr), retryAt)
+		}
+		if grsaiUpstreamHTTPFailed(upstream, upstreamErr) {
+			return s.Repo.MarkManualReview(ctx, record.ID, record.ClaimVersion, "upstream result polling failed permanently; do not resubmit")
+		}
+	}
 	// A received HTTP failure is a final failed submission, even if an error
 	// payload happens to include a task-like identifier. Never poll or bind it.
 	if grsaiUpstreamHTTPFailed(upstream, upstreamErr) {
@@ -323,6 +339,54 @@ func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *Grsai
 		return s.Repo.CloseNoCharge(ctx, record.ID, record.ClaimVersion, "upstream "+status)
 	default:
 		return s.Repo.MarkPendingUpstream(ctx, record.ID, record.ClaimVersion, next)
+	}
+}
+
+func (s *GrsaiSettlementService) deferResultPoll(ctx context.Context, record *GrsaiSettlement, summary string, retryAt time.Time) error {
+	if _, err := s.Repo.UpdateResult(ctx, record.ID, record.ClaimVersion, "unknown", summary, retryAt); err != nil {
+		return err
+	}
+	return s.Repo.MarkPendingUpstream(ctx, record.ID, record.ClaimVersion, retryAt)
+}
+
+func grsaiResultPollRetryable(upstream *GrsaiUpstreamResult, upstreamErr error) bool {
+	if errors.Is(upstreamErr, ErrGrsaiInvalidResponse) {
+		return true
+	}
+	statusCode := 0
+	if upstream != nil {
+		statusCode = upstream.HTTPStatus
+	}
+	var httpErr *GrsaiHTTPError
+	if errors.As(upstreamErr, &httpErr) && httpErr != nil && statusCode == 0 {
+		statusCode = httpErr.StatusCode
+	}
+	if statusCode == 429 || statusCode >= 500 {
+		return true
+	}
+	// A transport error does not establish a terminal provider outcome. HTTP
+	// errors handled above are the only errors with a known response class.
+	return upstreamErr != nil && !errors.As(upstreamErr, &httpErr)
+}
+
+func grsaiResultPollFailureSummary(upstream *GrsaiUpstreamResult, upstreamErr error) string {
+	statusCode := 0
+	if upstream != nil {
+		statusCode = upstream.HTTPStatus
+	}
+	var httpErr *GrsaiHTTPError
+	if errors.As(upstreamErr, &httpErr) && httpErr != nil && statusCode == 0 {
+		statusCode = httpErr.StatusCode
+	}
+	switch {
+	case statusCode == 429:
+		return "upstream result polling temporarily rate limited (HTTP 429)"
+	case statusCode >= 500:
+		return fmt.Sprintf("upstream result polling temporarily failed (HTTP %d)", statusCode)
+	case errors.Is(upstreamErr, ErrGrsaiInvalidResponse):
+		return "upstream result polling returned an invalid response"
+	default:
+		return "upstream result polling transport failure"
 	}
 }
 
