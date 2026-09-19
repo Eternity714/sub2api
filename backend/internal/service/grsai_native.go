@@ -105,7 +105,7 @@ func (c *GrsaiNativeHTTPClient) Generate(ctx context.Context, account *Account, 
 	if err != nil {
 		return nil, err
 	}
-	requestBody, err := prepareGrsaiGenerateBody(body)
+	requestBody, err := PrepareGrsaiGenerateBody(body)
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +114,14 @@ func (c *GrsaiNativeHTTPClient) Generate(ctx context.Context, account *Account, 
 		return nil, err
 	}
 	return c.do(ctx, "generate", http.MethodPost, targetURL, apiKey, requestBody, "")
+}
+
+// PrepareGrsaiGenerateBody validates the local protocol controls and fills the
+// only supported reply type without interpreting model-specific fields.
+// Handlers call it before creating a settlement so invalid local requests never
+// leave a durable submission-pending record.
+func PrepareGrsaiGenerateBody(body []byte) ([]byte, error) {
+	return prepareGrsaiGenerateBody(body)
 }
 
 func (c *GrsaiNativeHTTPClient) Result(ctx context.Context, account *Account, taskID string) (*GrsaiUpstreamResult, error) {
