@@ -445,6 +445,26 @@ describe('EditAccountModal', () => {
     })
   })
 
+  it('GRS.AI 编辑页默认全球节点并保存选中的国内节点', async () => {
+    const account = buildAccount()
+    account.platform = 'grsai'
+    account.credentials = { api_key: 'grsai-api-key' }
+    updateAccountMock.mockReset().mockResolvedValue(account)
+    checkMixedChannelRiskMock.mockReset().mockResolvedValue({ has_risk: false })
+
+    const wrapper = mountModal(account)
+    const baseUrlSelect = wrapper.get<HTMLSelectElement>('[data-testid="grsai-base-url-select"]')
+    expect(baseUrlSelect.element.value).toBe('https://grsaiapi.com')
+
+    await baseUrlSelect.setValue('https://grsai.dakka.com.cn')
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+
+    expect(updateAccountMock).toHaveBeenCalledTimes(1)
+    expect(updateAccountMock.mock.calls[0]?.[1]?.credentials).toMatchObject({
+      base_url: 'https://grsai.dakka.com.cn'
+    })
+  })
+
   it('preserves OpenCode Zen account type and endpoints on submit', async () => {
     const account = buildAccount()
     account.platform = 'opencode_go'
