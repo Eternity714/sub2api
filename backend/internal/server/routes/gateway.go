@@ -256,6 +256,9 @@ func RegisterGatewayRoutes(
 		})
 		gateway.POST("/images/generations", imagesHandler)
 		gateway.POST("/images/edits", imagesHandler)
+		// GRS.AI uses its own native request/response protocol. This route is
+		// deliberately scoped to /v1: do not add a root alias or task query API.
+		gateway.POST("/api/generate", h.GrsaiGateway.Generate)
 		gateway.POST("/images/generations/async", h.AsyncImage.Submit)
 		gateway.POST("/images/edits/async", h.AsyncImage.Submit)
 		gateway.GET("/images/tasks/:task_id", h.AsyncImage.Get)
