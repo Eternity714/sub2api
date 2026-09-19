@@ -16,30 +16,36 @@ import (
 // by the repository integration tests using the real billing repository.
 type grsaiSettlementMemoryRepo struct {
 	GrsaiSettlementRepository
-	record *GrsaiSettlement
+	record     *GrsaiSettlement
 	failSettle bool
-	createErr error
+	createErr  error
 }
 
 func (r *grsaiSettlementMemoryRepo) Create(_ context.Context, p CreateGrsaiSettlementParams) (*GrsaiSettlement, error) {
-	if r.createErr != nil { return nil, r.createErr }
+	if r.createErr != nil {
+		return nil, r.createErr
+	}
 	r.record = &GrsaiSettlement{ID: 17, AccountID: p.AccountID, GroupID: p.GroupID, UserID: p.UserID,
 		APIKeyID: p.APIKeyID, Model: p.Model, BaseUnitPrice: p.BaseUnitPrice, GroupRateMultiplier: p.GroupRateMultiplier,
 		AccountRateMultiplier: p.AccountRateMultiplier, BillableUnitPrice: p.BillableUnitPrice,
-		RequestedImageCount: p.RequestedImageCount, Currency: p.Currency, BillingIdempotencyKey: p.BillingIdempotencyKey,
+		RequestedImageCount: p.RequestedImageCount, Currency: p.Currency, BillingIdempotencyKey: GrsaiSettlementRequestID(17),
 		UpstreamStatus: "not_submitted", InternalStatus: "pending_upstream", NextAttemptAt: p.NextAttemptAt}
 	return r.GetByID(context.Background(), 17)
 }
 
 func (r *grsaiSettlementMemoryRepo) GetByID(ctx context.Context, _ int64) (*GrsaiSettlement, error) {
-	if err := ctx.Err(); err != nil { return nil, err }
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	copy := *r.record
 	return &copy, nil
 }
 
 func (r *grsaiSettlementMemoryRepo) ClaimByID(_ context.Context, _ int64, now, until time.Time) (*GrsaiSettlement, error) {
 	if r.record.InternalStatus == "settled" || r.record.InternalStatus == "closed_no_charge" ||
-		(r.record.InternalStatus == "processing" && r.record.NextAttemptAt.After(now)) { return nil, ErrGrsaiSettlementClaimLost }
+		(r.record.InternalStatus == "processing" && r.record.NextAttemptAt.After(now)) {
+		return nil, ErrGrsaiSettlementClaimLost
+	}
 	r.record.InternalStatus = "processing"
 	r.record.ClaimVersion++
 	r.record.NextAttemptAt = until
@@ -47,73 +53,112 @@ func (r *grsaiSettlementMemoryRepo) ClaimByID(_ context.Context, _ int64, now, u
 }
 
 func (r *grsaiSettlementMemoryRepo) check(v int64) error {
-	if r.record.ClaimVersion != v || r.record.InternalStatus != "processing" { return ErrGrsaiSettlementClaimLost }
+	if r.record.ClaimVersion != v || r.record.InternalStatus != "processing" {
+		return ErrGrsaiSettlementClaimLost
+	}
 	return nil
 }
 
 func (r *grsaiSettlementMemoryRepo) BindUpstreamTask(_ context.Context, _, v int64, id, status string) (bool, error) {
-	if err := r.check(v); err != nil { return false, err }
+	if err := r.check(v); err != nil {
+		return false, err
+	}
 	r.record.UpstreamTaskID = &id
 	r.record.UpstreamStatus = status
 	return true, nil
 }
 
 func (r *grsaiSettlementMemoryRepo) UpdateResult(_ context.Context, _, v int64, status, summary string, next time.Time) (bool, error) {
-	if err := r.check(v); err != nil { return false, err }
+	if err := r.check(v); err != nil {
+		return false, err
+	}
 	r.record.UpstreamStatus = status
 	r.record.NextAttemptAt = next
 	return true, nil
 }
 
 func (r *grsaiSettlementMemoryRepo) MarkPendingSettlement(_ context.Context, _, v int64, next time.Time) error {
-	if err := r.check(v); err != nil { return err }
+	if err := r.check(v); err != nil {
+		return err
+	}
 	r.record.InternalStatus = "pending_settlement"
 	r.record.NextAttemptAt = next
 	return nil
 }
 
 func (r *grsaiSettlementMemoryRepo) MarkPendingUpstream(_ context.Context, _, v int64, next time.Time) error {
-	if err := r.check(v); err != nil { return err }
+	if err := r.check(v); err != nil {
+		return err
+	}
 	r.record.InternalStatus = "pending_upstream"
 	r.record.NextAttemptAt = next
 	return nil
 }
 
 func (r *grsaiSettlementMemoryRepo) CloseNoCharge(_ context.Context, _, v int64, _ string) error {
-	if err := r.check(v); err != nil { return err }
+	if err := r.check(v); err != nil {
+		return err
+	}
 	r.record.InternalStatus = "closed_no_charge"
 	return nil
 }
 
 func (r *grsaiSettlementMemoryRepo) MarkManualReview(_ context.Context, _, v int64, _ string) error {
-	if err := r.check(v); err != nil { return err }
+	if err := r.check(v); err != nil {
+		return err
+	}
 	r.record.InternalStatus = "manual_review"
 	return nil
 }
 
 func (r *grsaiSettlementMemoryRepo) Settle(ctx context.Context, _, v int64, amount float64, apply GrsaiSettlementTxFunc) (bool, error) {
-	if r.record.InternalStatus == "settled" && r.record.ClaimVersion == v { return false, nil }
-	if err := r.check(v); err != nil { return false, err }
-	if r.failSettle { return false, errors.New("database unavailable") }
-	if err := apply(ctx, new(sql.Tx), r.record); err != nil { return false, err }
+	if r.record.InternalStatus == "settled" && r.record.ClaimVersion == v {
+		return false, nil
+	}
+	if err := r.check(v); err != nil {
+		return false, err
+	}
+	if r.failSettle {
+		return false, errors.New("database unavailable")
+	}
+	if err := apply(ctx, new(sql.Tx), r.record); err != nil {
+		return false, err
+	}
 	r.record.InternalStatus = "settled"
 	r.record.SettledAmount = &amount
 	return true, nil
 }
 
-type grsaiBillingSpy struct { commands []*UsageBillingCommand; err error }
+type grsaiBillingSpy struct {
+	commands []*UsageBillingCommand
+	err      error
+}
+
 func (b *grsaiBillingSpy) ApplyTx(ctx context.Context, tx *sql.Tx, cmd *UsageBillingCommand) (*UsageBillingApplyResult, error) {
-	if err := ctx.Err(); err != nil { return nil, err }
-	if tx == nil { return nil, errors.New("missing settlement transaction") }
-	if b.err != nil { return nil, b.err }
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if tx == nil {
+		return nil, errors.New("missing settlement transaction")
+	}
+	if b.err != nil {
+		return nil, b.err
+	}
 	b.commands = append(b.commands, cmd)
 	return &UsageBillingApplyResult{Applied: true}, nil
 }
 
-type grsaiPriceStub struct { price float64 }
-func (p *grsaiPriceStub) GrsaiUnitPrice(context.Context, string, *Group) (float64, error) { return p.price, nil }
+type grsaiPriceStub struct{ price float64 }
 
-type grsaiUsageSpy struct { UsageLogRepository; logs []*UsageLog }
+func (p *grsaiPriceStub) GrsaiUnitPrice(context.Context, string, *Group) (float64, error) {
+	return p.price, nil
+}
+
+type grsaiUsageSpy struct {
+	UsageLogRepository
+	logs []*UsageLog
+}
+
 func (u *grsaiUsageSpy) Create(_ context.Context, log *UsageLog) (bool, error) {
 	u.logs = append(u.logs, log)
 	return true, nil
@@ -140,6 +185,7 @@ func TestGrsaiSettlementSnapshotSurvivesRepricingAndDuplicateSuccess(t *testing.
 	usage := &grsaiUsageSpy{}
 	s.UsageLogRepo = usage
 	require.Equal(t, GrsaiStateSubmissionPending, record.State())
+	require.Equal(t, GrsaiSettlementRequestID(record.ID), record.BillingIdempotencyKey)
 	price.price = 900
 	upstream := &GrsaiUpstreamResult{HTTPStatus: 200, TaskID: "task-17", Status: GrsaiUpstreamStatusSucceeded, RawBody: []byte(`{"status":"succeeded"}`)}
 	out := s.Finish(context.Background(), record, upstream, nil)
@@ -163,20 +209,30 @@ func TestGrsaiSettlementSnapshotSurvivesRepricingAndDuplicateSuccess(t *testing.
 }
 
 func TestGrsaiSettlementNonSuccessNeverBills(t *testing.T) {
-	for _, tt := range []struct { name, status, task string; upstreamErr error; state GrsaiSettlementState }{
-		{"failed", "failed", "task", nil, GrsaiStateClosedNoCharge},
-		{"violation", "violation", "task", nil, GrsaiStateClosedNoCharge},
-		{"running", "running", "task", nil, GrsaiStateAwaitingResult},
-		{"malformed", "", "", ErrGrsaiInvalidResponse, GrsaiStateUpstreamUnknown},
-		{"http error claiming success", "succeeded", "task", &GrsaiHTTPError{StatusCode: 500}, GrsaiStateUpstreamUnknown},
+	for _, tt := range []struct {
+		name, status, task string
+		httpStatus         int
+		upstreamErr        error
+		state              GrsaiSettlementState
+	}{
+		{"failed", "failed", "task", 0, nil, GrsaiStateClosedNoCharge},
+		{"violation", "violation", "task", 0, nil, GrsaiStateClosedNoCharge},
+		{"running", "running", "task", 0, nil, GrsaiStateAwaitingResult},
+		{"malformed", "", "", 0, ErrGrsaiInvalidResponse, GrsaiStateUpstreamUnknown},
+		{"HTTP status error with task", "succeeded", "task", 500, nil, GrsaiStateClosedNoCharge},
+		{"HTTP error with task", "succeeded", "task", 0, &GrsaiHTTPError{StatusCode: 500}, GrsaiStateClosedNoCharge},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			s, _, b, record, _ := grsaiSettlementFixture(t)
-			out := s.Finish(context.Background(), record, &GrsaiUpstreamResult{TaskID: tt.task, Status: tt.status}, tt.upstreamErr)
+			s, repo, b, record, _ := grsaiSettlementFixture(t)
+			out := s.Finish(context.Background(), record, &GrsaiUpstreamResult{HTTPStatus: tt.httpStatus, TaskID: tt.task, Status: tt.status}, tt.upstreamErr)
 			require.NoError(t, out.SettlementError)
 			require.Equal(t, tt.state, out.State)
 			require.Equal(t, tt.upstreamErr, out.UpstreamError)
 			require.Empty(t, b.commands)
+			if (tt.state == GrsaiStateClosedNoCharge && tt.upstreamErr != nil) || tt.httpStatus >= 400 {
+				require.Nil(t, repo.record.UpstreamTaskID)
+				require.Equal(t, "not_submitted", repo.record.UpstreamStatus)
+			}
 		})
 	}
 }
