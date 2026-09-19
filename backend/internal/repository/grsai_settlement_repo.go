@@ -17,8 +17,8 @@ const (
 	GrsaiSettlementStatusPendingSettlement = "pending_settlement"
 	GrsaiSettlementStatusProcessing        = "processing"
 	GrsaiSettlementStatusSettled           = "settled"
-	GrsaiSettlementStatusClosedNoCharge     = "closed_no_charge"
-	GrsaiSettlementStatusManualReview       = "manual_review"
+	GrsaiSettlementStatusClosedNoCharge    = "closed_no_charge"
+	GrsaiSettlementStatusManualReview      = "manual_review"
 )
 
 var (
@@ -55,9 +55,8 @@ func NewGrsaiSettlementRepository(db *sql.DB) *grsaiSettlementRepository {
 
 func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrsaiSettlementParams) (*GrsaiSettlement, error) {
 	params.Model = strings.TrimSpace(params.Model)
-	params.BillingIdempotencyKey = strings.TrimSpace(params.BillingIdempotencyKey)
 	if params.AccountID <= 0 || params.GroupID <= 0 || params.UserID <= 0 || params.APIKeyID <= 0 ||
-		params.Model == "" || params.BillingIdempotencyKey == "" || params.RequestedImageCount <= 0 ||
+		params.Model == "" || params.RequestedImageCount <= 0 ||
 		!isFiniteNonNegative(params.BaseUnitPrice) || !isFiniteNonNegative(params.GroupRateMultiplier) ||
 		!isFiniteNonNegative(params.AccountRateMultiplier) || !isFiniteNonNegative(params.BillableUnitPrice) {
 		return nil, ErrGrsaiSettlementInvalidInput
@@ -92,7 +91,6 @@ func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrs
 		params.BillableUnitPrice,
 		params.RequestedImageCount,
 		params.Currency,
-		params.BillingIdempotencyKey,
 		params.UpstreamTaskID,
 		params.UpstreamStatus,
 		params.NextAttemptAt,
@@ -363,16 +361,19 @@ SELECT id, account_id, group_id, user_id, api_key_id, model,
 FROM grsai_settlements`
 
 const grsaiSettlementInsertSQL = `
+WITH new_id AS (
+    SELECT nextval(pg_get_serial_sequence('grsai_settlements', 'id')) AS id
+)
 INSERT INTO grsai_settlements (
-    account_id, group_id, user_id, api_key_id, model,
+    id, account_id, group_id, user_id, api_key_id, model,
     base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
     requested_image_count, currency, billing_idempotency_key, upstream_task_id,
     upstream_status, next_attempt_at, upstream_bound_at
 ) VALUES (
-    $1, $2, $3, $4, $5,
+    (SELECT id FROM new_id), $1, $2, $3, $4, $5,
     $6, $7, $8, $9,
-    $10, $11, $12, $13,
-    $14, $15, CASE WHEN $13::varchar IS NULL THEN NULL ELSE NOW() END
+    $10, $11, CONCAT('grsai_settlement:', (SELECT id FROM new_id)), $12,
+    $13, $14, CASE WHEN $12::varchar IS NULL THEN NULL ELSE NOW() END
 )
 RETURNING id, account_id, group_id, user_id, api_key_id, model,
           base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
