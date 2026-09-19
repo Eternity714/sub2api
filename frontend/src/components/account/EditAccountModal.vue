@@ -3176,6 +3176,15 @@ const baseUrlHint = computed(() => {
   return t('admin.accounts.baseUrlHint')
 })
 
+// GRS.AI 编辑页仅提供官方节点。将历史错误地址归一化，避免 select 无匹配项，
+// 并在管理员保存后修复存量账号配置。
+const normalizeGrsaiBaseUrl = (baseUrl: unknown) => {
+  const normalized = typeof baseUrl === 'string' ? baseUrl.trim() : ''
+  return GRSAI_BASE_URL_PRESETS.some(preset => preset.url === normalized)
+    ? normalized
+    : GRSAI_GLOBAL_BASE_URL
+}
+
 const antigravityPresetMappings = computed(() => getPresetMappingsByPlatform('antigravity'))
 const bedrockPresets = computed(() => getPresetMappingsByPlatform('bedrock'))
 
@@ -4294,7 +4303,9 @@ const syncFormFromAccount = (newAccount: Account | null) => {
               : 'https://api.anthropic.com'
     editBaseUrl.value = isCNApiKeyAccount.value && editApiProtocol.value === 'adaptive'
       ? editAdaptiveBaseUrls.value.chat_completions
-      : (credentials.base_url as string) || platformDefaultUrl
+      : newAccount.platform === 'grsai'
+        ? normalizeGrsaiBaseUrl(credentials.base_url)
+        : (credentials.base_url as string) || platformDefaultUrl
 
     // Load model mappings and detect mode
     loadModelRestrictionFromMapping(credentials.model_mapping as Record<string, unknown> | undefined)
