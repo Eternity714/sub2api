@@ -38,6 +38,18 @@ func ProvidePricingRemoteClient(cfg *config.Config) service.PricingRemoteClient 
 	return NewPricingRemoteClient(cfg.Update.ProxyURL, cfg.Security.ProxyFallback.AllowDirectOnError)
 }
 
+func ProvideGrsaiSettlementRepository(db *sql.DB) service.GrsaiSettlementRepository {
+	return NewGrsaiSettlementRepository(db)
+}
+
+func ProvideGrsaiUsageBillingRepository(billing service.UsageBillingRepository) service.UsageBillingTransactionalRepository {
+	transactional, ok := billing.(service.UsageBillingTransactionalRepository)
+	if !ok {
+		panic("usage billing repository does not support transactional settlement")
+	}
+	return transactional
+}
+
 // ProvideSessionLimitCache 创建会话限制缓存
 // 用于 Anthropic OAuth/SetupToken 账号的并发会话数量控制
 func ProvideSessionLimitCache(rdb *redis.Client, cfg *config.Config) service.SessionLimitCache {
@@ -81,6 +93,8 @@ var ProviderSet = wire.NewSet(
 	NewAnnouncementReadRepository,
 	NewUsageLogRepository,
 	NewUsageBillingRepository,
+	ProvideGrsaiUsageBillingRepository,
+	ProvideGrsaiSettlementRepository,
 	NewBatchImageRepository,
 	NewIdempotencyRepository,
 	NewUsageCleanupRepository,
