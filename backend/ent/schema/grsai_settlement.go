@@ -42,6 +42,7 @@ func (GrsaiSettlement) Fields() []ent.Field {
 		field.String("upstream_status").MaxLen(32).Default("not_submitted"),
 		field.String("internal_status").MaxLen(32).Default("pending_upstream"),
 		field.Int("retry_count").Default(0),
+		field.Int("settlement_retry_count").Default(0),
 		field.Int64("claim_version").Default(0),
 		field.Time("next_attempt_at").SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
 		field.String("last_error_summary").MaxLen(1024).Optional().Nillable(),

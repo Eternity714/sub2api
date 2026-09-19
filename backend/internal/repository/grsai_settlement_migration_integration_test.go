@@ -15,6 +15,7 @@ import (
 const (
 	grsaiSettlementBaseMigration         = "239_grsai_native_images.sql"
 	grsaiSettlementClaimVersionMigration = "240_grsai_settlement_claim_version.sql"
+	grsaiSettlementRetryCountMigration   = "241_grsai_settlement_retry_count.sql"
 )
 
 func TestGrsaiSettlementRepository_MigrationsNewDatabaseIncludeClaimVersion(t *testing.T) {
@@ -24,8 +25,10 @@ func TestGrsaiSettlementRepository_MigrationsNewDatabaseIncludeClaimVersion(t *t
 
 	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementBaseMigration)
 	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementClaimVersionMigration)
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementRetryCountMigration)
 
 	requireGrsaiClaimVersionColumn(ctx, t, tx)
+	requireGrsaiSettlementRetryCountColumn(ctx, t, tx)
 }
 
 func TestGrsaiSettlementRepository_Migration240UpgradesApplied239WithoutDataLoss(t *testing.T) {
@@ -66,6 +69,30 @@ RETURNING id
 	requireGrsaiClaimVersionColumn(ctx, t, tx)
 }
 
+func TestGrsaiSettlementRepository_Migration241AddsIndependentSettlementRetryCount(t *testing.T) {
+	tx := testTx(t)
+	ctx := context.Background()
+	useIsolatedMigrationSchema(ctx, t, tx, "grsai_migration_retry_count")
+
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementBaseMigration)
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementClaimVersionMigration)
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementRetryCountMigration)
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementRetryCountMigration)
+
+	var retryCount int
+	require.NoError(t, tx.QueryRowContext(ctx, `
+INSERT INTO grsai_settlements (
+    account_id, group_id, user_id, api_key_id, model,
+    base_unit_price, group_rate_multiplier, account_rate_multiplier,
+    billable_unit_price, requested_image_count, billing_idempotency_key,
+    next_attempt_at
+) VALUES (1, 2, 3, 4, 'grsai-test', 0.01, 1, 1, 0.01, 1, 'migration-retry-count-row', NOW())
+RETURNING settlement_retry_count
+`).Scan(&retryCount))
+	require.Zero(t, retryCount)
+	requireGrsaiSettlementRetryCountColumn(ctx, t, tx)
+}
+
 func useIsolatedMigrationSchema(ctx context.Context, t *testing.T, tx *sql.Tx, schemaName string) {
 	t.Helper()
 
@@ -97,6 +124,21 @@ WHERE table_schema = current_schema()
   AND column_name = 'claim_version'
 `).Scan(&dataType, &isNullable, &columnDefault))
 	require.Equal(t, "bigint", dataType)
+	require.Equal(t, "NO", isNullable)
+	require.Contains(t, columnDefault, "0")
+}
+
+func requireGrsaiSettlementRetryCountColumn(ctx context.Context, t *testing.T, tx *sql.Tx) {
+	t.Helper()
+	var dataType, isNullable, columnDefault string
+	require.NoError(t, tx.QueryRowContext(ctx, `
+SELECT data_type, is_nullable, COALESCE(column_default, '')
+FROM information_schema.columns
+WHERE table_schema = current_schema()
+  AND table_name = 'grsai_settlements'
+  AND column_name = 'settlement_retry_count'
+`).Scan(&dataType, &isNullable, &columnDefault))
+	require.Equal(t, "integer", dataType)
 	require.Equal(t, "NO", isNullable)
 	require.Contains(t, columnDefault, "0")
 }
