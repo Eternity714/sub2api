@@ -39,10 +39,10 @@ func grsaiRealBillingFixture(t *testing.T) (*grsaiSettlementRepository, *service
 	params.UserID, params.APIKeyID, params.AccountID = user.ID, key.ID, account.ID
 	params.BaseUnitPrice, params.GroupRateMultiplier, params.AccountRateMultiplier = 0.1, 2, 3
 	params.BillableUnitPrice, params.RequestedImageCount = 0.6, 2
-	cleanupGrsaiSettlements(t, params.BillingIdempotencyKey)
 	repo := NewGrsaiSettlementRepository(integrationDB)
 	record, err := repo.Create(ctx, params)
 	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
 	cleanupGrsaiBillingMarker(t, service.GrsaiSettlementRequestID(record.ID), key.ID)
 	record, err = repo.ClaimByID(ctx, record.ID, time.Now(), time.Now().Add(time.Minute))
 	require.NoError(t, err)
