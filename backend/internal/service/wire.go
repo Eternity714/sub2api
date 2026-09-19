@@ -53,6 +53,38 @@ func ProvideEmailQueueService(emailService *EmailService) *EmailQueueService {
 	return NewEmailQueueService(emailService, 3)
 }
 
+func ProvideGrsaiNativeClient() GrsaiNativeClient {
+	return NewGrsaiNativeClient(nil)
+}
+
+func ProvideGrsaiSettlementService(
+	repo GrsaiSettlementRepository,
+	billing UsageBillingTransactionalRepository,
+	pricing *ModelPricingResolver,
+	usageLogRepo UsageLogRepository,
+	authCache APIKeyAuthCacheInvalidator,
+) *GrsaiSettlementService {
+	return &GrsaiSettlementService{
+		Repo:         repo,
+		Billing:      billing,
+		Pricing:      &GrsaiModelPricingResolver{Resolver: pricing},
+		UsageLogRepo: usageLogRepo,
+		AuthCache:    authCache,
+	}
+}
+
+func ProvideGrsaiSettlementRecoveryRuntime(
+	repo GrsaiSettlementRepository,
+	accounts AccountRepository,
+	upstream GrsaiNativeClient,
+	settlement *GrsaiSettlementService,
+	cfg *config.Config,
+) *GrsaiSettlementRecoveryRuntime {
+	runtime := NewGrsaiSettlementRecoveryRuntime(repo, accounts, upstream, settlement, cfg)
+	runtime.Start()
+	return runtime
+}
+
 // ProvideAuthService wires the optional captcha providers into AuthService while
 // keeping NewAuthService's public constructor compatible with existing tests.
 func ProvideAuthService(
@@ -878,6 +910,9 @@ var ProviderSet = wire.NewSet(
 	NewBatchImageDownloadService,
 	ProvideBatchImageCleanupService,
 	ProvideBatchImageWorkerRuntime,
+	ProvideGrsaiNativeClient,
+	ProvideGrsaiSettlementService,
+	ProvideGrsaiSettlementRecoveryRuntime,
 	wire.Bind(new(AccountRuntimeBlocker), new(*OpenAIGatewayService)),
 	NewOAuthService,
 	ProvideClaudeResetCreditService,
