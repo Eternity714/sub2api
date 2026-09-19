@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -13,8 +14,9 @@ import (
 )
 
 type grsaiRecoveryRepo struct {
-	mu     sync.Mutex
-	record *GrsaiSettlement
+	mu             sync.Mutex
+	record         *GrsaiSettlement
+	lastClaimLimit int
 }
 
 func (r *grsaiRecoveryRepo) Create(context.Context, CreateGrsaiSettlementParams) (*GrsaiSettlement, error) {
@@ -31,9 +33,10 @@ func (r *grsaiRecoveryRepo) ClaimByID(context.Context, int64, time.Time, time.Ti
 	return nil, errors.New("not used by recovery")
 }
 
-func (r *grsaiRecoveryRepo) ClaimDue(_ context.Context, now time.Time, _ int, leaseUntil time.Time) ([]*GrsaiSettlement, error) {
+func (r *grsaiRecoveryRepo) ClaimDue(_ context.Context, now time.Time, limit int, leaseUntil time.Time) ([]*GrsaiSettlement, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.lastClaimLimit = limit
 	if r.record == nil || r.record.NextAttemptAt.After(now) || r.record.InternalStatus == "settled" ||
 		r.record.InternalStatus == "closed_no_charge" || r.record.InternalStatus == "manual_review" {
 		return nil, nil
@@ -78,6 +81,7 @@ func (r *grsaiRecoveryRepo) MarkPendingSettlement(_ context.Context, _, version 
 		return err
 	}
 	r.record.InternalStatus = "pending_settlement"
+	r.record.SettlementRetryCount++
 	r.record.NextAttemptAt = next
 	return nil
 }
@@ -262,26 +266,54 @@ func TestGrsaiSettlementRecoverySettlementBackoffAndManualReview(t *testing.T) {
 	client := &grsaiRecoveryClient{}
 	billing := &grsaiRecoveryBilling{err: errors.New("billing unavailable")}
 	record := grsaiRecoveryRecord(now, nil, GrsaiUpstreamStatusSucceeded, "pending_settlement")
-	record.RetryCount = 1 // ClaimDue makes this the second durable retry: 5 minutes.
+	// Long-running result polling can raise RetryCount many times. It must not
+	// affect the first durable billing retry delay.
+	record.RetryCount = 27
 	runtime, repo := newGrsaiRecoveryRuntime(now, record, client, billing)
 	runtime.RunOnce(context.Background())
 
 	repo.mu.Lock()
 	require.Equal(t, "pending_settlement", repo.record.InternalStatus)
-	require.Equal(t, now.Add(5*time.Minute), repo.record.NextAttemptAt)
+	require.Equal(t, now.Add(time.Minute), repo.record.NextAttemptAt)
+	require.Equal(t, 1, repo.record.SettlementRetryCount)
 	require.Empty(t, billing.commands)
 	repo.mu.Unlock()
 	require.Zero(t, client.generateCalls)
 
 	repo.mu.Lock()
 	repo.record.NextAttemptAt = now.Add(-time.Second)
-	repo.record.RetryCount = 5 // ClaimDue makes this exceed the configured limit.
+	repo.record.SettlementRetryCount = 1
+	repo.mu.Unlock()
+	runtime.RunOnce(context.Background())
+	repo.mu.Lock()
+	require.Equal(t, now.Add(5*time.Minute), repo.record.NextAttemptAt)
+	require.Equal(t, 2, repo.record.SettlementRetryCount)
+	repo.record.NextAttemptAt = now.Add(-time.Second)
+	repo.record.SettlementRetryCount = 5
 	repo.mu.Unlock()
 	runtime.RunOnce(context.Background())
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	require.Equal(t, "manual_review", repo.record.InternalStatus)
 	require.Contains(t, *repo.record.LastErrorSummary, "no upstream request was retried")
+	require.Zero(t, client.generateCalls)
+}
+
+func TestGrsaiSettlementRecoveryLimitsClaimsToOneLongRequestLease(t *testing.T) {
+	now := time.Date(2026, 9, 19, 12, 0, 0, 0, time.UTC)
+	taskID := "long-running-task"
+	client := &grsaiRecoveryClient{result: &GrsaiUpstreamResult{TaskID: taskID, Status: GrsaiUpstreamStatusRunning}}
+	billing := &grsaiRecoveryBilling{}
+	runtime, repo := newGrsaiRecoveryRuntime(now, grsaiRecoveryRecord(now, &taskID, GrsaiUpstreamStatusRunning, "pending_upstream"), client, billing)
+	runtime.opts.BatchLimit = 100
+
+	runtime.RunOnce(context.Background())
+
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+	require.Equal(t, 1, repo.lastClaimLimit)
+	require.Greater(t, grsaiSettlementLease, grsaiRequestTimeout)
+	require.Equal(t, 1, client.resultCalls)
 	require.Zero(t, client.generateCalls)
 }
 
@@ -344,4 +376,30 @@ func TestGrsaiSettlementRecoveryMalformedResultIsDeferredWithoutResubmission(t *
 	require.Equal(t, now.Add(time.Minute), repo.record.NextAttemptAt)
 	require.Zero(t, client.generateCalls)
 	require.Empty(t, billing.commands)
+}
+
+func TestGrsaiSettlementRecoveryTemporaryResultHTTPFailuresAreDeferred(t *testing.T) {
+	now := time.Date(2026, 9, 19, 12, 0, 0, 0, time.UTC)
+	for _, statusCode := range []int{429, 502} {
+		t.Run(fmt.Sprintf("HTTP_%d", statusCode), func(t *testing.T) {
+			taskID := "task-temporary-http"
+			client := &grsaiRecoveryClient{
+				result: &GrsaiUpstreamResult{HTTPStatus: statusCode, TaskID: taskID},
+				err:    &GrsaiHTTPError{Operation: "result", StatusCode: statusCode},
+			}
+			billing := &grsaiRecoveryBilling{}
+			runtime, repo := newGrsaiRecoveryRuntime(now, grsaiRecoveryRecord(now, &taskID, GrsaiUpstreamStatusRunning, "pending_upstream"), client, billing)
+
+			runtime.RunOnce(context.Background())
+
+			repo.mu.Lock()
+			defer repo.mu.Unlock()
+			require.Equal(t, "pending_upstream", repo.record.InternalStatus)
+			require.Equal(t, "unknown", repo.record.UpstreamStatus)
+			require.NotNil(t, repo.record.LastErrorSummary)
+			require.Contains(t, *repo.record.LastErrorSummary, fmt.Sprintf("HTTP %d", statusCode))
+			require.Equal(t, now.Add(time.Minute), repo.record.NextAttemptAt)
+			require.Zero(t, client.generateCalls)
+		})
+	}
 }

@@ -178,7 +178,11 @@ func (r *GrsaiSettlementRecoveryRuntime) RunOnce(ctx context.Context) {
 		return
 	}
 	now := r.now()
-	claims, err := r.repo.ClaimDue(ctx, now, r.opts.BatchLimit, now.Add(grsaiSettlementLease))
+	// A provider call can consume its full 30-minute timeout. Claim one record
+	// per run so no later record in a sequential batch starts after its 31-minute
+	// lease has already expired. Fencing prevents a second worker from replaying
+	// the same task while this call owns the lease.
+	claims, err := r.repo.ClaimDue(ctx, now, 1, now.Add(grsaiSettlementLease))
 	if err != nil {
 		if ctx.Err() == nil {
 			logger.L().Warn("grsai settlement recovery claim failed", zap.Error(err))
@@ -211,18 +215,22 @@ func (r *GrsaiSettlementRecoveryRuntime) recoverClaim(ctx context.Context, claim
 		return
 	}
 	result, resultErr := r.upstream.Result(ctx, account, *claim.UpstreamTaskID)
-	outcome := r.settlement.FinishAt(ctx, claim, result, resultErr, r.now().Add(r.opts.ScanInterval))
+	nextAttempt := r.now().Add(r.opts.ScanInterval)
+	if resultErr == nil && result != nil && result.Status == GrsaiUpstreamStatusSucceeded {
+		nextAttempt = r.now().Add(r.settlementRetryDelay(claim.SettlementRetryCount + 1))
+	}
+	outcome := r.settlement.FinishAt(ctx, claim, result, resultErr, nextAttempt)
 	if outcome.SettlementError != nil && !errors.Is(outcome.SettlementError, ErrGrsaiSettlementClaimLost) {
 		logger.L().Warn("grsai settlement recovery result handling failed", zap.Int64("settlement_id", claim.ID), zap.Error(outcome.SettlementError))
 	}
 }
 
 func (r *GrsaiSettlementRecoveryRuntime) recoverSettlement(ctx context.Context, claim *GrsaiSettlement) {
-	if claim.RetryCount > r.opts.SettlementRetryLimit {
+	if claim.SettlementRetryCount >= r.opts.SettlementRetryLimit {
 		r.manualReview(ctx, claim, "settlement retry limit exceeded; no upstream request was retried")
 		return
 	}
-	_, err := r.settlement.SettleAt(ctx, claim.ID, claim.ClaimVersion, r.now().Add(r.settlementRetryDelay(claim.RetryCount)))
+	_, err := r.settlement.SettleAt(ctx, claim.ID, claim.ClaimVersion, r.now().Add(r.settlementRetryDelay(claim.SettlementRetryCount+1)))
 	if err != nil && !errors.Is(err, ErrGrsaiSettlementClaimLost) {
 		logger.L().Warn("grsai settlement recovery billing failed", zap.Int64("settlement_id", claim.ID), zap.Error(err))
 	}
@@ -265,11 +273,11 @@ func (r *GrsaiSettlementRecoveryRuntime) manualReview(ctx context.Context, claim
 	logger.L().Error("grsai settlement requires manual review", zap.String("priority", "high"), zap.Int64("settlement_id", claim.ID), zap.String("reason", summary))
 }
 
-func (r *GrsaiSettlementRecoveryRuntime) settlementRetryDelay(retryCount int) time.Duration {
-	if retryCount <= 0 {
+func (r *GrsaiSettlementRecoveryRuntime) settlementRetryDelay(failureCount int) time.Duration {
+	if failureCount <= 1 {
 		return grsaiSettlementRecoveryBackoff[0]
 	}
-	index := retryCount - 1
+	index := failureCount - 1
 	if index >= len(grsaiSettlementRecoveryBackoff) {
 		return grsaiSettlementRecoveryBackoff[len(grsaiSettlementRecoveryBackoff)-1]
 	}

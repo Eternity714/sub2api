@@ -110,6 +110,30 @@ func TestGrsaiSettlementRepository_BindAndUpdateSanitizedResult(t *testing.T) {
 	require.WithinDuration(t, nextAttempt, got.NextAttemptAt, time.Millisecond)
 }
 
+func TestGrsaiSettlementRepository_SettlementRetryCountIgnoresPollingClaims(t *testing.T) {
+	ctx := context.Background()
+	repo := NewGrsaiSettlementRepository(integrationDB)
+	now := time.Now().UTC()
+	params := grsaiSettlementTestParams(t, "settlement-retry-count")
+	params.NextAttemptAt = now.Add(-time.Minute)
+	record, err := repo.Create(ctx, params)
+	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
+
+	first, err := repo.ClaimDue(ctx, now, 1, now.Add(time.Minute))
+	require.NoError(t, err)
+	require.Len(t, first, 1)
+	require.Equal(t, 1, first[0].RetryCount)
+	require.Zero(t, first[0].SettlementRetryCount)
+	require.NoError(t, repo.MarkPendingSettlement(ctx, record.ID, first[0].ClaimVersion, now.Add(-time.Second)))
+
+	second, err := repo.ClaimDue(ctx, now, 1, now.Add(time.Minute))
+	require.NoError(t, err)
+	require.Len(t, second, 1)
+	require.Equal(t, 2, second[0].RetryCount)
+	require.Equal(t, 1, second[0].SettlementRetryCount)
+}
+
 func TestGrsaiSettlementRepository_ConcurrentClaimHasSingleWinner(t *testing.T) {
 	ctx := context.Background()
 	repo := NewGrsaiSettlementRepository(integrationDB)
