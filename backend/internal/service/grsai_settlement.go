@@ -240,8 +240,15 @@ type GrsaiSettlementOutcome struct {
 // particular SettlementError must never replace a successful upstream body.
 // A disconnected client must not cancel recording the already obtained result.
 func (s *GrsaiSettlementService) Finish(ctx context.Context, claim *GrsaiSettlement, upstream *GrsaiUpstreamResult, upstreamErr error) *GrsaiSettlementOutcome {
+	return s.FinishAt(ctx, claim, upstream, upstreamErr, time.Now().Add(grsaiSettlementRetryDelay))
+}
+
+// FinishAt records an upstream outcome with a caller-supplied durable retry
+// time. The request path uses Finish's one-minute default; recovery workers
+// use this variant so restarts only depend on next_attempt_at.
+func (s *GrsaiSettlementService) FinishAt(ctx context.Context, claim *GrsaiSettlement, upstream *GrsaiUpstreamResult, upstreamErr error, retryAt time.Time) *GrsaiSettlementOutcome {
 	out := &GrsaiSettlementOutcome{Upstream: upstream, UpstreamError: upstreamErr, State: GrsaiStateUpstreamUnknown}
-	if s == nil || s.Repo == nil || claim == nil {
+	if s == nil || s.Repo == nil || claim == nil || retryAt.IsZero() {
 		out.SettlementError = ErrGrsaiSettlementInvalidInput
 		return out
 	}
@@ -261,9 +268,9 @@ func (s *GrsaiSettlementService) Finish(ctx context.Context, claim *GrsaiSettlem
 		return out
 	}
 	if record.UpstreamStatus == GrsaiUpstreamStatusSucceeded {
-		_, out.SettlementError = s.Settle(ctx, record.ID, record.ClaimVersion)
+		_, out.SettlementError = s.SettleAt(ctx, record.ID, record.ClaimVersion, retryAt)
 	} else {
-		out.SettlementError = s.recordResult(ctx, record, upstream, upstreamErr)
+		out.SettlementError = s.recordResult(ctx, record, upstream, upstreamErr, retryAt)
 	}
 	if updated, readErr := s.Repo.GetByID(ctx, record.ID); readErr == nil {
 		out.State = updated.State()
@@ -271,7 +278,7 @@ func (s *GrsaiSettlementService) Finish(ctx context.Context, claim *GrsaiSettlem
 	return out
 }
 
-func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *GrsaiSettlement, upstream *GrsaiUpstreamResult, upstreamErr error) error {
+func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *GrsaiSettlement, upstream *GrsaiUpstreamResult, upstreamErr error, retryAt time.Time) error {
 	// A received HTTP failure is a final failed submission, even if an error
 	// payload happens to include a task-like identifier. Never poll or bind it.
 	if grsaiUpstreamHTTPFailed(upstream, upstreamErr) {
@@ -299,7 +306,7 @@ func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *Grsai
 	if status == GrsaiUpstreamStatusRunning && record.UpstreamTaskID == nil {
 		status = "unknown"
 	}
-	next := time.Now().Add(grsaiSettlementRetryDelay)
+	next := retryAt
 	// Persist only fixed summaries; upstream errors can contain prompts or keys.
 	summary := ""
 	if status == "unknown" {
@@ -310,7 +317,7 @@ func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *Grsai
 	}
 	switch status {
 	case GrsaiUpstreamStatusSucceeded:
-		_, err := s.Settle(ctx, record.ID, record.ClaimVersion)
+		_, err := s.SettleAt(ctx, record.ID, record.ClaimVersion, retryAt)
 		return err
 	case GrsaiUpstreamStatusFailed, GrsaiUpstreamStatusViolation:
 		return s.Repo.CloseNoCharge(ctx, record.ID, record.ClaimVersion, "upstream "+status)
@@ -330,7 +337,17 @@ func grsaiUpstreamHTTPFailed(upstream *GrsaiUpstreamResult, upstreamErr error) b
 // Settle operates on an existing claim (from Prepare or ClaimDue). It never
 // reads live pricing, reissues Generate, or owns a second balance transaction.
 func (s *GrsaiSettlementService) Settle(ctx context.Context, id, claimVersion int64) (bool, error) {
+	return s.SettleAt(ctx, id, claimVersion, time.Now().Add(grsaiSettlementRetryDelay))
+}
+
+// SettleAt is the recovery-worker variant of Settle. It keeps the same
+// transaction and fencing protocol while allowing the durable worker to store
+// its retry schedule rather than relying on an in-memory timer.
+func (s *GrsaiSettlementService) SettleAt(ctx context.Context, id, claimVersion int64, retryAt time.Time) (bool, error) {
 	if s == nil || s.Repo == nil || s.Billing == nil {
+		return false, ErrGrsaiSettlementInvalidInput
+	}
+	if retryAt.IsZero() {
 		return false, ErrGrsaiSettlementInvalidInput
 	}
 	record, err := s.Repo.GetByID(ctx, id)
@@ -366,7 +383,7 @@ func (s *GrsaiSettlementService) Settle(ctx context.Context, id, claimVersion in
 	})
 	if err != nil {
 		if !errors.Is(err, ErrGrsaiSettlementClaimLost) {
-			if retryErr := s.Repo.MarkPendingSettlement(ctx, id, claimVersion, time.Now().Add(grsaiSettlementRetryDelay)); retryErr != nil {
+			if retryErr := s.Repo.MarkPendingSettlement(ctx, id, claimVersion, retryAt); retryErr != nil {
 				return false, errors.Join(err, retryErr)
 			}
 		}
