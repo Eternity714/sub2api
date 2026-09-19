@@ -12,22 +12,26 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGrsaiSettlementRepository_UniqueBillingIdempotencyKey(t *testing.T) {
+func TestGrsaiSettlementRepository_DerivesUniqueBillingIdempotencyKeyFromSettlementID(t *testing.T) {
 	ctx := context.Background()
 	repo := NewGrsaiSettlementRepository(integrationDB)
 	first := grsaiSettlementTestParams(t, "billing-key")
 	second := grsaiSettlementTestParams(t, "billing-key-duplicate")
 	second.BillingIdempotencyKey = first.BillingIdempotencyKey
-	cleanupGrsaiSettlements(t, first.BillingIdempotencyKey)
 
-	_, err := repo.Create(ctx, first)
+	firstRecord, err := repo.Create(ctx, first)
 	require.NoError(t, err)
-	_, err = repo.Create(ctx, second)
-	requirePostgresUniqueViolation(t, err, "grsai_settlements_billing_idempotency_key_uq")
+	secondRecord, err := repo.Create(ctx, second)
+	require.NoError(t, err)
+	require.Equal(t, service.GrsaiSettlementRequestID(firstRecord.ID), firstRecord.BillingIdempotencyKey)
+	require.Equal(t, service.GrsaiSettlementRequestID(secondRecord.ID), secondRecord.BillingIdempotencyKey)
+	require.NotEqual(t, firstRecord.BillingIdempotencyKey, secondRecord.BillingIdempotencyKey)
+	cleanupGrsaiSettlements(t, firstRecord.BillingIdempotencyKey, secondRecord.BillingIdempotencyKey)
 }
 
 func TestGrsaiSettlementRepository_DeduplicatesNonEmptyTaskWithinAccount(t *testing.T) {
@@ -329,10 +333,9 @@ func TestGrsaiSettlementRepository_SettleCommitsBillingAndTerminalStateAtomicall
 	now := time.Now().UTC()
 	params := grsaiSettlementTestParams(t, "atomic-settle")
 	params.NextAttemptAt = now.Add(-time.Minute)
-	cleanupGrsaiSettlements(t, params.BillingIdempotencyKey)
-	cleanupGrsaiBillingMarker(t, params.BillingIdempotencyKey, params.APIKeyID)
 	record, err := repo.Create(ctx, params)
 	require.NoError(t, err)
+	cleanupGrsaiBillingMarker(t, record.BillingIdempotencyKey, record.APIKeyID)
 	claimed, err := repo.ClaimDue(ctx, now, 1, now.Add(time.Minute))
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
@@ -341,7 +344,7 @@ func TestGrsaiSettlementRepository_SettleCommitsBillingAndTerminalStateAtomicall
 	billingErr := errors.New("billing failed")
 	settled, err := repo.Settle(ctx, record.ID, claimed[0].ClaimVersion, 0.02,
 		func(ctx context.Context, tx *sql.Tx, locked *GrsaiSettlement) error {
-			require.Equal(t, params.BillingIdempotencyKey, locked.BillingIdempotencyKey)
+			require.Equal(t, service.GrsaiSettlementRequestID(record.ID), locked.BillingIdempotencyKey)
 			_, insertErr := tx.ExecContext(ctx, `
 INSERT INTO usage_billing_dedup (request_id, api_key_id, request_fingerprint)
 VALUES ($1, $2, $3)`, locked.BillingIdempotencyKey, locked.APIKeyID, fingerprint)
@@ -350,7 +353,7 @@ VALUES ($1, $2, $3)`, locked.BillingIdempotencyKey, locked.APIKeyID, fingerprint
 		})
 	require.False(t, settled)
 	require.ErrorIs(t, err, billingErr)
-	require.Equal(t, 0, countGrsaiBillingMarkers(t, params.BillingIdempotencyKey, params.APIKeyID))
+	require.Equal(t, 0, countGrsaiBillingMarkers(t, record.BillingIdempotencyKey, record.APIKeyID))
 	got, err := repo.GetByID(ctx, record.ID)
 	require.NoError(t, err)
 	require.Equal(t, GrsaiSettlementStatusProcessing, got.InternalStatus)
@@ -364,12 +367,13 @@ VALUES ($1, $2, $3)`, locked.BillingIdempotencyKey, locked.APIKeyID, fingerprint
 		})
 	require.NoError(t, err)
 	require.True(t, settled)
-	require.Equal(t, 1, countGrsaiBillingMarkers(t, params.BillingIdempotencyKey, params.APIKeyID))
+	require.Equal(t, 1, countGrsaiBillingMarkers(t, record.BillingIdempotencyKey, record.APIKeyID))
 	got, err = repo.GetByID(ctx, record.ID)
 	require.NoError(t, err)
 	require.Equal(t, GrsaiSettlementStatusSettled, got.InternalStatus)
 	require.NotNil(t, got.SettledAmount)
 	require.InDelta(t, 0.02, *got.SettledAmount, 0.0000000001)
+	cleanupGrsaiSettlements(t, record.BillingIdempotencyKey)
 }
 
 func TestGrsaiSettlementRepository_RejectsNonFinitePrices(t *testing.T) {
@@ -421,11 +425,11 @@ func TestGrsaiSettlementRepository_RejectsNonFiniteSettledAmount(t *testing.T) {
 func grsaiSettlementTestParams(t *testing.T, suffix string) CreateGrsaiSettlementParams {
 	t.Helper()
 	return CreateGrsaiSettlementParams{
-		AccountID:            3001,
-		GroupID:              4001,
-		UserID:               1001,
-		APIKeyID:             2001,
-		Model:                "grsai-image",
+		AccountID:             3001,
+		GroupID:               4001,
+		UserID:                1001,
+		APIKeyID:              2001,
+		Model:                 "grsai-image",
 		BaseUnitPrice:         0.01,
 		GroupRateMultiplier:   1,
 		AccountRateMultiplier: 1,
