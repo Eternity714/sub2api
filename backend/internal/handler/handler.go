@@ -59,6 +59,7 @@ type Handlers struct {
 	Admin            *AdminHandlers
 	Gateway          *GatewayHandler
 	OpenAIGateway    *OpenAIGatewayHandler
+	GrsaiGateway     *GrsaiGatewayHandler
 	Setting          *SettingHandler
 	Totp             *TotpHandler
 	Passkey          *PasskeyHandler
