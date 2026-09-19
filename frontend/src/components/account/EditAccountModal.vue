@@ -30,7 +30,18 @@
       <div v-if="account.type === 'apikey'" class="space-y-4">
         <div v-if="!isCNApiKeyAccount || editApiProtocol !== 'adaptive'">
           <label class="input-label">{{ t('admin.accounts.baseUrl') }}</label>
+          <select
+            v-if="account.platform === 'grsai'"
+            v-model="editBaseUrl"
+            class="input"
+            data-testid="grsai-base-url-select"
+          >
+            <option v-for="preset in GRSAI_BASE_URL_PRESETS" :key="preset.url" :value="preset.url">
+              {{ t(`admin.accounts.grsai.baseUrlOptions.${preset.labelKey}`) }} ({{ preset.url }})
+            </option>
+          </select>
           <input
+            v-else
             v-model="editBaseUrl"
             type="text"
             class="input"
@@ -3189,6 +3200,8 @@ import {
   cnSupportsNativeResponses,
   defaultCNAdaptiveBaseUrls,
   defaultCNBaseUrl,
+  GRSAI_BASE_URL_PRESETS,
+  GRSAI_GLOBAL_BASE_URL,
   isCNProviderPlatform,
   HEADER_OVERRIDE_ENABLED_CREDENTIAL_KEY,
   HEADER_OVERRIDES_CREDENTIAL_KEY,
@@ -3357,6 +3370,7 @@ const baseUrlHint = computed(() => {
   if (props.account.platform === 'openai') return t('admin.accounts.openai.baseUrlHint')
   if (props.account.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
   if (props.account.platform === 'grok') return ''
+  if (props.account.platform === 'grsai') return t('admin.accounts.grsai.baseUrlHint')
   return t('admin.accounts.baseUrlHint')
 })
 
@@ -4035,7 +4049,7 @@ const defaultBaseUrl = computed(() => {
   if (props.account?.platform === 'gemini') return 'https://generativelanguage.googleapis.com'
   if (props.account?.platform === 'grok') return 'https://api.x.ai/v1'
   if (props.account?.platform === 'typesafe') return 'https://api.typesafe.ai'
-  if (props.account?.platform === 'grsai') return 'https://api.grsai.com'
+  if (props.account?.platform === 'grsai') return GRSAI_GLOBAL_BASE_URL
   // CN 供应商：按当前模式/协议回落到官方预设（清空输入框提交时使用），
   // 不能落到 anthropic 默认值（会被当 CC base 拼出错误端点）。
   if (props.account && isMultiProtocolApiKeyPlatform(props.account.platform)) {
@@ -4484,9 +4498,11 @@ const syncFormFromAccount = (newAccount: Account | null) => {
             ? 'https://api.x.ai/v1'
             : newAccount.platform === 'typesafe'
               ? 'https://api.typesafe.ai'
-            : isMultiProtocolApiKeyPlatform(newAccount.platform)
-              ? defaultCNBaseUrl(newAccount.platform, currentOpenCodeOrCNMode(), editApiProtocol.value)
-              : 'https://api.anthropic.com'
+              : newAccount.platform === 'grsai'
+                ? GRSAI_GLOBAL_BASE_URL
+                : isMultiProtocolApiKeyPlatform(newAccount.platform)
+                  ? defaultCNBaseUrl(newAccount.platform, currentOpenCodeOrCNMode(), editApiProtocol.value)
+                  : 'https://api.anthropic.com'
     editBaseUrl.value = isCNApiKeyAccount.value && editApiProtocol.value === 'adaptive'
       ? editAdaptiveBaseUrls.value.chat_completions
       : (credentials.base_url as string) || platformDefaultUrl

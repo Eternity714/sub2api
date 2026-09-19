@@ -250,6 +250,20 @@ export const GROK_BASE_URL_PRESETS: GrokBaseUrlPreset[] = [
   { label: 'eu-west-1', url: 'https://eu-west-1.api.x.ai/v1' }
 ]
 
+/** GRS.AI 官方节点。创建 GRS.AI 账号时默认使用全球节点。 */
+export const GRSAI_GLOBAL_BASE_URL = 'https://grsaiapi.com'
+export const GRSAI_DOMESTIC_BASE_URL = 'https://grsai.dakka.com.cn'
+
+export interface GrsaiBaseUrlPreset {
+  labelKey: 'global' | 'domestic'
+  url: string
+}
+
+export const GRSAI_BASE_URL_PRESETS: GrsaiBaseUrlPreset[] = [
+  { labelKey: 'global', url: GRSAI_GLOBAL_BASE_URL },
+  { labelKey: 'domestic', url: GRSAI_DOMESTIC_BASE_URL }
+]
+
 // ========== 多协议 API Key 供应商（国产厂商与聚合平台） ==========
 // 默认端点、原生协议能力与内置分流规则来自平台清单（constants/platformCatalog，
 // 即后端 ProviderProfile），新登记的供应商无需在此补充。
