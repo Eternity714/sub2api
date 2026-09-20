@@ -48,6 +48,7 @@ type CreateGrsaiSettlementParams struct {
 	AccountRateMultiplier float64
 	BillableUnitPrice     float64
 	RequestedImageCount   int
+	ImageSize             string
 	Currency              string
 	BillingIdempotencyKey string
 	UpstreamTaskID        *string
@@ -67,6 +68,7 @@ type GrsaiSettlement struct {
 	AccountRateMultiplier float64
 	BillableUnitPrice     float64
 	RequestedImageCount   int
+	ImageSize             string
 	Currency              string
 	BillingIdempotencyKey string
 	UpstreamTaskID        *string
@@ -179,6 +181,7 @@ type GrsaiPrepareInput struct {
 	APIKey     *APIKey
 	Model      string
 	ImageCount int
+	ImageSize  string
 	// Pass the existing user/group rate resolver's result when it overrides the
 	// group default. Independent image rates still take precedence.
 	EffectiveGroupMultiplier *float64
@@ -223,7 +226,7 @@ func (s *GrsaiSettlementService) Prepare(ctx context.Context, input GrsaiPrepare
 		AccountID: input.Account.ID, GroupID: group.ID, UserID: input.APIKey.UserID, APIKeyID: input.APIKey.ID,
 		Model: strings.TrimSpace(input.Model), BaseUnitPrice: base, GroupRateMultiplier: groupRate,
 		AccountRateMultiplier: accountRate, BillableUnitPrice: billable, RequestedImageCount: input.ImageCount,
-		Currency: "USD", UpstreamStatus: "not_submitted",
+		ImageSize: NormalizeImageBillingTierOrDefault(input.ImageSize), Currency: "USD", UpstreamStatus: "not_submitted",
 		// Keep the scanner out of the create -> initial claim window.
 		NextAttemptAt: now.Add(grsaiSettlementLease),
 	})
@@ -490,7 +493,7 @@ func (s *GrsaiSettlementService) recordUsage(ctx context.Context, record *GrsaiS
 	baseCost := record.BaseUnitPrice * float64(record.RequestedImageCount)
 	usage := &UsageLog{UserID: record.UserID, APIKeyID: record.APIKeyID, AccountID: record.AccountID,
 		GroupID: &record.GroupID, RequestID: cmd.RequestID, Model: record.Model, RequestedModel: record.Model,
-		ImageCount: record.RequestedImageCount, ImageOutputCost: baseCost, TotalCost: baseCost, ActualCost: cmd.BalanceCost,
+		ImageCount: record.RequestedImageCount, ImageSize: &record.ImageSize, ImageOutputCost: baseCost, TotalCost: baseCost, ActualCost: cmd.BalanceCost,
 		RateMultiplier: record.GroupRateMultiplier, AccountRateMultiplier: &record.AccountRateMultiplier,
 		BillingType: BillingTypeBalance, RequestType: RequestTypeSync, BillingMode: &mode,
 		InboundEndpoint: &endpoint, UpstreamEndpoint: &endpoint, CreatedAt: time.Now()}
