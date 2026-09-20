@@ -19,6 +19,9 @@ import {
   resolveOpenCodeAccountMode,
   isHeaderOverrideCapable,
   GROK_BASE_URL_PRESETS,
+  GRSAI_BASE_URL_PRESETS,
+  GRSAI_DOMESTIC_BASE_URL,
+  GRSAI_GLOBAL_BASE_URL,
   parseHeaderOverridesJson,
   parseOpenCodeGoProtocolRules,
   planTypeDisplayLabel,
@@ -27,6 +30,17 @@ import {
   splitHeaderOverridesObject,
   validateHeaderOverrideRows
 } from '../credentialsBuilder'
+
+describe('GRS.AI 官方节点', () => {
+  it('全球节点排在首位并提供国内节点', () => {
+    expect(GRSAI_GLOBAL_BASE_URL).toBe('https://grsaiapi.com')
+    expect(GRSAI_DOMESTIC_BASE_URL).toBe('https://grsai.dakka.com.cn')
+    expect(GRSAI_BASE_URL_PRESETS).toEqual([
+      { labelKey: 'global', url: GRSAI_GLOBAL_BASE_URL },
+      { labelKey: 'domestic', url: GRSAI_DOMESTIC_BASE_URL }
+    ])
+  })
+})
 
 describe('applyInterceptWarmup', () => {
   it('create + enabled=true: should set intercept_warmup_requests to true', () => {

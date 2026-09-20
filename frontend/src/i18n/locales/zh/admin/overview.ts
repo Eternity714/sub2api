@@ -917,6 +917,7 @@ export default {
         deepseek: 'DeepSeek',
         minimax: 'MiniMax',
         opencode_go: 'OpenCode',
+        grsai: 'GRS.AI',
         composite: 'Composite',
       },
       saving: '保存中...',
@@ -1017,6 +1018,9 @@ export default {
         modeHint: '默认关闭独立倍率时，图片费用 = 图片价格 × 当前分组有效倍率；开启独立倍率后，图片费用 = 图片价格 × 生图独立倍率。',
         finalPricePreview: '最终单张价格预览',
         notConfigured: '未配置'
+      },
+      grsaiImageGeneration: {
+        title: '图片生成',
       },
       videoPricing: {
         title: '视频生成计费',

@@ -109,6 +109,7 @@ export default {
         deepseek: 'DeepSeek',
         minimax: 'MiniMax',
         opencode_go: 'OpenCode',
+        grsai: 'GRS.AI',
       },
       cnProviders: {
         accountMode: {
@@ -579,6 +580,14 @@ export default {
       apiKeyRequired: 'API Key *',
       apiKeyPlaceholder: 'sk-ant-api03-...',
       apiKeyHint: 'Your Claude Console API Key',
+      grsai: {
+        baseUrlHint: 'Select the GRS.AI official endpoint to use.',
+        apiKeyHint: 'Your GRS.AI API Key',
+        baseUrlOptions: {
+          global: 'Global endpoint',
+          domestic: 'China endpoint'
+        }
+      },
       upstreamRequestIdHeader: 'Upstream ID',
       upstreamRequestIdHeaderPlaceholder: 'Leave empty to record nothing',
       upstreamRequestIdHeaderHelp: {

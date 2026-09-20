@@ -312,6 +312,7 @@ export default {
         deepseek: 'DeepSeek',
         minimax: 'MiniMax',
         opencode_go: 'OpenCode',
+        grsai: 'GRS.AI',
       },
       cnProviders: {
         accountMode: {
@@ -666,6 +667,14 @@ export default {
       apiKeyRequired: 'API Key *',
       apiKeyPlaceholder: 'sk-ant-api03-...',
       apiKeyHint: '您的 Claude Console API Key',
+      grsai: {
+        baseUrlHint: '请选择要使用的 GRS.AI 官方节点。',
+        apiKeyHint: '您的 GRS.AI API Key',
+        baseUrlOptions: {
+          global: '全球节点',
+          domestic: '国内节点'
+        }
+      },
       upstreamRequestIdHeader: '上游ID',
       upstreamRequestIdHeaderPlaceholder: '留空不记录',
       upstreamRequestIdHeaderHelp: {

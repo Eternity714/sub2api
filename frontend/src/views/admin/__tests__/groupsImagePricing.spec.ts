@@ -7,6 +7,7 @@ import {
   getVideoPricePlaceholder,
   imagePricingPlatforms,
   imagePricingI18nKey,
+  supportsImageGenerationPlatform,
   supportsImagePricingPlatform,
   supportsVideoPricingPlatform,
   videoPricingI18nKey,
@@ -16,6 +17,11 @@ describe("groups image pricing platform support", () => {
   it("includes Grok image groups", () => {
     expect(supportsImagePricingPlatform("grok")).toBe(true);
     expect(imagePricingPlatforms.has("grok")).toBe(true);
+  });
+
+  it("shows the image-generation permission for GRS.AI without generic image pricing", () => {
+    expect(supportsImageGenerationPlatform("grsai")).toBe(true);
+    expect(supportsImagePricingPlatform("grsai")).toBe(false);
   });
 
   it("enables video pricing controls for Grok only", () => {

@@ -252,6 +252,20 @@ export const GROK_BASE_URL_PRESETS: GrokBaseUrlPreset[] = [
   { label: 'eu-west-1', url: 'https://eu-west-1.api.x.ai/v1' }
 ]
 
+/** GRS.AI 官方节点。创建 GRS.AI 账号时默认使用全球节点。 */
+export const GRSAI_GLOBAL_BASE_URL = 'https://grsaiapi.com'
+export const GRSAI_DOMESTIC_BASE_URL = 'https://grsai.dakka.com.cn'
+
+export interface GrsaiBaseUrlPreset {
+  labelKey: 'global' | 'domestic'
+  url: string
+}
+
+export const GRSAI_BASE_URL_PRESETS: GrsaiBaseUrlPreset[] = [
+  { labelKey: 'global', url: GRSAI_GLOBAL_BASE_URL },
+  { labelKey: 'domestic', url: GRSAI_DOMESTIC_BASE_URL }
+]
+
 // ========== 国产供应商（Kimi / Zhipu / DeepSeek）base_url 预设 ==========
 // 与后端 service/domain_constants.go 的默认 base url 保持一致。
 // 账号类型（payg 按量付费 / coding 编程套餐）决定额度监控方式；

@@ -984,6 +984,7 @@ export default {
         deepseek: 'DeepSeek',
         minimax: 'MiniMax',
         opencode_go: 'OpenCode',
+        grsai: 'GRS.AI',
         composite: 'Composite',
       },
       deleteConfirm:
@@ -1020,6 +1021,9 @@ export default {
         modeHint: 'By default, image billing uses image price × current effective group multiplier. Independent mode uses image price × image multiplier.',
         finalPricePreview: 'Final per-image price preview',
         notConfigured: 'Not configured'
+      },
+      grsaiImageGeneration: {
+        title: 'Image Generation',
       },
       videoPricing: {
         title: 'Video Generation Pricing',

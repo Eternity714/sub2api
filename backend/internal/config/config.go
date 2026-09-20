@@ -102,6 +102,7 @@ type Config struct {
 	Update                  UpdateConfig                  `mapstructure:"update"`
 	Idempotency             IdempotencyConfig             `mapstructure:"idempotency"`
 	BatchImage              BatchImageConfig              `mapstructure:"batch_image"`
+	GrsaiSettlementRecovery GrsaiSettlementRecoveryConfig `mapstructure:"grsai_settlement_recovery"`
 	ImageStorage            ImageStorageConfig            `mapstructure:"image_storage"`
 	Plugins                 PluginConfig                  `mapstructure:"plugins"`
 }
@@ -245,6 +246,17 @@ type BatchImageConfig struct {
 	VertexOutputRetentionHours   int    `mapstructure:"vertex_output_retention_hours"`
 	VertexBatchPredictionBaseURL string `mapstructure:"vertex_batch_prediction_base_url"`
 	VertexGCSBaseURL             string `mapstructure:"vertex_gcs_base_url"`
+}
+
+// GrsaiSettlementRecoveryConfig controls the durable GRS.AI settlement
+// recovery worker. It is opt-in so existing installations do not start
+// polling records until native GRS.AI routing has been configured.
+type GrsaiSettlementRecoveryConfig struct {
+	Enabled                         bool `mapstructure:"enabled"`
+	ScanIntervalSeconds             int  `mapstructure:"scan_interval_seconds"`
+	BatchLimit                      int  `mapstructure:"batch_limit"`
+	SubmissionUnknownTimeoutSeconds int  `mapstructure:"submission_unknown_timeout_seconds"`
+	SettlementRetryLimit            int  `mapstructure:"settlement_retry_limit"`
 }
 
 // ImageStorageConfig 配置异步图片任务结果上传的 S3 兼容对象存储。
@@ -2232,6 +2244,14 @@ func setDefaults() {
 	viper.SetDefault("batch_image.vertex_batch_prediction_base_url", "")
 	viper.SetDefault("batch_image.vertex_gcs_base_url", "")
 
+	// GRS.AI native image settlement recovery. Disabled by default until the
+	// native route is enabled and an administrator has configured accounts.
+	viper.SetDefault("grsai_settlement_recovery.enabled", false)
+	viper.SetDefault("grsai_settlement_recovery.scan_interval_seconds", 60)
+	viper.SetDefault("grsai_settlement_recovery.batch_limit", 100)
+	viper.SetDefault("grsai_settlement_recovery.submission_unknown_timeout_seconds", 600)
+	viper.SetDefault("grsai_settlement_recovery.settlement_retry_limit", 5)
+
 	// Image storage (async image task result offload to S3-compatible object storage)
 	viper.SetDefault("image_storage.enabled", false)
 	viper.SetDefault("image_storage.region", "auto")
@@ -3137,6 +3157,20 @@ func (c *Config) Validate() error {
 		}
 		if c.BatchImage.VertexOutputRetentionHours <= 0 {
 			return fmt.Errorf("batch_image.vertex_output_retention_hours must be positive")
+		}
+	}
+	if c.GrsaiSettlementRecovery.Enabled {
+		if c.GrsaiSettlementRecovery.ScanIntervalSeconds <= 0 {
+			return fmt.Errorf("grsai_settlement_recovery.scan_interval_seconds must be positive")
+		}
+		if c.GrsaiSettlementRecovery.BatchLimit <= 0 || c.GrsaiSettlementRecovery.BatchLimit > 1000 {
+			return fmt.Errorf("grsai_settlement_recovery.batch_limit must be between 1 and 1000")
+		}
+		if c.GrsaiSettlementRecovery.SubmissionUnknownTimeoutSeconds <= 0 {
+			return fmt.Errorf("grsai_settlement_recovery.submission_unknown_timeout_seconds must be positive")
+		}
+		if c.GrsaiSettlementRecovery.SettlementRetryLimit <= 0 {
+			return fmt.Errorf("grsai_settlement_recovery.settlement_retry_limit must be positive")
 		}
 	}
 	if c.Dashboard.Enabled {

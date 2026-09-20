@@ -228,6 +228,19 @@
             <PlatformIcon platform="opencode_go" size="sm" />
             OpenCode
           </button>
+          <button
+            type="button"
+            @click="form.platform = 'grsai'; accountCategory = 'apikey'"
+            :class="[
+              'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-all',
+              form.platform === 'grsai'
+                ? 'bg-white text-lime-700 shadow-sm dark:bg-dark-600 dark:text-lime-300'
+                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+            ]"
+          >
+            <PlatformIcon platform="grsai" size="sm" />
+            GRS.AI
+          </button>
         </div>
       </div>
 
@@ -1361,7 +1374,18 @@
       <div v-if="form.type === 'apikey' && form.platform !== 'antigravity'" class="space-y-4">
         <div v-if="!isMultiProtocolPlatform || apiProtocol !== 'adaptive'">
           <label class="input-label">{{ t('admin.accounts.baseUrl') }}</label>
+          <select
+            v-if="form.platform === 'grsai'"
+            v-model="apiKeyBaseUrl"
+            class="input"
+            data-testid="grsai-base-url-select"
+          >
+            <option v-for="preset in GRSAI_BASE_URL_PRESETS" :key="preset.url" :value="preset.url">
+              {{ t(`admin.accounts.grsai.baseUrlOptions.${preset.labelKey}`) }} ({{ preset.url }})
+            </option>
+          </select>
           <input
+            v-else
             v-model="apiKeyBaseUrl"
             type="text"
             class="input"
@@ -3950,6 +3974,8 @@ import {
   defaultCNAdaptiveBaseUrls,
   defaultCNBaseUrl,
   defaultOpenCodeProtocolRules,
+  GRSAI_BASE_URL_PRESETS,
+  GRSAI_GLOBAL_BASE_URL,
   isCNProviderPlatform,
   isHeaderOverrideCapable,
   validateHeaderOverrideRows,
@@ -4020,6 +4046,7 @@ const baseUrlHint = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.openai.baseUrlHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
   if (form.platform === 'grok') return ''
+  if (form.platform === 'grsai') return t('admin.accounts.grsai.baseUrlHint')
   return t('admin.accounts.baseUrlHint')
 })
 
@@ -4027,6 +4054,7 @@ const apiKeyHint = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.openai.apiKeyHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.apiKeyHint')
   if (form.platform === 'grok') return ''
+  if (form.platform === 'grsai') return t('admin.accounts.grsai.apiKeyHint')
   return t('admin.accounts.apiKeyHint')
 })
 
@@ -4043,6 +4071,8 @@ const apiKeyBaseUrlPlaceholder = computed(() => {
       return 'https://generativelanguage.googleapis.com'
     case 'grok':
       return 'https://api.x.ai/v1'
+    case 'grsai':
+      return GRSAI_GLOBAL_BASE_URL
     default:
       return 'https://api.anthropic.com'
   }
@@ -4064,6 +4094,7 @@ const apiKeyValuePlaceholder = computed(() => {
       return 'sk-...'
     case 'minimax':
     case 'opencode_go':
+    case 'grsai':
       return 'sk-...'
     default:
       return 'sk-ant-...'
@@ -4843,6 +4874,8 @@ watch(
             ? 'https://generativelanguage.googleapis.com'
             : newPlatform === 'grok'
               ? 'https://api.x.ai/v1'
+              : newPlatform === 'grsai'
+                ? GRSAI_GLOBAL_BASE_URL
               : 'https://api.anthropic.com'
     }
     // Clear model-related settings
@@ -5771,6 +5804,8 @@ const handleSubmit = async () => {
         ? 'https://generativelanguage.googleapis.com'
         : form.platform === 'grok'
           ? 'https://api.x.ai/v1'
+          : form.platform === 'grsai'
+            ? GRSAI_GLOBAL_BASE_URL
           : 'https://api.anthropic.com'
 
   // Build credentials with optional model mapping

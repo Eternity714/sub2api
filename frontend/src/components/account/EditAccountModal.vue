@@ -30,7 +30,18 @@
       <div v-if="account.type === 'apikey'" class="space-y-4">
         <div v-if="!isCNApiKeyAccount || editApiProtocol !== 'adaptive'">
           <label class="input-label">{{ t('admin.accounts.baseUrl') }}</label>
+          <select
+            v-if="account.platform === 'grsai'"
+            v-model="editBaseUrl"
+            class="input"
+            data-testid="grsai-base-url-select"
+          >
+            <option v-for="preset in GRSAI_BASE_URL_PRESETS" :key="preset.url" :value="preset.url">
+              {{ t(`admin.accounts.grsai.baseUrlOptions.${preset.labelKey}`) }} ({{ preset.url }})
+            </option>
+          </select>
           <input
+            v-else
             v-model="editBaseUrl"
             type="text"
             class="input"
@@ -3074,6 +3085,8 @@ import {
   cnSupportsNativeResponses,
   defaultCNAdaptiveBaseUrls,
   defaultCNBaseUrl,
+  GRSAI_BASE_URL_PRESETS,
+  GRSAI_GLOBAL_BASE_URL,
   isCNProviderPlatform,
   HEADER_OVERRIDE_ENABLED_CREDENTIAL_KEY,
   HEADER_OVERRIDES_CREDENTIAL_KEY,
@@ -3159,8 +3172,18 @@ const baseUrlHint = computed(() => {
   if (props.account.platform === 'openai') return t('admin.accounts.openai.baseUrlHint')
   if (props.account.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
   if (props.account.platform === 'grok') return ''
+  if (props.account.platform === 'grsai') return t('admin.accounts.grsai.baseUrlHint')
   return t('admin.accounts.baseUrlHint')
 })
+
+// GRS.AI 编辑页仅提供官方节点。将历史错误地址归一化，避免 select 无匹配项，
+// 并在管理员保存后修复存量账号配置。
+const normalizeGrsaiBaseUrl = (baseUrl: unknown) => {
+  const normalized = typeof baseUrl === 'string' ? baseUrl.trim() : ''
+  return GRSAI_BASE_URL_PRESETS.some(preset => preset.url === normalized)
+    ? normalized
+    : GRSAI_GLOBAL_BASE_URL
+}
 
 const antigravityPresetMappings = computed(() => getPresetMappingsByPlatform('antigravity'))
 const bedrockPresets = computed(() => getPresetMappingsByPlatform('bedrock'))
@@ -3820,6 +3843,7 @@ const defaultBaseUrl = computed(() => {
   if (props.account?.platform === 'openai') return 'https://api.openai.com'
   if (props.account?.platform === 'gemini') return 'https://generativelanguage.googleapis.com'
   if (props.account?.platform === 'grok') return 'https://api.x.ai/v1'
+  if (props.account?.platform === 'grsai') return GRSAI_GLOBAL_BASE_URL
   // CN 供应商：按当前模式/协议回落到官方预设（清空输入框提交时使用），
   // 不能落到 anthropic 默认值（会被当 CC base 拼出错误端点）。
   if (
@@ -4269,6 +4293,8 @@ const syncFormFromAccount = (newAccount: Account | null) => {
           ? 'https://generativelanguage.googleapis.com'
           : newAccount.platform === 'grok'
             ? 'https://api.x.ai/v1'
+            : newAccount.platform === 'grsai'
+              ? GRSAI_GLOBAL_BASE_URL
             : newAccount.platform === 'kimi' ||
                 newAccount.platform === 'zhipu' ||
                 newAccount.platform === 'deepseek' ||
@@ -4277,7 +4303,9 @@ const syncFormFromAccount = (newAccount: Account | null) => {
               : 'https://api.anthropic.com'
     editBaseUrl.value = isCNApiKeyAccount.value && editApiProtocol.value === 'adaptive'
       ? editAdaptiveBaseUrls.value.chat_completions
-      : (credentials.base_url as string) || platformDefaultUrl
+      : newAccount.platform === 'grsai'
+        ? normalizeGrsaiBaseUrl(credentials.base_url)
+        : (credentials.base_url as string) || platformDefaultUrl
 
     // Load model mappings and detect mode
     loadModelRestrictionFromMapping(credentials.model_mapping as Record<string, unknown> | undefined)
