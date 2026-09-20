@@ -162,6 +162,15 @@ func TestIsMigrationChecksumCompatible(t *testing.T) {
 		require.True(t, ok)
 	})
 
+	t.Run("241a历史预检迁移可兼容当前版本", func(t *testing.T) {
+		ok := isMigrationChecksumCompatible(
+			"241a_grsai_settlement_image_size_precheck.sql",
+			"21cdc1b72369447e7933a4cfc07c585a066188f2294b751e404f37149b405139",
+			"da2428c1cfc5bdc225fe18043c07bef7099060a62ab60fbf2437f1871d5e54e0",
+		)
+		require.True(t, ok)
+	})
+
 	t.Run("119未知checksum不兼容", func(t *testing.T) {
 		ok := isMigrationChecksumCompatible(
 			"119_enforce_payment_orders_out_trade_no_unique.sql",
