@@ -89,7 +89,7 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", err.Error())
 		return
 	}
-	model, imageCount := parseGrsaiGenerateRequest(preparedBody)
+	model, imageCount, imageSize := parseGrsaiGenerateRequest(preparedBody)
 	if model == "" {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "model is required")
 		return
@@ -158,7 +158,7 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 
 	groupRate := h.gatewayService.ResolveUserGroupRateMultiplier(c.Request.Context(), apiKey.UserID, apiKey.Group.ID, apiKey.Group.RateMultiplier)
 	settlement, err := h.settlementService.Prepare(c.Request.Context(), service.GrsaiPrepareInput{
-		Account: account, APIKey: apiKey, Model: model, ImageCount: imageCount, EffectiveGroupMultiplier: &groupRate,
+		Account: account, APIKey: apiKey, Model: model, ImageCount: imageCount, ImageSize: imageSize, EffectiveGroupMultiplier: &groupRate,
 	})
 	if err != nil {
 		reqLog.Warn("grsai.settlement_prepare_failed", zap.Error(err))
@@ -272,23 +272,27 @@ func (h *GrsaiGatewayHandler) checkSecurityAudit(c *gin.Context, reqLog *zap.Log
 	return runSecurityAudit(c, reqLog, h.securityAuditCoordinator, h.contentModerationService, apiKey, subject, service.ContentModerationProtocolOpenAIImages, model, body, "http")
 }
 
-func parseGrsaiGenerateRequest(body []byte) (string, int) {
+func parseGrsaiGenerateRequest(body []byte) (string, int, string) {
 	var fields map[string]json.RawMessage
 	if json.Unmarshal(body, &fields) != nil {
-		return "", 1
+		return "", 1, service.ImageBillingSize2K
 	}
 	var model string
 	if json.Unmarshal(fields["model"], &model) != nil {
-		return "", 1
+		return "", 1, service.ImageBillingSize2K
 	}
 	model = strings.TrimSpace(model)
+	imageCount := 1
 	for _, key := range []string{"n", "numImages", "num_images", "imageCount", "image_count"} {
 		var count int
 		if raw, exists := fields[key]; exists && json.Unmarshal(raw, &count) == nil && count > 0 {
-			return model, count
+			imageCount = count
+			break
 		}
 	}
-	return model, 1
+	var rawImageSize string
+	_ = json.Unmarshal(fields["imageSize"], &rawImageSize)
+	return model, imageCount, service.NormalizeImageBillingTierOrDefault(rawImageSize)
 }
 
 func (h *GrsaiGatewayHandler) errorResponse(c *gin.Context, status int, errType, message string) {
