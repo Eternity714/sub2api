@@ -459,6 +459,7 @@ func grsaiSettlementTestParams(t *testing.T, suffix string) CreateGrsaiSettlemen
 		AccountRateMultiplier: 1,
 		BillableUnitPrice:     0.01,
 		RequestedImageCount:   2,
+		ImageSize:             service.ImageBillingSize1K,
 		Currency:              "USD",
 		BillingIdempotencyKey: uniqueTestValue(t, "grsai-billing-"+suffix),
 		UpstreamStatus:        "not_submitted",

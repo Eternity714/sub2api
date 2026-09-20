@@ -55,6 +55,7 @@ func NewGrsaiSettlementRepository(db *sql.DB) *grsaiSettlementRepository {
 
 func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrsaiSettlementParams) (*GrsaiSettlement, error) {
 	params.Model = strings.TrimSpace(params.Model)
+	params.ImageSize = service.NormalizeImageBillingTierOrDefault(params.ImageSize)
 	if params.AccountID <= 0 || params.GroupID <= 0 || params.UserID <= 0 || params.APIKeyID <= 0 ||
 		params.Model == "" || params.RequestedImageCount <= 0 ||
 		!isFiniteNonNegative(params.BaseUnitPrice) || !isFiniteNonNegative(params.GroupRateMultiplier) ||
@@ -90,6 +91,7 @@ func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrs
 		params.AccountRateMultiplier,
 		params.BillableUnitPrice,
 		params.RequestedImageCount,
+		params.ImageSize,
 		params.Currency,
 		params.UpstreamTaskID,
 		params.UpstreamStatus,
@@ -355,7 +357,7 @@ func (r *grsaiSettlementRepository) transition(ctx context.Context, id, claimVer
 const grsaiSettlementSelectSQL = `
 SELECT id, account_id, group_id, user_id, api_key_id, model,
        base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
-       requested_image_count, currency, billing_idempotency_key, upstream_task_id,
+	       requested_image_count, image_size, currency, billing_idempotency_key, upstream_task_id,
 	       upstream_status, internal_status, retry_count, settlement_retry_count, claim_version, next_attempt_at, last_error_summary,
        settled_amount, created_at, updated_at, upstream_bound_at, result_updated_at,
        settled_at, closed_at
@@ -368,17 +370,17 @@ WITH new_id AS (
 INSERT INTO grsai_settlements (
     id, account_id, group_id, user_id, api_key_id, model,
     base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
-    requested_image_count, currency, billing_idempotency_key, upstream_task_id,
+    requested_image_count, image_size, currency, billing_idempotency_key, upstream_task_id,
     upstream_status, next_attempt_at, upstream_bound_at
 ) VALUES (
     (SELECT id FROM new_id), $1, $2, $3, $4, $5,
     $6, $7, $8, $9,
-    $10, $11, CONCAT('grsai_settlement:', (SELECT id FROM new_id)), $12,
-    $13, $14, CASE WHEN $12::varchar IS NULL THEN NULL ELSE NOW() END
+    $10, $11, $12, CONCAT('grsai_settlement:', (SELECT id FROM new_id)), $13,
+    $14, $15, CASE WHEN $13::varchar IS NULL THEN NULL ELSE NOW() END
 )
 RETURNING id, account_id, group_id, user_id, api_key_id, model,
           base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
-          requested_image_count, currency, billing_idempotency_key, upstream_task_id,
+	      requested_image_count, image_size, currency, billing_idempotency_key, upstream_task_id,
 	          upstream_status, internal_status, retry_count, settlement_retry_count, claim_version, next_attempt_at, last_error_summary,
           settled_amount, created_at, updated_at, upstream_bound_at, result_updated_at,
           settled_at, closed_at`
@@ -387,7 +389,7 @@ func grsaiSettlementReturningColumns(alias string) string {
 	columns := []string{
 		"id", "account_id", "group_id", "user_id", "api_key_id", "model",
 		"base_unit_price", "group_rate_multiplier", "account_rate_multiplier", "billable_unit_price",
-		"requested_image_count", "currency", "billing_idempotency_key", "upstream_task_id",
+		"requested_image_count", "image_size", "currency", "billing_idempotency_key", "upstream_task_id",
 		"upstream_status", "internal_status", "retry_count", "settlement_retry_count", "claim_version", "next_attempt_at", "last_error_summary",
 		"settled_amount", "created_at", "updated_at", "upstream_bound_at", "result_updated_at",
 		"settled_at", "closed_at",
@@ -423,6 +425,7 @@ func scanGrsaiSettlement(scanner grsaiSettlementScanner) (*GrsaiSettlement, erro
 		&record.AccountRateMultiplier,
 		&record.BillableUnitPrice,
 		&record.RequestedImageCount,
+		&record.ImageSize,
 		&record.Currency,
 		&record.BillingIdempotencyKey,
 		&upstreamTaskID,
