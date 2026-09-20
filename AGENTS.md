@@ -8,6 +8,15 @@
 `/opt/sub2api`。灰度发布只允许使用服务器中的灰度脚本和不可变 GHCR
 镜像标签（`sha-<commit>`）；不得使用 `latest`。
 
+灰度已初始化完成。不得再次执行 `gray-bootstrap.sh`，也不得启动旧的
+`sub2api` 容器；每次操作前先运行 `gray-status.sh`，以其中记录的稳定和候选
+槽位为准。正常操作顺序为：
+
+1. `gray-deploy.sh <候选槽位> sha-<commit>`：部署到 0% 流量候选槽位；
+2. 完成健康检查和人工验证后，用 `gray-set-traffic.sh <0..100>` 逐步扩大；
+3. 候选达到 100% 并经过观察期后，用 `gray-promote.sh` 确认晋升；
+4. 用 `gray-status.sh` 核对槽位、镜像和健康状态。
+
 - 不得执行 `podman compose down`、删除数据卷、清理正在运行的 blue/green
   槽位，或在灰度回滚时恢复数据库备份。
 - 先向无流量的候选槽位部署，确认容器健康、`/health`、关键人工测试与
