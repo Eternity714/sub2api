@@ -889,6 +889,23 @@
           </div>
         </div>
 
+        <div
+          v-if="supportsImageGenerationPlatform(createForm.platform) && !supportsImagePricingPlatform(createForm.platform)"
+          class="border-t pt-4"
+        >
+          <label class="block mb-3 font-medium text-gray-700 dark:text-gray-300">
+            {{ t("admin.groups.grsaiImageGeneration.title") }}
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              v-model="createForm.allow_image_generation"
+              type="checkbox"
+              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            {{ t(imagePricingI18nKey(createForm.platform, "allowImageGeneration")) }}
+          </label>
+        </div>
+
         <!-- 图片生成计费配置 -->
         <div
           v-if="supportsImagePricingPlatform(createForm.platform)"
@@ -2527,6 +2544,23 @@
               </p>
             </div>
           </div>
+        </div>
+
+        <div
+          v-if="supportsImageGenerationPlatform(editForm.platform) && !supportsImagePricingPlatform(editForm.platform)"
+          class="border-t pt-4"
+        >
+          <label class="block mb-3 font-medium text-gray-700 dark:text-gray-300">
+            {{ t("admin.groups.grsaiImageGeneration.title") }}
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              v-model="editForm.allow_image_generation"
+              type="checkbox"
+              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            {{ t(imagePricingI18nKey(editForm.platform, "allowImageGeneration")) }}
+          </label>
         </div>
 
         <!-- 图片生成计费配置 -->
@@ -4364,6 +4398,7 @@ import {
   getImagePricePlaceholder,
   getVideoPricePlaceholder,
   imagePricingI18nKey,
+  supportsImageGenerationPlatform,
   supportsImagePricingPlatform,
   supportsVideoPricingPlatform,
   videoPricingI18nKey,

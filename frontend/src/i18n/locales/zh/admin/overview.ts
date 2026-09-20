@@ -1019,6 +1019,9 @@ export default {
         finalPricePreview: '最终单张价格预览',
         notConfigured: '未配置'
       },
+      grsaiImageGeneration: {
+        title: '图片生成',
+      },
       videoPricing: {
         title: '视频生成计费',
         description:
