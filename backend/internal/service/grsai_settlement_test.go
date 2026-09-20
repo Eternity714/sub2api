@@ -28,7 +28,7 @@ func (r *grsaiSettlementMemoryRepo) Create(_ context.Context, p CreateGrsaiSettl
 	r.record = &GrsaiSettlement{ID: 17, AccountID: p.AccountID, GroupID: p.GroupID, UserID: p.UserID,
 		APIKeyID: p.APIKeyID, Model: p.Model, BaseUnitPrice: p.BaseUnitPrice, GroupRateMultiplier: p.GroupRateMultiplier,
 		AccountRateMultiplier: p.AccountRateMultiplier, BillableUnitPrice: p.BillableUnitPrice,
-		RequestedImageCount: p.RequestedImageCount, Currency: p.Currency, BillingIdempotencyKey: GrsaiSettlementRequestID(17),
+		RequestedImageCount: p.RequestedImageCount, ImageSize: p.ImageSize, Currency: p.Currency, BillingIdempotencyKey: GrsaiSettlementRequestID(17),
 		UpstreamStatus: "not_submitted", InternalStatus: "pending_upstream", NextAttemptAt: p.NextAttemptAt}
 	return r.GetByID(context.Background(), 17)
 }
@@ -179,7 +179,7 @@ func grsaiSettlementFixture(t *testing.T) (*GrsaiSettlementService, *grsaiSettle
 	group := &Group{ID: 2, Platform: PlatformGrsai, RateMultiplier: 2}
 	record, err := s.Prepare(context.Background(), GrsaiPrepareInput{Account: &Account{ID: 3, Platform: PlatformGrsai,
 		Type: AccountTypeAPIKey, RateMultiplier: &rate}, APIKey: &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group},
-		Model: "grsai-image", ImageCount: 2})
+		Model: "grsai-image", ImageCount: 2, ImageSize: "1K"})
 	require.NoError(t, err)
 	return s, r, b, record, p
 }
@@ -211,6 +211,30 @@ func TestGrsaiSettlementSnapshotSurvivesRepricingAndDuplicateSuccess(t *testing.
 	require.Equal(t, "grsai_settlement:17", usage.logs[0].RequestID)
 	require.Equal(t, 1.2, usage.logs[0].ActualCost)
 	require.Equal(t, 2, usage.logs[0].ImageCount)
+	require.NotNil(t, usage.logs[0].ImageSize)
+	require.Equal(t, ImageBillingSize1K, *usage.logs[0].ImageSize)
+}
+
+func TestGrsaiSettlementPrepareNormalizesImageSizeSnapshot(t *testing.T) {
+	for _, tt := range []struct {
+		input string
+		want  string
+	}{
+		{input: "1k", want: ImageBillingSize1K},
+		{input: "2048x2048", want: ImageBillingSize2K},
+		{input: "4096x4096", want: ImageBillingSize4K},
+		{input: "unknown", want: ImageBillingSize2K},
+	} {
+		t.Run(tt.input, func(t *testing.T) {
+			s, repo, _, _, _ := grsaiSettlementFixture(t)
+			repo.record = nil
+			group := &Group{ID: 2, Platform: PlatformGrsai, RateMultiplier: 1}
+			record, err := s.Prepare(context.Background(), GrsaiPrepareInput{Account: &Account{ID: 3, Platform: PlatformGrsai, Type: AccountTypeAPIKey},
+				APIKey: &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group}, Model: "image", ImageCount: 1, ImageSize: tt.input})
+			require.NoError(t, err)
+			require.Equal(t, tt.want, record.ImageSize)
+		})
+	}
 }
 
 func TestGrsaiSettlementNonSuccessNeverBills(t *testing.T) {

@@ -107,6 +107,26 @@ func TestRedactGrsaiUpstreamBodyPreservesNormalPayloadAndRedactsCredential(t *te
 	require.Equal(t, success, redactGrsaiUpstreamBody(success, account))
 }
 
+func TestParseGrsaiGenerateRequestSnapshotsImageSize(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		body string
+		want string
+	}{
+		{name: "explicit 1K", body: `{"model":"nano-banana-2","imageSize":"1K"}`, want: service.ImageBillingSize1K},
+		{name: "dimensions", body: `{"model":"nano-banana-2","imageSize":"4096x4096"}`, want: service.ImageBillingSize4K},
+		{name: "missing defaults", body: `{"model":"nano-banana-2"}`, want: service.ImageBillingSize2K},
+		{name: "unknown defaults", body: `{"model":"nano-banana-2","imageSize":"native"}`, want: service.ImageBillingSize2K},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			model, count, imageSize := parseGrsaiGenerateRequest([]byte(tt.body))
+			require.Equal(t, "nano-banana-2", model)
+			require.Equal(t, 1, count)
+			require.Equal(t, tt.want, imageSize)
+		})
+	}
+}
+
 func newGrsaiGatewayTestContext(t *testing.T) (*gin.Context, *httptest.ResponseRecorder) {
 	t.Helper()
 	recorder := httptest.NewRecorder()
