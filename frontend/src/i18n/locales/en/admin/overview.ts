@@ -1083,6 +1083,9 @@ export default {
         finalPricePreview: 'Final per-image price preview',
         notConfigured: 'Not configured'
       },
+      grsaiImageGeneration: {
+        title: 'Image Generation',
+      },
       videoPricing: {
         title: 'Video Generation Pricing',
         description:
