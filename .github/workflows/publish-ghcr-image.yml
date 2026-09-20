@@ -39,7 +39,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ steps.owner.outputs.value }}/sub2api
+          images: ${{ env.REGISTRY }}/${{ steps.owner.outputs.value }}/sub2api-private
           tags: |
             type=sha,prefix=sha-
             type=raw,value=main,enable={{is_default_branch}}
