@@ -9,6 +9,11 @@ export const imagePricingPlatforms = new Set([
 export const supportsImagePricingPlatform = (platform: string): boolean =>
   imagePricingPlatforms.has(platform);
 
+// GRS.AI uses per-model pricing, so it needs the image-generation permission
+// without the generic resolution-tier price controls.
+export const supportsImageGenerationPlatform = (platform: string): boolean =>
+  supportsImagePricingPlatform(platform) || platform === "grsai";
+
 export const supportsVideoPricingPlatform = (platform: string): boolean =>
   platform === "grok";
 
