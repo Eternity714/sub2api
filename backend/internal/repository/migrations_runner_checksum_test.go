@@ -153,6 +153,15 @@ func TestIsMigrationChecksumCompatible(t *testing.T) {
 		}
 	})
 
+	t.Run("242已验证约束版本可兼容非验证约束版本", func(t *testing.T) {
+		ok := isMigrationChecksumCompatible(
+			"242_grsai_settlement_image_size.sql",
+			"327acd2cfa220a864a03834835b630a011760d6bc5b5e49f4d80ef04ee5e2959",
+			"c6fddbc731f0e284fdbe4b29f668d1f831b1fc16e32e1dd7b4dfe41e085d63fe",
+		)
+		require.True(t, ok)
+	})
+
 	t.Run("119未知checksum不兼容", func(t *testing.T) {
 		ok := isMigrationChecksumCompatible(
 			"119_enforce_payment_orders_out_trade_no_unique.sql",
