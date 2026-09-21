@@ -105,7 +105,7 @@ func (c *GrsaiNativeHTTPClient) Generate(ctx context.Context, account *Account, 
 	if err != nil {
 		return nil, err
 	}
-	requestBody, err := PrepareGrsaiGenerateBody(body)
+	delivery, err := ParseGrsaiDeliveryRequest(body)
 	if err != nil {
 		return nil, err
 	}
@@ -113,15 +113,18 @@ func (c *GrsaiNativeHTTPClient) Generate(ctx context.Context, account *Account, 
 	if err != nil {
 		return nil, err
 	}
-	return c.do(ctx, "generate", http.MethodPost, targetURL, apiKey, requestBody, "")
+	return c.do(ctx, "generate", http.MethodPost, targetURL, apiKey, delivery.UpstreamBody, "")
 }
 
-// PrepareGrsaiGenerateBody validates the local protocol controls and fills the
-// only supported reply type without interpreting model-specific fields.
-// Handlers call it before creating a settlement so invalid local requests never
-// leave a durable submission-pending record.
+// PrepareGrsaiGenerateBody remains a compatibility boundary for callers that
+// validate a request before handing it to the native client. The returned body
+// is the independent downstream snapshot; only Generate uses UpstreamBody.
 func PrepareGrsaiGenerateBody(body []byte) ([]byte, error) {
-	return prepareGrsaiGenerateBody(body)
+	delivery, err := ParseGrsaiDeliveryRequest(body)
+	if err != nil {
+		return nil, err
+	}
+	return delivery.OriginalBody, nil
 }
 
 func (c *GrsaiNativeHTTPClient) Result(ctx context.Context, account *Account, taskID string) (*GrsaiUpstreamResult, error) {
@@ -165,7 +168,11 @@ func (c *GrsaiNativeHTTPClient) do(
 		return nil, fmt.Errorf("grsai %s request setup failed: %w", operation, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Accept", "application/json")
+	if operation == "generate" {
+		req.Header.Set("Accept", "text/event-stream, application/json")
+	} else {
+		req.Header.Set("Accept", "application/json")
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -249,107 +256,6 @@ func buildGrsaiEndpointURL(baseURL, endpointPath string) (string, error) {
 	parsed.Path = strings.TrimRight(parsed.Path, "/") + endpointPath
 	parsed.RawPath = ""
 	return parsed.String(), nil
-}
-
-func prepareGrsaiGenerateBody(body []byte) ([]byte, error) {
-	fields, fieldCount, err := decodeGrsaiGenerateFields(body)
-	if err != nil {
-		return nil, err
-	}
-	if err := rejectEnabledGrsaiFlag(fields, "stream"); err != nil {
-		return nil, err
-	}
-	if err := rejectEnabledGrsaiFlag(fields, "async"); err != nil {
-		return nil, err
-	}
-
-	if rawReplyType, ok := fields["replyType"]; ok {
-		var replyType string
-		if err := json.Unmarshal(rawReplyType, &replyType); err != nil || replyType != "json" {
-			return nil, fmt.Errorf("%w: replyType must be json", ErrGrsaiInvalidRequest)
-		}
-		return append([]byte(nil), body...), nil
-	}
-
-	last := len(body) - 1
-	for last >= 0 && isJSONWhitespace(body[last]) {
-		last--
-	}
-	if last < 0 || body[last] != '}' {
-		return nil, fmt.Errorf("%w: body must be a JSON object", ErrGrsaiInvalidRequest)
-	}
-	insertion := []byte(`"replyType":"json"`)
-	if fieldCount > 0 {
-		insertion = append([]byte{','}, insertion...)
-	}
-	prepared := make([]byte, 0, len(body)+len(insertion))
-	prepared = append(prepared, body[:last]...)
-	prepared = append(prepared, insertion...)
-	prepared = append(prepared, body[last:]...)
-	return prepared, nil
-}
-
-func decodeGrsaiGenerateFields(body []byte) (map[string]json.RawMessage, int, error) {
-	decoder := json.NewDecoder(bytes.NewReader(body))
-	start, err := decoder.Token()
-	if err != nil || start != json.Delim('{') {
-		return nil, 0, fmt.Errorf("%w: body must be a JSON object", ErrGrsaiInvalidRequest)
-	}
-
-	fields := make(map[string]json.RawMessage, 3)
-	seenControl := make(map[string]struct{}, 3)
-	fieldCount := 0
-	for decoder.More() {
-		keyToken, keyErr := decoder.Token()
-		if keyErr != nil {
-			return nil, 0, fmt.Errorf("%w: body must be a JSON object", ErrGrsaiInvalidRequest)
-		}
-		key, ok := keyToken.(string)
-		if !ok {
-			return nil, 0, fmt.Errorf("%w: body must be a JSON object", ErrGrsaiInvalidRequest)
-		}
-		var raw json.RawMessage
-		if decodeErr := decoder.Decode(&raw); decodeErr != nil {
-			return nil, 0, fmt.Errorf("%w: body must be valid JSON", ErrGrsaiInvalidRequest)
-		}
-		fieldCount++
-		switch key {
-		case "stream", "async", "replyType":
-			if _, duplicate := seenControl[key]; duplicate {
-				return nil, 0, fmt.Errorf("%w: duplicate %s field", ErrGrsaiInvalidRequest, key)
-			}
-			seenControl[key] = struct{}{}
-			fields[key] = raw
-		}
-	}
-	end, err := decoder.Token()
-	if err != nil || end != json.Delim('}') {
-		return nil, 0, fmt.Errorf("%w: body must be a JSON object", ErrGrsaiInvalidRequest)
-	}
-	var trailing json.RawMessage
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		return nil, 0, fmt.Errorf("%w: body must contain one JSON object", ErrGrsaiInvalidRequest)
-	}
-	return fields, fieldCount, nil
-}
-
-func rejectEnabledGrsaiFlag(fields map[string]json.RawMessage, name string) error {
-	raw, ok := fields[name]
-	if !ok {
-		return nil
-	}
-	switch string(bytes.TrimSpace(raw)) {
-	case "false":
-		return nil
-	case "true":
-		return fmt.Errorf("%w: %s=true is not supported", ErrGrsaiInvalidRequest, name)
-	default:
-		return fmt.Errorf("%w: %s must be a boolean", ErrGrsaiInvalidRequest, name)
-	}
-}
-
-func isJSONWhitespace(value byte) bool {
-	return value == ' ' || value == '\t' || value == '\r' || value == '\n'
 }
 
 func parseGrsaiUpstreamResult(httpStatus int, rawBody []byte, apiKey string) (*GrsaiUpstreamResult, error) {
