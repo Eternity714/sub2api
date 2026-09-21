@@ -47,3 +47,10 @@ ok   github.com/Wei-Shaw/sub2api/internal/repository 0.023s
 ```text
 ok   github.com/Wei-Shaw/sub2api/internal/service 0.051s
 ```
+
+第二轮复核修订：首帧改用仓储层单条 fenced SQL 原子绑定并写入事件，写入失败不会留下上游任务 ID；缺少冻结释放扩展时人工复核改为显式失败，不会静默进入 `manual_review`。Docker Go 联合测试输出：
+
+```text
+ok   github.com/Wei-Shaw/sub2api/internal/service 0.057s
+ok   github.com/Wei-Shaw/sub2api/internal/repository 0.027s
+```
