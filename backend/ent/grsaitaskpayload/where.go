@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 )
 
@@ -257,6 +258,29 @@ func UpdatedAtLT(v time.Time) predicate.GrsaiTaskPayload {
 // UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
 func UpdatedAtLTE(v time.Time) predicate.GrsaiTaskPayload {
 	return predicate.GrsaiTaskPayload(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// HasSettlement applies the HasEdge predicate on the "settlement" edge.
+func HasSettlement() predicate.GrsaiTaskPayload {
+	return predicate.GrsaiTaskPayload(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, SettlementTable, SettlementColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSettlementWith applies the HasEdge predicate on the "settlement" edge with a given conditions (other predicates).
+func HasSettlementWith(preds ...predicate.GrsaiSettlement) predicate.GrsaiTaskPayload {
+	return predicate.GrsaiTaskPayload(func(s *sql.Selector) {
+		step := newSettlementStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

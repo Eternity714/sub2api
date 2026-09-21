@@ -59,7 +59,7 @@ func TestGrsaiSettlementRepositoryOwnerLookupTrimsAndRejectsBlankID(t *testing.T
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestGrsaiSettlementRepositoryCreateGeneratesPublicTaskIDAndPersistsTaskFields(t *testing.T) {
+func TestGrsaiSettlementRepositoryCreateOverridesPredictablePublicTaskIDWithUUID(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
@@ -80,6 +80,7 @@ func TestGrsaiSettlementRepositoryCreateGeneratesPublicTaskIDAndPersistsTaskFiel
 		RequestedImageCount:   1,
 		ImageSize:             service.ImageBillingSize1K,
 		Currency:              "USD",
+		PublicTaskID:          "42",
 		DeliveryMode:          service.GrsaiDeliveryAsync,
 		Progress:              25,
 		ResultURLs:            []string{"https://example.test/result.png"},
@@ -112,6 +113,7 @@ func TestGrsaiSettlementRepositoryCreateGeneratesPublicTaskIDAndPersistsTaskFiel
 	got, err := repo.Create(context.Background(), params)
 	require.NoError(t, err)
 	require.NotEmpty(t, got.PublicTaskID)
+	require.NotEqual(t, params.PublicTaskID, got.PublicTaskID)
 	require.Equal(t, params.DeliveryMode, got.DeliveryMode)
 	require.Equal(t, params.ResultURLs, got.ResultURLs)
 	require.NoError(t, mock.ExpectationsWereMet())

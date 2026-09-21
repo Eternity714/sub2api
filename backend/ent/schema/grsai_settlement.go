@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 )
@@ -40,7 +41,7 @@ func (GrsaiSettlement) Fields() []ent.Field {
 		field.String("billing_idempotency_key").MaxLen(128).Immutable(),
 		field.String("public_task_id").MaxLen(64).Optional().Nillable(),
 		field.String("delivery_mode").MaxLen(16).Default("json"),
-		field.Int("progress").Default(0),
+		field.Int("progress").Default(0).Min(0).Max(100),
 		field.JSON("result_urls", []string{}).
 			Default([]string{}).
 			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
@@ -63,6 +64,15 @@ func (GrsaiSettlement) Fields() []ent.Field {
 		field.Time("result_updated_at").Optional().Nillable().SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
 		field.Time("settled_at").Optional().Nillable().SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
 		field.Time("closed_at").Optional().Nillable().SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
+	}
+}
+
+func (GrsaiSettlement) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.To("task_payload", GrsaiTaskPayload.Type).
+			Unique().
+			StorageKey(edge.Column("settlement_id")).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

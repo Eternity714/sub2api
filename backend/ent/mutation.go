@@ -27861,6 +27861,8 @@ type GrsaiSettlementMutation struct {
 	settled_at                 *time.Time
 	closed_at                  *time.Time
 	clearedFields              map[string]struct{}
+	task_payload               *int64
+	clearedtask_payload        bool
 	done                       bool
 	oldValue                   func(context.Context) (*GrsaiSettlement, error)
 	predicates                 []predicate.GrsaiSettlement
@@ -29670,6 +29672,45 @@ func (m *GrsaiSettlementMutation) ResetClosedAt() {
 	delete(m.clearedFields, grsaisettlement.FieldClosedAt)
 }
 
+// SetTaskPayloadID sets the "task_payload" edge to the GrsaiTaskPayload entity by id.
+func (m *GrsaiSettlementMutation) SetTaskPayloadID(id int64) {
+	m.task_payload = &id
+}
+
+// ClearTaskPayload clears the "task_payload" edge to the GrsaiTaskPayload entity.
+func (m *GrsaiSettlementMutation) ClearTaskPayload() {
+	m.clearedtask_payload = true
+}
+
+// TaskPayloadCleared reports if the "task_payload" edge to the GrsaiTaskPayload entity was cleared.
+func (m *GrsaiSettlementMutation) TaskPayloadCleared() bool {
+	return m.clearedtask_payload
+}
+
+// TaskPayloadID returns the "task_payload" edge ID in the mutation.
+func (m *GrsaiSettlementMutation) TaskPayloadID() (id int64, exists bool) {
+	if m.task_payload != nil {
+		return *m.task_payload, true
+	}
+	return
+}
+
+// TaskPayloadIDs returns the "task_payload" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaskPayloadID instead. It exists only for internal usage by the builders.
+func (m *GrsaiSettlementMutation) TaskPayloadIDs() (ids []int64) {
+	if id := m.task_payload; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaskPayload resets all changes to the "task_payload" edge.
+func (m *GrsaiSettlementMutation) ResetTaskPayload() {
+	m.task_payload = nil
+	m.clearedtask_payload = false
+}
+
 // Where appends a list predicates to the GrsaiSettlementMutation builder.
 func (m *GrsaiSettlementMutation) Where(ps ...predicate.GrsaiSettlement) {
 	m.predicates = append(m.predicates, ps...)
@@ -30627,19 +30668,28 @@ func (m *GrsaiSettlementMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *GrsaiSettlementMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.task_payload != nil {
+		edges = append(edges, grsaisettlement.EdgeTaskPayload)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *GrsaiSettlementMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case grsaisettlement.EdgeTaskPayload:
+		if id := m.task_payload; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *GrsaiSettlementMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
@@ -30651,42 +30701,61 @@ func (m *GrsaiSettlementMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *GrsaiSettlementMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedtask_payload {
+		edges = append(edges, grsaisettlement.EdgeTaskPayload)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *GrsaiSettlementMutation) EdgeCleared(name string) bool {
+	switch name {
+	case grsaisettlement.EdgeTaskPayload:
+		return m.clearedtask_payload
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *GrsaiSettlementMutation) ClearEdge(name string) error {
+	switch name {
+	case grsaisettlement.EdgeTaskPayload:
+		m.ClearTaskPayload()
+		return nil
+	}
 	return fmt.Errorf("unknown GrsaiSettlement unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *GrsaiSettlementMutation) ResetEdge(name string) error {
+	switch name {
+	case grsaisettlement.EdgeTaskPayload:
+		m.ResetTaskPayload()
+		return nil
+	}
 	return fmt.Errorf("unknown GrsaiSettlement edge %s", name)
 }
 
 // GrsaiTaskPayloadMutation represents an operation that mutates the GrsaiTaskPayload nodes in the graph.
 type GrsaiTaskPayloadMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int64
-	ciphertext    *string
-	expires_at    *time.Time
-	created_at    *time.Time
-	updated_at    *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*GrsaiTaskPayload, error)
-	predicates    []predicate.GrsaiTaskPayload
+	op                Op
+	typ               string
+	id                *int64
+	ciphertext        *string
+	expires_at        *time.Time
+	created_at        *time.Time
+	updated_at        *time.Time
+	clearedFields     map[string]struct{}
+	settlement        *int64
+	clearedsettlement bool
+	done              bool
+	oldValue          func(context.Context) (*GrsaiTaskPayload, error)
+	predicates        []predicate.GrsaiTaskPayload
 }
 
 var _ ent.Mutation = (*GrsaiTaskPayloadMutation)(nil)
@@ -30937,6 +31006,45 @@ func (m *GrsaiTaskPayloadMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
+// SetSettlementID sets the "settlement" edge to the GrsaiSettlement entity by id.
+func (m *GrsaiTaskPayloadMutation) SetSettlementID(id int64) {
+	m.settlement = &id
+}
+
+// ClearSettlement clears the "settlement" edge to the GrsaiSettlement entity.
+func (m *GrsaiTaskPayloadMutation) ClearSettlement() {
+	m.clearedsettlement = true
+}
+
+// SettlementCleared reports if the "settlement" edge to the GrsaiSettlement entity was cleared.
+func (m *GrsaiTaskPayloadMutation) SettlementCleared() bool {
+	return m.clearedsettlement
+}
+
+// SettlementID returns the "settlement" edge ID in the mutation.
+func (m *GrsaiTaskPayloadMutation) SettlementID() (id int64, exists bool) {
+	if m.settlement != nil {
+		return *m.settlement, true
+	}
+	return
+}
+
+// SettlementIDs returns the "settlement" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SettlementID instead. It exists only for internal usage by the builders.
+func (m *GrsaiTaskPayloadMutation) SettlementIDs() (ids []int64) {
+	if id := m.settlement; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSettlement resets all changes to the "settlement" edge.
+func (m *GrsaiTaskPayloadMutation) ResetSettlement() {
+	m.settlement = nil
+	m.clearedsettlement = false
+}
+
 // Where appends a list predicates to the GrsaiTaskPayloadMutation builder.
 func (m *GrsaiTaskPayloadMutation) Where(ps ...predicate.GrsaiTaskPayload) {
 	m.predicates = append(m.predicates, ps...)
@@ -31121,19 +31229,28 @@ func (m *GrsaiTaskPayloadMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *GrsaiTaskPayloadMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.settlement != nil {
+		edges = append(edges, grsaitaskpayload.EdgeSettlement)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *GrsaiTaskPayloadMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case grsaitaskpayload.EdgeSettlement:
+		if id := m.settlement; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *GrsaiTaskPayloadMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
@@ -31145,25 +31262,42 @@ func (m *GrsaiTaskPayloadMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *GrsaiTaskPayloadMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedsettlement {
+		edges = append(edges, grsaitaskpayload.EdgeSettlement)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *GrsaiTaskPayloadMutation) EdgeCleared(name string) bool {
+	switch name {
+	case grsaitaskpayload.EdgeSettlement:
+		return m.clearedsettlement
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *GrsaiTaskPayloadMutation) ClearEdge(name string) error {
+	switch name {
+	case grsaitaskpayload.EdgeSettlement:
+		m.ClearSettlement()
+		return nil
+	}
 	return fmt.Errorf("unknown GrsaiTaskPayload unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *GrsaiTaskPayloadMutation) ResetEdge(name string) error {
+	switch name {
+	case grsaitaskpayload.EdgeSettlement:
+		m.ResetSettlement()
+		return nil
+	}
 	return fmt.Errorf("unknown GrsaiTaskPayload edge %s", name)
 }
 

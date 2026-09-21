@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/Wei-Shaw/sub2api/ent/grsaisettlement"
 	"github.com/Wei-Shaw/sub2api/ent/grsaitaskpayload"
 )
 
@@ -66,6 +67,17 @@ func (_c *GrsaiTaskPayloadCreate) SetNillableUpdatedAt(v *time.Time) *GrsaiTaskP
 func (_c *GrsaiTaskPayloadCreate) SetID(v int64) *GrsaiTaskPayloadCreate {
 	_c.mutation.SetID(v)
 	return _c
+}
+
+// SetSettlementID sets the "settlement" edge to the GrsaiSettlement entity by ID.
+func (_c *GrsaiTaskPayloadCreate) SetSettlementID(id int64) *GrsaiTaskPayloadCreate {
+	_c.mutation.SetSettlementID(id)
+	return _c
+}
+
+// SetSettlement sets the "settlement" edge to the GrsaiSettlement entity.
+func (_c *GrsaiTaskPayloadCreate) SetSettlement(v *GrsaiSettlement) *GrsaiTaskPayloadCreate {
+	return _c.SetSettlementID(v.ID)
 }
 
 // Mutation returns the GrsaiTaskPayloadMutation object of the builder.
@@ -127,6 +139,9 @@ func (_c *GrsaiTaskPayloadCreate) check() error {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "GrsaiTaskPayload.updated_at"`)}
 	}
+	if len(_c.mutation.SettlementIDs()) == 0 {
+		return &ValidationError{Name: "settlement", err: errors.New(`ent: missing required edge "GrsaiTaskPayload.settlement"`)}
+	}
 	return nil
 }
 
@@ -175,6 +190,23 @@ func (_c *GrsaiTaskPayloadCreate) createSpec() (*GrsaiTaskPayload, *sqlgraph.Cre
 	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(grsaitaskpayload.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if nodes := _c.mutation.SettlementIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   grsaitaskpayload.SettlementTable,
+			Columns: []string{grsaitaskpayload.SettlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grsaisettlement.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.settlement_id = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

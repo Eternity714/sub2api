@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -13,17 +14,19 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/grsaisettlement"
+	"github.com/Wei-Shaw/sub2api/ent/grsaitaskpayload"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 )
 
 // GrsaiSettlementQuery is the builder for querying GrsaiSettlement entities.
 type GrsaiSettlementQuery struct {
 	config
-	ctx        *QueryContext
-	order      []grsaisettlement.OrderOption
-	inters     []Interceptor
-	predicates []predicate.GrsaiSettlement
-	modifiers  []func(*sql.Selector)
+	ctx             *QueryContext
+	order           []grsaisettlement.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.GrsaiSettlement
+	withTaskPayload *GrsaiTaskPayloadQuery
+	modifiers       []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +61,28 @@ func (_q *GrsaiSettlementQuery) Unique(unique bool) *GrsaiSettlementQuery {
 func (_q *GrsaiSettlementQuery) Order(o ...grsaisettlement.OrderOption) *GrsaiSettlementQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryTaskPayload chains the current query on the "task_payload" edge.
+func (_q *GrsaiSettlementQuery) QueryTaskPayload() *GrsaiTaskPayloadQuery {
+	query := (&GrsaiTaskPayloadClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(grsaisettlement.Table, grsaisettlement.FieldID, selector),
+			sqlgraph.To(grsaitaskpayload.Table, grsaitaskpayload.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, grsaisettlement.TaskPayloadTable, grsaisettlement.TaskPayloadColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first GrsaiSettlement entity from the query.
@@ -247,15 +272,27 @@ func (_q *GrsaiSettlementQuery) Clone() *GrsaiSettlementQuery {
 		return nil
 	}
 	return &GrsaiSettlementQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]grsaisettlement.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.GrsaiSettlement{}, _q.predicates...),
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]grsaisettlement.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.GrsaiSettlement{}, _q.predicates...),
+		withTaskPayload: _q.withTaskPayload.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithTaskPayload tells the query-builder to eager-load the nodes that are connected to
+// the "task_payload" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *GrsaiSettlementQuery) WithTaskPayload(opts ...func(*GrsaiTaskPayloadQuery)) *GrsaiSettlementQuery {
+	query := (&GrsaiTaskPayloadClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTaskPayload = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -334,8 +371,11 @@ func (_q *GrsaiSettlementQuery) prepareQuery(ctx context.Context) error {
 
 func (_q *GrsaiSettlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*GrsaiSettlement, error) {
 	var (
-		nodes = []*GrsaiSettlement{}
-		_spec = _q.querySpec()
+		nodes       = []*GrsaiSettlement{}
+		_spec       = _q.querySpec()
+		loadedTypes = [1]bool{
+			_q.withTaskPayload != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*GrsaiSettlement).scanValues(nil, columns)
@@ -343,6 +383,7 @@ func (_q *GrsaiSettlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &GrsaiSettlement{config: _q.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(_q.modifiers) > 0 {
@@ -357,7 +398,42 @@ func (_q *GrsaiSettlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withTaskPayload; query != nil {
+		if err := _q.loadTaskPayload(ctx, query, nodes, nil,
+			func(n *GrsaiSettlement, e *GrsaiTaskPayload) { n.Edges.TaskPayload = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (_q *GrsaiSettlementQuery) loadTaskPayload(ctx context.Context, query *GrsaiTaskPayloadQuery, nodes []*GrsaiSettlement, init func(*GrsaiSettlement), assign func(*GrsaiSettlement, *GrsaiTaskPayload)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*GrsaiSettlement)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.GrsaiTaskPayload(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(grsaisettlement.TaskPayloadColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.settlement_id
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "settlement_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "settlement_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (_q *GrsaiSettlementQuery) sqlCount(ctx context.Context) (int, error) {

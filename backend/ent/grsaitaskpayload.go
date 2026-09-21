@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/Wei-Shaw/sub2api/ent/grsaisettlement"
 	"github.com/Wei-Shaw/sub2api/ent/grsaitaskpayload"
 )
 
@@ -24,8 +25,32 @@ type GrsaiTaskPayload struct {
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    time.Time `json:"updated_at,omitempty"`
-	selectValues sql.SelectValues
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the GrsaiTaskPayloadQuery when eager-loading is set.
+	Edges         GrsaiTaskPayloadEdges `json:"edges"`
+	settlement_id *int64
+	selectValues  sql.SelectValues
+}
+
+// GrsaiTaskPayloadEdges holds the relations/edges for other nodes in the graph.
+type GrsaiTaskPayloadEdges struct {
+	// Settlement holds the value of the settlement edge.
+	Settlement *GrsaiSettlement `json:"settlement,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// SettlementOrErr returns the Settlement value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e GrsaiTaskPayloadEdges) SettlementOrErr() (*GrsaiSettlement, error) {
+	if e.Settlement != nil {
+		return e.Settlement, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: grsaisettlement.Label}
+	}
+	return nil, &NotLoadedError{edge: "settlement"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -39,6 +64,8 @@ func (*GrsaiTaskPayload) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case grsaitaskpayload.FieldExpiresAt, grsaitaskpayload.FieldCreatedAt, grsaitaskpayload.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case grsaitaskpayload.ForeignKeys[0]: // settlement_id
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -84,6 +111,13 @@ func (_m *GrsaiTaskPayload) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
+		case grsaitaskpayload.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field settlement_id", value)
+			} else if value.Valid {
+				_m.settlement_id = new(int64)
+				*_m.settlement_id = int64(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -95,6 +129,11 @@ func (_m *GrsaiTaskPayload) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *GrsaiTaskPayload) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QuerySettlement queries the "settlement" edge of the GrsaiTaskPayload entity.
+func (_m *GrsaiTaskPayload) QuerySettlement() *GrsaiSettlementQuery {
+	return NewGrsaiTaskPayloadClient(_m.config).QuerySettlement(_m)
 }
 
 // Update returns a builder for updating this GrsaiTaskPayload.

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/Wei-Shaw/sub2api/ent/grsaisettlement"
+	"github.com/Wei-Shaw/sub2api/ent/grsaitaskpayload"
 )
 
 // GrsaiSettlement is the model entity for the GrsaiSettlement schema.
@@ -87,8 +88,31 @@ type GrsaiSettlement struct {
 	// SettledAt holds the value of the "settled_at" field.
 	SettledAt *time.Time `json:"settled_at,omitempty"`
 	// ClosedAt holds the value of the "closed_at" field.
-	ClosedAt     *time.Time `json:"closed_at,omitempty"`
+	ClosedAt *time.Time `json:"closed_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the GrsaiSettlementQuery when eager-loading is set.
+	Edges        GrsaiSettlementEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// GrsaiSettlementEdges holds the relations/edges for other nodes in the graph.
+type GrsaiSettlementEdges struct {
+	// TaskPayload holds the value of the task_payload edge.
+	TaskPayload *GrsaiTaskPayload `json:"task_payload,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// TaskPayloadOrErr returns the TaskPayload value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e GrsaiSettlementEdges) TaskPayloadOrErr() (*GrsaiTaskPayload, error) {
+	if e.TaskPayload != nil {
+		return e.TaskPayload, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: grsaitaskpayload.Label}
+	}
+	return nil, &NotLoadedError{edge: "task_payload"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -360,6 +384,11 @@ func (_m *GrsaiSettlement) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *GrsaiSettlement) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryTaskPayload queries the "task_payload" edge of the GrsaiSettlement entity.
+func (_m *GrsaiSettlement) QueryTaskPayload() *GrsaiTaskPayloadQuery {
+	return NewGrsaiSettlementClient(_m.config).QueryTaskPayload(_m)
 }
 
 // Update returns a builder for updating this GrsaiSettlement.

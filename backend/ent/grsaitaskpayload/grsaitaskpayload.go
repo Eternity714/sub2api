@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -21,8 +22,19 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// EdgeSettlement holds the string denoting the settlement edge name in mutations.
+	EdgeSettlement = "settlement"
+	// GrsaiSettlementFieldID holds the string denoting the ID field of the GrsaiSettlement.
+	GrsaiSettlementFieldID = "id"
 	// Table holds the table name of the grsaitaskpayload in the database.
 	Table = "grsai_task_payloads"
+	// SettlementTable is the table that holds the settlement relation/edge.
+	SettlementTable = "grsai_task_payloads"
+	// SettlementInverseTable is the table name for the GrsaiSettlement entity.
+	// It exists in this package in order to avoid circular dependency with the "grsaisettlement" package.
+	SettlementInverseTable = "grsai_settlements"
+	// SettlementColumn is the table column denoting the settlement relation/edge.
+	SettlementColumn = "settlement_id"
 )
 
 // Columns holds all SQL columns for grsaitaskpayload fields.
@@ -34,10 +46,21 @@ var Columns = []string{
 	FieldUpdatedAt,
 }
 
+// ForeignKeys holds the SQL foreign-keys that are owned by the "grsai_task_payloads"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"settlement_id",
+}
+
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -79,4 +102,18 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByUpdatedAt orders the results by the updated_at field.
 func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// BySettlementField orders the results by settlement field.
+func BySettlementField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSettlementStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newSettlementStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SettlementInverseTable, GrsaiSettlementFieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, SettlementTable, SettlementColumn),
+	)
 }

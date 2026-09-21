@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/grsaisettlement"
+	"github.com/Wei-Shaw/sub2api/ent/grsaitaskpayload"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 )
 
@@ -646,9 +647,34 @@ func (_u *GrsaiSettlementUpdate) ClearClosedAt() *GrsaiSettlementUpdate {
 	return _u
 }
 
+// SetTaskPayloadID sets the "task_payload" edge to the GrsaiTaskPayload entity by ID.
+func (_u *GrsaiSettlementUpdate) SetTaskPayloadID(id int64) *GrsaiSettlementUpdate {
+	_u.mutation.SetTaskPayloadID(id)
+	return _u
+}
+
+// SetNillableTaskPayloadID sets the "task_payload" edge to the GrsaiTaskPayload entity by ID if the given value is not nil.
+func (_u *GrsaiSettlementUpdate) SetNillableTaskPayloadID(id *int64) *GrsaiSettlementUpdate {
+	if id != nil {
+		_u = _u.SetTaskPayloadID(*id)
+	}
+	return _u
+}
+
+// SetTaskPayload sets the "task_payload" edge to the GrsaiTaskPayload entity.
+func (_u *GrsaiSettlementUpdate) SetTaskPayload(v *GrsaiTaskPayload) *GrsaiSettlementUpdate {
+	return _u.SetTaskPayloadID(v.ID)
+}
+
 // Mutation returns the GrsaiSettlementMutation object of the builder.
 func (_u *GrsaiSettlementUpdate) Mutation() *GrsaiSettlementMutation {
 	return _u.mutation
+}
+
+// ClearTaskPayload clears the "task_payload" edge to the GrsaiTaskPayload entity.
+func (_u *GrsaiSettlementUpdate) ClearTaskPayload() *GrsaiSettlementUpdate {
+	_u.mutation.ClearTaskPayload()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -707,6 +733,11 @@ func (_u *GrsaiSettlementUpdate) check() error {
 	if v, ok := _u.mutation.DeliveryMode(); ok {
 		if err := grsaisettlement.DeliveryModeValidator(v); err != nil {
 			return &ValidationError{Name: "delivery_mode", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.delivery_mode": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Progress(); ok {
+		if err := grsaisettlement.ProgressValidator(v); err != nil {
+			return &ValidationError{Name: "progress", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.progress": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.HoldState(); ok {
@@ -927,6 +958,35 @@ func (_u *GrsaiSettlementUpdate) sqlSave(ctx context.Context) (_node int, err er
 	}
 	if _u.mutation.ClosedAtCleared() {
 		_spec.ClearField(grsaisettlement.FieldClosedAt, field.TypeTime)
+	}
+	if _u.mutation.TaskPayloadCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   grsaisettlement.TaskPayloadTable,
+			Columns: []string{grsaisettlement.TaskPayloadColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grsaitaskpayload.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaskPayloadIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   grsaisettlement.TaskPayloadTable,
+			Columns: []string{grsaisettlement.TaskPayloadColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grsaitaskpayload.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -1565,9 +1625,34 @@ func (_u *GrsaiSettlementUpdateOne) ClearClosedAt() *GrsaiSettlementUpdateOne {
 	return _u
 }
 
+// SetTaskPayloadID sets the "task_payload" edge to the GrsaiTaskPayload entity by ID.
+func (_u *GrsaiSettlementUpdateOne) SetTaskPayloadID(id int64) *GrsaiSettlementUpdateOne {
+	_u.mutation.SetTaskPayloadID(id)
+	return _u
+}
+
+// SetNillableTaskPayloadID sets the "task_payload" edge to the GrsaiTaskPayload entity by ID if the given value is not nil.
+func (_u *GrsaiSettlementUpdateOne) SetNillableTaskPayloadID(id *int64) *GrsaiSettlementUpdateOne {
+	if id != nil {
+		_u = _u.SetTaskPayloadID(*id)
+	}
+	return _u
+}
+
+// SetTaskPayload sets the "task_payload" edge to the GrsaiTaskPayload entity.
+func (_u *GrsaiSettlementUpdateOne) SetTaskPayload(v *GrsaiTaskPayload) *GrsaiSettlementUpdateOne {
+	return _u.SetTaskPayloadID(v.ID)
+}
+
 // Mutation returns the GrsaiSettlementMutation object of the builder.
 func (_u *GrsaiSettlementUpdateOne) Mutation() *GrsaiSettlementMutation {
 	return _u.mutation
+}
+
+// ClearTaskPayload clears the "task_payload" edge to the GrsaiTaskPayload entity.
+func (_u *GrsaiSettlementUpdateOne) ClearTaskPayload() *GrsaiSettlementUpdateOne {
+	_u.mutation.ClearTaskPayload()
+	return _u
 }
 
 // Where appends a list predicates to the GrsaiSettlementUpdate builder.
@@ -1639,6 +1724,11 @@ func (_u *GrsaiSettlementUpdateOne) check() error {
 	if v, ok := _u.mutation.DeliveryMode(); ok {
 		if err := grsaisettlement.DeliveryModeValidator(v); err != nil {
 			return &ValidationError{Name: "delivery_mode", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.delivery_mode": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Progress(); ok {
+		if err := grsaisettlement.ProgressValidator(v); err != nil {
+			return &ValidationError{Name: "progress", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.progress": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.HoldState(); ok {
@@ -1876,6 +1966,35 @@ func (_u *GrsaiSettlementUpdateOne) sqlSave(ctx context.Context) (_node *GrsaiSe
 	}
 	if _u.mutation.ClosedAtCleared() {
 		_spec.ClearField(grsaisettlement.FieldClosedAt, field.TypeTime)
+	}
+	if _u.mutation.TaskPayloadCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   grsaisettlement.TaskPayloadTable,
+			Columns: []string{grsaisettlement.TaskPayloadColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grsaitaskpayload.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaskPayloadIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   grsaisettlement.TaskPayloadTable,
+			Columns: []string{grsaisettlement.TaskPayloadColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grsaitaskpayload.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &GrsaiSettlement{config: _u.config}
 	_spec.Assign = _node.assignValues

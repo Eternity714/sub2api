@@ -1123,6 +1123,14 @@ var (
 		Name:       "grsai_task_payloads",
 		Columns:    GrsaiTaskPayloadsColumns,
 		PrimaryKey: []*schema.Column{GrsaiTaskPayloadsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "grsai_task_payloads_grsai_settlements_task_payload",
+				Columns:    []*schema.Column{GrsaiTaskPayloadsColumns[0]},
+				RefColumns: []*schema.Column{GrsaiSettlementsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "grsaitaskpayload_expires_at",
@@ -2316,6 +2324,7 @@ func init() {
 	GrsaiSettlementsTable.Annotation = &entsql.Annotation{
 		Table: "grsai_settlements",
 	}
+	GrsaiTaskPayloadsTable.ForeignKeys[0].RefTable = GrsaiSettlementsTable
 	GrsaiTaskPayloadsTable.Annotation = &entsql.Annotation{
 		Table: "grsai_task_payloads",
 	}

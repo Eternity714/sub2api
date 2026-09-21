@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 )
 
@@ -1932,6 +1933,29 @@ func ClosedAtIsNil() predicate.GrsaiSettlement {
 // ClosedAtNotNil applies the NotNil predicate on the "closed_at" field.
 func ClosedAtNotNil() predicate.GrsaiSettlement {
 	return predicate.GrsaiSettlement(sql.FieldNotNull(FieldClosedAt))
+}
+
+// HasTaskPayload applies the HasEdge predicate on the "task_payload" edge.
+func HasTaskPayload() predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, TaskPayloadTable, TaskPayloadColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTaskPayloadWith applies the HasEdge predicate on the "task_payload" edge with a given conditions (other predicates).
+func HasTaskPayloadWith(preds ...predicate.GrsaiTaskPayload) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(func(s *sql.Selector) {
+		step := newTaskPayloadStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

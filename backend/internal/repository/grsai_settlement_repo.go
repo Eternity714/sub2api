@@ -58,10 +58,7 @@ func NewGrsaiSettlementRepository(db *sql.DB) *grsaiSettlementRepository {
 func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrsaiSettlementParams) (*GrsaiSettlement, error) {
 	params.Model = strings.TrimSpace(params.Model)
 	params.ImageSize = service.NormalizeImageBillingTierOrDefault(params.ImageSize)
-	params.PublicTaskID = strings.TrimSpace(params.PublicTaskID)
-	if params.PublicTaskID == "" {
-		params.PublicTaskID = uuid.NewString()
-	}
+	params.PublicTaskID = uuid.NewString()
 	if params.DeliveryMode == "" {
 		params.DeliveryMode = service.GrsaiDeliveryJSON
 	}

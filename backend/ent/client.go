@@ -3405,6 +3405,22 @@ func (c *GrsaiSettlementClient) GetX(ctx context.Context, id int64) *GrsaiSettle
 	return obj
 }
 
+// QueryTaskPayload queries the task_payload edge of a GrsaiSettlement.
+func (c *GrsaiSettlementClient) QueryTaskPayload(_m *GrsaiSettlement) *GrsaiTaskPayloadQuery {
+	query := (&GrsaiTaskPayloadClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(grsaisettlement.Table, grsaisettlement.FieldID, id),
+			sqlgraph.To(grsaitaskpayload.Table, grsaitaskpayload.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, grsaisettlement.TaskPayloadTable, grsaisettlement.TaskPayloadColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *GrsaiSettlementClient) Hooks() []Hook {
 	return c.hooks.GrsaiSettlement
@@ -3536,6 +3552,22 @@ func (c *GrsaiTaskPayloadClient) GetX(ctx context.Context, id int64) *GrsaiTaskP
 		panic(err)
 	}
 	return obj
+}
+
+// QuerySettlement queries the settlement edge of a GrsaiTaskPayload.
+func (c *GrsaiTaskPayloadClient) QuerySettlement(_m *GrsaiTaskPayload) *GrsaiSettlementQuery {
+	query := (&GrsaiSettlementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(grsaitaskpayload.Table, grsaitaskpayload.FieldID, id),
+			sqlgraph.To(grsaisettlement.Table, grsaisettlement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, grsaitaskpayload.SettlementTable, grsaitaskpayload.SettlementColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

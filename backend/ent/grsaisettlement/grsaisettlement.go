@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -83,8 +84,19 @@ const (
 	FieldSettledAt = "settled_at"
 	// FieldClosedAt holds the string denoting the closed_at field in the database.
 	FieldClosedAt = "closed_at"
+	// EdgeTaskPayload holds the string denoting the task_payload edge name in mutations.
+	EdgeTaskPayload = "task_payload"
+	// GrsaiTaskPayloadFieldID holds the string denoting the ID field of the GrsaiTaskPayload.
+	GrsaiTaskPayloadFieldID = "settlement_id"
 	// Table holds the table name of the grsaisettlement in the database.
 	Table = "grsai_settlements"
+	// TaskPayloadTable is the table that holds the task_payload relation/edge.
+	TaskPayloadTable = "grsai_task_payloads"
+	// TaskPayloadInverseTable is the table name for the GrsaiTaskPayload entity.
+	// It exists in this package in order to avoid circular dependency with the "grsaitaskpayload" package.
+	TaskPayloadInverseTable = "grsai_task_payloads"
+	// TaskPayloadColumn is the table column denoting the task_payload relation/edge.
+	TaskPayloadColumn = "settlement_id"
 )
 
 // Columns holds all SQL columns for grsaisettlement fields.
@@ -154,6 +166,8 @@ var (
 	DeliveryModeValidator func(string) error
 	// DefaultProgress holds the default value on creation for the "progress" field.
 	DefaultProgress int
+	// ProgressValidator is a validator for the "progress" field. It is called by the builders before save.
+	ProgressValidator func(int) error
 	// DefaultResultUrls holds the default value on creation for the "result_urls" field.
 	DefaultResultUrls []string
 	// DefaultHoldAmount holds the default value on creation for the "hold_amount" field.
@@ -364,4 +378,18 @@ func BySettledAt(opts ...sql.OrderTermOption) OrderOption {
 // ByClosedAt orders the results by the closed_at field.
 func ByClosedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldClosedAt, opts...).ToFunc()
+}
+
+// ByTaskPayloadField orders the results by task_payload field.
+func ByTaskPayloadField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaskPayloadStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newTaskPayloadStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaskPayloadInverseTable, GrsaiTaskPayloadFieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, TaskPayloadTable, TaskPayloadColumn),
+	)
 }

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/grsaisettlement"
+	"github.com/Wei-Shaw/sub2api/ent/grsaitaskpayload"
 )
 
 // GrsaiSettlementCreate is the builder for creating a GrsaiSettlement entity.
@@ -408,6 +409,25 @@ func (_c *GrsaiSettlementCreate) SetNillableClosedAt(v *time.Time) *GrsaiSettlem
 	return _c
 }
 
+// SetTaskPayloadID sets the "task_payload" edge to the GrsaiTaskPayload entity by ID.
+func (_c *GrsaiSettlementCreate) SetTaskPayloadID(id int64) *GrsaiSettlementCreate {
+	_c.mutation.SetTaskPayloadID(id)
+	return _c
+}
+
+// SetNillableTaskPayloadID sets the "task_payload" edge to the GrsaiTaskPayload entity by ID if the given value is not nil.
+func (_c *GrsaiSettlementCreate) SetNillableTaskPayloadID(id *int64) *GrsaiSettlementCreate {
+	if id != nil {
+		_c = _c.SetTaskPayloadID(*id)
+	}
+	return _c
+}
+
+// SetTaskPayload sets the "task_payload" edge to the GrsaiTaskPayload entity.
+func (_c *GrsaiSettlementCreate) SetTaskPayload(v *GrsaiTaskPayload) *GrsaiSettlementCreate {
+	return _c.SetTaskPayloadID(v.ID)
+}
+
 // Mutation returns the GrsaiSettlementMutation object of the builder.
 func (_c *GrsaiSettlementCreate) Mutation() *GrsaiSettlementMutation {
 	return _c.mutation
@@ -565,6 +585,11 @@ func (_c *GrsaiSettlementCreate) check() error {
 	}
 	if _, ok := _c.mutation.Progress(); !ok {
 		return &ValidationError{Name: "progress", err: errors.New(`ent: missing required field "GrsaiSettlement.progress"`)}
+	}
+	if v, ok := _c.mutation.Progress(); ok {
+		if err := grsaisettlement.ProgressValidator(v); err != nil {
+			return &ValidationError{Name: "progress", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.progress": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.ResultUrls(); !ok {
 		return &ValidationError{Name: "result_urls", err: errors.New(`ent: missing required field "GrsaiSettlement.result_urls"`)}
@@ -790,6 +815,22 @@ func (_c *GrsaiSettlementCreate) createSpec() (*GrsaiSettlement, *sqlgraph.Creat
 	if value, ok := _c.mutation.ClosedAt(); ok {
 		_spec.SetField(grsaisettlement.FieldClosedAt, field.TypeTime, value)
 		_node.ClosedAt = &value
+	}
+	if nodes := _c.mutation.TaskPayloadIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   grsaisettlement.TaskPayloadTable,
+			Columns: []string{grsaisettlement.TaskPayloadColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grsaitaskpayload.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

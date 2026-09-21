@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 )
@@ -35,6 +36,16 @@ func (GrsaiTaskPayload) Fields() []ent.Field {
 		field.Time("expires_at").SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
 		field.Time("created_at").Immutable().Default(time.Now).SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
 		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now).SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
+	}
+}
+
+func (GrsaiTaskPayload) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("settlement", GrsaiSettlement.Type).
+			Ref("task_payload").
+			Required().
+			Unique().
+			Immutable(),
 	}
 }
 

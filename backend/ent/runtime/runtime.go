@@ -1255,6 +1255,22 @@ func init() {
 	grsaisettlementDescProgress := grsaisettlementFields[14].Descriptor()
 	// grsaisettlement.DefaultProgress holds the default value on creation for the progress field.
 	grsaisettlement.DefaultProgress = grsaisettlementDescProgress.Default.(int)
+	// grsaisettlement.ProgressValidator is a validator for the "progress" field. It is called by the builders before save.
+	grsaisettlement.ProgressValidator = func() func(int) error {
+		validators := grsaisettlementDescProgress.Validators
+		fns := [...]func(int) error{
+			validators[0].(func(int) error),
+			validators[1].(func(int) error),
+		}
+		return func(progress int) error {
+			for _, fn := range fns {
+				if err := fn(progress); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// grsaisettlementDescResultUrls is the schema descriptor for result_urls field.
 	grsaisettlementDescResultUrls := grsaisettlementFields[15].Descriptor()
 	// grsaisettlement.DefaultResultUrls holds the default value on creation for the result_urls field.

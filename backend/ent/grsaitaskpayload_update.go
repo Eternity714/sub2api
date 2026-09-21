@@ -103,7 +103,18 @@ func (_u *GrsaiTaskPayloadUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *GrsaiTaskPayloadUpdate) check() error {
+	if _u.mutation.SettlementCleared() && len(_u.mutation.SettlementIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "GrsaiTaskPayload.settlement"`)
+	}
+	return nil
+}
+
 func (_u *GrsaiTaskPayloadUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(grsaitaskpayload.Table, grsaitaskpayload.Columns, sqlgraph.NewFieldSpec(grsaitaskpayload.FieldID, field.TypeInt64))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -229,7 +240,18 @@ func (_u *GrsaiTaskPayloadUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *GrsaiTaskPayloadUpdateOne) check() error {
+	if _u.mutation.SettlementCleared() && len(_u.mutation.SettlementIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "GrsaiTaskPayload.settlement"`)
+	}
+	return nil
+}
+
 func (_u *GrsaiTaskPayloadUpdateOne) sqlSave(ctx context.Context) (_node *GrsaiTaskPayload, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(grsaitaskpayload.Table, grsaitaskpayload.Columns, sqlgraph.NewFieldSpec(grsaitaskpayload.FieldID, field.TypeInt64))
 	id, ok := _u.mutation.ID()
 	if !ok {
