@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/google/uuid"
 )
 
 const (
@@ -56,10 +58,29 @@ func NewGrsaiSettlementRepository(db *sql.DB) *grsaiSettlementRepository {
 func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrsaiSettlementParams) (*GrsaiSettlement, error) {
 	params.Model = strings.TrimSpace(params.Model)
 	params.ImageSize = service.NormalizeImageBillingTierOrDefault(params.ImageSize)
+	params.PublicTaskID = strings.TrimSpace(params.PublicTaskID)
+	if params.PublicTaskID == "" {
+		params.PublicTaskID = uuid.NewString()
+	}
+	if params.DeliveryMode == "" {
+		params.DeliveryMode = service.GrsaiDeliveryJSON
+	}
+	params.HoldState = strings.TrimSpace(params.HoldState)
+	if params.HoldState == "" {
+		params.HoldState = "none"
+	}
+	if params.ResultURLs == nil {
+		params.ResultURLs = []string{}
+	}
 	if params.AccountID <= 0 || params.GroupID <= 0 || params.UserID <= 0 || params.APIKeyID <= 0 ||
-		params.Model == "" || params.RequestedImageCount <= 0 ||
+		params.Model == "" || params.RequestedImageCount <= 0 || len(params.PublicTaskID) > 64 ||
+		(params.DeliveryMode != service.GrsaiDeliveryJSON && params.DeliveryMode != service.GrsaiDeliveryStream && params.DeliveryMode != service.GrsaiDeliveryAsync) ||
+		params.Progress < 0 || params.Progress > 100 ||
 		!isFiniteNonNegative(params.BaseUnitPrice) || !isFiniteNonNegative(params.GroupRateMultiplier) ||
-		!isFiniteNonNegative(params.AccountRateMultiplier) || !isFiniteNonNegative(params.BillableUnitPrice) {
+		!isFiniteNonNegative(params.AccountRateMultiplier) || !isFiniteNonNegative(params.BillableUnitPrice) ||
+		!isFiniteNonNegative(params.HoldAmount) ||
+		(params.PayloadDeleteAfter != nil && params.PayloadDeleteAfter.IsZero()) ||
+		(params.ExpiresAt != nil && params.ExpiresAt.IsZero()) {
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
 	if params.Currency == "" {
@@ -79,6 +100,10 @@ func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrs
 			params.UpstreamTaskID = &trimmed
 		}
 	}
+	resultURLsJSON, err := json.Marshal(params.ResultURLs)
+	if err != nil {
+		return nil, fmt.Errorf("marshal grsai result URLs: %w", err)
+	}
 
 	row := r.sql.QueryRowContext(ctx, grsaiSettlementInsertSQL,
 		params.AccountID,
@@ -93,6 +118,14 @@ func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrs
 		params.RequestedImageCount,
 		params.ImageSize,
 		params.Currency,
+		params.PublicTaskID,
+		params.DeliveryMode,
+		params.Progress,
+		string(resultURLsJSON),
+		params.HoldAmount,
+		params.HoldState,
+		params.PayloadDeleteAfter,
+		params.ExpiresAt,
 		params.UpstreamTaskID,
 		params.UpstreamStatus,
 		params.NextAttemptAt,
@@ -102,6 +135,20 @@ func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrs
 
 func (r *grsaiSettlementRepository) GetByID(ctx context.Context, id int64) (*GrsaiSettlement, error) {
 	record, err := scanGrsaiSettlement(r.sql.QueryRowContext(ctx, grsaiSettlementSelectSQL+" WHERE id = $1", id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrGrsaiSettlementNotFound
+	}
+	return record, err
+}
+
+func (r *grsaiSettlementRepository) GetOwnedByPublicOrUpstreamID(ctx context.Context, userID, apiKeyID int64, id string) (*GrsaiSettlement, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, ErrGrsaiSettlementNotFound
+	}
+	record, err := scanGrsaiSettlement(r.sql.QueryRowContext(ctx, grsaiSettlementSelectSQL+`
+WHERE user_id = $1 AND api_key_id = $2
+  AND (public_task_id = $3 OR upstream_task_id = $3)`, userID, apiKeyID, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrGrsaiSettlementNotFound
 	}
@@ -357,7 +404,9 @@ func (r *grsaiSettlementRepository) transition(ctx context.Context, id, claimVer
 const grsaiSettlementSelectSQL = `
 SELECT id, account_id, group_id, user_id, api_key_id, model,
        base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
-	       requested_image_count, image_size, currency, billing_idempotency_key, upstream_task_id,
+	       requested_image_count, image_size, currency, billing_idempotency_key,
+	       public_task_id, delivery_mode, progress, result_urls, hold_amount, hold_state,
+	       payload_delete_after, expires_at, upstream_task_id,
 	       upstream_status, internal_status, retry_count, settlement_retry_count, claim_version, next_attempt_at, last_error_summary,
        settled_amount, created_at, updated_at, upstream_bound_at, result_updated_at,
        settled_at, closed_at
@@ -370,17 +419,23 @@ WITH new_id AS (
 INSERT INTO grsai_settlements (
     id, account_id, group_id, user_id, api_key_id, model,
     base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
-    requested_image_count, image_size, currency, billing_idempotency_key, upstream_task_id,
+	    requested_image_count, image_size, currency, billing_idempotency_key,
+	    public_task_id, delivery_mode, progress, result_urls, hold_amount, hold_state,
+	    payload_delete_after, expires_at, upstream_task_id,
     upstream_status, next_attempt_at, upstream_bound_at
 ) VALUES (
     (SELECT id FROM new_id), $1, $2, $3, $4, $5,
     $6, $7, $8, $9,
-    $10, $11, $12, CONCAT('grsai_settlement:', (SELECT id FROM new_id)), $13,
-    $14, $15, CASE WHEN $13::varchar IS NULL THEN NULL ELSE NOW() END
+	    $10, $11, $12, CONCAT('grsai_settlement:', (SELECT id FROM new_id)),
+	    $13, $14, $15, $16::jsonb, $17, $18,
+	    $19, $20, $21,
+	    $22, $23, CASE WHEN $21::varchar IS NULL THEN NULL ELSE NOW() END
 )
 RETURNING id, account_id, group_id, user_id, api_key_id, model,
           base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
-	      requested_image_count, image_size, currency, billing_idempotency_key, upstream_task_id,
+	      requested_image_count, image_size, currency, billing_idempotency_key,
+	      public_task_id, delivery_mode, progress, result_urls, hold_amount, hold_state,
+	      payload_delete_after, expires_at, upstream_task_id,
 	          upstream_status, internal_status, retry_count, settlement_retry_count, claim_version, next_attempt_at, last_error_summary,
           settled_amount, created_at, updated_at, upstream_bound_at, result_updated_at,
           settled_at, closed_at`
@@ -389,7 +444,9 @@ func grsaiSettlementReturningColumns(alias string) string {
 	columns := []string{
 		"id", "account_id", "group_id", "user_id", "api_key_id", "model",
 		"base_unit_price", "group_rate_multiplier", "account_rate_multiplier", "billable_unit_price",
-		"requested_image_count", "image_size", "currency", "billing_idempotency_key", "upstream_task_id",
+		"requested_image_count", "image_size", "currency", "billing_idempotency_key",
+		"public_task_id", "delivery_mode", "progress", "result_urls", "hold_amount", "hold_state",
+		"payload_delete_after", "expires_at", "upstream_task_id",
 		"upstream_status", "internal_status", "retry_count", "settlement_retry_count", "claim_version", "next_attempt_at", "last_error_summary",
 		"settled_amount", "created_at", "updated_at", "upstream_bound_at", "result_updated_at",
 		"settled_at", "closed_at",
@@ -406,6 +463,11 @@ type grsaiSettlementScanner interface {
 
 func scanGrsaiSettlement(scanner grsaiSettlementScanner) (*GrsaiSettlement, error) {
 	record := &GrsaiSettlement{}
+	var publicTaskID sql.NullString
+	var deliveryMode string
+	var resultURLsJSON []byte
+	var payloadDeleteAfter sql.NullTime
+	var expiresAt sql.NullTime
 	var upstreamTaskID sql.NullString
 	var lastErrorSummary sql.NullString
 	var settledAmount sql.NullFloat64
@@ -428,6 +490,14 @@ func scanGrsaiSettlement(scanner grsaiSettlementScanner) (*GrsaiSettlement, erro
 		&record.ImageSize,
 		&record.Currency,
 		&record.BillingIdempotencyKey,
+		&publicTaskID,
+		&deliveryMode,
+		&record.Progress,
+		&resultURLsJSON,
+		&record.HoldAmount,
+		&record.HoldState,
+		&payloadDeleteAfter,
+		&expiresAt,
 		&upstreamTaskID,
 		&record.UpstreamStatus,
 		&record.InternalStatus,
@@ -449,6 +519,21 @@ func scanGrsaiSettlement(scanner grsaiSettlementScanner) (*GrsaiSettlement, erro
 	}
 	if upstreamTaskID.Valid {
 		record.UpstreamTaskID = &upstreamTaskID.String
+	}
+	if publicTaskID.Valid {
+		record.PublicTaskID = publicTaskID.String
+	}
+	record.DeliveryMode = service.GrsaiDeliveryMode(deliveryMode)
+	if len(resultURLsJSON) == 0 {
+		record.ResultURLs = []string{}
+	} else if err := json.Unmarshal(resultURLsJSON, &record.ResultURLs); err != nil {
+		return nil, fmt.Errorf("decode grsai result URLs: %w", err)
+	}
+	if payloadDeleteAfter.Valid {
+		record.PayloadDeleteAfter = &payloadDeleteAfter.Time
+	}
+	if expiresAt.Valid {
+		record.ExpiresAt = &expiresAt.Time
 	}
 	if lastErrorSummary.Valid {
 		record.LastErrorSummary = &lastErrorSummary.String

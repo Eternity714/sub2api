@@ -33,6 +33,7 @@ var (
 	ErrGrsaiSettlementInvalidState   = errors.New("invalid grsai settlement state")
 	ErrGrsaiSettlementClaimLost      = errors.New("grsai settlement claim lost")
 	ErrGrsaiSettlementPricingMissing = errors.New("grsai requires explicit flat image or per-request model pricing")
+	ErrGrsaiTaskPayloadNotFound      = errors.New("grsai task payload not found")
 )
 
 // These contracts live in service so the SQL repository can implement them
@@ -51,6 +52,14 @@ type CreateGrsaiSettlementParams struct {
 	ImageSize             string
 	Currency              string
 	BillingIdempotencyKey string
+	PublicTaskID          string
+	DeliveryMode          GrsaiDeliveryMode
+	Progress              int
+	ResultURLs            []string
+	HoldAmount            float64
+	HoldState             string
+	PayloadDeleteAfter    *time.Time
+	ExpiresAt             *time.Time
 	UpstreamTaskID        *string
 	UpstreamStatus        string
 	NextAttemptAt         time.Time
@@ -71,6 +80,14 @@ type GrsaiSettlement struct {
 	ImageSize             string
 	Currency              string
 	BillingIdempotencyKey string
+	PublicTaskID          string
+	DeliveryMode          GrsaiDeliveryMode
+	Progress              int
+	ResultURLs            []string
+	HoldAmount            float64
+	HoldState             string
+	PayloadDeleteAfter    *time.Time
+	ExpiresAt             *time.Time
 	UpstreamTaskID        *string
 	UpstreamStatus        string
 	InternalStatus        string
@@ -125,6 +142,7 @@ type GrsaiSettlementTxFunc func(context.Context, *sql.Tx, *GrsaiSettlement) erro
 type GrsaiSettlementRepository interface {
 	Create(context.Context, CreateGrsaiSettlementParams) (*GrsaiSettlement, error)
 	GetByID(context.Context, int64) (*GrsaiSettlement, error)
+	GetOwnedByPublicOrUpstreamID(context.Context, int64, int64, string) (*GrsaiSettlement, error)
 	ClaimByID(context.Context, int64, time.Time, time.Time) (*GrsaiSettlement, error)
 	ClaimDue(context.Context, time.Time, int, time.Time) ([]*GrsaiSettlement, error)
 	BindUpstreamTask(context.Context, int64, int64, string, string) (bool, error)
@@ -134,6 +152,15 @@ type GrsaiSettlementRepository interface {
 	Settle(context.Context, int64, int64, float64, GrsaiSettlementTxFunc) (bool, error)
 	CloseNoCharge(context.Context, int64, int64, string) error
 	MarkManualReview(context.Context, int64, int64, string) error
+}
+
+// GrsaiTaskPayloadRepository stores the original async request only in
+// encrypted form and removes it independently from the public task record.
+type GrsaiTaskPayloadRepository interface {
+	PutEncrypted(context.Context, int64, []byte, time.Time) error
+	GetEncrypted(context.Context, int64) ([]byte, error)
+	DeleteBySettlementID(context.Context, int64) error
+	DeleteExpired(context.Context, time.Time) (int64, error)
 }
 
 // UsageBillingTransactionalRepository is an optional extension implemented by

@@ -29,6 +29,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/compositemodelroute"
 	"github.com/Wei-Shaw/sub2api/ent/errorpassthroughrule"
 	"github.com/Wei-Shaw/sub2api/ent/group"
+	"github.com/Wei-Shaw/sub2api/ent/grsaisettlement"
+	"github.com/Wei-Shaw/sub2api/ent/grsaitaskpayload"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
@@ -81,6 +83,8 @@ const (
 	TypeCompositeModelRoute           = "CompositeModelRoute"
 	TypeErrorPassthroughRule          = "ErrorPassthroughRule"
 	TypeGroup                         = "Group"
+	TypeGrsaiSettlement               = "GrsaiSettlement"
+	TypeGrsaiTaskPayload              = "GrsaiTaskPayload"
 	TypeIdempotencyRecord             = "IdempotencyRecord"
 	TypeIdentityAdoptionDecision      = "IdentityAdoptionDecision"
 	TypePaymentAuditLog               = "PaymentAuditLog"
@@ -27797,6 +27801,3370 @@ func (m *GroupMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Group edge %s", name)
+}
+
+// GrsaiSettlementMutation represents an operation that mutates the GrsaiSettlement nodes in the graph.
+type GrsaiSettlementMutation struct {
+	config
+	op                         Op
+	typ                        string
+	id                         *int64
+	account_id                 *int64
+	addaccount_id              *int64
+	group_id                   *int64
+	addgroup_id                *int64
+	user_id                    *int64
+	adduser_id                 *int64
+	api_key_id                 *int64
+	addapi_key_id              *int64
+	model                      *string
+	base_unit_price            *float64
+	addbase_unit_price         *float64
+	group_rate_multiplier      *float64
+	addgroup_rate_multiplier   *float64
+	account_rate_multiplier    *float64
+	addaccount_rate_multiplier *float64
+	billable_unit_price        *float64
+	addbillable_unit_price     *float64
+	requested_image_count      *int
+	addrequested_image_count   *int
+	currency                   *string
+	billing_idempotency_key    *string
+	public_task_id             *string
+	delivery_mode              *string
+	progress                   *int
+	addprogress                *int
+	result_urls                *[]string
+	appendresult_urls          []string
+	hold_amount                *float64
+	addhold_amount             *float64
+	hold_state                 *string
+	payload_delete_after       *time.Time
+	expires_at                 *time.Time
+	upstream_task_id           *string
+	upstream_status            *string
+	internal_status            *string
+	retry_count                *int
+	addretry_count             *int
+	settlement_retry_count     *int
+	addsettlement_retry_count  *int
+	claim_version              *int64
+	addclaim_version           *int64
+	next_attempt_at            *time.Time
+	last_error_summary         *string
+	settled_amount             *float64
+	addsettled_amount          *float64
+	created_at                 *time.Time
+	updated_at                 *time.Time
+	upstream_bound_at          *time.Time
+	result_updated_at          *time.Time
+	settled_at                 *time.Time
+	closed_at                  *time.Time
+	clearedFields              map[string]struct{}
+	done                       bool
+	oldValue                   func(context.Context) (*GrsaiSettlement, error)
+	predicates                 []predicate.GrsaiSettlement
+}
+
+var _ ent.Mutation = (*GrsaiSettlementMutation)(nil)
+
+// grsaisettlementOption allows management of the mutation configuration using functional options.
+type grsaisettlementOption func(*GrsaiSettlementMutation)
+
+// newGrsaiSettlementMutation creates new mutation for the GrsaiSettlement entity.
+func newGrsaiSettlementMutation(c config, op Op, opts ...grsaisettlementOption) *GrsaiSettlementMutation {
+	m := &GrsaiSettlementMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeGrsaiSettlement,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withGrsaiSettlementID sets the ID field of the mutation.
+func withGrsaiSettlementID(id int64) grsaisettlementOption {
+	return func(m *GrsaiSettlementMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *GrsaiSettlement
+		)
+		m.oldValue = func(ctx context.Context) (*GrsaiSettlement, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().GrsaiSettlement.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withGrsaiSettlement sets the old GrsaiSettlement of the mutation.
+func withGrsaiSettlement(node *GrsaiSettlement) grsaisettlementOption {
+	return func(m *GrsaiSettlementMutation) {
+		m.oldValue = func(context.Context) (*GrsaiSettlement, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m GrsaiSettlementMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m GrsaiSettlementMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *GrsaiSettlementMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *GrsaiSettlementMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().GrsaiSettlement.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAccountID sets the "account_id" field.
+func (m *GrsaiSettlementMutation) SetAccountID(i int64) {
+	m.account_id = &i
+	m.addaccount_id = nil
+}
+
+// AccountID returns the value of the "account_id" field in the mutation.
+func (m *GrsaiSettlementMutation) AccountID() (r int64, exists bool) {
+	v := m.account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountID returns the old "account_id" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldAccountID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountID: %w", err)
+	}
+	return oldValue.AccountID, nil
+}
+
+// AddAccountID adds i to the "account_id" field.
+func (m *GrsaiSettlementMutation) AddAccountID(i int64) {
+	if m.addaccount_id != nil {
+		*m.addaccount_id += i
+	} else {
+		m.addaccount_id = &i
+	}
+}
+
+// AddedAccountID returns the value that was added to the "account_id" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedAccountID() (r int64, exists bool) {
+	v := m.addaccount_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAccountID resets all changes to the "account_id" field.
+func (m *GrsaiSettlementMutation) ResetAccountID() {
+	m.account_id = nil
+	m.addaccount_id = nil
+}
+
+// SetGroupID sets the "group_id" field.
+func (m *GrsaiSettlementMutation) SetGroupID(i int64) {
+	m.group_id = &i
+	m.addgroup_id = nil
+}
+
+// GroupID returns the value of the "group_id" field in the mutation.
+func (m *GrsaiSettlementMutation) GroupID() (r int64, exists bool) {
+	v := m.group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroupID returns the old "group_id" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldGroupID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroupID: %w", err)
+	}
+	return oldValue.GroupID, nil
+}
+
+// AddGroupID adds i to the "group_id" field.
+func (m *GrsaiSettlementMutation) AddGroupID(i int64) {
+	if m.addgroup_id != nil {
+		*m.addgroup_id += i
+	} else {
+		m.addgroup_id = &i
+	}
+}
+
+// AddedGroupID returns the value that was added to the "group_id" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedGroupID() (r int64, exists bool) {
+	v := m.addgroup_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetGroupID resets all changes to the "group_id" field.
+func (m *GrsaiSettlementMutation) ResetGroupID() {
+	m.group_id = nil
+	m.addgroup_id = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *GrsaiSettlementMutation) SetUserID(i int64) {
+	m.user_id = &i
+	m.adduser_id = nil
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *GrsaiSettlementMutation) UserID() (r int64, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldUserID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// AddUserID adds i to the "user_id" field.
+func (m *GrsaiSettlementMutation) AddUserID(i int64) {
+	if m.adduser_id != nil {
+		*m.adduser_id += i
+	} else {
+		m.adduser_id = &i
+	}
+}
+
+// AddedUserID returns the value that was added to the "user_id" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedUserID() (r int64, exists bool) {
+	v := m.adduser_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *GrsaiSettlementMutation) ResetUserID() {
+	m.user_id = nil
+	m.adduser_id = nil
+}
+
+// SetAPIKeyID sets the "api_key_id" field.
+func (m *GrsaiSettlementMutation) SetAPIKeyID(i int64) {
+	m.api_key_id = &i
+	m.addapi_key_id = nil
+}
+
+// APIKeyID returns the value of the "api_key_id" field in the mutation.
+func (m *GrsaiSettlementMutation) APIKeyID() (r int64, exists bool) {
+	v := m.api_key_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAPIKeyID returns the old "api_key_id" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldAPIKeyID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAPIKeyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAPIKeyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAPIKeyID: %w", err)
+	}
+	return oldValue.APIKeyID, nil
+}
+
+// AddAPIKeyID adds i to the "api_key_id" field.
+func (m *GrsaiSettlementMutation) AddAPIKeyID(i int64) {
+	if m.addapi_key_id != nil {
+		*m.addapi_key_id += i
+	} else {
+		m.addapi_key_id = &i
+	}
+}
+
+// AddedAPIKeyID returns the value that was added to the "api_key_id" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedAPIKeyID() (r int64, exists bool) {
+	v := m.addapi_key_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAPIKeyID resets all changes to the "api_key_id" field.
+func (m *GrsaiSettlementMutation) ResetAPIKeyID() {
+	m.api_key_id = nil
+	m.addapi_key_id = nil
+}
+
+// SetModel sets the "model" field.
+func (m *GrsaiSettlementMutation) SetModel(s string) {
+	m.model = &s
+}
+
+// Model returns the value of the "model" field in the mutation.
+func (m *GrsaiSettlementMutation) Model() (r string, exists bool) {
+	v := m.model
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModel returns the old "model" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldModel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModel: %w", err)
+	}
+	return oldValue.Model, nil
+}
+
+// ResetModel resets all changes to the "model" field.
+func (m *GrsaiSettlementMutation) ResetModel() {
+	m.model = nil
+}
+
+// SetBaseUnitPrice sets the "base_unit_price" field.
+func (m *GrsaiSettlementMutation) SetBaseUnitPrice(f float64) {
+	m.base_unit_price = &f
+	m.addbase_unit_price = nil
+}
+
+// BaseUnitPrice returns the value of the "base_unit_price" field in the mutation.
+func (m *GrsaiSettlementMutation) BaseUnitPrice() (r float64, exists bool) {
+	v := m.base_unit_price
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBaseUnitPrice returns the old "base_unit_price" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldBaseUnitPrice(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBaseUnitPrice is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBaseUnitPrice requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBaseUnitPrice: %w", err)
+	}
+	return oldValue.BaseUnitPrice, nil
+}
+
+// AddBaseUnitPrice adds f to the "base_unit_price" field.
+func (m *GrsaiSettlementMutation) AddBaseUnitPrice(f float64) {
+	if m.addbase_unit_price != nil {
+		*m.addbase_unit_price += f
+	} else {
+		m.addbase_unit_price = &f
+	}
+}
+
+// AddedBaseUnitPrice returns the value that was added to the "base_unit_price" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedBaseUnitPrice() (r float64, exists bool) {
+	v := m.addbase_unit_price
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBaseUnitPrice resets all changes to the "base_unit_price" field.
+func (m *GrsaiSettlementMutation) ResetBaseUnitPrice() {
+	m.base_unit_price = nil
+	m.addbase_unit_price = nil
+}
+
+// SetGroupRateMultiplier sets the "group_rate_multiplier" field.
+func (m *GrsaiSettlementMutation) SetGroupRateMultiplier(f float64) {
+	m.group_rate_multiplier = &f
+	m.addgroup_rate_multiplier = nil
+}
+
+// GroupRateMultiplier returns the value of the "group_rate_multiplier" field in the mutation.
+func (m *GrsaiSettlementMutation) GroupRateMultiplier() (r float64, exists bool) {
+	v := m.group_rate_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroupRateMultiplier returns the old "group_rate_multiplier" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldGroupRateMultiplier(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroupRateMultiplier is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroupRateMultiplier requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroupRateMultiplier: %w", err)
+	}
+	return oldValue.GroupRateMultiplier, nil
+}
+
+// AddGroupRateMultiplier adds f to the "group_rate_multiplier" field.
+func (m *GrsaiSettlementMutation) AddGroupRateMultiplier(f float64) {
+	if m.addgroup_rate_multiplier != nil {
+		*m.addgroup_rate_multiplier += f
+	} else {
+		m.addgroup_rate_multiplier = &f
+	}
+}
+
+// AddedGroupRateMultiplier returns the value that was added to the "group_rate_multiplier" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedGroupRateMultiplier() (r float64, exists bool) {
+	v := m.addgroup_rate_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetGroupRateMultiplier resets all changes to the "group_rate_multiplier" field.
+func (m *GrsaiSettlementMutation) ResetGroupRateMultiplier() {
+	m.group_rate_multiplier = nil
+	m.addgroup_rate_multiplier = nil
+}
+
+// SetAccountRateMultiplier sets the "account_rate_multiplier" field.
+func (m *GrsaiSettlementMutation) SetAccountRateMultiplier(f float64) {
+	m.account_rate_multiplier = &f
+	m.addaccount_rate_multiplier = nil
+}
+
+// AccountRateMultiplier returns the value of the "account_rate_multiplier" field in the mutation.
+func (m *GrsaiSettlementMutation) AccountRateMultiplier() (r float64, exists bool) {
+	v := m.account_rate_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountRateMultiplier returns the old "account_rate_multiplier" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldAccountRateMultiplier(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountRateMultiplier is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountRateMultiplier requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountRateMultiplier: %w", err)
+	}
+	return oldValue.AccountRateMultiplier, nil
+}
+
+// AddAccountRateMultiplier adds f to the "account_rate_multiplier" field.
+func (m *GrsaiSettlementMutation) AddAccountRateMultiplier(f float64) {
+	if m.addaccount_rate_multiplier != nil {
+		*m.addaccount_rate_multiplier += f
+	} else {
+		m.addaccount_rate_multiplier = &f
+	}
+}
+
+// AddedAccountRateMultiplier returns the value that was added to the "account_rate_multiplier" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedAccountRateMultiplier() (r float64, exists bool) {
+	v := m.addaccount_rate_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAccountRateMultiplier resets all changes to the "account_rate_multiplier" field.
+func (m *GrsaiSettlementMutation) ResetAccountRateMultiplier() {
+	m.account_rate_multiplier = nil
+	m.addaccount_rate_multiplier = nil
+}
+
+// SetBillableUnitPrice sets the "billable_unit_price" field.
+func (m *GrsaiSettlementMutation) SetBillableUnitPrice(f float64) {
+	m.billable_unit_price = &f
+	m.addbillable_unit_price = nil
+}
+
+// BillableUnitPrice returns the value of the "billable_unit_price" field in the mutation.
+func (m *GrsaiSettlementMutation) BillableUnitPrice() (r float64, exists bool) {
+	v := m.billable_unit_price
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillableUnitPrice returns the old "billable_unit_price" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldBillableUnitPrice(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillableUnitPrice is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillableUnitPrice requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillableUnitPrice: %w", err)
+	}
+	return oldValue.BillableUnitPrice, nil
+}
+
+// AddBillableUnitPrice adds f to the "billable_unit_price" field.
+func (m *GrsaiSettlementMutation) AddBillableUnitPrice(f float64) {
+	if m.addbillable_unit_price != nil {
+		*m.addbillable_unit_price += f
+	} else {
+		m.addbillable_unit_price = &f
+	}
+}
+
+// AddedBillableUnitPrice returns the value that was added to the "billable_unit_price" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedBillableUnitPrice() (r float64, exists bool) {
+	v := m.addbillable_unit_price
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBillableUnitPrice resets all changes to the "billable_unit_price" field.
+func (m *GrsaiSettlementMutation) ResetBillableUnitPrice() {
+	m.billable_unit_price = nil
+	m.addbillable_unit_price = nil
+}
+
+// SetRequestedImageCount sets the "requested_image_count" field.
+func (m *GrsaiSettlementMutation) SetRequestedImageCount(i int) {
+	m.requested_image_count = &i
+	m.addrequested_image_count = nil
+}
+
+// RequestedImageCount returns the value of the "requested_image_count" field in the mutation.
+func (m *GrsaiSettlementMutation) RequestedImageCount() (r int, exists bool) {
+	v := m.requested_image_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequestedImageCount returns the old "requested_image_count" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldRequestedImageCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequestedImageCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequestedImageCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequestedImageCount: %w", err)
+	}
+	return oldValue.RequestedImageCount, nil
+}
+
+// AddRequestedImageCount adds i to the "requested_image_count" field.
+func (m *GrsaiSettlementMutation) AddRequestedImageCount(i int) {
+	if m.addrequested_image_count != nil {
+		*m.addrequested_image_count += i
+	} else {
+		m.addrequested_image_count = &i
+	}
+}
+
+// AddedRequestedImageCount returns the value that was added to the "requested_image_count" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedRequestedImageCount() (r int, exists bool) {
+	v := m.addrequested_image_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRequestedImageCount resets all changes to the "requested_image_count" field.
+func (m *GrsaiSettlementMutation) ResetRequestedImageCount() {
+	m.requested_image_count = nil
+	m.addrequested_image_count = nil
+}
+
+// SetCurrency sets the "currency" field.
+func (m *GrsaiSettlementMutation) SetCurrency(s string) {
+	m.currency = &s
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *GrsaiSettlementMutation) Currency() (r string, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldCurrency(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *GrsaiSettlementMutation) ResetCurrency() {
+	m.currency = nil
+}
+
+// SetBillingIdempotencyKey sets the "billing_idempotency_key" field.
+func (m *GrsaiSettlementMutation) SetBillingIdempotencyKey(s string) {
+	m.billing_idempotency_key = &s
+}
+
+// BillingIdempotencyKey returns the value of the "billing_idempotency_key" field in the mutation.
+func (m *GrsaiSettlementMutation) BillingIdempotencyKey() (r string, exists bool) {
+	v := m.billing_idempotency_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillingIdempotencyKey returns the old "billing_idempotency_key" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldBillingIdempotencyKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillingIdempotencyKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillingIdempotencyKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingIdempotencyKey: %w", err)
+	}
+	return oldValue.BillingIdempotencyKey, nil
+}
+
+// ResetBillingIdempotencyKey resets all changes to the "billing_idempotency_key" field.
+func (m *GrsaiSettlementMutation) ResetBillingIdempotencyKey() {
+	m.billing_idempotency_key = nil
+}
+
+// SetPublicTaskID sets the "public_task_id" field.
+func (m *GrsaiSettlementMutation) SetPublicTaskID(s string) {
+	m.public_task_id = &s
+}
+
+// PublicTaskID returns the value of the "public_task_id" field in the mutation.
+func (m *GrsaiSettlementMutation) PublicTaskID() (r string, exists bool) {
+	v := m.public_task_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPublicTaskID returns the old "public_task_id" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldPublicTaskID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPublicTaskID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPublicTaskID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPublicTaskID: %w", err)
+	}
+	return oldValue.PublicTaskID, nil
+}
+
+// ClearPublicTaskID clears the value of the "public_task_id" field.
+func (m *GrsaiSettlementMutation) ClearPublicTaskID() {
+	m.public_task_id = nil
+	m.clearedFields[grsaisettlement.FieldPublicTaskID] = struct{}{}
+}
+
+// PublicTaskIDCleared returns if the "public_task_id" field was cleared in this mutation.
+func (m *GrsaiSettlementMutation) PublicTaskIDCleared() bool {
+	_, ok := m.clearedFields[grsaisettlement.FieldPublicTaskID]
+	return ok
+}
+
+// ResetPublicTaskID resets all changes to the "public_task_id" field.
+func (m *GrsaiSettlementMutation) ResetPublicTaskID() {
+	m.public_task_id = nil
+	delete(m.clearedFields, grsaisettlement.FieldPublicTaskID)
+}
+
+// SetDeliveryMode sets the "delivery_mode" field.
+func (m *GrsaiSettlementMutation) SetDeliveryMode(s string) {
+	m.delivery_mode = &s
+}
+
+// DeliveryMode returns the value of the "delivery_mode" field in the mutation.
+func (m *GrsaiSettlementMutation) DeliveryMode() (r string, exists bool) {
+	v := m.delivery_mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeliveryMode returns the old "delivery_mode" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldDeliveryMode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeliveryMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeliveryMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeliveryMode: %w", err)
+	}
+	return oldValue.DeliveryMode, nil
+}
+
+// ResetDeliveryMode resets all changes to the "delivery_mode" field.
+func (m *GrsaiSettlementMutation) ResetDeliveryMode() {
+	m.delivery_mode = nil
+}
+
+// SetProgress sets the "progress" field.
+func (m *GrsaiSettlementMutation) SetProgress(i int) {
+	m.progress = &i
+	m.addprogress = nil
+}
+
+// Progress returns the value of the "progress" field in the mutation.
+func (m *GrsaiSettlementMutation) Progress() (r int, exists bool) {
+	v := m.progress
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProgress returns the old "progress" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldProgress(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProgress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProgress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProgress: %w", err)
+	}
+	return oldValue.Progress, nil
+}
+
+// AddProgress adds i to the "progress" field.
+func (m *GrsaiSettlementMutation) AddProgress(i int) {
+	if m.addprogress != nil {
+		*m.addprogress += i
+	} else {
+		m.addprogress = &i
+	}
+}
+
+// AddedProgress returns the value that was added to the "progress" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedProgress() (r int, exists bool) {
+	v := m.addprogress
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetProgress resets all changes to the "progress" field.
+func (m *GrsaiSettlementMutation) ResetProgress() {
+	m.progress = nil
+	m.addprogress = nil
+}
+
+// SetResultUrls sets the "result_urls" field.
+func (m *GrsaiSettlementMutation) SetResultUrls(s []string) {
+	m.result_urls = &s
+	m.appendresult_urls = nil
+}
+
+// ResultUrls returns the value of the "result_urls" field in the mutation.
+func (m *GrsaiSettlementMutation) ResultUrls() (r []string, exists bool) {
+	v := m.result_urls
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResultUrls returns the old "result_urls" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldResultUrls(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResultUrls is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResultUrls requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResultUrls: %w", err)
+	}
+	return oldValue.ResultUrls, nil
+}
+
+// AppendResultUrls adds s to the "result_urls" field.
+func (m *GrsaiSettlementMutation) AppendResultUrls(s []string) {
+	m.appendresult_urls = append(m.appendresult_urls, s...)
+}
+
+// AppendedResultUrls returns the list of values that were appended to the "result_urls" field in this mutation.
+func (m *GrsaiSettlementMutation) AppendedResultUrls() ([]string, bool) {
+	if len(m.appendresult_urls) == 0 {
+		return nil, false
+	}
+	return m.appendresult_urls, true
+}
+
+// ResetResultUrls resets all changes to the "result_urls" field.
+func (m *GrsaiSettlementMutation) ResetResultUrls() {
+	m.result_urls = nil
+	m.appendresult_urls = nil
+}
+
+// SetHoldAmount sets the "hold_amount" field.
+func (m *GrsaiSettlementMutation) SetHoldAmount(f float64) {
+	m.hold_amount = &f
+	m.addhold_amount = nil
+}
+
+// HoldAmount returns the value of the "hold_amount" field in the mutation.
+func (m *GrsaiSettlementMutation) HoldAmount() (r float64, exists bool) {
+	v := m.hold_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHoldAmount returns the old "hold_amount" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldHoldAmount(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHoldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHoldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHoldAmount: %w", err)
+	}
+	return oldValue.HoldAmount, nil
+}
+
+// AddHoldAmount adds f to the "hold_amount" field.
+func (m *GrsaiSettlementMutation) AddHoldAmount(f float64) {
+	if m.addhold_amount != nil {
+		*m.addhold_amount += f
+	} else {
+		m.addhold_amount = &f
+	}
+}
+
+// AddedHoldAmount returns the value that was added to the "hold_amount" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedHoldAmount() (r float64, exists bool) {
+	v := m.addhold_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetHoldAmount resets all changes to the "hold_amount" field.
+func (m *GrsaiSettlementMutation) ResetHoldAmount() {
+	m.hold_amount = nil
+	m.addhold_amount = nil
+}
+
+// SetHoldState sets the "hold_state" field.
+func (m *GrsaiSettlementMutation) SetHoldState(s string) {
+	m.hold_state = &s
+}
+
+// HoldState returns the value of the "hold_state" field in the mutation.
+func (m *GrsaiSettlementMutation) HoldState() (r string, exists bool) {
+	v := m.hold_state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHoldState returns the old "hold_state" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldHoldState(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHoldState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHoldState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHoldState: %w", err)
+	}
+	return oldValue.HoldState, nil
+}
+
+// ResetHoldState resets all changes to the "hold_state" field.
+func (m *GrsaiSettlementMutation) ResetHoldState() {
+	m.hold_state = nil
+}
+
+// SetPayloadDeleteAfter sets the "payload_delete_after" field.
+func (m *GrsaiSettlementMutation) SetPayloadDeleteAfter(t time.Time) {
+	m.payload_delete_after = &t
+}
+
+// PayloadDeleteAfter returns the value of the "payload_delete_after" field in the mutation.
+func (m *GrsaiSettlementMutation) PayloadDeleteAfter() (r time.Time, exists bool) {
+	v := m.payload_delete_after
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPayloadDeleteAfter returns the old "payload_delete_after" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldPayloadDeleteAfter(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPayloadDeleteAfter is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPayloadDeleteAfter requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPayloadDeleteAfter: %w", err)
+	}
+	return oldValue.PayloadDeleteAfter, nil
+}
+
+// ClearPayloadDeleteAfter clears the value of the "payload_delete_after" field.
+func (m *GrsaiSettlementMutation) ClearPayloadDeleteAfter() {
+	m.payload_delete_after = nil
+	m.clearedFields[grsaisettlement.FieldPayloadDeleteAfter] = struct{}{}
+}
+
+// PayloadDeleteAfterCleared returns if the "payload_delete_after" field was cleared in this mutation.
+func (m *GrsaiSettlementMutation) PayloadDeleteAfterCleared() bool {
+	_, ok := m.clearedFields[grsaisettlement.FieldPayloadDeleteAfter]
+	return ok
+}
+
+// ResetPayloadDeleteAfter resets all changes to the "payload_delete_after" field.
+func (m *GrsaiSettlementMutation) ResetPayloadDeleteAfter() {
+	m.payload_delete_after = nil
+	delete(m.clearedFields, grsaisettlement.FieldPayloadDeleteAfter)
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *GrsaiSettlementMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *GrsaiSettlementMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldExpiresAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ClearExpiresAt clears the value of the "expires_at" field.
+func (m *GrsaiSettlementMutation) ClearExpiresAt() {
+	m.expires_at = nil
+	m.clearedFields[grsaisettlement.FieldExpiresAt] = struct{}{}
+}
+
+// ExpiresAtCleared returns if the "expires_at" field was cleared in this mutation.
+func (m *GrsaiSettlementMutation) ExpiresAtCleared() bool {
+	_, ok := m.clearedFields[grsaisettlement.FieldExpiresAt]
+	return ok
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *GrsaiSettlementMutation) ResetExpiresAt() {
+	m.expires_at = nil
+	delete(m.clearedFields, grsaisettlement.FieldExpiresAt)
+}
+
+// SetUpstreamTaskID sets the "upstream_task_id" field.
+func (m *GrsaiSettlementMutation) SetUpstreamTaskID(s string) {
+	m.upstream_task_id = &s
+}
+
+// UpstreamTaskID returns the value of the "upstream_task_id" field in the mutation.
+func (m *GrsaiSettlementMutation) UpstreamTaskID() (r string, exists bool) {
+	v := m.upstream_task_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpstreamTaskID returns the old "upstream_task_id" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldUpstreamTaskID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpstreamTaskID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpstreamTaskID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpstreamTaskID: %w", err)
+	}
+	return oldValue.UpstreamTaskID, nil
+}
+
+// ClearUpstreamTaskID clears the value of the "upstream_task_id" field.
+func (m *GrsaiSettlementMutation) ClearUpstreamTaskID() {
+	m.upstream_task_id = nil
+	m.clearedFields[grsaisettlement.FieldUpstreamTaskID] = struct{}{}
+}
+
+// UpstreamTaskIDCleared returns if the "upstream_task_id" field was cleared in this mutation.
+func (m *GrsaiSettlementMutation) UpstreamTaskIDCleared() bool {
+	_, ok := m.clearedFields[grsaisettlement.FieldUpstreamTaskID]
+	return ok
+}
+
+// ResetUpstreamTaskID resets all changes to the "upstream_task_id" field.
+func (m *GrsaiSettlementMutation) ResetUpstreamTaskID() {
+	m.upstream_task_id = nil
+	delete(m.clearedFields, grsaisettlement.FieldUpstreamTaskID)
+}
+
+// SetUpstreamStatus sets the "upstream_status" field.
+func (m *GrsaiSettlementMutation) SetUpstreamStatus(s string) {
+	m.upstream_status = &s
+}
+
+// UpstreamStatus returns the value of the "upstream_status" field in the mutation.
+func (m *GrsaiSettlementMutation) UpstreamStatus() (r string, exists bool) {
+	v := m.upstream_status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpstreamStatus returns the old "upstream_status" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldUpstreamStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpstreamStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpstreamStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpstreamStatus: %w", err)
+	}
+	return oldValue.UpstreamStatus, nil
+}
+
+// ResetUpstreamStatus resets all changes to the "upstream_status" field.
+func (m *GrsaiSettlementMutation) ResetUpstreamStatus() {
+	m.upstream_status = nil
+}
+
+// SetInternalStatus sets the "internal_status" field.
+func (m *GrsaiSettlementMutation) SetInternalStatus(s string) {
+	m.internal_status = &s
+}
+
+// InternalStatus returns the value of the "internal_status" field in the mutation.
+func (m *GrsaiSettlementMutation) InternalStatus() (r string, exists bool) {
+	v := m.internal_status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInternalStatus returns the old "internal_status" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldInternalStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInternalStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInternalStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInternalStatus: %w", err)
+	}
+	return oldValue.InternalStatus, nil
+}
+
+// ResetInternalStatus resets all changes to the "internal_status" field.
+func (m *GrsaiSettlementMutation) ResetInternalStatus() {
+	m.internal_status = nil
+}
+
+// SetRetryCount sets the "retry_count" field.
+func (m *GrsaiSettlementMutation) SetRetryCount(i int) {
+	m.retry_count = &i
+	m.addretry_count = nil
+}
+
+// RetryCount returns the value of the "retry_count" field in the mutation.
+func (m *GrsaiSettlementMutation) RetryCount() (r int, exists bool) {
+	v := m.retry_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRetryCount returns the old "retry_count" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldRetryCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRetryCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRetryCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRetryCount: %w", err)
+	}
+	return oldValue.RetryCount, nil
+}
+
+// AddRetryCount adds i to the "retry_count" field.
+func (m *GrsaiSettlementMutation) AddRetryCount(i int) {
+	if m.addretry_count != nil {
+		*m.addretry_count += i
+	} else {
+		m.addretry_count = &i
+	}
+}
+
+// AddedRetryCount returns the value that was added to the "retry_count" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedRetryCount() (r int, exists bool) {
+	v := m.addretry_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRetryCount resets all changes to the "retry_count" field.
+func (m *GrsaiSettlementMutation) ResetRetryCount() {
+	m.retry_count = nil
+	m.addretry_count = nil
+}
+
+// SetSettlementRetryCount sets the "settlement_retry_count" field.
+func (m *GrsaiSettlementMutation) SetSettlementRetryCount(i int) {
+	m.settlement_retry_count = &i
+	m.addsettlement_retry_count = nil
+}
+
+// SettlementRetryCount returns the value of the "settlement_retry_count" field in the mutation.
+func (m *GrsaiSettlementMutation) SettlementRetryCount() (r int, exists bool) {
+	v := m.settlement_retry_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSettlementRetryCount returns the old "settlement_retry_count" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldSettlementRetryCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSettlementRetryCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSettlementRetryCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSettlementRetryCount: %w", err)
+	}
+	return oldValue.SettlementRetryCount, nil
+}
+
+// AddSettlementRetryCount adds i to the "settlement_retry_count" field.
+func (m *GrsaiSettlementMutation) AddSettlementRetryCount(i int) {
+	if m.addsettlement_retry_count != nil {
+		*m.addsettlement_retry_count += i
+	} else {
+		m.addsettlement_retry_count = &i
+	}
+}
+
+// AddedSettlementRetryCount returns the value that was added to the "settlement_retry_count" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedSettlementRetryCount() (r int, exists bool) {
+	v := m.addsettlement_retry_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSettlementRetryCount resets all changes to the "settlement_retry_count" field.
+func (m *GrsaiSettlementMutation) ResetSettlementRetryCount() {
+	m.settlement_retry_count = nil
+	m.addsettlement_retry_count = nil
+}
+
+// SetClaimVersion sets the "claim_version" field.
+func (m *GrsaiSettlementMutation) SetClaimVersion(i int64) {
+	m.claim_version = &i
+	m.addclaim_version = nil
+}
+
+// ClaimVersion returns the value of the "claim_version" field in the mutation.
+func (m *GrsaiSettlementMutation) ClaimVersion() (r int64, exists bool) {
+	v := m.claim_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClaimVersion returns the old "claim_version" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldClaimVersion(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClaimVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClaimVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClaimVersion: %w", err)
+	}
+	return oldValue.ClaimVersion, nil
+}
+
+// AddClaimVersion adds i to the "claim_version" field.
+func (m *GrsaiSettlementMutation) AddClaimVersion(i int64) {
+	if m.addclaim_version != nil {
+		*m.addclaim_version += i
+	} else {
+		m.addclaim_version = &i
+	}
+}
+
+// AddedClaimVersion returns the value that was added to the "claim_version" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedClaimVersion() (r int64, exists bool) {
+	v := m.addclaim_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetClaimVersion resets all changes to the "claim_version" field.
+func (m *GrsaiSettlementMutation) ResetClaimVersion() {
+	m.claim_version = nil
+	m.addclaim_version = nil
+}
+
+// SetNextAttemptAt sets the "next_attempt_at" field.
+func (m *GrsaiSettlementMutation) SetNextAttemptAt(t time.Time) {
+	m.next_attempt_at = &t
+}
+
+// NextAttemptAt returns the value of the "next_attempt_at" field in the mutation.
+func (m *GrsaiSettlementMutation) NextAttemptAt() (r time.Time, exists bool) {
+	v := m.next_attempt_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextAttemptAt returns the old "next_attempt_at" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldNextAttemptAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextAttemptAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextAttemptAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextAttemptAt: %w", err)
+	}
+	return oldValue.NextAttemptAt, nil
+}
+
+// ResetNextAttemptAt resets all changes to the "next_attempt_at" field.
+func (m *GrsaiSettlementMutation) ResetNextAttemptAt() {
+	m.next_attempt_at = nil
+}
+
+// SetLastErrorSummary sets the "last_error_summary" field.
+func (m *GrsaiSettlementMutation) SetLastErrorSummary(s string) {
+	m.last_error_summary = &s
+}
+
+// LastErrorSummary returns the value of the "last_error_summary" field in the mutation.
+func (m *GrsaiSettlementMutation) LastErrorSummary() (r string, exists bool) {
+	v := m.last_error_summary
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastErrorSummary returns the old "last_error_summary" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldLastErrorSummary(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastErrorSummary is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastErrorSummary requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastErrorSummary: %w", err)
+	}
+	return oldValue.LastErrorSummary, nil
+}
+
+// ClearLastErrorSummary clears the value of the "last_error_summary" field.
+func (m *GrsaiSettlementMutation) ClearLastErrorSummary() {
+	m.last_error_summary = nil
+	m.clearedFields[grsaisettlement.FieldLastErrorSummary] = struct{}{}
+}
+
+// LastErrorSummaryCleared returns if the "last_error_summary" field was cleared in this mutation.
+func (m *GrsaiSettlementMutation) LastErrorSummaryCleared() bool {
+	_, ok := m.clearedFields[grsaisettlement.FieldLastErrorSummary]
+	return ok
+}
+
+// ResetLastErrorSummary resets all changes to the "last_error_summary" field.
+func (m *GrsaiSettlementMutation) ResetLastErrorSummary() {
+	m.last_error_summary = nil
+	delete(m.clearedFields, grsaisettlement.FieldLastErrorSummary)
+}
+
+// SetSettledAmount sets the "settled_amount" field.
+func (m *GrsaiSettlementMutation) SetSettledAmount(f float64) {
+	m.settled_amount = &f
+	m.addsettled_amount = nil
+}
+
+// SettledAmount returns the value of the "settled_amount" field in the mutation.
+func (m *GrsaiSettlementMutation) SettledAmount() (r float64, exists bool) {
+	v := m.settled_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSettledAmount returns the old "settled_amount" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldSettledAmount(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSettledAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSettledAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSettledAmount: %w", err)
+	}
+	return oldValue.SettledAmount, nil
+}
+
+// AddSettledAmount adds f to the "settled_amount" field.
+func (m *GrsaiSettlementMutation) AddSettledAmount(f float64) {
+	if m.addsettled_amount != nil {
+		*m.addsettled_amount += f
+	} else {
+		m.addsettled_amount = &f
+	}
+}
+
+// AddedSettledAmount returns the value that was added to the "settled_amount" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedSettledAmount() (r float64, exists bool) {
+	v := m.addsettled_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearSettledAmount clears the value of the "settled_amount" field.
+func (m *GrsaiSettlementMutation) ClearSettledAmount() {
+	m.settled_amount = nil
+	m.addsettled_amount = nil
+	m.clearedFields[grsaisettlement.FieldSettledAmount] = struct{}{}
+}
+
+// SettledAmountCleared returns if the "settled_amount" field was cleared in this mutation.
+func (m *GrsaiSettlementMutation) SettledAmountCleared() bool {
+	_, ok := m.clearedFields[grsaisettlement.FieldSettledAmount]
+	return ok
+}
+
+// ResetSettledAmount resets all changes to the "settled_amount" field.
+func (m *GrsaiSettlementMutation) ResetSettledAmount() {
+	m.settled_amount = nil
+	m.addsettled_amount = nil
+	delete(m.clearedFields, grsaisettlement.FieldSettledAmount)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *GrsaiSettlementMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *GrsaiSettlementMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *GrsaiSettlementMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *GrsaiSettlementMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *GrsaiSettlementMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *GrsaiSettlementMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetUpstreamBoundAt sets the "upstream_bound_at" field.
+func (m *GrsaiSettlementMutation) SetUpstreamBoundAt(t time.Time) {
+	m.upstream_bound_at = &t
+}
+
+// UpstreamBoundAt returns the value of the "upstream_bound_at" field in the mutation.
+func (m *GrsaiSettlementMutation) UpstreamBoundAt() (r time.Time, exists bool) {
+	v := m.upstream_bound_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpstreamBoundAt returns the old "upstream_bound_at" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldUpstreamBoundAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpstreamBoundAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpstreamBoundAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpstreamBoundAt: %w", err)
+	}
+	return oldValue.UpstreamBoundAt, nil
+}
+
+// ClearUpstreamBoundAt clears the value of the "upstream_bound_at" field.
+func (m *GrsaiSettlementMutation) ClearUpstreamBoundAt() {
+	m.upstream_bound_at = nil
+	m.clearedFields[grsaisettlement.FieldUpstreamBoundAt] = struct{}{}
+}
+
+// UpstreamBoundAtCleared returns if the "upstream_bound_at" field was cleared in this mutation.
+func (m *GrsaiSettlementMutation) UpstreamBoundAtCleared() bool {
+	_, ok := m.clearedFields[grsaisettlement.FieldUpstreamBoundAt]
+	return ok
+}
+
+// ResetUpstreamBoundAt resets all changes to the "upstream_bound_at" field.
+func (m *GrsaiSettlementMutation) ResetUpstreamBoundAt() {
+	m.upstream_bound_at = nil
+	delete(m.clearedFields, grsaisettlement.FieldUpstreamBoundAt)
+}
+
+// SetResultUpdatedAt sets the "result_updated_at" field.
+func (m *GrsaiSettlementMutation) SetResultUpdatedAt(t time.Time) {
+	m.result_updated_at = &t
+}
+
+// ResultUpdatedAt returns the value of the "result_updated_at" field in the mutation.
+func (m *GrsaiSettlementMutation) ResultUpdatedAt() (r time.Time, exists bool) {
+	v := m.result_updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResultUpdatedAt returns the old "result_updated_at" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldResultUpdatedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResultUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResultUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResultUpdatedAt: %w", err)
+	}
+	return oldValue.ResultUpdatedAt, nil
+}
+
+// ClearResultUpdatedAt clears the value of the "result_updated_at" field.
+func (m *GrsaiSettlementMutation) ClearResultUpdatedAt() {
+	m.result_updated_at = nil
+	m.clearedFields[grsaisettlement.FieldResultUpdatedAt] = struct{}{}
+}
+
+// ResultUpdatedAtCleared returns if the "result_updated_at" field was cleared in this mutation.
+func (m *GrsaiSettlementMutation) ResultUpdatedAtCleared() bool {
+	_, ok := m.clearedFields[grsaisettlement.FieldResultUpdatedAt]
+	return ok
+}
+
+// ResetResultUpdatedAt resets all changes to the "result_updated_at" field.
+func (m *GrsaiSettlementMutation) ResetResultUpdatedAt() {
+	m.result_updated_at = nil
+	delete(m.clearedFields, grsaisettlement.FieldResultUpdatedAt)
+}
+
+// SetSettledAt sets the "settled_at" field.
+func (m *GrsaiSettlementMutation) SetSettledAt(t time.Time) {
+	m.settled_at = &t
+}
+
+// SettledAt returns the value of the "settled_at" field in the mutation.
+func (m *GrsaiSettlementMutation) SettledAt() (r time.Time, exists bool) {
+	v := m.settled_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSettledAt returns the old "settled_at" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldSettledAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSettledAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSettledAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSettledAt: %w", err)
+	}
+	return oldValue.SettledAt, nil
+}
+
+// ClearSettledAt clears the value of the "settled_at" field.
+func (m *GrsaiSettlementMutation) ClearSettledAt() {
+	m.settled_at = nil
+	m.clearedFields[grsaisettlement.FieldSettledAt] = struct{}{}
+}
+
+// SettledAtCleared returns if the "settled_at" field was cleared in this mutation.
+func (m *GrsaiSettlementMutation) SettledAtCleared() bool {
+	_, ok := m.clearedFields[grsaisettlement.FieldSettledAt]
+	return ok
+}
+
+// ResetSettledAt resets all changes to the "settled_at" field.
+func (m *GrsaiSettlementMutation) ResetSettledAt() {
+	m.settled_at = nil
+	delete(m.clearedFields, grsaisettlement.FieldSettledAt)
+}
+
+// SetClosedAt sets the "closed_at" field.
+func (m *GrsaiSettlementMutation) SetClosedAt(t time.Time) {
+	m.closed_at = &t
+}
+
+// ClosedAt returns the value of the "closed_at" field in the mutation.
+func (m *GrsaiSettlementMutation) ClosedAt() (r time.Time, exists bool) {
+	v := m.closed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClosedAt returns the old "closed_at" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldClosedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClosedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClosedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClosedAt: %w", err)
+	}
+	return oldValue.ClosedAt, nil
+}
+
+// ClearClosedAt clears the value of the "closed_at" field.
+func (m *GrsaiSettlementMutation) ClearClosedAt() {
+	m.closed_at = nil
+	m.clearedFields[grsaisettlement.FieldClosedAt] = struct{}{}
+}
+
+// ClosedAtCleared returns if the "closed_at" field was cleared in this mutation.
+func (m *GrsaiSettlementMutation) ClosedAtCleared() bool {
+	_, ok := m.clearedFields[grsaisettlement.FieldClosedAt]
+	return ok
+}
+
+// ResetClosedAt resets all changes to the "closed_at" field.
+func (m *GrsaiSettlementMutation) ResetClosedAt() {
+	m.closed_at = nil
+	delete(m.clearedFields, grsaisettlement.FieldClosedAt)
+}
+
+// Where appends a list predicates to the GrsaiSettlementMutation builder.
+func (m *GrsaiSettlementMutation) Where(ps ...predicate.GrsaiSettlement) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the GrsaiSettlementMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *GrsaiSettlementMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.GrsaiSettlement, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *GrsaiSettlementMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *GrsaiSettlementMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (GrsaiSettlement).
+func (m *GrsaiSettlementMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *GrsaiSettlementMutation) Fields() []string {
+	fields := make([]string, 0, 35)
+	if m.account_id != nil {
+		fields = append(fields, grsaisettlement.FieldAccountID)
+	}
+	if m.group_id != nil {
+		fields = append(fields, grsaisettlement.FieldGroupID)
+	}
+	if m.user_id != nil {
+		fields = append(fields, grsaisettlement.FieldUserID)
+	}
+	if m.api_key_id != nil {
+		fields = append(fields, grsaisettlement.FieldAPIKeyID)
+	}
+	if m.model != nil {
+		fields = append(fields, grsaisettlement.FieldModel)
+	}
+	if m.base_unit_price != nil {
+		fields = append(fields, grsaisettlement.FieldBaseUnitPrice)
+	}
+	if m.group_rate_multiplier != nil {
+		fields = append(fields, grsaisettlement.FieldGroupRateMultiplier)
+	}
+	if m.account_rate_multiplier != nil {
+		fields = append(fields, grsaisettlement.FieldAccountRateMultiplier)
+	}
+	if m.billable_unit_price != nil {
+		fields = append(fields, grsaisettlement.FieldBillableUnitPrice)
+	}
+	if m.requested_image_count != nil {
+		fields = append(fields, grsaisettlement.FieldRequestedImageCount)
+	}
+	if m.currency != nil {
+		fields = append(fields, grsaisettlement.FieldCurrency)
+	}
+	if m.billing_idempotency_key != nil {
+		fields = append(fields, grsaisettlement.FieldBillingIdempotencyKey)
+	}
+	if m.public_task_id != nil {
+		fields = append(fields, grsaisettlement.FieldPublicTaskID)
+	}
+	if m.delivery_mode != nil {
+		fields = append(fields, grsaisettlement.FieldDeliveryMode)
+	}
+	if m.progress != nil {
+		fields = append(fields, grsaisettlement.FieldProgress)
+	}
+	if m.result_urls != nil {
+		fields = append(fields, grsaisettlement.FieldResultUrls)
+	}
+	if m.hold_amount != nil {
+		fields = append(fields, grsaisettlement.FieldHoldAmount)
+	}
+	if m.hold_state != nil {
+		fields = append(fields, grsaisettlement.FieldHoldState)
+	}
+	if m.payload_delete_after != nil {
+		fields = append(fields, grsaisettlement.FieldPayloadDeleteAfter)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, grsaisettlement.FieldExpiresAt)
+	}
+	if m.upstream_task_id != nil {
+		fields = append(fields, grsaisettlement.FieldUpstreamTaskID)
+	}
+	if m.upstream_status != nil {
+		fields = append(fields, grsaisettlement.FieldUpstreamStatus)
+	}
+	if m.internal_status != nil {
+		fields = append(fields, grsaisettlement.FieldInternalStatus)
+	}
+	if m.retry_count != nil {
+		fields = append(fields, grsaisettlement.FieldRetryCount)
+	}
+	if m.settlement_retry_count != nil {
+		fields = append(fields, grsaisettlement.FieldSettlementRetryCount)
+	}
+	if m.claim_version != nil {
+		fields = append(fields, grsaisettlement.FieldClaimVersion)
+	}
+	if m.next_attempt_at != nil {
+		fields = append(fields, grsaisettlement.FieldNextAttemptAt)
+	}
+	if m.last_error_summary != nil {
+		fields = append(fields, grsaisettlement.FieldLastErrorSummary)
+	}
+	if m.settled_amount != nil {
+		fields = append(fields, grsaisettlement.FieldSettledAmount)
+	}
+	if m.created_at != nil {
+		fields = append(fields, grsaisettlement.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, grsaisettlement.FieldUpdatedAt)
+	}
+	if m.upstream_bound_at != nil {
+		fields = append(fields, grsaisettlement.FieldUpstreamBoundAt)
+	}
+	if m.result_updated_at != nil {
+		fields = append(fields, grsaisettlement.FieldResultUpdatedAt)
+	}
+	if m.settled_at != nil {
+		fields = append(fields, grsaisettlement.FieldSettledAt)
+	}
+	if m.closed_at != nil {
+		fields = append(fields, grsaisettlement.FieldClosedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *GrsaiSettlementMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case grsaisettlement.FieldAccountID:
+		return m.AccountID()
+	case grsaisettlement.FieldGroupID:
+		return m.GroupID()
+	case grsaisettlement.FieldUserID:
+		return m.UserID()
+	case grsaisettlement.FieldAPIKeyID:
+		return m.APIKeyID()
+	case grsaisettlement.FieldModel:
+		return m.Model()
+	case grsaisettlement.FieldBaseUnitPrice:
+		return m.BaseUnitPrice()
+	case grsaisettlement.FieldGroupRateMultiplier:
+		return m.GroupRateMultiplier()
+	case grsaisettlement.FieldAccountRateMultiplier:
+		return m.AccountRateMultiplier()
+	case grsaisettlement.FieldBillableUnitPrice:
+		return m.BillableUnitPrice()
+	case grsaisettlement.FieldRequestedImageCount:
+		return m.RequestedImageCount()
+	case grsaisettlement.FieldCurrency:
+		return m.Currency()
+	case grsaisettlement.FieldBillingIdempotencyKey:
+		return m.BillingIdempotencyKey()
+	case grsaisettlement.FieldPublicTaskID:
+		return m.PublicTaskID()
+	case grsaisettlement.FieldDeliveryMode:
+		return m.DeliveryMode()
+	case grsaisettlement.FieldProgress:
+		return m.Progress()
+	case grsaisettlement.FieldResultUrls:
+		return m.ResultUrls()
+	case grsaisettlement.FieldHoldAmount:
+		return m.HoldAmount()
+	case grsaisettlement.FieldHoldState:
+		return m.HoldState()
+	case grsaisettlement.FieldPayloadDeleteAfter:
+		return m.PayloadDeleteAfter()
+	case grsaisettlement.FieldExpiresAt:
+		return m.ExpiresAt()
+	case grsaisettlement.FieldUpstreamTaskID:
+		return m.UpstreamTaskID()
+	case grsaisettlement.FieldUpstreamStatus:
+		return m.UpstreamStatus()
+	case grsaisettlement.FieldInternalStatus:
+		return m.InternalStatus()
+	case grsaisettlement.FieldRetryCount:
+		return m.RetryCount()
+	case grsaisettlement.FieldSettlementRetryCount:
+		return m.SettlementRetryCount()
+	case grsaisettlement.FieldClaimVersion:
+		return m.ClaimVersion()
+	case grsaisettlement.FieldNextAttemptAt:
+		return m.NextAttemptAt()
+	case grsaisettlement.FieldLastErrorSummary:
+		return m.LastErrorSummary()
+	case grsaisettlement.FieldSettledAmount:
+		return m.SettledAmount()
+	case grsaisettlement.FieldCreatedAt:
+		return m.CreatedAt()
+	case grsaisettlement.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case grsaisettlement.FieldUpstreamBoundAt:
+		return m.UpstreamBoundAt()
+	case grsaisettlement.FieldResultUpdatedAt:
+		return m.ResultUpdatedAt()
+	case grsaisettlement.FieldSettledAt:
+		return m.SettledAt()
+	case grsaisettlement.FieldClosedAt:
+		return m.ClosedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *GrsaiSettlementMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case grsaisettlement.FieldAccountID:
+		return m.OldAccountID(ctx)
+	case grsaisettlement.FieldGroupID:
+		return m.OldGroupID(ctx)
+	case grsaisettlement.FieldUserID:
+		return m.OldUserID(ctx)
+	case grsaisettlement.FieldAPIKeyID:
+		return m.OldAPIKeyID(ctx)
+	case grsaisettlement.FieldModel:
+		return m.OldModel(ctx)
+	case grsaisettlement.FieldBaseUnitPrice:
+		return m.OldBaseUnitPrice(ctx)
+	case grsaisettlement.FieldGroupRateMultiplier:
+		return m.OldGroupRateMultiplier(ctx)
+	case grsaisettlement.FieldAccountRateMultiplier:
+		return m.OldAccountRateMultiplier(ctx)
+	case grsaisettlement.FieldBillableUnitPrice:
+		return m.OldBillableUnitPrice(ctx)
+	case grsaisettlement.FieldRequestedImageCount:
+		return m.OldRequestedImageCount(ctx)
+	case grsaisettlement.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case grsaisettlement.FieldBillingIdempotencyKey:
+		return m.OldBillingIdempotencyKey(ctx)
+	case grsaisettlement.FieldPublicTaskID:
+		return m.OldPublicTaskID(ctx)
+	case grsaisettlement.FieldDeliveryMode:
+		return m.OldDeliveryMode(ctx)
+	case grsaisettlement.FieldProgress:
+		return m.OldProgress(ctx)
+	case grsaisettlement.FieldResultUrls:
+		return m.OldResultUrls(ctx)
+	case grsaisettlement.FieldHoldAmount:
+		return m.OldHoldAmount(ctx)
+	case grsaisettlement.FieldHoldState:
+		return m.OldHoldState(ctx)
+	case grsaisettlement.FieldPayloadDeleteAfter:
+		return m.OldPayloadDeleteAfter(ctx)
+	case grsaisettlement.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	case grsaisettlement.FieldUpstreamTaskID:
+		return m.OldUpstreamTaskID(ctx)
+	case grsaisettlement.FieldUpstreamStatus:
+		return m.OldUpstreamStatus(ctx)
+	case grsaisettlement.FieldInternalStatus:
+		return m.OldInternalStatus(ctx)
+	case grsaisettlement.FieldRetryCount:
+		return m.OldRetryCount(ctx)
+	case grsaisettlement.FieldSettlementRetryCount:
+		return m.OldSettlementRetryCount(ctx)
+	case grsaisettlement.FieldClaimVersion:
+		return m.OldClaimVersion(ctx)
+	case grsaisettlement.FieldNextAttemptAt:
+		return m.OldNextAttemptAt(ctx)
+	case grsaisettlement.FieldLastErrorSummary:
+		return m.OldLastErrorSummary(ctx)
+	case grsaisettlement.FieldSettledAmount:
+		return m.OldSettledAmount(ctx)
+	case grsaisettlement.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case grsaisettlement.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case grsaisettlement.FieldUpstreamBoundAt:
+		return m.OldUpstreamBoundAt(ctx)
+	case grsaisettlement.FieldResultUpdatedAt:
+		return m.OldResultUpdatedAt(ctx)
+	case grsaisettlement.FieldSettledAt:
+		return m.OldSettledAt(ctx)
+	case grsaisettlement.FieldClosedAt:
+		return m.OldClosedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown GrsaiSettlement field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GrsaiSettlementMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case grsaisettlement.FieldAccountID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountID(v)
+		return nil
+	case grsaisettlement.FieldGroupID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroupID(v)
+		return nil
+	case grsaisettlement.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case grsaisettlement.FieldAPIKeyID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAPIKeyID(v)
+		return nil
+	case grsaisettlement.FieldModel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModel(v)
+		return nil
+	case grsaisettlement.FieldBaseUnitPrice:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBaseUnitPrice(v)
+		return nil
+	case grsaisettlement.FieldGroupRateMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroupRateMultiplier(v)
+		return nil
+	case grsaisettlement.FieldAccountRateMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountRateMultiplier(v)
+		return nil
+	case grsaisettlement.FieldBillableUnitPrice:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillableUnitPrice(v)
+		return nil
+	case grsaisettlement.FieldRequestedImageCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequestedImageCount(v)
+		return nil
+	case grsaisettlement.FieldCurrency:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	case grsaisettlement.FieldBillingIdempotencyKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillingIdempotencyKey(v)
+		return nil
+	case grsaisettlement.FieldPublicTaskID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPublicTaskID(v)
+		return nil
+	case grsaisettlement.FieldDeliveryMode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeliveryMode(v)
+		return nil
+	case grsaisettlement.FieldProgress:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProgress(v)
+		return nil
+	case grsaisettlement.FieldResultUrls:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResultUrls(v)
+		return nil
+	case grsaisettlement.FieldHoldAmount:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHoldAmount(v)
+		return nil
+	case grsaisettlement.FieldHoldState:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHoldState(v)
+		return nil
+	case grsaisettlement.FieldPayloadDeleteAfter:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPayloadDeleteAfter(v)
+		return nil
+	case grsaisettlement.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	case grsaisettlement.FieldUpstreamTaskID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpstreamTaskID(v)
+		return nil
+	case grsaisettlement.FieldUpstreamStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpstreamStatus(v)
+		return nil
+	case grsaisettlement.FieldInternalStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInternalStatus(v)
+		return nil
+	case grsaisettlement.FieldRetryCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRetryCount(v)
+		return nil
+	case grsaisettlement.FieldSettlementRetryCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSettlementRetryCount(v)
+		return nil
+	case grsaisettlement.FieldClaimVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClaimVersion(v)
+		return nil
+	case grsaisettlement.FieldNextAttemptAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextAttemptAt(v)
+		return nil
+	case grsaisettlement.FieldLastErrorSummary:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastErrorSummary(v)
+		return nil
+	case grsaisettlement.FieldSettledAmount:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSettledAmount(v)
+		return nil
+	case grsaisettlement.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case grsaisettlement.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case grsaisettlement.FieldUpstreamBoundAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpstreamBoundAt(v)
+		return nil
+	case grsaisettlement.FieldResultUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResultUpdatedAt(v)
+		return nil
+	case grsaisettlement.FieldSettledAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSettledAt(v)
+		return nil
+	case grsaisettlement.FieldClosedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClosedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GrsaiSettlement field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *GrsaiSettlementMutation) AddedFields() []string {
+	var fields []string
+	if m.addaccount_id != nil {
+		fields = append(fields, grsaisettlement.FieldAccountID)
+	}
+	if m.addgroup_id != nil {
+		fields = append(fields, grsaisettlement.FieldGroupID)
+	}
+	if m.adduser_id != nil {
+		fields = append(fields, grsaisettlement.FieldUserID)
+	}
+	if m.addapi_key_id != nil {
+		fields = append(fields, grsaisettlement.FieldAPIKeyID)
+	}
+	if m.addbase_unit_price != nil {
+		fields = append(fields, grsaisettlement.FieldBaseUnitPrice)
+	}
+	if m.addgroup_rate_multiplier != nil {
+		fields = append(fields, grsaisettlement.FieldGroupRateMultiplier)
+	}
+	if m.addaccount_rate_multiplier != nil {
+		fields = append(fields, grsaisettlement.FieldAccountRateMultiplier)
+	}
+	if m.addbillable_unit_price != nil {
+		fields = append(fields, grsaisettlement.FieldBillableUnitPrice)
+	}
+	if m.addrequested_image_count != nil {
+		fields = append(fields, grsaisettlement.FieldRequestedImageCount)
+	}
+	if m.addprogress != nil {
+		fields = append(fields, grsaisettlement.FieldProgress)
+	}
+	if m.addhold_amount != nil {
+		fields = append(fields, grsaisettlement.FieldHoldAmount)
+	}
+	if m.addretry_count != nil {
+		fields = append(fields, grsaisettlement.FieldRetryCount)
+	}
+	if m.addsettlement_retry_count != nil {
+		fields = append(fields, grsaisettlement.FieldSettlementRetryCount)
+	}
+	if m.addclaim_version != nil {
+		fields = append(fields, grsaisettlement.FieldClaimVersion)
+	}
+	if m.addsettled_amount != nil {
+		fields = append(fields, grsaisettlement.FieldSettledAmount)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *GrsaiSettlementMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case grsaisettlement.FieldAccountID:
+		return m.AddedAccountID()
+	case grsaisettlement.FieldGroupID:
+		return m.AddedGroupID()
+	case grsaisettlement.FieldUserID:
+		return m.AddedUserID()
+	case grsaisettlement.FieldAPIKeyID:
+		return m.AddedAPIKeyID()
+	case grsaisettlement.FieldBaseUnitPrice:
+		return m.AddedBaseUnitPrice()
+	case grsaisettlement.FieldGroupRateMultiplier:
+		return m.AddedGroupRateMultiplier()
+	case grsaisettlement.FieldAccountRateMultiplier:
+		return m.AddedAccountRateMultiplier()
+	case grsaisettlement.FieldBillableUnitPrice:
+		return m.AddedBillableUnitPrice()
+	case grsaisettlement.FieldRequestedImageCount:
+		return m.AddedRequestedImageCount()
+	case grsaisettlement.FieldProgress:
+		return m.AddedProgress()
+	case grsaisettlement.FieldHoldAmount:
+		return m.AddedHoldAmount()
+	case grsaisettlement.FieldRetryCount:
+		return m.AddedRetryCount()
+	case grsaisettlement.FieldSettlementRetryCount:
+		return m.AddedSettlementRetryCount()
+	case grsaisettlement.FieldClaimVersion:
+		return m.AddedClaimVersion()
+	case grsaisettlement.FieldSettledAmount:
+		return m.AddedSettledAmount()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GrsaiSettlementMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case grsaisettlement.FieldAccountID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAccountID(v)
+		return nil
+	case grsaisettlement.FieldGroupID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddGroupID(v)
+		return nil
+	case grsaisettlement.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUserID(v)
+		return nil
+	case grsaisettlement.FieldAPIKeyID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAPIKeyID(v)
+		return nil
+	case grsaisettlement.FieldBaseUnitPrice:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBaseUnitPrice(v)
+		return nil
+	case grsaisettlement.FieldGroupRateMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddGroupRateMultiplier(v)
+		return nil
+	case grsaisettlement.FieldAccountRateMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAccountRateMultiplier(v)
+		return nil
+	case grsaisettlement.FieldBillableUnitPrice:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBillableUnitPrice(v)
+		return nil
+	case grsaisettlement.FieldRequestedImageCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRequestedImageCount(v)
+		return nil
+	case grsaisettlement.FieldProgress:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddProgress(v)
+		return nil
+	case grsaisettlement.FieldHoldAmount:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddHoldAmount(v)
+		return nil
+	case grsaisettlement.FieldRetryCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRetryCount(v)
+		return nil
+	case grsaisettlement.FieldSettlementRetryCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSettlementRetryCount(v)
+		return nil
+	case grsaisettlement.FieldClaimVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddClaimVersion(v)
+		return nil
+	case grsaisettlement.FieldSettledAmount:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSettledAmount(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GrsaiSettlement numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *GrsaiSettlementMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(grsaisettlement.FieldPublicTaskID) {
+		fields = append(fields, grsaisettlement.FieldPublicTaskID)
+	}
+	if m.FieldCleared(grsaisettlement.FieldPayloadDeleteAfter) {
+		fields = append(fields, grsaisettlement.FieldPayloadDeleteAfter)
+	}
+	if m.FieldCleared(grsaisettlement.FieldExpiresAt) {
+		fields = append(fields, grsaisettlement.FieldExpiresAt)
+	}
+	if m.FieldCleared(grsaisettlement.FieldUpstreamTaskID) {
+		fields = append(fields, grsaisettlement.FieldUpstreamTaskID)
+	}
+	if m.FieldCleared(grsaisettlement.FieldLastErrorSummary) {
+		fields = append(fields, grsaisettlement.FieldLastErrorSummary)
+	}
+	if m.FieldCleared(grsaisettlement.FieldSettledAmount) {
+		fields = append(fields, grsaisettlement.FieldSettledAmount)
+	}
+	if m.FieldCleared(grsaisettlement.FieldUpstreamBoundAt) {
+		fields = append(fields, grsaisettlement.FieldUpstreamBoundAt)
+	}
+	if m.FieldCleared(grsaisettlement.FieldResultUpdatedAt) {
+		fields = append(fields, grsaisettlement.FieldResultUpdatedAt)
+	}
+	if m.FieldCleared(grsaisettlement.FieldSettledAt) {
+		fields = append(fields, grsaisettlement.FieldSettledAt)
+	}
+	if m.FieldCleared(grsaisettlement.FieldClosedAt) {
+		fields = append(fields, grsaisettlement.FieldClosedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *GrsaiSettlementMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *GrsaiSettlementMutation) ClearField(name string) error {
+	switch name {
+	case grsaisettlement.FieldPublicTaskID:
+		m.ClearPublicTaskID()
+		return nil
+	case grsaisettlement.FieldPayloadDeleteAfter:
+		m.ClearPayloadDeleteAfter()
+		return nil
+	case grsaisettlement.FieldExpiresAt:
+		m.ClearExpiresAt()
+		return nil
+	case grsaisettlement.FieldUpstreamTaskID:
+		m.ClearUpstreamTaskID()
+		return nil
+	case grsaisettlement.FieldLastErrorSummary:
+		m.ClearLastErrorSummary()
+		return nil
+	case grsaisettlement.FieldSettledAmount:
+		m.ClearSettledAmount()
+		return nil
+	case grsaisettlement.FieldUpstreamBoundAt:
+		m.ClearUpstreamBoundAt()
+		return nil
+	case grsaisettlement.FieldResultUpdatedAt:
+		m.ClearResultUpdatedAt()
+		return nil
+	case grsaisettlement.FieldSettledAt:
+		m.ClearSettledAt()
+		return nil
+	case grsaisettlement.FieldClosedAt:
+		m.ClearClosedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown GrsaiSettlement nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *GrsaiSettlementMutation) ResetField(name string) error {
+	switch name {
+	case grsaisettlement.FieldAccountID:
+		m.ResetAccountID()
+		return nil
+	case grsaisettlement.FieldGroupID:
+		m.ResetGroupID()
+		return nil
+	case grsaisettlement.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case grsaisettlement.FieldAPIKeyID:
+		m.ResetAPIKeyID()
+		return nil
+	case grsaisettlement.FieldModel:
+		m.ResetModel()
+		return nil
+	case grsaisettlement.FieldBaseUnitPrice:
+		m.ResetBaseUnitPrice()
+		return nil
+	case grsaisettlement.FieldGroupRateMultiplier:
+		m.ResetGroupRateMultiplier()
+		return nil
+	case grsaisettlement.FieldAccountRateMultiplier:
+		m.ResetAccountRateMultiplier()
+		return nil
+	case grsaisettlement.FieldBillableUnitPrice:
+		m.ResetBillableUnitPrice()
+		return nil
+	case grsaisettlement.FieldRequestedImageCount:
+		m.ResetRequestedImageCount()
+		return nil
+	case grsaisettlement.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	case grsaisettlement.FieldBillingIdempotencyKey:
+		m.ResetBillingIdempotencyKey()
+		return nil
+	case grsaisettlement.FieldPublicTaskID:
+		m.ResetPublicTaskID()
+		return nil
+	case grsaisettlement.FieldDeliveryMode:
+		m.ResetDeliveryMode()
+		return nil
+	case grsaisettlement.FieldProgress:
+		m.ResetProgress()
+		return nil
+	case grsaisettlement.FieldResultUrls:
+		m.ResetResultUrls()
+		return nil
+	case grsaisettlement.FieldHoldAmount:
+		m.ResetHoldAmount()
+		return nil
+	case grsaisettlement.FieldHoldState:
+		m.ResetHoldState()
+		return nil
+	case grsaisettlement.FieldPayloadDeleteAfter:
+		m.ResetPayloadDeleteAfter()
+		return nil
+	case grsaisettlement.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	case grsaisettlement.FieldUpstreamTaskID:
+		m.ResetUpstreamTaskID()
+		return nil
+	case grsaisettlement.FieldUpstreamStatus:
+		m.ResetUpstreamStatus()
+		return nil
+	case grsaisettlement.FieldInternalStatus:
+		m.ResetInternalStatus()
+		return nil
+	case grsaisettlement.FieldRetryCount:
+		m.ResetRetryCount()
+		return nil
+	case grsaisettlement.FieldSettlementRetryCount:
+		m.ResetSettlementRetryCount()
+		return nil
+	case grsaisettlement.FieldClaimVersion:
+		m.ResetClaimVersion()
+		return nil
+	case grsaisettlement.FieldNextAttemptAt:
+		m.ResetNextAttemptAt()
+		return nil
+	case grsaisettlement.FieldLastErrorSummary:
+		m.ResetLastErrorSummary()
+		return nil
+	case grsaisettlement.FieldSettledAmount:
+		m.ResetSettledAmount()
+		return nil
+	case grsaisettlement.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case grsaisettlement.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case grsaisettlement.FieldUpstreamBoundAt:
+		m.ResetUpstreamBoundAt()
+		return nil
+	case grsaisettlement.FieldResultUpdatedAt:
+		m.ResetResultUpdatedAt()
+		return nil
+	case grsaisettlement.FieldSettledAt:
+		m.ResetSettledAt()
+		return nil
+	case grsaisettlement.FieldClosedAt:
+		m.ResetClosedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown GrsaiSettlement field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *GrsaiSettlementMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *GrsaiSettlementMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *GrsaiSettlementMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *GrsaiSettlementMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *GrsaiSettlementMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *GrsaiSettlementMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *GrsaiSettlementMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown GrsaiSettlement unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *GrsaiSettlementMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown GrsaiSettlement edge %s", name)
+}
+
+// GrsaiTaskPayloadMutation represents an operation that mutates the GrsaiTaskPayload nodes in the graph.
+type GrsaiTaskPayloadMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int64
+	ciphertext    *string
+	expires_at    *time.Time
+	created_at    *time.Time
+	updated_at    *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*GrsaiTaskPayload, error)
+	predicates    []predicate.GrsaiTaskPayload
+}
+
+var _ ent.Mutation = (*GrsaiTaskPayloadMutation)(nil)
+
+// grsaitaskpayloadOption allows management of the mutation configuration using functional options.
+type grsaitaskpayloadOption func(*GrsaiTaskPayloadMutation)
+
+// newGrsaiTaskPayloadMutation creates new mutation for the GrsaiTaskPayload entity.
+func newGrsaiTaskPayloadMutation(c config, op Op, opts ...grsaitaskpayloadOption) *GrsaiTaskPayloadMutation {
+	m := &GrsaiTaskPayloadMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeGrsaiTaskPayload,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withGrsaiTaskPayloadID sets the ID field of the mutation.
+func withGrsaiTaskPayloadID(id int64) grsaitaskpayloadOption {
+	return func(m *GrsaiTaskPayloadMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *GrsaiTaskPayload
+		)
+		m.oldValue = func(ctx context.Context) (*GrsaiTaskPayload, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().GrsaiTaskPayload.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withGrsaiTaskPayload sets the old GrsaiTaskPayload of the mutation.
+func withGrsaiTaskPayload(node *GrsaiTaskPayload) grsaitaskpayloadOption {
+	return func(m *GrsaiTaskPayloadMutation) {
+		m.oldValue = func(context.Context) (*GrsaiTaskPayload, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m GrsaiTaskPayloadMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m GrsaiTaskPayloadMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of GrsaiTaskPayload entities.
+func (m *GrsaiTaskPayloadMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *GrsaiTaskPayloadMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *GrsaiTaskPayloadMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().GrsaiTaskPayload.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCiphertext sets the "ciphertext" field.
+func (m *GrsaiTaskPayloadMutation) SetCiphertext(s string) {
+	m.ciphertext = &s
+}
+
+// Ciphertext returns the value of the "ciphertext" field in the mutation.
+func (m *GrsaiTaskPayloadMutation) Ciphertext() (r string, exists bool) {
+	v := m.ciphertext
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCiphertext returns the old "ciphertext" field's value of the GrsaiTaskPayload entity.
+// If the GrsaiTaskPayload object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiTaskPayloadMutation) OldCiphertext(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCiphertext is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCiphertext requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCiphertext: %w", err)
+	}
+	return oldValue.Ciphertext, nil
+}
+
+// ResetCiphertext resets all changes to the "ciphertext" field.
+func (m *GrsaiTaskPayloadMutation) ResetCiphertext() {
+	m.ciphertext = nil
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *GrsaiTaskPayloadMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *GrsaiTaskPayloadMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the GrsaiTaskPayload entity.
+// If the GrsaiTaskPayload object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiTaskPayloadMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *GrsaiTaskPayloadMutation) ResetExpiresAt() {
+	m.expires_at = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *GrsaiTaskPayloadMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *GrsaiTaskPayloadMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the GrsaiTaskPayload entity.
+// If the GrsaiTaskPayload object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiTaskPayloadMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *GrsaiTaskPayloadMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *GrsaiTaskPayloadMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *GrsaiTaskPayloadMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the GrsaiTaskPayload entity.
+// If the GrsaiTaskPayload object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiTaskPayloadMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *GrsaiTaskPayloadMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the GrsaiTaskPayloadMutation builder.
+func (m *GrsaiTaskPayloadMutation) Where(ps ...predicate.GrsaiTaskPayload) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the GrsaiTaskPayloadMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *GrsaiTaskPayloadMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.GrsaiTaskPayload, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *GrsaiTaskPayloadMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *GrsaiTaskPayloadMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (GrsaiTaskPayload).
+func (m *GrsaiTaskPayloadMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *GrsaiTaskPayloadMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.ciphertext != nil {
+		fields = append(fields, grsaitaskpayload.FieldCiphertext)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, grsaitaskpayload.FieldExpiresAt)
+	}
+	if m.created_at != nil {
+		fields = append(fields, grsaitaskpayload.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, grsaitaskpayload.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *GrsaiTaskPayloadMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case grsaitaskpayload.FieldCiphertext:
+		return m.Ciphertext()
+	case grsaitaskpayload.FieldExpiresAt:
+		return m.ExpiresAt()
+	case grsaitaskpayload.FieldCreatedAt:
+		return m.CreatedAt()
+	case grsaitaskpayload.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *GrsaiTaskPayloadMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case grsaitaskpayload.FieldCiphertext:
+		return m.OldCiphertext(ctx)
+	case grsaitaskpayload.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	case grsaitaskpayload.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case grsaitaskpayload.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown GrsaiTaskPayload field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GrsaiTaskPayloadMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case grsaitaskpayload.FieldCiphertext:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCiphertext(v)
+		return nil
+	case grsaitaskpayload.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	case grsaitaskpayload.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case grsaitaskpayload.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GrsaiTaskPayload field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *GrsaiTaskPayloadMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *GrsaiTaskPayloadMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GrsaiTaskPayloadMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown GrsaiTaskPayload numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *GrsaiTaskPayloadMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *GrsaiTaskPayloadMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *GrsaiTaskPayloadMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown GrsaiTaskPayload nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *GrsaiTaskPayloadMutation) ResetField(name string) error {
+	switch name {
+	case grsaitaskpayload.FieldCiphertext:
+		m.ResetCiphertext()
+		return nil
+	case grsaitaskpayload.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	case grsaitaskpayload.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case grsaitaskpayload.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown GrsaiTaskPayload field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *GrsaiTaskPayloadMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *GrsaiTaskPayloadMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *GrsaiTaskPayloadMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *GrsaiTaskPayloadMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *GrsaiTaskPayloadMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *GrsaiTaskPayloadMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *GrsaiTaskPayloadMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown GrsaiTaskPayload unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *GrsaiTaskPayloadMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown GrsaiTaskPayload edge %s", name)
 }
 
 // IdempotencyRecordMutation represents an operation that mutates the IdempotencyRecord nodes in the graph.

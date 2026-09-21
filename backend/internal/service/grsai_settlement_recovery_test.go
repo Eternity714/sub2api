@@ -29,6 +29,10 @@ func (r *grsaiRecoveryRepo) GetByID(_ context.Context, _ int64) (*GrsaiSettlemen
 	return r.copy(), nil
 }
 
+func (r *grsaiRecoveryRepo) GetOwnedByPublicOrUpstreamID(context.Context, int64, int64, string) (*GrsaiSettlement, error) {
+	return nil, errors.New("not used by recovery")
+}
+
 func (r *grsaiRecoveryRepo) ClaimByID(context.Context, int64, time.Time, time.Time) (*GrsaiSettlement, error) {
 	return nil, errors.New("not used by recovery")
 }

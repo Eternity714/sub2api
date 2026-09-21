@@ -38,6 +38,16 @@ func (GrsaiSettlement) Fields() []ent.Field {
 		field.Int("requested_image_count"),
 		field.String("currency").MaxLen(16).Default("USD"),
 		field.String("billing_idempotency_key").MaxLen(128).Immutable(),
+		field.String("public_task_id").MaxLen(64).Optional().Nillable(),
+		field.String("delivery_mode").MaxLen(16).Default("json"),
+		field.Int("progress").Default(0),
+		field.JSON("result_urls", []string{}).
+			Default([]string{}).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+		field.Float("hold_amount").Default(0),
+		field.String("hold_state").MaxLen(16).Default("none"),
+		field.Time("payload_delete_after").Optional().Nillable().SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
+		field.Time("expires_at").Optional().Nillable().SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
 		field.String("upstream_task_id").MaxLen(255).Optional().Nillable(),
 		field.String("upstream_status").MaxLen(32).Default("not_submitted"),
 		field.String("internal_status").MaxLen(32).Default("pending_upstream"),
@@ -59,6 +69,12 @@ func (GrsaiSettlement) Fields() []ent.Field {
 func (GrsaiSettlement) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("billing_idempotency_key").Unique(),
+		index.Fields("public_task_id").
+			Unique().
+			Annotations(entsql.IndexWhere("public_task_id IS NOT NULL")),
+		index.Fields("user_id", "api_key_id", "public_task_id"),
+		index.Fields("user_id", "api_key_id", "upstream_task_id").
+			Annotations(entsql.IndexWhere("upstream_task_id IS NOT NULL")),
 		index.Fields("account_id", "upstream_task_id").
 			Unique().
 			Annotations(entsql.IndexWhere("upstream_task_id IS NOT NULL AND upstream_task_id <> ''")),

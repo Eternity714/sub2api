@@ -25,6 +25,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/compositemodelroute"
 	"github.com/Wei-Shaw/sub2api/ent/errorpassthroughrule"
 	"github.com/Wei-Shaw/sub2api/ent/group"
+	"github.com/Wei-Shaw/sub2api/ent/grsaisettlement"
+	"github.com/Wei-Shaw/sub2api/ent/grsaitaskpayload"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
@@ -563,6 +565,60 @@ func (f TraverseGroup) Traverse(ctx context.Context, q ent.Query) error {
 		return f(ctx, q)
 	}
 	return fmt.Errorf("unexpected query type %T. expect *ent.GroupQuery", q)
+}
+
+// The GrsaiSettlementFunc type is an adapter to allow the use of ordinary function as a Querier.
+type GrsaiSettlementFunc func(context.Context, *ent.GrsaiSettlementQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f GrsaiSettlementFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.GrsaiSettlementQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.GrsaiSettlementQuery", q)
+}
+
+// The TraverseGrsaiSettlement type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseGrsaiSettlement func(context.Context, *ent.GrsaiSettlementQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseGrsaiSettlement) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseGrsaiSettlement) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.GrsaiSettlementQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.GrsaiSettlementQuery", q)
+}
+
+// The GrsaiTaskPayloadFunc type is an adapter to allow the use of ordinary function as a Querier.
+type GrsaiTaskPayloadFunc func(context.Context, *ent.GrsaiTaskPayloadQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f GrsaiTaskPayloadFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.GrsaiTaskPayloadQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.GrsaiTaskPayloadQuery", q)
+}
+
+// The TraverseGrsaiTaskPayload type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseGrsaiTaskPayload func(context.Context, *ent.GrsaiTaskPayloadQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseGrsaiTaskPayload) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseGrsaiTaskPayload) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.GrsaiTaskPayloadQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.GrsaiTaskPayloadQuery", q)
 }
 
 // The IdempotencyRecordFunc type is an adapter to allow the use of ordinary function as a Querier.
@@ -1196,6 +1252,10 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.ErrorPassthroughRuleQuery, predicate.ErrorPassthroughRule, errorpassthroughrule.OrderOption]{typ: ent.TypeErrorPassthroughRule, tq: q}, nil
 	case *ent.GroupQuery:
 		return &query[*ent.GroupQuery, predicate.Group, group.OrderOption]{typ: ent.TypeGroup, tq: q}, nil
+	case *ent.GrsaiSettlementQuery:
+		return &query[*ent.GrsaiSettlementQuery, predicate.GrsaiSettlement, grsaisettlement.OrderOption]{typ: ent.TypeGrsaiSettlement, tq: q}, nil
+	case *ent.GrsaiTaskPayloadQuery:
+		return &query[*ent.GrsaiTaskPayloadQuery, predicate.GrsaiTaskPayload, grsaitaskpayload.OrderOption]{typ: ent.TypeGrsaiTaskPayload, tq: q}, nil
 	case *ent.IdempotencyRecordQuery:
 		return &query[*ent.IdempotencyRecordQuery, predicate.IdempotencyRecord, idempotencyrecord.OrderOption]{typ: ent.TypeIdempotencyRecord, tq: q}, nil
 	case *ent.IdentityAdoptionDecisionQuery:
