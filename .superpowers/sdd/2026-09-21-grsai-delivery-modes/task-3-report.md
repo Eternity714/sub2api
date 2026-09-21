@@ -47,3 +47,9 @@ docker run --rm -v "${PWD}:/workspace" -w /workspace/backend golang:1.27.0 sh -c
 - 本轮未连接 PostgreSQL 执行带 `integration` 标签的真实数据库测试；SQL 逻辑沿用现有 repository 事务与 dedup 表。
 - hold state 的扩展通过可选 repository 能力接口接入，旧的内存测试桩仍可运行；生产 repository 提供完整原子转换。
 - 宿主机原生 `go`/`gofmt` 不可用，格式化与测试均在 Docker Go 环境完成。
+
+## Review 修复
+
+- Capture 现在只消费 frozen balance，传给 `ApplyTx` 的 `BalanceCost` 置零，因此 reserve + success 最终只扣一次 users.balance，同时保留 API Key、rate-limit、account quota 和 usage 记账金额。
+- Prepare 在 `MarkHoldHeld` 或 submission claim 失败后调用幂等 release，覆盖 hold_state 为 none/held 的补偿路径。
+- 新增 capture SQL 的余额断言与 claim 失败补偿测试；原有成功结算幂等、失败不记 usage 测试继续覆盖服务流程。

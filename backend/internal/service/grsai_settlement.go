@@ -270,10 +270,16 @@ func (s *GrsaiSettlementService) Prepare(ctx context.Context, input GrsaiPrepare
 	}
 	if hs, ok := s.Repo.(GrsaiHoldStateRepository); ok {
 		if err := hs.MarkHoldHeld(ctx, record.ID, 0); err != nil {
+			_ = s.releaseGrsaiBalance(ctx, record)
 			return nil, err
 		}
 	}
-	return s.Repo.ClaimByID(ctx, record.ID, now, now.Add(grsaiSettlementLease))
+	claimed, err := s.Repo.ClaimByID(ctx, record.ID, now, now.Add(grsaiSettlementLease))
+	if err != nil {
+		_ = s.releaseGrsaiBalance(ctx, record)
+		return nil, err
+	}
+	return claimed, nil
 }
 
 type GrsaiSettlementOutcome struct {
@@ -506,6 +512,9 @@ func (s *GrsaiSettlementService) SettleAt(ctx context.Context, id, claimVersion 
 		if err := s.captureGrsaiBalanceTx(txCtx, tx, locked); err != nil {
 			return err
 		}
+		// Reserve already debited users.balance. Capture only consumes frozen_balance;
+		// keep usage/quota accounting while preventing a second balance debit.
+		lockedCommand.BalanceCost = 0
 		_, applyErr := s.Billing.ApplyTx(txCtx, tx, lockedCommand)
 		return applyErr
 	})

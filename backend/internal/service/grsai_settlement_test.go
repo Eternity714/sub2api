@@ -19,6 +19,7 @@ type grsaiSettlementMemoryRepo struct {
 	record     *GrsaiSettlement
 	failSettle bool
 	createErr  error
+	claimErr   error
 }
 
 func (r *grsaiSettlementMemoryRepo) Create(_ context.Context, p CreateGrsaiSettlementParams) (*GrsaiSettlement, error) {
@@ -29,6 +30,7 @@ func (r *grsaiSettlementMemoryRepo) Create(_ context.Context, p CreateGrsaiSettl
 		APIKeyID: p.APIKeyID, Model: p.Model, BaseUnitPrice: p.BaseUnitPrice, GroupRateMultiplier: p.GroupRateMultiplier,
 		AccountRateMultiplier: p.AccountRateMultiplier, BillableUnitPrice: p.BillableUnitPrice,
 		RequestedImageCount: p.RequestedImageCount, ImageSize: p.ImageSize, Currency: p.Currency, BillingIdempotencyKey: GrsaiSettlementRequestID(17),
+		HoldAmount: p.HoldAmount, HoldState: p.HoldState,
 		UpstreamStatus: "not_submitted", InternalStatus: "pending_upstream", NextAttemptAt: p.NextAttemptAt}
 	return r.GetByID(context.Background(), 17)
 }
@@ -42,6 +44,9 @@ func (r *grsaiSettlementMemoryRepo) GetByID(ctx context.Context, _ int64) (*Grsa
 }
 
 func (r *grsaiSettlementMemoryRepo) ClaimByID(_ context.Context, _ int64, now, until time.Time) (*GrsaiSettlement, error) {
+	if r.claimErr != nil {
+		return nil, r.claimErr
+	}
 	if r.record.InternalStatus == "settled" || r.record.InternalStatus == "closed_no_charge" ||
 		(r.record.InternalStatus == "processing" && r.record.NextAttemptAt.After(now)) {
 		return nil, ErrGrsaiSettlementClaimLost
@@ -135,8 +140,26 @@ func (r *grsaiSettlementMemoryRepo) Settle(ctx context.Context, _, v int64, amou
 }
 
 type grsaiBillingSpy struct {
-	commands []*UsageBillingCommand
-	err      error
+	commands     []*UsageBillingCommand
+	err          error
+	holdReserved int
+	holdReleased int
+}
+
+func (b *grsaiBillingSpy) ReserveGrsaiBalance(_ context.Context, _ *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error) {
+	b.holdReserved++
+	return &GrsaiBalanceHoldResult{Applied: true}, nil
+}
+func (b *grsaiBillingSpy) ReleaseGrsaiBalance(_ context.Context, _ *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error) {
+	b.holdReleased++
+	return &GrsaiBalanceHoldResult{Applied: true}, nil
+}
+func (b *grsaiBillingSpy) ReleaseGrsaiBalanceTx(_ context.Context, _ *sql.Tx, _ *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error) {
+	b.holdReleased++
+	return &GrsaiBalanceHoldResult{Applied: true}, nil
+}
+func (b *grsaiBillingSpy) CaptureGrsaiBalanceTx(_ context.Context, _ *sql.Tx, _ *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error) {
+	return &GrsaiBalanceHoldResult{Applied: true}, nil
 }
 
 func (b *grsaiBillingSpy) ApplyTx(ctx context.Context, tx *sql.Tx, cmd *UsageBillingCommand) (*UsageBillingApplyResult, error) {
@@ -383,4 +406,15 @@ func TestGrsaiSettlementPrepareRequiresDurableSnapshot(t *testing.T) {
 		APIKey: &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group}, Model: "image", ImageCount: 1})
 	require.ErrorIs(t, err, repo.createErr)
 	require.Nil(t, record)
+}
+
+func TestGrsaiPrepareReleasesHoldWhenSubmissionClaimFails(t *testing.T) {
+	s, repo, billing, _, _ := grsaiSettlementFixture(t)
+	s.HoldBilling = billing
+	repo.claimErr = errors.New("claim failed")
+	group := &Group{ID: 2, Platform: PlatformGrsai, RateMultiplier: 1}
+	_, err := s.Prepare(context.Background(), GrsaiPrepareInput{Account: &Account{ID: 3, Platform: PlatformGrsai, Type: AccountTypeAPIKey}, APIKey: &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group}, Model: "image", ImageCount: 1})
+	require.ErrorIs(t, err, repo.claimErr)
+	require.Equal(t, 1, billing.holdReserved)
+	require.Equal(t, 1, billing.holdReleased)
 }

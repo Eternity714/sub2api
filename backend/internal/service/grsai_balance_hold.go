@@ -29,6 +29,10 @@ type GrsaiHoldBillingRepository interface {
 	ReleaseGrsaiBalanceTx(context.Context, *sql.Tx, *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error)
 }
 
+type grsaiHoldReleaseRepository interface {
+	ReleaseGrsaiBalance(context.Context, *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error)
+}
+
 type GrsaiHoldStateRepository interface {
 	MarkHoldHeld(context.Context, int64, int64) error
 	CloseNoChargeWithRelease(context.Context, int64, int64, string, GrsaiSettlementTxFunc) error
@@ -98,4 +102,20 @@ func (s *GrsaiSettlementService) releaseGrsaiBalanceTx(ctx context.Context, tx *
 	}
 	_, err = h.ReleaseGrsaiBalanceTx(ctx, tx, cmd)
 	return err
+}
+
+func (s *GrsaiSettlementService) releaseGrsaiBalance(ctx context.Context, record *GrsaiSettlement) error {
+	h := s.holdBilling()
+	if h == nil || record == nil || record.HoldAmount <= 0 {
+		return nil
+	}
+	cmd, err := grsaiHoldCommand(record, GrsaiHoldReleaseRequestID(record.ID))
+	if err != nil {
+		return err
+	}
+	if direct, ok := h.(grsaiHoldReleaseRepository); ok {
+		_, err = direct.ReleaseGrsaiBalance(ctx, cmd)
+		return err
+	}
+	return errors.New("grsai hold repository cannot release outside transaction")
 }
