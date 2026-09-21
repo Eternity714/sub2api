@@ -270,14 +270,12 @@ func (s *GrsaiSettlementService) Prepare(ctx context.Context, input GrsaiPrepare
 	}
 	if hs, ok := s.Repo.(GrsaiHoldStateRepository); ok {
 		if err := hs.MarkHoldHeld(ctx, record.ID, 0); err != nil {
-			_ = s.releaseGrsaiBalance(ctx, record)
-			return nil, err
+			return nil, errors.Join(err, s.releaseGrsaiBalance(ctx, record))
 		}
 	}
 	claimed, err := s.Repo.ClaimByID(ctx, record.ID, now, now.Add(grsaiSettlementLease))
 	if err != nil {
-		_ = s.releaseGrsaiBalance(ctx, record)
-		return nil, err
+		return nil, errors.Join(err, s.releaseGrsaiBalance(ctx, record))
 	}
 	return claimed, nil
 }
@@ -514,8 +512,12 @@ func (s *GrsaiSettlementService) SettleAt(ctx context.Context, id, claimVersion 
 		}
 		// Reserve already debited users.balance. Capture only consumes frozen_balance;
 		// keep usage/quota accounting while preventing a second balance debit.
-		lockedCommand.BalanceCost = 0
-		_, applyErr := s.Billing.ApplyTx(txCtx, tx, lockedCommand)
+		// Do not mutate the command used for the usage log: its BalanceCost is the
+		// customer-facing actual charge, while the transactional billing command
+		// must not debit users.balance a second time.
+		billingCommand := *lockedCommand
+		billingCommand.BalanceCost = 0
+		_, applyErr := s.Billing.ApplyTx(txCtx, tx, &billingCommand)
 		return applyErr
 	})
 	if err != nil {

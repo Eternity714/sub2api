@@ -142,6 +142,7 @@ func (r *grsaiSettlementMemoryRepo) Settle(ctx context.Context, _, v int64, amou
 type grsaiBillingSpy struct {
 	commands     []*UsageBillingCommand
 	err          error
+	releaseErr   error
 	holdReserved int
 	holdReleased int
 }
@@ -152,6 +153,9 @@ func (b *grsaiBillingSpy) ReserveGrsaiBalance(_ context.Context, _ *GrsaiBalance
 }
 func (b *grsaiBillingSpy) ReleaseGrsaiBalance(_ context.Context, _ *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error) {
 	b.holdReleased++
+	if b.releaseErr != nil {
+		return nil, b.releaseErr
+	}
 	return &GrsaiBalanceHoldResult{Applied: true}, nil
 }
 func (b *grsaiBillingSpy) ReleaseGrsaiBalanceTx(_ context.Context, _ *sql.Tx, _ *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error) {
@@ -226,7 +230,9 @@ func TestGrsaiSettlementSnapshotSurvivesRepricingAndDuplicateSuccess(t *testing.
 	require.Len(t, billing.commands, 1)
 	cmd := billing.commands[0]
 	require.Equal(t, "grsai_settlement:17", cmd.RequestID)
-	require.Equal(t, 1.2, cmd.BalanceCost)
+	// The hold already debited users.balance; ApplyTx must only apply quota and
+	// usage effects, so its balance component is zero.
+	require.Zero(t, cmd.BalanceCost)
 	require.Equal(t, 1.2, cmd.APIKeyQuotaCost)
 	require.Equal(t, 1.2, cmd.APIKeyRateLimitCost)
 	require.Equal(t, 0.6, cmd.AccountQuotaCost)
@@ -411,10 +417,22 @@ func TestGrsaiSettlementPrepareRequiresDurableSnapshot(t *testing.T) {
 func TestGrsaiPrepareReleasesHoldWhenSubmissionClaimFails(t *testing.T) {
 	s, repo, billing, _, _ := grsaiSettlementFixture(t)
 	s.HoldBilling = billing
+	billing.holdReserved, billing.holdReleased = 0, 0
 	repo.claimErr = errors.New("claim failed")
 	group := &Group{ID: 2, Platform: PlatformGrsai, RateMultiplier: 1}
 	_, err := s.Prepare(context.Background(), GrsaiPrepareInput{Account: &Account{ID: 3, Platform: PlatformGrsai, Type: AccountTypeAPIKey}, APIKey: &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group}, Model: "image", ImageCount: 1})
 	require.ErrorIs(t, err, repo.claimErr)
 	require.Equal(t, 1, billing.holdReserved)
 	require.Equal(t, 1, billing.holdReleased)
+}
+
+func TestGrsaiPrepareReturnsClaimAndReleaseErrors(t *testing.T) {
+	s, repo, billing, _, _ := grsaiSettlementFixture(t)
+	s.HoldBilling = billing
+	repo.claimErr = errors.New("claim failed")
+	billing.releaseErr = errors.New("release failed")
+	group := &Group{ID: 2, Platform: PlatformGrsai, RateMultiplier: 1}
+	_, err := s.Prepare(context.Background(), GrsaiPrepareInput{Account: &Account{ID: 3, Platform: PlatformGrsai, Type: AccountTypeAPIKey}, APIKey: &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group}, Model: "image", ImageCount: 1})
+	require.ErrorIs(t, err, repo.claimErr)
+	require.ErrorIs(t, err, billing.releaseErr)
 }

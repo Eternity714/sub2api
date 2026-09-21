@@ -266,7 +266,7 @@ func captureGrsaiBalanceTx(ctx context.Context, tx *sql.Tx, cmd *service.GrsaiBa
 		return &service.GrsaiBalanceHoldResult{}, nil
 	}
 	var balance, frozen float64
-	err := tx.QueryRowContext(ctx, `UPDATE users SET balance = balance + $1, frozen_balance = COALESCE(frozen_balance,0) - $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL AND COALESCE(frozen_balance,0) >= $1 RETURNING balance, frozen_balance`, cmd.Amount, cmd.UserID).Scan(&balance, &frozen)
+	err := tx.QueryRowContext(ctx, `UPDATE users SET frozen_balance = COALESCE(frozen_balance,0) - $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL AND COALESCE(frozen_balance,0) >= $1 RETURNING balance, frozen_balance`, cmd.Amount, cmd.UserID).Scan(&balance, &frozen)
 	if err == nil {
 		return &service.GrsaiBalanceHoldResult{NewBalance: &balance, Frozen: &frozen}, nil
 	}
