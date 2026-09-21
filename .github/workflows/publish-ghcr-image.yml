@@ -1,12 +1,14 @@
 name: Publish Private GHCR Image
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
 
 permissions:
+  actions: read
   contents: read
   packages: write
 
@@ -16,10 +18,50 @@ env:
 jobs:
   publish:
     name: Build and publish linux/amd64 image
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Wait for matching security scan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 900))
+          while (( SECONDS < deadline )); do
+            run_json="$(gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/security-scan.yml/runs?event=push&head_sha=${HEAD_SHA}&per_page=20")"
+            state="$(jq -r '
+              [.workflow_runs[]
+               | select(.head_sha == env.HEAD_SHA)
+               | {status, conclusion}]
+              | first // {status: "missing", conclusion: ""}
+              | "\(.status):\(.conclusion)"' <<<"${run_json}")"
+            case "${state}" in
+              completed:success)
+                echo "Security Scan passed for ${HEAD_SHA}"
+                exit 0
+                ;;
+              completed:*)
+                echo "Security Scan did not pass for ${HEAD_SHA}: ${state}" >&2
+                exit 1
+                ;;
+              *)
+                echo "Waiting for Security Scan for ${HEAD_SHA}: ${state}"
+                sleep 10
+                ;;
+            esac
+          done
+          echo "Timed out waiting for Security Scan for ${HEAD_SHA}" >&2
+          exit 1
 
       - name: Normalize GHCR owner
         id: owner
