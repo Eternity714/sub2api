@@ -234,6 +234,34 @@ WHERE id = $1
 	return claimedUpdateResult(result)
 }
 
+// RecordStreamEvent durably snapshots the validated provider event while the
+// caller's claim fence is still held. Binding the provider ID is deliberately
+// separate so the first event can be fenced with BindUpstreamTask first.
+func (r *grsaiSettlementRepository) RecordStreamEvent(ctx context.Context, id, claimVersion int64, event service.GrsaiStreamEvent) (bool, error) {
+	if id <= 0 || claimVersion <= 0 || strings.TrimSpace(event.TaskID) == "" || strings.TrimSpace(event.Status) == "" || event.Progress < 0 || event.Progress > 100 {
+		return false, ErrGrsaiSettlementInvalidInput
+	}
+	resultURLs, err := json.Marshal(event.ResultURLs)
+	if err != nil {
+		return false, err
+	}
+	result, err := r.sql.ExecContext(ctx, `
+UPDATE grsai_settlements
+SET upstream_status = $3,
+    progress = $4,
+    result_urls = $5::jsonb,
+    result_updated_at = NOW(),
+    updated_at = NOW()
+WHERE id = $1
+  AND claim_version = $2
+  AND internal_status = 'processing'
+  AND upstream_task_id = $6`, id, claimVersion, event.Status, event.Progress, string(resultURLs), event.TaskID)
+	if err != nil {
+		return false, err
+	}
+	return claimedUpdateResult(result)
+}
+
 func (r *grsaiSettlementRepository) ClaimDue(ctx context.Context, now time.Time, limit int, leaseUntil time.Time) ([]*GrsaiSettlement, error) {
 	if limit <= 0 {
 		limit = 100

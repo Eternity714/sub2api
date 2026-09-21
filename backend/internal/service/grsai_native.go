@@ -29,9 +29,10 @@ const (
 )
 
 var (
-	ErrGrsaiInvalidAccount  = errors.New("invalid grsai account")
-	ErrGrsaiInvalidRequest  = errors.New("invalid grsai request")
-	ErrGrsaiInvalidResponse = errors.New("invalid grsai response")
+	ErrGrsaiInvalidAccount        = errors.New("invalid grsai account")
+	ErrGrsaiInvalidRequest        = errors.New("invalid grsai request")
+	ErrGrsaiInvalidResponse       = errors.New("invalid grsai response")
+	ErrGrsaiInvalidStreamResponse = errors.New("invalid grsai stream response")
 )
 
 // GrsaiUpstreamResult preserves the exact upstream response while exposing the
@@ -41,6 +42,8 @@ type GrsaiUpstreamResult struct {
 	RawBody      []byte
 	TaskID       string
 	Status       string
+	Progress     int
+	ResultURLs   []string
 	ErrorCode    string
 	ErrorMessage string
 }
@@ -66,6 +69,18 @@ func (e *GrsaiHTTPError) Error() string {
 type GrsaiNativeClient interface {
 	Generate(ctx context.Context, account *Account, body []byte) (*GrsaiUpstreamResult, error)
 	Result(ctx context.Context, account *Account, taskID string) (*GrsaiUpstreamResult, error)
+}
+
+// GrsaiUpstreamStream is the validated HTTP response boundary for the native
+// provider stream. Callers own Body and must close it after consumption.
+type GrsaiUpstreamStream struct {
+	StatusCode  int
+	ContentType string
+	Body        io.ReadCloser
+}
+
+type GrsaiStreamClient interface {
+	OpenGenerateStream(context.Context, *Account, []byte) (*GrsaiUpstreamStream, error)
 }
 
 // GrsaiNativeHTTPClient implements GrsaiNativeClient over the native GRS.AI
@@ -114,6 +129,57 @@ func (c *GrsaiNativeHTTPClient) Generate(ctx context.Context, account *Account, 
 		return nil, err
 	}
 	return c.do(ctx, "generate", http.MethodPost, targetURL, apiKey, delivery.UpstreamBody, "")
+}
+
+// OpenGenerateStream sends the provider-safe request body and exposes a body
+// only after both the HTTP status and SSE content type have been validated.
+// Invalid responses are drained only up to the bounded limit before closing,
+// so an upstream error can never leave an open response body behind.
+func (c *GrsaiNativeHTTPClient) OpenGenerateStream(ctx context.Context, account *Account, body []byte) (*GrsaiUpstreamStream, error) {
+	baseURL, apiKey, err := grsaiAccountCredentials(account)
+	if err != nil {
+		return nil, err
+	}
+	delivery, err := ParseGrsaiDeliveryRequest(body)
+	if err != nil {
+		return nil, err
+	}
+	targetURL, err := buildGrsaiEndpointURL(baseURL, grsaiGeneratePath)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, bytes.NewReader(delivery.UpstreamBody))
+	if err != nil {
+		return nil, fmt.Errorf("grsai stream request setup failed: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Content-Type", "application/json")
+	client := c.client
+	if client == nil {
+		client = configureGrsaiHTTPClient(nil)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("grsai stream transport failed: %s", sanitizeGrsaiErrorValue(err.Error(), apiKey))
+	}
+	contentType := resp.Header.Get("Content-Type")
+	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices && strings.Contains(strings.ToLower(contentType), "text/event-stream") {
+		return &GrsaiUpstreamStream{StatusCode: resp.StatusCode, ContentType: contentType, Body: resp.Body}, nil
+	}
+	defer func() { _ = resp.Body.Close() }()
+	errorBody, readErr := io.ReadAll(io.LimitReader(resp.Body, grsaiMaxResponseBodyLen+1))
+	if len(errorBody) > grsaiMaxResponseBodyLen {
+		errorBody = errorBody[:grsaiMaxResponseBodyLen]
+	}
+	detail := sanitizeGrsaiErrorValue(strings.TrimSpace(string(errorBody)), apiKey)
+	if readErr != nil {
+		detail = sanitizeGrsaiErrorValue(readErr.Error(), apiKey)
+	}
+	if detail == "" {
+		detail = "empty upstream response"
+	}
+	return nil, fmt.Errorf("%w: status=%d content_type=%q body=%s", ErrGrsaiInvalidStreamResponse, resp.StatusCode, contentType, detail)
 }
 
 // PrepareGrsaiGenerateBody remains a compatibility boundary for callers that
@@ -169,7 +235,7 @@ func (c *GrsaiNativeHTTPClient) do(
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	if operation == "generate" {
-		req.Header.Set("Accept", "text/event-stream, application/json")
+		req.Header.Set("Accept", "text/event-stream")
 	} else {
 		req.Header.Set("Accept", "application/json")
 	}
