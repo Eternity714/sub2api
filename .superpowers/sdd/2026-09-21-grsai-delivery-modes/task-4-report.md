@@ -33,3 +33,11 @@ ok   github.com/Wei-Shaw/sub2api/internal/repository 0.023s
 
 - 当前任务事件持久化复用结算表的 `progress`/`result_urls` 字段，没有新增逐帧审计表；若未来需要逐帧审计，应单独追加 migration 和事件表。
 - `RecordStreamEvent` 需要生产 repository 实现；不实现该扩展的测试 double 在消费流时会得到显式 `ErrGrsaiStreamPersistenceUnavailable`，不会静默丢帧。
+
+## Review 修订
+
+- 用 fake repository 驱动 `ConsumeGrsaiSSE` 测试，明确断言持久化先于回调。
+- 增加真实的预绑定/已绑定读流中断测试：前者人工复核并释放冻结，后者记录 unknown、进入 pending-upstream 且不释放冻结。
+- 将扫描器 I/O 错误标记为 `ErrGrsaiSSERead`；协议、持久化和回调错误不再触发状态迁移。
+- 在绑定上游任务 ID 前先确认逐帧持久化能力，避免持久化不可用时留下孤立绑定。
+- 增加非 2xx 错误响应的 Body 关闭和凭据脱敏测试。
