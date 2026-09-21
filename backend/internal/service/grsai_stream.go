@@ -17,6 +17,7 @@ const grsaiSSEMaxLineSize = 4 << 20
 
 var (
 	ErrGrsaiSSEProtocol                  = errors.New("invalid grsai SSE protocol")
+	ErrGrsaiSSERead                      = errors.New("grsai SSE stream read failed")
 	ErrGrsaiStreamPersistenceUnavailable = errors.New("grsai stream persistence is unavailable")
 )
 
@@ -98,7 +99,7 @@ func ParseGrsaiSSE(r io.Reader, callback func(GrsaiStreamEvent) error) (*GrsaiUp
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return final, fmt.Errorf("%w: stream read failed: %v", ErrGrsaiSSEProtocol, err)
+		return final, fmt.Errorf("%w: %v", ErrGrsaiSSERead, err)
 	}
 	if err := consume(); err != nil {
 		return final, err
@@ -246,6 +247,12 @@ func (s *GrsaiSettlementService) ConsumeGrsaiSSE(ctx context.Context, claim *Grs
 	if err == nil {
 		return final, nil
 	}
+	// Only an I/O interruption leaves the provider outcome uncertain. Protocol,
+	// persistence and downstream callback failures are local failures and must
+	// not mutate the durable settlement state behind the caller's back.
+	if !errors.Is(err, ErrGrsaiSSERead) {
+		return final, err
+	}
 	retryAt := time.Now().Add(grsaiSettlementRetryDelay)
 	if claim.UpstreamTaskID == nil || strings.TrimSpace(*claim.UpstreamTaskID) == "" {
 		return final, errors.Join(err, s.markManualReviewWithRelease(ctx, claim.ID, claim.ClaimVersion, "upstream stream interrupted before task ID binding"))
@@ -266,6 +273,10 @@ func (s *GrsaiSettlementService) RecordStreamEvent(ctx context.Context, claim *G
 	if s == nil || s.Repo == nil || claim == nil || event.TaskID == "" {
 		return ErrGrsaiSettlementInvalidInput
 	}
+	recorder, ok := s.Repo.(GrsaiStreamEventRepository)
+	if !ok {
+		return ErrGrsaiStreamPersistenceUnavailable
+	}
 	if claim.UpstreamTaskID == nil || strings.TrimSpace(*claim.UpstreamTaskID) == "" {
 		ok, err := s.Repo.BindUpstreamTask(ctx, claim.ID, claim.ClaimVersion, event.TaskID, event.Status)
 		if err != nil {
@@ -278,10 +289,6 @@ func (s *GrsaiSettlementService) RecordStreamEvent(ctx context.Context, claim *G
 		claim.UpstreamTaskID = &id
 	} else if strings.TrimSpace(*claim.UpstreamTaskID) != event.TaskID {
 		return fmt.Errorf("%w: task ID changed", ErrGrsaiSSEProtocol)
-	}
-	recorder, ok := s.Repo.(GrsaiStreamEventRepository)
-	if !ok {
-		return ErrGrsaiStreamPersistenceUnavailable
 	}
 	updated, err := recorder.RecordStreamEvent(ctx, claim.ID, claim.ClaimVersion, event)
 	if err != nil {

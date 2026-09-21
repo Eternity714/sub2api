@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -64,6 +65,18 @@ func TestOpenGenerateStreamRejectsNonSSEAndClosesBody(t *testing.T) {
 	require.True(t, closed.Load())
 }
 
+func TestOpenGenerateStreamRejectsNon2xxRedactsAndClosesBody(t *testing.T) {
+	const secret = "stream-secret-token"
+	var closed atomic.Bool
+	client := NewGrsaiNativeClient(&http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusBadGateway, Header: http.Header{"Content-Type": []string{"text/event-stream"}}, Body: closeTrackingReader{Reader: strings.NewReader("upstream " + secret), closed: &closed}}, nil
+	})})
+	_, err := client.(GrsaiStreamClient).OpenGenerateStream(context.Background(), grsaiTestAccount("https://api.grsai.example", secret), []byte(`{"model":"nano-banana-2-lite"}`))
+	require.ErrorIs(t, err, ErrGrsaiInvalidStreamResponse)
+	require.NotContains(t, err.Error(), secret)
+	require.True(t, closed.Load())
+}
+
 func TestOpenGenerateStreamExposesValidatedBodyAndHeaders(t *testing.T) {
 	var gotAccept string
 	client := NewGrsaiNativeClient(&http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -79,27 +92,108 @@ func TestOpenGenerateStreamExposesValidatedBodyAndHeaders(t *testing.T) {
 }
 
 func TestParseGrsaiSSEPersistsBeforeCallback(t *testing.T) {
-	_, err := ParseGrsaiSSE(strings.NewReader("data: {\"id\":\"a\",\"status\":\"succeeded\",\"results\":[{\"url\":\"https://example.invalid/a\"}]}\n\n"), func(GrsaiStreamEvent) error {
+	s, repo, claim := grsaiStreamServiceFixture(t)
+	_, err := s.ConsumeGrsaiSSE(context.Background(), claim, strings.NewReader("data: {\"id\":\"a\",\"status\":\"succeeded\",\"results\":[{\"url\":\"https://example.invalid/a\"}]}\n\n"), func(GrsaiStreamEvent) error {
+		repo.order = append(repo.order, "callback")
 		return nil
 	})
 	require.NoError(t, err)
+	require.Equal(t, []string{"persist", "callback"}, repo.order)
+	require.Equal(t, "a", *claim.UpstreamTaskID)
 }
 
 func TestParseGrsaiSSEInterruptionIsReturnedForPreAndPostBindHandling(t *testing.T) {
-	for _, tc := range []struct {
-		name  string
-		body  string
-		bound bool
-	}{
-		{name: "pre-bind", body: "data: {\"status\":\"running\"}\n", bound: false},
-		{name: "post-bind", body: "data: {\"id\":\"a\",\"status\":\"running\"}\n", bound: true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := ParseGrsaiSSE(errReader{err: errors.New("connection reset")}, nil)
-			require.Error(t, err)
-			require.ErrorIs(t, err, ErrGrsaiSSEProtocol)
-		})
+	t.Run("pre-bind releases and manual reviews", func(t *testing.T) {
+		s, repo, claim := grsaiStreamServiceFixture(t)
+		_, err := s.ConsumeGrsaiSSE(context.Background(), claim, errReader{err: errors.New("connection reset")}, nil)
+		require.ErrorIs(t, err, ErrGrsaiSSERead)
+		require.Equal(t, 1, repo.manualReviewCalls)
+		require.Equal(t, 1, repo.releaseCalls)
+		require.Zero(t, repo.recordEventCalls)
+	})
+	t.Run("post-bind retains hold and schedules polling", func(t *testing.T) {
+		s, repo, claim := grsaiStreamServiceFixture(t)
+		body := "data: {\"id\":\"a\",\"status\":\"running\",\"progress\":5}\n\n"
+		_, err := s.ConsumeGrsaiSSE(context.Background(), claim, &sequenceReader{parts: [][]byte{[]byte(body), nil}, err: errors.New("connection reset")}, nil)
+		require.ErrorIs(t, err, ErrGrsaiSSERead)
+		require.Equal(t, 0, repo.manualReviewCalls)
+		require.Zero(t, repo.releaseCalls)
+		require.Equal(t, 1, repo.recordEventCalls)
+		require.Equal(t, 1, repo.updateResultCalls)
+		require.Equal(t, 1, repo.pendingUpstreamCalls)
+	})
+}
+
+func grsaiStreamServiceFixture(t *testing.T) (*GrsaiSettlementService, *grsaiStreamRepo, *GrsaiSettlement) {
+	t.Helper()
+	repo := &grsaiStreamRepo{record: &GrsaiSettlement{ID: 77, ClaimVersion: 1, InternalStatus: "processing", HoldAmount: 1, UpstreamStatus: "not_submitted"}}
+	billing := &grsaiBillingSpy{}
+	s := &GrsaiSettlementService{Repo: repo, Billing: billing, HoldBilling: billing}
+	return s, repo, repo.record
+}
+
+type grsaiStreamRepo struct {
+	*grsaiSettlementMemoryRepo
+	record                                                                                     *GrsaiSettlement
+	order                                                                                      []string
+	recordEventCalls, manualReviewCalls, releaseCalls, updateResultCalls, pendingUpstreamCalls int
+}
+
+func (r *grsaiStreamRepo) GetByID(context.Context, int64) (*GrsaiSettlement, error) {
+	c := *r.record
+	return &c, nil
+}
+func (r *grsaiStreamRepo) BindUpstreamTask(_ context.Context, _ int64, _ int64, id, status string) (bool, error) {
+	r.record.UpstreamTaskID = &id
+	r.record.UpstreamStatus = status
+	return true, nil
+}
+func (r *grsaiStreamRepo) RecordStreamEvent(_ context.Context, _ int64, _ int64, event GrsaiStreamEvent) (bool, error) {
+	r.order = append(r.order, "persist")
+	r.recordEventCalls++
+	r.record.Progress = event.Progress
+	r.record.UpstreamStatus = event.Status
+	r.record.ResultURLs = event.ResultURLs
+	return true, nil
+}
+func (r *grsaiStreamRepo) UpdateResult(_ context.Context, _ int64, _ int64, status, _ string, _ time.Time) (bool, error) {
+	r.updateResultCalls++
+	r.record.UpstreamStatus = status
+	return true, nil
+}
+func (r *grsaiStreamRepo) MarkPendingUpstream(context.Context, int64, int64, time.Time) error {
+	r.pendingUpstreamCalls++
+	return nil
+}
+func (r *grsaiStreamRepo) MarkManualReviewWithRelease(_ context.Context, _ int64, _ int64, _ string, release GrsaiSettlementTxFunc) error {
+	r.manualReviewCalls++
+	r.releaseCalls++
+	if err := release(context.Background(), nil, r.record); err != nil {
+		return err
 	}
+	return nil
+}
+func (r *grsaiStreamRepo) CloseNoChargeWithRelease(context.Context, int64, int64, string, GrsaiSettlementTxFunc) error {
+	return nil
+}
+func (r *grsaiStreamRepo) MarkHoldHeld(context.Context, int64, int64) error { return nil }
+
+type sequenceReader struct {
+	parts [][]byte
+	err   error
+}
+
+func (r *sequenceReader) Read(p []byte) (int, error) {
+	if len(r.parts) == 0 {
+		return 0, r.err
+	}
+	part := r.parts[0]
+	r.parts = r.parts[1:]
+	if len(part) == 0 {
+		return 0, r.err
+	}
+	n := copy(p, part)
+	return n, nil
 }
 
 type closeTrackingReader struct {
