@@ -107,6 +107,13 @@ type GrsaiSettlement struct {
 	ResultUpdatedAt      *time.Time
 	SettledAt            *time.Time
 	ClosedAt             *time.Time
+
+	// OriginalBody and UpstreamBody are transient request-scoped values. They
+	// are never selected from or written to grsai_settlements. Async work
+	// restores OriginalBody from the encrypted payload table and reparses it
+	// before assigning UpstreamBody.
+	OriginalBody []byte
+	UpstreamBody []byte
 }
 
 // State projects the business state from the existing durable status pair.
@@ -214,6 +221,9 @@ type GrsaiPrepareInput struct {
 	// Pass the existing user/group rate resolver's result when it overrides the
 	// group default. Independent image rates still take precedence.
 	EffectiveGroupMultiplier *float64
+	DeliveryMode             GrsaiDeliveryMode
+	PayloadDeleteAfter       *time.Time
+	ExpiresAt                *time.Time
 }
 
 // Prepare persists and claims the immutable snapshot. The caller may send
@@ -257,6 +267,7 @@ func (s *GrsaiSettlementService) Prepare(ctx context.Context, input GrsaiPrepare
 		AccountRateMultiplier: accountRate, BillableUnitPrice: billable, RequestedImageCount: input.ImageCount,
 		HoldAmount: billable * float64(input.ImageCount), HoldState: "none",
 		ImageSize: NormalizeImageBillingTierOrDefault(input.ImageSize), Currency: "USD", UpstreamStatus: "not_submitted",
+		DeliveryMode: input.DeliveryMode, PayloadDeleteAfter: input.PayloadDeleteAfter, ExpiresAt: input.ExpiresAt,
 		// Keep the scanner out of the create -> initial claim window.
 		NextAttemptAt: now.Add(grsaiSettlementLease),
 	})
