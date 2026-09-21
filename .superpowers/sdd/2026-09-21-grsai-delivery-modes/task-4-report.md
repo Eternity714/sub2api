@@ -41,3 +41,9 @@ ok   github.com/Wei-Shaw/sub2api/internal/repository 0.023s
 - 将扫描器 I/O 错误标记为 `ErrGrsaiSSERead`；协议、持久化和回调错误不再触发状态迁移。
 - 在绑定上游任务 ID 前先确认逐帧持久化能力，避免持久化不可用时留下孤立绑定。
 - 增加非 2xx 错误响应的 Body 关闭和凭据脱敏测试。
+
+修订后验证命令同上，Docker Go 输出：
+
+```text
+ok   github.com/Wei-Shaw/sub2api/internal/service 0.051s
+```
