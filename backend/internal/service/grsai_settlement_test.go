@@ -399,8 +399,8 @@ func TestGrsaiSettlementConflictingTaskGoesToManualReview(t *testing.T) {
 	known := "known-task"
 	repo.record.UpstreamTaskID = &known
 	out := s.Finish(context.Background(), record, &GrsaiUpstreamResult{TaskID: "different-task", Status: "succeeded"}, nil)
-	require.NoError(t, out.SettlementError)
-	require.Equal(t, GrsaiStateManualReview, out.State)
+	require.ErrorIs(t, out.SettlementError, ErrGrsaiHoldReleaseUnavailable)
+	require.NotEqual(t, GrsaiStateManualReview, out.State)
 	require.Empty(t, billing.commands)
 }
 

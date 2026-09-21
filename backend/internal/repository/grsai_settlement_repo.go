@@ -262,6 +262,33 @@ WHERE id = $1
 	return claimedUpdateResult(result)
 }
 
+func (r *grsaiSettlementRepository) BindAndRecordStreamEvent(ctx context.Context, id, claimVersion int64, event service.GrsaiStreamEvent) (bool, error) {
+	if id <= 0 || claimVersion <= 0 || strings.TrimSpace(event.TaskID) == "" || strings.TrimSpace(event.Status) == "" || event.Progress < 0 || event.Progress > 100 {
+		return false, ErrGrsaiSettlementInvalidInput
+	}
+	resultURLs, err := json.Marshal(event.ResultURLs)
+	if err != nil {
+		return false, err
+	}
+	result, err := r.sql.ExecContext(ctx, `
+UPDATE grsai_settlements
+SET upstream_task_id = $3,
+    upstream_status = $4,
+    upstream_bound_at = COALESCE(upstream_bound_at, NOW()),
+    progress = $5,
+    result_urls = $6::jsonb,
+    result_updated_at = NOW(),
+    updated_at = NOW()
+WHERE id = $1
+  AND claim_version = $2
+  AND internal_status = 'processing'
+  AND upstream_task_id IS NULL`, id, claimVersion, event.TaskID, event.Status, event.Progress, string(resultURLs))
+	if err != nil {
+		return false, err
+	}
+	return claimedUpdateResult(result)
+}
+
 func (r *grsaiSettlementRepository) ClaimDue(ctx context.Context, now time.Time, limit int, leaseUntil time.Time) ([]*GrsaiSettlement, error) {
 	if limit <= 0 {
 		limit = 100

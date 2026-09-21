@@ -102,6 +102,29 @@ func TestParseGrsaiSSEPersistsBeforeCallback(t *testing.T) {
 	require.Equal(t, "a", *claim.UpstreamTaskID)
 }
 
+func TestConsumeGrsaiSSEAtomicFirstEventFailureDoesNotBindOrCallback(t *testing.T) {
+	s, repo, claim := grsaiStreamServiceFixture(t)
+	repo.bindEventErr = errors.New("event write failed")
+	callbackCalled := false
+	_, err := s.ConsumeGrsaiSSE(context.Background(), claim, strings.NewReader("data: {\"id\":\"a\",\"status\":\"running\"}\n\n"), func(GrsaiStreamEvent) error {
+		callbackCalled = true
+		return nil
+	})
+	require.ErrorIs(t, err, repo.bindEventErr)
+	require.False(t, callbackCalled)
+	require.Nil(t, claim.UpstreamTaskID)
+	require.Zero(t, repo.recordEventCalls)
+}
+
+func TestConsumeGrsaiSSEPreBindInterruptionFailsClosedWithoutHoldExtension(t *testing.T) {
+	s, repo, claim := grsaiStreamServiceFixture(t)
+	s.Repo = &noHoldStreamRepo{GrsaiSettlementRepository: repo, stream: repo}
+	_, err := s.ConsumeGrsaiSSE(context.Background(), claim, errReader{err: errors.New("connection reset")}, nil)
+	require.ErrorIs(t, err, ErrGrsaiHoldReleaseUnavailable)
+	require.Zero(t, repo.manualReviewCalls)
+	require.Nil(t, claim.UpstreamTaskID)
+}
+
 func TestParseGrsaiSSEInterruptionIsReturnedForPreAndPostBindHandling(t *testing.T) {
 	t.Run("pre-bind releases and manual reviews", func(t *testing.T) {
 		s, repo, claim := grsaiStreamServiceFixture(t)
@@ -137,6 +160,19 @@ type grsaiStreamRepo struct {
 	record                                                                                     *GrsaiSettlement
 	order                                                                                      []string
 	recordEventCalls, manualReviewCalls, releaseCalls, updateResultCalls, pendingUpstreamCalls int
+	bindEventErr                                                                               error
+}
+
+type noHoldStreamRepo struct {
+	GrsaiSettlementRepository
+	stream *grsaiStreamRepo
+}
+
+func (r *noHoldStreamRepo) BindAndRecordStreamEvent(ctx context.Context, id, version int64, event GrsaiStreamEvent) (bool, error) {
+	return r.stream.BindAndRecordStreamEvent(ctx, id, version, event)
+}
+func (r *noHoldStreamRepo) RecordStreamEvent(ctx context.Context, id, version int64, event GrsaiStreamEvent) (bool, error) {
+	return r.stream.RecordStreamEvent(ctx, id, version, event)
 }
 
 func (r *grsaiStreamRepo) GetByID(context.Context, int64) (*GrsaiSettlement, error) {
@@ -146,6 +182,17 @@ func (r *grsaiStreamRepo) GetByID(context.Context, int64) (*GrsaiSettlement, err
 func (r *grsaiStreamRepo) BindUpstreamTask(_ context.Context, _ int64, _ int64, id, status string) (bool, error) {
 	r.record.UpstreamTaskID = &id
 	r.record.UpstreamStatus = status
+	return true, nil
+}
+func (r *grsaiStreamRepo) BindAndRecordStreamEvent(_ context.Context, _ int64, _ int64, event GrsaiStreamEvent) (bool, error) {
+	if r.bindEventErr != nil {
+		return false, r.bindEventErr
+	}
+	id := event.TaskID
+	r.record.UpstreamTaskID = &id
+	r.record.UpstreamStatus = event.Status
+	r.order = append(r.order, "persist")
+	r.recordEventCalls++
 	return true, nil
 }
 func (r *grsaiStreamRepo) RecordStreamEvent(_ context.Context, _ int64, _ int64, event GrsaiStreamEvent) (bool, error) {

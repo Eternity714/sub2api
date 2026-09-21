@@ -34,6 +34,7 @@ var (
 	ErrGrsaiSettlementClaimLost      = errors.New("grsai settlement claim lost")
 	ErrGrsaiSettlementPricingMissing = errors.New("grsai requires explicit flat image or per-request model pricing")
 	ErrGrsaiTaskPayloadNotFound      = errors.New("grsai task payload not found")
+	ErrGrsaiHoldReleaseUnavailable   = errors.New("grsai hold release capability unavailable")
 )
 
 // These contracts live in service so the SQL repository can implement them
@@ -404,7 +405,7 @@ func (s *GrsaiSettlementService) markManualReviewWithRelease(ctx context.Context
 			return s.releaseGrsaiBalanceTx(txCtx, tx, record)
 		})
 	}
-	return s.Repo.MarkManualReview(ctx, id, claimVersion, summary)
+	return ErrGrsaiHoldReleaseUnavailable
 }
 
 func (s *GrsaiSettlementService) deferResultPoll(ctx context.Context, record *GrsaiSettlement, summary string, retryAt time.Time) error {
