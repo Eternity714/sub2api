@@ -298,6 +298,21 @@ WHERE id = $1
   AND internal_status = 'processing'`, nextAttemptAt)
 }
 
+func (r *grsaiSettlementRepository) MarkHoldHeld(ctx context.Context, id, claimVersion int64) error {
+	result, err := r.sql.ExecContext(ctx, `UPDATE grsai_settlements SET hold_state = 'held', updated_at = NOW() WHERE id = $1 AND claim_version = $2 AND internal_status = 'pending_upstream' AND hold_state = 'none'`, id, claimVersion)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return service.ErrGrsaiSettlementClaimLost
+	}
+	return nil
+}
+
 // Settle locks the claimed record, applies idempotent billing through apply,
 // and performs the terminal transition in the same transaction. A stale claim
 // is rejected before apply is called.
@@ -338,6 +353,7 @@ func (r *grsaiSettlementRepository) Settle(
 	result, err := tx.ExecContext(ctx, `
 UPDATE grsai_settlements
 SET internal_status = 'settled',
+    hold_state = CASE WHEN hold_state = 'held' THEN 'captured' ELSE hold_state END,
     settled_amount = $3,
     settled_at = NOW(),
     closed_at = NOW(),
@@ -358,6 +374,48 @@ WHERE id = $1
 	return true, nil
 }
 
+func (r *grsaiSettlementRepository) CloseNoChargeWithRelease(ctx context.Context, id, claimVersion int64, summary string, release service.GrsaiSettlementTxFunc) error {
+	return r.terminalWithHold(ctx, id, claimVersion, summary, release, "closed_no_charge")
+}
+
+func (r *grsaiSettlementRepository) MarkManualReviewWithRelease(ctx context.Context, id, claimVersion int64, summary string, release service.GrsaiSettlementTxFunc) error {
+	return r.terminalWithHold(ctx, id, claimVersion, summary, release, "manual_review")
+}
+
+func (r *grsaiSettlementRepository) terminalWithHold(ctx context.Context, id, claimVersion int64, summary string, release service.GrsaiSettlementTxFunc, status string) error {
+	if r.db == nil || release == nil {
+		return service.ErrGrsaiSettlementInvalidInput
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	record, err := scanGrsaiSettlement(tx.QueryRowContext(ctx, grsaiSettlementSelectSQL+" WHERE id = $1 FOR UPDATE", id))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return service.ErrGrsaiSettlementNotFound
+		}
+		return err
+	}
+	if record.ClaimVersion != claimVersion || record.InternalStatus != GrsaiSettlementStatusProcessing {
+		return service.ErrGrsaiSettlementClaimLost
+	}
+	if record.HoldState == "held" {
+		if err := release(ctx, tx, record); err != nil {
+			return err
+		}
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE grsai_settlements SET internal_status = $3, hold_state = CASE WHEN hold_state = 'held' THEN 'released' ELSE hold_state END, settled_amount = 0, last_error_summary = NULLIF($4,''), closed_at = NOW(), updated_at = NOW() WHERE id = $1 AND claim_version = $2 AND internal_status = 'processing'`, id, claimVersion, status, summary)
+	if err != nil {
+		return err
+	}
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *grsaiSettlementRepository) CloseNoCharge(ctx context.Context, id, claimVersion int64, summary string) error {
 	return r.transition(ctx, id, claimVersion, `
 UPDATE grsai_settlements
@@ -368,7 +426,7 @@ SET internal_status = 'closed_no_charge',
     updated_at = NOW()
 WHERE id = $1
   AND claim_version = $2
-  AND internal_status = 'processing'`, summary)
+  AND (internal_status = 'processing' OR (internal_status = 'pending_upstream' AND $2 = 0))`, summary)
 }
 
 func (r *grsaiSettlementRepository) MarkManualReview(ctx context.Context, id, claimVersion int64, summary string) error {

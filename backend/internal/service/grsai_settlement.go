@@ -198,6 +198,7 @@ func (r *GrsaiModelPricingResolver) GrsaiUnitPrice(ctx context.Context, model st
 type GrsaiSettlementService struct {
 	Repo         GrsaiSettlementRepository
 	Billing      UsageBillingTransactionalRepository
+	HoldBilling  GrsaiHoldBillingRepository
 	Pricing      GrsaiPricingResolver
 	UsageLogRepo UsageLogRepository
 	AuthCache    APIKeyAuthCacheInvalidator
@@ -253,12 +254,24 @@ func (s *GrsaiSettlementService) Prepare(ctx context.Context, input GrsaiPrepare
 		AccountID: input.Account.ID, GroupID: group.ID, UserID: input.APIKey.UserID, APIKeyID: input.APIKey.ID,
 		Model: strings.TrimSpace(input.Model), BaseUnitPrice: base, GroupRateMultiplier: groupRate,
 		AccountRateMultiplier: accountRate, BillableUnitPrice: billable, RequestedImageCount: input.ImageCount,
+		HoldAmount: billable * float64(input.ImageCount), HoldState: "none",
 		ImageSize: NormalizeImageBillingTierOrDefault(input.ImageSize), Currency: "USD", UpstreamStatus: "not_submitted",
 		// Keep the scanner out of the create -> initial claim window.
 		NextAttemptAt: now.Add(grsaiSettlementLease),
 	})
 	if err != nil {
 		return nil, err
+	}
+	if err := s.reserveGrsaiBalance(ctx, record); err != nil {
+		if errors.Is(err, ErrGrsaiInsufficientBalance) {
+			_ = s.Repo.CloseNoCharge(ctx, record.ID, 0, "insufficient balance")
+		}
+		return nil, err
+	}
+	if hs, ok := s.Repo.(GrsaiHoldStateRepository); ok {
+		if err := hs.MarkHoldHeld(ctx, record.ID, 0); err != nil {
+			return nil, err
+		}
 	}
 	return s.Repo.ClaimByID(ctx, record.ID, now, now.Add(grsaiSettlementLease))
 }
@@ -322,13 +335,13 @@ func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *Grsai
 			return s.deferResultPoll(ctx, record, grsaiResultPollFailureSummary(upstream, upstreamErr), retryAt)
 		}
 		if grsaiUpstreamHTTPFailed(upstream, upstreamErr) {
-			return s.Repo.MarkManualReview(ctx, record.ID, record.ClaimVersion, "upstream result polling failed permanently; do not resubmit")
+			return s.markManualReviewWithRelease(ctx, record.ID, record.ClaimVersion, "upstream result polling failed permanently; do not resubmit")
 		}
 	}
 	// A received HTTP failure is a final failed submission, even if an error
 	// payload happens to include a task-like identifier. Never poll or bind it.
 	if grsaiUpstreamHTTPFailed(upstream, upstreamErr) {
-		return s.Repo.CloseNoCharge(ctx, record.ID, record.ClaimVersion, "upstream HTTP request failed; no charge")
+		return s.closeNoChargeWithRelease(ctx, record.ID, record.ClaimVersion, "upstream HTTP request failed; no charge")
 	}
 	status := "unknown"
 	if upstream != nil && upstreamErr == nil && (upstream.HTTPStatus == 0 || (upstream.HTTPStatus >= 200 && upstream.HTTPStatus < 300)) {
@@ -340,7 +353,7 @@ func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *Grsai
 	if upstream != nil && strings.TrimSpace(upstream.TaskID) != "" {
 		taskID := strings.TrimSpace(upstream.TaskID)
 		if record.UpstreamTaskID != nil && *record.UpstreamTaskID != taskID {
-			return s.Repo.MarkManualReview(ctx, record.ID, record.ClaimVersion, "upstream task identity conflict")
+			return s.markManualReviewWithRelease(ctx, record.ID, record.ClaimVersion, "upstream task identity conflict")
 		}
 		if record.UpstreamTaskID == nil {
 			if _, err := s.Repo.BindUpstreamTask(ctx, record.ID, record.ClaimVersion, taskID, status); err != nil {
@@ -366,10 +379,28 @@ func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *Grsai
 		_, err := s.SettleAt(ctx, record.ID, record.ClaimVersion, retryAt)
 		return err
 	case GrsaiUpstreamStatusFailed, GrsaiUpstreamStatusViolation:
-		return s.Repo.CloseNoCharge(ctx, record.ID, record.ClaimVersion, "upstream "+status)
+		return s.closeNoChargeWithRelease(ctx, record.ID, record.ClaimVersion, "upstream "+status)
 	default:
 		return s.Repo.MarkPendingUpstream(ctx, record.ID, record.ClaimVersion, next)
 	}
+}
+
+func (s *GrsaiSettlementService) closeNoChargeWithRelease(ctx context.Context, id, claimVersion int64, summary string) error {
+	if ext, ok := s.Repo.(GrsaiHoldStateRepository); ok {
+		return ext.CloseNoChargeWithRelease(ctx, id, claimVersion, summary, func(txCtx context.Context, tx *sql.Tx, record *GrsaiSettlement) error {
+			return s.releaseGrsaiBalanceTx(txCtx, tx, record)
+		})
+	}
+	return s.Repo.CloseNoCharge(ctx, id, claimVersion, summary)
+}
+
+func (s *GrsaiSettlementService) markManualReviewWithRelease(ctx context.Context, id, claimVersion int64, summary string) error {
+	if ext, ok := s.Repo.(GrsaiHoldStateRepository); ok {
+		return ext.MarkManualReviewWithRelease(ctx, id, claimVersion, summary, func(txCtx context.Context, tx *sql.Tx, record *GrsaiSettlement) error {
+			return s.releaseGrsaiBalanceTx(txCtx, tx, record)
+		})
+	}
+	return s.Repo.MarkManualReview(ctx, id, claimVersion, summary)
 }
 
 func (s *GrsaiSettlementService) deferResultPoll(ctx context.Context, record *GrsaiSettlement, summary string, retryAt time.Time) error {
@@ -471,6 +502,9 @@ func (s *GrsaiSettlementService) SettleAt(ctx context.Context, id, claimVersion 
 		}
 		if lockedCommand.RequestFingerprint != cmd.RequestFingerprint {
 			return ErrUsageBillingRequestConflict
+		}
+		if err := s.captureGrsaiBalanceTx(txCtx, tx, locked); err != nil {
+			return err
 		}
 		_, applyErr := s.Billing.ApplyTx(txCtx, tx, lockedCommand)
 		return applyErr
