@@ -290,6 +290,19 @@ WHERE id = $1
 }
 
 func (r *grsaiSettlementRepository) ClaimDue(ctx context.Context, now time.Time, limit int, leaseUntil time.Time) ([]*GrsaiSettlement, error) {
+	return r.claimDue(ctx, now, limit, leaseUntil, "")
+}
+
+// ClaimDueForDeliveryMode fences a worker to one delivery mode. The async
+// runtime uses this narrower claim so it cannot lease legacy JSON/stream rows.
+func (r *grsaiSettlementRepository) ClaimDueForDeliveryMode(ctx context.Context, now time.Time, limit int, leaseUntil time.Time, mode service.GrsaiDeliveryMode) ([]*GrsaiSettlement, error) {
+	if mode == "" {
+		return nil, ErrGrsaiSettlementInvalidInput
+	}
+	return r.claimDue(ctx, now, limit, leaseUntil, mode)
+}
+
+func (r *grsaiSettlementRepository) claimDue(ctx context.Context, now time.Time, limit int, leaseUntil time.Time, mode service.GrsaiDeliveryMode) ([]*GrsaiSettlement, error) {
 	if limit <= 0 {
 		limit = 100
 	}
@@ -299,12 +312,19 @@ func (r *grsaiSettlementRepository) ClaimDue(ctx context.Context, now time.Time,
 	if now.IsZero() || !leaseUntil.After(now) {
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
-	rows, err := r.sql.QueryContext(ctx, `
+	where := `next_attempt_at <= $1
+      AND internal_status IN ('pending_upstream', 'pending_settlement', 'processing')`
+	args := []any{now, limit, leaseUntil}
+	if mode != "" {
+		where += `
+      AND delivery_mode = $4`
+		args = append(args, mode)
+	}
+	query := `
 WITH due AS (
     SELECT id
     FROM grsai_settlements
-    WHERE next_attempt_at <= $1
-      AND internal_status IN ('pending_upstream', 'pending_settlement', 'processing')
+    WHERE ` + where + `
     ORDER BY next_attempt_at ASC, id ASC
     LIMIT $2
     FOR UPDATE SKIP LOCKED
@@ -317,7 +337,8 @@ SET internal_status = 'processing',
     updated_at = $1
 FROM due
 WHERE settlements.id = due.id
-RETURNING `+grsaiSettlementReturningColumns("settlements"), now, limit, leaseUntil)
+RETURNING ` + grsaiSettlementReturningColumns("settlements")
+	rows, err := r.sql.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

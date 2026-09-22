@@ -30,7 +30,8 @@ func (r *grsaiSettlementMemoryRepo) Create(_ context.Context, p CreateGrsaiSettl
 		APIKeyID: p.APIKeyID, Model: p.Model, BaseUnitPrice: p.BaseUnitPrice, GroupRateMultiplier: p.GroupRateMultiplier,
 		AccountRateMultiplier: p.AccountRateMultiplier, BillableUnitPrice: p.BillableUnitPrice,
 		RequestedImageCount: p.RequestedImageCount, ImageSize: p.ImageSize, Currency: p.Currency, BillingIdempotencyKey: GrsaiSettlementRequestID(17),
-		HoldAmount: p.HoldAmount, HoldState: p.HoldState,
+		HoldAmount: p.HoldAmount, HoldState: p.HoldState, DeliveryMode: p.DeliveryMode,
+		PayloadDeleteAfter: p.PayloadDeleteAfter, ExpiresAt: p.ExpiresAt,
 		UpstreamStatus: "not_submitted", InternalStatus: "pending_upstream", NextAttemptAt: p.NextAttemptAt}
 	return r.GetByID(context.Background(), 17)
 }

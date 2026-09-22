@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"strings"
 	"testing"
@@ -50,6 +51,9 @@ func (a grsaiTaskAccountMemory) GetByID(context.Context, int64) (*Account, error
 
 type grsaiTaskRepoMemory struct {
 	*grsaiSettlementMemoryRepo
+	updateErr error
+	statuses  []string
+	claimMode GrsaiDeliveryMode
 }
 
 func (r *grsaiTaskRepoMemory) GetOwnedByPublicOrUpstreamID(_ context.Context, userID, apiKeyID int64, id string) (*GrsaiSettlement, error) {
@@ -67,6 +71,20 @@ func (r *grsaiTaskRepoMemory) ClaimDue(_ context.Context, _ time.Time, _ int, le
 	r.record.NextAttemptAt = lease
 	claim, _ := r.GetByID(context.Background(), r.record.ID)
 	return []*GrsaiSettlement{claim}, nil
+}
+func (r *grsaiTaskRepoMemory) ClaimDueForDeliveryMode(ctx context.Context, now time.Time, limit int, lease time.Time, mode GrsaiDeliveryMode) ([]*GrsaiSettlement, error) {
+	r.claimMode = mode
+	if r.record == nil || r.record.DeliveryMode != mode {
+		return nil, nil
+	}
+	return r.ClaimDue(ctx, now, limit, lease)
+}
+func (r *grsaiTaskRepoMemory) UpdateResult(ctx context.Context, id, version int64, status, summary string, next time.Time) (bool, error) {
+	if r.updateErr != nil {
+		return false, r.updateErr
+	}
+	r.statuses = append(r.statuses, status)
+	return r.grsaiSettlementMemoryRepo.UpdateResult(ctx, id, version, status, summary, next)
 }
 func (r *grsaiTaskRepoMemory) BindAndRecordStreamEvent(_ context.Context, _, version int64, event GrsaiStreamEvent) (bool, error) {
 	if err := r.check(version); err != nil {
@@ -120,6 +138,45 @@ func TestAsyncTaskPersistsEncryptedPayloadThenWorkerConsumesOnce(t *testing.T) {
 	require.Equal(t, "settled", repo.record.InternalStatus)
 }
 
+func TestAsyncTaskPersistsPreBindFenceBeforePost(t *testing.T) {
+	tasks, repo, payloads, upstream := grsaiTaskFixture(t)
+	repo.record = &GrsaiSettlement{ID: 17, AccountID: 3, UserID: 1, APIKeyID: 4, Model: "m", DeliveryMode: GrsaiDeliveryAsync, InternalStatus: "processing", UpstreamStatus: "not_submitted", ClaimVersion: 1, NextAttemptAt: time.Now().Add(time.Minute)}
+	payloads.values = map[int64][]byte{17: append([]byte("ciphertext:"), []byte(`{"model":"m","replyType":"async"}`)...)}
+	_, err := tasks.RunGrsaiTask(context.Background(), repo.record, nil)
+	// The fixture intentionally omits billing snapshot fields; this test only
+	// asserts that the pre-bind fence precedes the provider POST.
+	require.Error(t, err)
+	require.Equal(t, 1, upstream.posts)
+	require.NotEmpty(t, repo.statuses)
+	require.Equal(t, "submitting", repo.statuses[0])
+}
+
+func TestAsyncTaskPreBindFencePersistenceFailureDoesNotPost(t *testing.T) {
+	tasks, repo, payloads, upstream := grsaiTaskFixture(t)
+	repo.record = &GrsaiSettlement{ID: 17, AccountID: 3, UserID: 1, APIKeyID: 4, Model: "m", DeliveryMode: GrsaiDeliveryAsync, InternalStatus: "processing", UpstreamStatus: "not_submitted", ClaimVersion: 1, NextAttemptAt: time.Now().Add(time.Minute)}
+	payloads.values = map[int64][]byte{17: append([]byte("ciphertext:"), []byte(`{"model":"m","replyType":"async"}`)...)}
+	repo.updateErr = errors.New("fence write failed")
+	_, err := tasks.RunGrsaiTask(context.Background(), repo.record, nil)
+	require.Error(t, err)
+	require.Equal(t, 0, upstream.posts)
+	require.Equal(t, "manual_review", repo.record.InternalStatus)
+}
+
+func TestAsyncTaskSeparatesPayloadTTLFromResultRetention(t *testing.T) {
+	tasks, _, _, _ := grsaiTaskFixture(t)
+	now := time.Date(2026, 9, 22, 10, 0, 0, 0, time.UTC)
+	tasks.Options.Now = func() time.Time { return now }
+	tasks.Options.PayloadTTL = 15 * time.Minute
+	tasks.Options.ResultRetention = 48 * time.Hour
+	group := &Group{ID: 2, Platform: PlatformGrsai, RateMultiplier: 1}
+	apiKey := &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group}
+	account := &Account{ID: 3, Platform: PlatformGrsai, Type: AccountTypeAPIKey}
+	task, err := tasks.CreateGrsaiTask(context.Background(), GrsaiTaskInput{Account: account, APIKey: apiKey, Body: []byte(`{"model":"m","replyType":"async"}`)})
+	require.NoError(t, err)
+	require.Equal(t, now.Add(15*time.Minute), *task.PayloadDeleteAfter)
+	require.Equal(t, now.Add(48*time.Hour), *task.ExpiresAt)
+}
+
 func TestPublicTaskViewDoesNotExposePrivateFields(t *testing.T) {
 	record := &GrsaiSettlement{PublicTaskID: "public-1", AccountID: 9, UserID: 1, APIKeyID: 2, Model: "m", CreatedAt: time.Now(), UpdatedAt: time.Now(), ResultURLs: []string{"https://img.invalid/a"}, BillableUnitPrice: 99, InternalStatus: "settled"}
 	view := BuildGrsaiTaskView(record)
@@ -128,4 +185,19 @@ func TestPublicTaskViewDoesNotExposePrivateFields(t *testing.T) {
 	require.NotContains(t, string(raw), "account_id")
 	require.NotContains(t, string(raw), "billable_unit_price")
 	require.NotContains(t, string(raw), "ciphertext")
+}
+
+func TestPublicTaskViewPreservesDurableIntermediateStatuses(t *testing.T) {
+	for _, tt := range []struct {
+		name, internal, upstream, want string
+	}{
+		{"manual review", "manual_review", "unknown", "manual_review"},
+		{"pending settlement", "pending_settlement", GrsaiUpstreamStatusSucceeded, "pending_settlement"},
+		{"upstream unknown", "processing", "unknown", "upstream_unknown"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			view := BuildGrsaiTaskView(&GrsaiSettlement{PublicTaskID: "public-1", InternalStatus: tt.internal, UpstreamStatus: tt.upstream})
+			require.Equal(t, tt.want, view.Status)
+		})
+	}
 }

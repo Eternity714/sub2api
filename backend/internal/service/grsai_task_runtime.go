@@ -122,7 +122,15 @@ func (r *GrsaiTaskRuntime) RunOnce(ctx context.Context) {
 	}
 	r.normalizeOptions()
 	now := r.now()
-	claims, err := r.Repo.ClaimDue(ctx, now, r.Options.BatchLimit, now.Add(r.Options.ClaimLease))
+	var claims []*GrsaiSettlement
+	var err error
+	if modeRepo, ok := r.Repo.(GrsaiDeliveryModeRepository); ok {
+		claims, err = modeRepo.ClaimDueForDeliveryMode(ctx, now, r.Options.BatchLimit, now.Add(r.Options.ClaimLease), GrsaiDeliveryAsync)
+	} else {
+		// Compatibility for in-memory/test repositories. Production SQL uses the
+		// mode-fenced method above, so legacy rows are never leased by this worker.
+		claims, err = r.Repo.ClaimDue(ctx, now, r.Options.BatchLimit, now.Add(r.Options.ClaimLease))
+	}
 	if err != nil {
 		return
 	}
@@ -139,11 +147,9 @@ func (r *GrsaiTaskRuntime) runClaim(ctx context.Context, claim *GrsaiSettlement)
 		return
 	}
 	if claim.DeliveryMode != GrsaiDeliveryAsync {
-		// The legacy settlement recovery runtime owns JSON/stream records. Keep
-		// their lease durable without ever treating them as async payloads.
-		next := r.now().Add(r.Options.ScanInterval)
-		_, _ = r.Repo.UpdateResult(ctx, claim.ID, claim.ClaimVersion, claim.UpstreamStatus, "", next)
-		_ = r.Repo.MarkPendingUpstream(ctx, claim.ID, claim.ClaimVersion, next)
+		// The mode-fenced ClaimDueForDeliveryMode path should make this
+		// unreachable in production. Never mutate a legacy JSON/stream record if
+		// an older repository implementation returns one anyway.
 		return
 	}
 	if claim.InternalStatus == "pending_settlement" || claim.UpstreamStatus == GrsaiUpstreamStatusSucceeded {

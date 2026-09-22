@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	defaultGrsaiTaskPayloadTTL = 15 * time.Minute
-	maxGrsaiPublicErrorSummary = 256
+	defaultGrsaiTaskPayloadTTL      = 15 * time.Minute
+	defaultGrsaiTaskResultRetention = 24 * time.Hour
+	maxGrsaiPublicErrorSummary      = 256
 )
 
 // GrsaiTaskInput is the request-scoped input for an async task. Body and
@@ -27,8 +28,9 @@ type GrsaiTaskInput struct {
 }
 
 type GrsaiTaskOptions struct {
-	PayloadTTL time.Duration
-	Now        func() time.Time
+	PayloadTTL      time.Duration
+	ResultRetention time.Duration
+	Now             func() time.Time
 }
 
 // GrsaiTaskService coordinates the durable settlement state machine and the
@@ -57,6 +59,13 @@ func (s *GrsaiTaskService) payloadTTL() time.Duration {
 	return s.Options.PayloadTTL
 }
 
+func (s *GrsaiTaskService) resultRetention() time.Duration {
+	if s == nil || s.Options.ResultRetention <= 0 {
+		return defaultGrsaiTaskResultRetention
+	}
+	return s.Options.ResultRetention
+}
+
 // CreateGrsaiTask validates, snapshots pricing, freezes balance, and stores
 // only the encrypted original request. The returned record is queued (its
 // internal durable status is pending_upstream) and has a public UUID.
@@ -83,26 +92,27 @@ func (s *GrsaiTaskService) CreateGrsaiTask(ctx context.Context, input GrsaiTaskI
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
 	now := s.now()
-	expires := now.Add(s.payloadTTL())
+	payloadDeleteAfter := now.Add(s.payloadTTL())
+	resultExpiresAt := now.Add(s.resultRetention())
 	claim, err := s.Settlement.Prepare(ctx, GrsaiPrepareInput{
 		Account: input.Account, APIKey: input.APIKey, Model: request.Model,
 		ImageCount: request.ImageCount, ImageSize: request.ImageSize,
 		EffectiveGroupMultiplier: input.EffectiveGroupMultiplier,
-		DeliveryMode:             GrsaiDeliveryAsync, PayloadDeleteAfter: &expires, ExpiresAt: &expires,
+		DeliveryMode:             GrsaiDeliveryAsync, PayloadDeleteAfter: &payloadDeleteAfter, ExpiresAt: &resultExpiresAt,
 	})
 	if err != nil {
 		return nil, err
 	}
 	claim.OriginalBody = append([]byte(nil), request.OriginalBody...)
 	claim.UpstreamBody = append([]byte(nil), request.UpstreamBody...)
-	if err := s.Payloads.PutEncrypted(ctx, claim.ID, request.OriginalBody, expires); err != nil {
-		_ = s.Settlement.markManualReviewWithRelease(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "async payload could not be durably stored")
-		return nil, err
+	if err := s.Payloads.PutEncrypted(ctx, claim.ID, request.OriginalBody, payloadDeleteAfter); err != nil {
+		releaseErr := s.Settlement.markManualReviewWithRelease(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "async payload could not be durably stored")
+		return nil, errors.Join(err, releaseErr)
 	}
 	if err := s.Repo.MarkPendingUpstream(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, now); err != nil {
 		_ = s.Payloads.DeleteBySettlementID(context.WithoutCancel(ctx), claim.ID)
-		_ = s.Settlement.markManualReviewWithRelease(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "async task could not be queued")
-		return nil, err
+		releaseErr := s.Settlement.markManualReviewWithRelease(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "async task could not be queued")
+		return nil, errors.Join(err, releaseErr)
 	}
 	queued, err := s.Repo.GetByID(ctx, claim.ID)
 	if err != nil {
@@ -153,6 +163,13 @@ func (s *GrsaiTaskService) RunGrsaiTask(ctx context.Context, claim *GrsaiSettlem
 	if err != nil || account == nil || account.Platform != PlatformGrsai {
 		return nil, s.markManualReview(ctx, claim, "account unavailable for async task")
 	}
+	// Persist a pre-bind fence before POST. If the process dies after the
+	// provider accepts the request but before the first SSE event binds its ID,
+	// recovery sees "submitting" and must never issue a second POST.
+	if _, err := s.Repo.UpdateResult(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "submitting", "upstream submission in progress; do not resubmit", claim.NextAttemptAt); err != nil {
+		return nil, s.markManualReview(ctx, claim, "could not persist pre-bind submission fence")
+	}
+	claim.UpstreamStatus = "submitting"
 	stream, err := s.Upstream.OpenGenerateStream(ctx, account, body)
 	if err != nil {
 		// No provider ID was durably bound. The POST outcome is uncertain, so
@@ -173,10 +190,10 @@ func (s *GrsaiTaskService) RunGrsaiTask(ctx context.Context, claim *GrsaiSettlem
 		}
 		return nil
 	})
-	_ = s.deletePayload(claim.ID)
 	if consumeErr != nil {
 		return final, consumeErr
 	}
+	_ = s.deletePayload(claim.ID)
 	outcome := s.Settlement.Finish(context.WithoutCancel(ctx), claim, final, nil)
 	if outcome == nil {
 		return final, ErrGrsaiSettlementInvalidInput
@@ -199,13 +216,13 @@ func (s *GrsaiTaskService) markManualReview(ctx context.Context, claim *GrsaiSet
 		if err := s.Settlement.markManualReviewWithRelease(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, summary); err == nil {
 			_ = s.deletePayload(claim.ID)
 			return ErrGrsaiSettlementInvalidState
+		} else {
+			// Never silently fall back to a status-only transition when a held
+			// balance cannot be released. The caller must surface this failure.
+			return errors.Join(ErrGrsaiSettlementInvalidState, err)
 		}
 	}
-	if s.Repo != nil {
-		_ = s.Repo.MarkManualReview(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, summary)
-	}
-	_ = s.deletePayload(claim.ID)
-	return ErrGrsaiSettlementInvalidState
+	return errors.Join(ErrGrsaiSettlementInvalidState, ErrGrsaiHoldReleaseUnavailable)
 }
 
 type GrsaiTaskView struct {
@@ -245,7 +262,9 @@ func BuildGrsaiTaskView(record *GrsaiSettlement) *GrsaiTaskView {
 	case record.InternalStatus == "settled":
 		view.Status = GrsaiUpstreamStatusSucceeded
 	case record.InternalStatus == "manual_review":
-		view.Status, view.ErrorCode = "failed", "manual_review"
+		view.Status, view.ErrorCode = "manual_review", "manual_review"
+	case record.InternalStatus == "pending_settlement":
+		view.Status = "pending_settlement"
 	case record.InternalStatus == "closed_no_charge":
 		view.Status = "failed"
 		if strings.EqualFold(record.UpstreamStatus, GrsaiUpstreamStatusViolation) {
@@ -255,6 +274,8 @@ func BuildGrsaiTaskView(record *GrsaiSettlement) *GrsaiTaskView {
 		}
 	case view.UpstreamTaskID != "":
 		view.Status = "running"
+	case record.UpstreamStatus == "unknown" || record.UpstreamStatus == "submitting":
+		view.Status = "upstream_unknown"
 	case record.InternalStatus == "pending_upstream" || record.UpstreamStatus == "not_submitted":
 		view.Status = "queued"
 	default:

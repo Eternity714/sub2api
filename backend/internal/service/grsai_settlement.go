@@ -162,6 +162,13 @@ type GrsaiSettlementRepository interface {
 	MarkManualReview(context.Context, int64, int64, string) error
 }
 
+// GrsaiDeliveryModeRepository is implemented by repositories that can fence
+// a worker claim to one downstream delivery contract. Async recovery must use
+// this narrower claim so it cannot lease or mutate legacy JSON/stream rows.
+type GrsaiDeliveryModeRepository interface {
+	ClaimDueForDeliveryMode(context.Context, time.Time, int, time.Time, GrsaiDeliveryMode) ([]*GrsaiSettlement, error)
+}
+
 // GrsaiTaskPayloadRepository stores the original async request only in
 // encrypted form and removes it independently from the public task record.
 type GrsaiTaskPayloadRepository interface {
@@ -415,6 +422,12 @@ func (s *GrsaiSettlementService) markManualReviewWithRelease(ctx context.Context
 		return ext.MarkManualReviewWithRelease(ctx, id, claimVersion, summary, func(txCtx context.Context, tx *sql.Tx, record *GrsaiSettlement) error {
 			return s.releaseGrsaiBalanceTx(txCtx, tx, record)
 		})
+	}
+	// A zero-value hold is used by lightweight repositories and requires no
+	// release side effect. Real held balances must implement the transactional
+	// extension above; never downgrade those failures to a status-only write.
+	if record, err := s.Repo.GetByID(ctx, id); err == nil && record != nil && record.HoldAmount == 0 {
+		return s.Repo.MarkManualReview(ctx, id, claimVersion, summary)
 	}
 	return ErrGrsaiHoldReleaseUnavailable
 }
