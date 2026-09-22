@@ -90,8 +90,12 @@ type GrsaiNativeHTTPClient struct {
 	client *http.Client
 }
 
-func NewGrsaiNativeClient(client *http.Client) GrsaiNativeClient {
+func NewGrsaiNativeHTTPClient(client *http.Client) *GrsaiNativeHTTPClient {
 	return &GrsaiNativeHTTPClient{client: configureGrsaiHTTPClient(client)}
+}
+
+func NewGrsaiNativeClient(client *http.Client) GrsaiNativeClient {
+	return NewGrsaiNativeHTTPClient(client)
 }
 
 func configureGrsaiHTTPClient(client *http.Client) *http.Client {

@@ -56,6 +56,10 @@ func ProvideGrsaiNativeClient() GrsaiNativeClient {
 	return NewGrsaiNativeClient(nil)
 }
 
+func ProvideGrsaiNativeStreamClient() GrsaiStreamClient {
+	return NewGrsaiNativeHTTPClient(nil)
+}
+
 func ProvideGrsaiSettlementService(
 	repo GrsaiSettlementRepository,
 	billing UsageBillingTransactionalRepository,
@@ -70,6 +74,16 @@ func ProvideGrsaiSettlementService(
 		UsageLogRepo: usageLogRepo,
 		AuthCache:    authCache,
 	}
+}
+
+func ProvideGrsaiTaskService(
+	repo GrsaiSettlementRepository,
+	payloads GrsaiTaskPayloadRepository,
+	accounts AccountRepository,
+	upstream GrsaiStreamClient,
+	settlement *GrsaiSettlementService,
+) *GrsaiTaskService {
+	return &GrsaiTaskService{Repo: repo, Payloads: payloads, Accounts: accounts, Upstream: upstream, Settlement: settlement}
 }
 
 func ProvideGrsaiSettlementRecoveryRuntime(
@@ -892,7 +906,9 @@ var ProviderSet = wire.NewSet(
 	ProvideBatchImageCleanupService,
 	ProvideBatchImageWorkerRuntime,
 	ProvideGrsaiNativeClient,
+	ProvideGrsaiNativeStreamClient,
 	ProvideGrsaiSettlementService,
+	ProvideGrsaiTaskService,
 	ProvideGrsaiSettlementRecoveryRuntime,
 	wire.Bind(new(AccountRuntimeBlocker), new(*OpenAIGatewayService)),
 	NewOAuthService,

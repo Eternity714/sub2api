@@ -42,6 +42,10 @@ func ProvideGrsaiSettlementRepository(db *sql.DB) service.GrsaiSettlementReposit
 	return NewGrsaiSettlementRepository(db)
 }
 
+func ProvideGrsaiTaskPayloadRepository(db *sql.DB, encryptor service.SecretEncryptor) service.GrsaiTaskPayloadRepository {
+	return NewGrsaiTaskPayloadRepository(db, encryptor)
+}
+
 func ProvideGrsaiUsageBillingRepository(billing service.UsageBillingRepository) service.UsageBillingTransactionalRepository {
 	transactional, ok := billing.(service.UsageBillingTransactionalRepository)
 	if !ok {
@@ -95,6 +99,7 @@ var ProviderSet = wire.NewSet(
 	NewUsageBillingRepository,
 	ProvideGrsaiUsageBillingRepository,
 	ProvideGrsaiSettlementRepository,
+	ProvideGrsaiTaskPayloadRepository,
 	NewBatchImageRepository,
 	NewIdempotencyRepository,
 	NewUsageCleanupRepository,
