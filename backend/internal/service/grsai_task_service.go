@@ -191,6 +191,11 @@ func (s *GrsaiTaskService) RunGrsaiTask(ctx context.Context, claim *GrsaiSettlem
 		return nil
 	})
 	if consumeErr != nil {
+		if claim.UpstreamTaskID == nil || strings.TrimSpace(*claim.UpstreamTaskID) == "" {
+			if record, readErr := s.Repo.GetByID(context.WithoutCancel(ctx), claim.ID); readErr == nil && record.InternalStatus == "manual_review" {
+				_ = s.deletePayload(claim.ID)
+			}
+		}
 		return final, consumeErr
 	}
 	_ = s.deletePayload(claim.ID)

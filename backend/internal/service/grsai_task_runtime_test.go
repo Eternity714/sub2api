@@ -46,3 +46,14 @@ func TestQueuedTaskMissingPayloadMovesToManualReview(t *testing.T) {
 	require.Equal(t, "manual_review", repo.record.InternalStatus)
 	require.Equal(t, 0, upstream.posts)
 }
+
+func TestSubmittingTaskTimeoutMovesToManualReviewWithoutPost(t *testing.T) {
+	tasks, repo, _, upstream := grsaiTaskFixture(t)
+	now := time.Date(2026, 9, 22, 12, 0, 0, 0, time.UTC)
+	claim := &GrsaiSettlement{ID: 17, AccountID: 3, UserID: 1, APIKeyID: 4, Model: "m", DeliveryMode: GrsaiDeliveryAsync, InternalStatus: "processing", UpstreamStatus: "submitting", ClaimVersion: 1, CreatedAt: now.Add(-time.Hour)}
+	repo.record = claim
+	runtime := &GrsaiTaskRuntime{Tasks: tasks, Repo: repo, Options: GrsaiTaskRuntimeOptions{Enabled: true, SubmissionUnknownTimeout: 10 * time.Minute, Now: func() time.Time { return now }}}
+	runtime.runClaim(context.Background(), claim)
+	require.Equal(t, "manual_review", repo.record.InternalStatus)
+	require.Equal(t, 0, upstream.posts)
+}

@@ -102,6 +102,20 @@ func TestParseGrsaiSSEPersistsBeforeCallback(t *testing.T) {
 	require.Equal(t, "a", *claim.UpstreamTaskID)
 }
 
+func TestConsumeGrsaiSSECallbackFailureAfterBindKeepsHoldAndSchedulesPolling(t *testing.T) {
+	s, repo, claim := grsaiStreamServiceFixture(t)
+	callbackErr := errors.New("downstream callback failed")
+	_, err := s.ConsumeGrsaiSSE(context.Background(), claim, strings.NewReader("data: {\"id\":\"a\",\"status\":\"succeeded\",\"results\":[{\"url\":\"https://example.invalid/a\"}]}\n\n"), func(GrsaiStreamEvent) error {
+		return callbackErr
+	})
+	require.ErrorIs(t, err, callbackErr)
+	require.Equal(t, "a", *claim.UpstreamTaskID)
+	require.Zero(t, repo.manualReviewCalls)
+	require.Zero(t, repo.releaseCalls)
+	require.Equal(t, 1, repo.updateResultCalls)
+	require.Equal(t, 1, repo.pendingUpstreamCalls)
+}
+
 func TestConsumeGrsaiSSEAtomicFirstEventFailureDoesNotBindOrCallback(t *testing.T) {
 	s, repo, claim := grsaiStreamServiceFixture(t)
 	repo.bindEventErr = errors.New("event write failed")

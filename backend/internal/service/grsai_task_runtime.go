@@ -160,10 +160,10 @@ func (r *GrsaiTaskRuntime) runClaim(ctx context.Context, claim *GrsaiSettlement)
 		r.pollBound(ctx, claim)
 		return
 	}
-	if claim.UpstreamStatus != "not_submitted" && claim.UpstreamStatus != "unknown" {
+	if claim.UpstreamStatus != "not_submitted" && claim.UpstreamStatus != "unknown" && claim.UpstreamStatus != "submitting" {
 		return
 	}
-	if claim.UpstreamStatus == "unknown" {
+	if claim.UpstreamStatus == "unknown" || claim.UpstreamStatus == "submitting" {
 		deadline := claim.CreatedAt.Add(r.Options.SubmissionUnknownTimeout)
 		if !claim.CreatedAt.IsZero() && !r.now().Before(deadline) {
 			_ = r.Tasks.markManualReview(ctx, claim, "submission outcome unknown without upstream task ID; upstream request was not resent")

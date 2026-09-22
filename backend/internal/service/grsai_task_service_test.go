@@ -36,11 +36,18 @@ func (p *grsaiTaskPayloadMemory) DeleteExpired(context.Context, time.Time) (int6
 	return 0, nil
 }
 
-type grsaiTaskStreamMemory struct{ posts int }
+type grsaiTaskStreamMemory struct {
+	posts int
+	body  string
+}
 
 func (u *grsaiTaskStreamMemory) OpenGenerateStream(context.Context, *Account, []byte) (*GrsaiUpstreamStream, error) {
 	u.posts++
-	return &GrsaiUpstreamStream{StatusCode: 200, ContentType: "text/event-stream", Body: io.NopCloser(strings.NewReader("data: {\"id\":\"up-1\",\"status\":\"succeeded\",\"progress\":100,\"results\":[{\"url\":\"https://img.invalid/1\"}]}\n\n"))}, nil
+	body := u.body
+	if body == "" {
+		body = "data: {\"id\":\"up-1\",\"status\":\"succeeded\",\"progress\":100,\"results\":[{\"url\":\"https://img.invalid/1\"}]}\n\n"
+	}
+	return &GrsaiUpstreamStream{StatusCode: 200, ContentType: "text/event-stream", Body: io.NopCloser(strings.NewReader(body))}, nil
 }
 
 type grsaiTaskAccountMemory struct{ account *Account }
@@ -160,6 +167,17 @@ func TestAsyncTaskPreBindFencePersistenceFailureDoesNotPost(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, 0, upstream.posts)
 	require.Equal(t, "manual_review", repo.record.InternalStatus)
+}
+
+func TestAsyncTaskPreBindManualReviewDeletesPayload(t *testing.T) {
+	tasks, repo, payloads, upstream := grsaiTaskFixture(t)
+	repo.record = &GrsaiSettlement{ID: 17, AccountID: 3, UserID: 1, APIKeyID: 4, Model: "m", DeliveryMode: GrsaiDeliveryAsync, InternalStatus: "processing", UpstreamStatus: "not_submitted", ClaimVersion: 1, NextAttemptAt: time.Now().Add(time.Minute)}
+	payloads.values = map[int64][]byte{17: append([]byte("ciphertext:"), []byte(`{"model":"m","replyType":"async"}`)...)}
+	upstream.body = "data: {\"status\":\"running\"}\n\n"
+	_, err := tasks.RunGrsaiTask(context.Background(), repo.record, nil)
+	require.Error(t, err)
+	require.Equal(t, "manual_review", repo.record.InternalStatus)
+	require.NotContains(t, payloads.values, int64(17))
 }
 
 func TestAsyncTaskSeparatesPayloadTTLFromResultRetention(t *testing.T) {

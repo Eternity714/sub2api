@@ -235,20 +235,12 @@ func (s *GrsaiSettlementService) ConsumeGrsaiSSE(ctx context.Context, claim *Grs
 	if s == nil || claim == nil || reader == nil {
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
-	preBindFailure := false
 	final, err := ParseGrsaiSSE(reader, func(event GrsaiStreamEvent) error {
-		wasUnbound := claim.UpstreamTaskID == nil || strings.TrimSpace(*claim.UpstreamTaskID) == ""
 		if persistErr := s.RecordStreamEvent(ctx, claim, event); persistErr != nil {
-			if wasUnbound {
-				preBindFailure = true
-			}
 			return persistErr
 		}
 		if onPersistedEvent != nil {
 			if callbackErr := onPersistedEvent(event); callbackErr != nil {
-				if wasUnbound {
-					preBindFailure = true
-				}
 				return callbackErr
 			}
 		}
@@ -261,10 +253,13 @@ func (s *GrsaiSettlementService) ConsumeGrsaiSSE(ctx context.Context, claim *Grs
 	// persistence and downstream callback failures are local failures and must
 	// not mutate the durable settlement state behind the caller's back.
 	if !errors.Is(err, ErrGrsaiSSERead) {
-		if preBindFailure || claim.UpstreamTaskID == nil || strings.TrimSpace(*claim.UpstreamTaskID) == "" {
+		if claim.UpstreamTaskID == nil || strings.TrimSpace(*claim.UpstreamTaskID) == "" {
 			return final, errors.Join(err, s.markManualReviewWithRelease(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "upstream stream protocol, persistence, or callback failure before task ID binding"))
 		}
-		return final, err
+		retryAt := time.Now().Add(grsaiSettlementRetryDelay)
+		_, updateErr := s.Repo.UpdateResult(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "unknown", "upstream stream protocol, persistence, or callback failure after task ID binding", retryAt)
+		pendingErr := s.Repo.MarkPendingUpstream(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, retryAt)
+		return final, errors.Join(err, updateErr, pendingErr)
 	}
 	retryAt := time.Now().Add(grsaiSettlementRetryDelay)
 	firstEvent := claim.UpstreamTaskID == nil || strings.TrimSpace(*claim.UpstreamTaskID) == ""

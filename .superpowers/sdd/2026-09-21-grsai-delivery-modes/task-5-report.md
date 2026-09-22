@@ -26,6 +26,8 @@
 - Async 只保存 `OriginalBody` 的加密副本；运行时重新通过 Task 1 解析并使用新建的 `UpstreamBody`，上游请求固定 `replyType=stream`。
 - 首个 SSE 事件被 Task 4 持久化并绑定上游 ID 后立即删除 payload；已绑定记录只允许结果轮询，不重新 POST。
 - POST 前先持久化 `submitting` fence；恢复只把该状态视为 `upstream_unknown`，绝不再次 POST。首帧协议/持久化/回调错误 fail-closed 到 `manual_review`+release。
+- `submitting` 超时由 Async runtime 转入 `manual_review`+release；已绑定首帧后的回调/协议错误转 `upstream_unknown` 并保留冻结余额进行轮询。
+- pre-bind manual review 成功后，返回错误前删除加密 payload。
 - Async runtime 使用 `ClaimDueForDeliveryMode(..., async)`，旧 JSON/Stream 记录不会被 async worker 租约或修改。
 - 载荷删除 TTL 与公开结果 `ExpiresAt` 独立配置；公开视图保留 `manual_review`、`pending_settlement`、`upstream_unknown`。
 
