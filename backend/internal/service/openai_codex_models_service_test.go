@@ -349,6 +349,16 @@ func TestNewConfiguredCodexModelDescriptorUsesProviderMetadataAndSafeFallback(t 
 	require.Equal(t, []string{"low", "medium", "high", "xhigh", "max"}, effortsFromConfiguredCodexLevels(gpt56Luna.SupportedReasoningLevels))
 	require.Equal(t, "medium", *gpt56Luna.DefaultReasoningLevel)
 
+	gpt6Sol := newConfiguredCodexModelDescriptor("gpt-6-sol")
+	require.Equal(t, effortsFromConfiguredCodexLevels(gpt56.SupportedReasoningLevels), effortsFromConfiguredCodexLevels(gpt6Sol.SupportedReasoningLevels))
+	require.Equal(t, *gpt56.DefaultReasoningLevel, *gpt6Sol.DefaultReasoningLevel)
+	require.True(t, isOpenAICodexReasoningGPTModel("openai/gpt-6-sol"))
+
+	gpt6Luna := newConfiguredCodexModelDescriptor("gpt-6-luna")
+	require.Equal(t, effortsFromConfiguredCodexLevels(gpt56Luna.SupportedReasoningLevels), effortsFromConfiguredCodexLevels(gpt6Luna.SupportedReasoningLevels))
+	require.Equal(t, *gpt56Luna.DefaultReasoningLevel, *gpt6Luna.DefaultReasoningLevel)
+	require.True(t, isOpenAICodexReasoningGPTModel("openai/gpt-6-luna"))
+
 	gpt6Astra := newConfiguredCodexModelDescriptor("gpt-6-astra")
 	require.Equal(t, "GPT-6 Astra", gpt6Astra.DisplayName)
 	require.True(t, strings.HasPrefix(strings.TrimSpace(gpt6Astra.ModelMessages.InstructionsTemplate), "You are Codex, an agent based on GPT-6."))
