@@ -353,11 +353,13 @@ func TestNewConfiguredCodexModelDescriptorUsesProviderMetadataAndSafeFallback(t 
 	require.Equal(t, effortsFromConfiguredCodexLevels(gpt56.SupportedReasoningLevels), effortsFromConfiguredCodexLevels(gpt6Sol.SupportedReasoningLevels))
 	require.Equal(t, *gpt56.DefaultReasoningLevel, *gpt6Sol.DefaultReasoningLevel)
 	require.True(t, isOpenAICodexReasoningGPTModel("openai/gpt-6-sol"))
+	require.True(t, isOpenAICodexImageInputModel("openai/gpt-6-sol"))
 
 	gpt6Luna := newConfiguredCodexModelDescriptor("gpt-6-luna")
 	require.Equal(t, effortsFromConfiguredCodexLevels(gpt56Luna.SupportedReasoningLevels), effortsFromConfiguredCodexLevels(gpt6Luna.SupportedReasoningLevels))
 	require.Equal(t, *gpt56Luna.DefaultReasoningLevel, *gpt6Luna.DefaultReasoningLevel)
 	require.True(t, isOpenAICodexReasoningGPTModel("openai/gpt-6-luna"))
+	require.True(t, isOpenAICodexImageInputModel("openai/gpt-6-luna"))
 
 	gpt6Astra := newConfiguredCodexModelDescriptor("gpt-6-astra")
 	require.Equal(t, "GPT-6 Astra", gpt6Astra.DisplayName)
@@ -2314,12 +2316,12 @@ func TestCompleteAPIKeyCodexModelsManifestForClientMarksOnlyOfficialVisionGPTIma
 	t.Parallel()
 
 	svc := &OpenAIGatewayService{}
-	manifest := &OpenAIModelsResponse{Body: []byte(`{"models":[{"slug":"gpt-6-astra"},{"slug":"gpt-5.6-sol"},{"slug":"gpt-4o"},{"slug":"gpt-3.5-turbo"},{"slug":"gpt-4"}]}`)}
+	manifest := &OpenAIModelsResponse{Body: []byte(`{"models":[{"slug":"gpt-6-astra"},{"slug":"gpt-6-sol"},{"slug":"gpt-6-luna"},{"slug":"gpt-5.6-sol"},{"slug":"gpt-4o"},{"slug":"gpt-3.5-turbo"},{"slug":"gpt-4"}]}`)}
 	account := newCodexModelsAPIKeyTestAccount("")
 
 	require.NoError(t, svc.CompleteAPIKeyCodexModelsManifestForClient(manifest, account))
 	models := decodeCodexManifestModels(t, manifest.Body)
-	require.Len(t, models, 5)
+	require.Len(t, models, 7)
 
 	bySlug := make(map[string]map[string]any, len(models))
 	for _, model := range models {
@@ -2327,7 +2329,7 @@ func TestCompleteAPIKeyCodexModelsManifestForClientMarksOnlyOfficialVisionGPTIma
 		require.True(t, ok)
 		bySlug[slug] = model
 	}
-	for _, slug := range []string{"gpt-6-astra", "gpt-5.6-sol", "gpt-4o"} {
+	for _, slug := range []string{"gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gpt-5.6-sol", "gpt-4o"} {
 		require.Equal(t, []any{"text", "image"}, bySlug[slug]["input_modalities"])
 		require.Equal(t, true, bySlug[slug]["supports_image_detail_original"])
 	}

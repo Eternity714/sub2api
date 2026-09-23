@@ -652,6 +652,8 @@ func isOpenAICodexReasoningGPTModel(modelID string) bool {
 func isOpenAICodexImageInputModel(modelID string) bool {
 	normalized := canonicalizeOpenAIModelAliasSpelling(modelID)
 	return isOpenAIGPT6AstraModel(normalized) ||
+		isOpenAIGPT6SolModel(normalized) ||
+		isOpenAIGPT6LunaModel(normalized) ||
 		strings.HasPrefix(normalized, "gpt-5") ||
 		strings.HasPrefix(normalized, "gpt-4o") ||
 		strings.HasPrefix(normalized, "gpt-4.1") ||
