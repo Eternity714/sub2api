@@ -429,12 +429,12 @@ func (r *grsaiSettlementRepository) ClaimDueForDeliveryMode(ctx context.Context,
 	return r.claimDue(ctx, now, limit, leaseUntil, mode)
 }
 
-func (r *grsaiSettlementRepository) claimAsyncDue(ctx context.Context, now time.Time, limit int, leaseUntil time.Time) ([]*GrsaiSettlement, error) {
+func (r *grsaiSettlementRepository) claimAsyncDue(ctx context.Context, now time.Time, _ int, leaseUntil time.Time) ([]*GrsaiSettlement, error) {
 	if r.db == nil || now.IsZero() || !leaseUntil.After(now) {
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
 	// One transition per transaction keeps the capacity check exact.
-	limit = 1
+	const limit = 1
 	// An eligibility prefilter avoids a full user's waiting tasks starving other
 	// users. The limit is checked again after the per-user transaction lock.
 	var userID int64
@@ -727,12 +727,13 @@ func (r *grsaiSettlementRepository) terminalWithHold(ctx context.Context, id, cl
 		}
 		return err
 	}
+	validStatus := record.InternalStatus == GrsaiSettlementStatusProcessing || (record.InternalStatus == GrsaiSettlementStatusPendingUpstream && claimVersion == 0)
 	if guard == "unsubmitted" {
 		if (record.InternalStatus != GrsaiSettlementStatusProcessing && record.InternalStatus != GrsaiSettlementStatusPendingUpstream) || record.UpstreamTaskID != nil || record.UpstreamStatus != "not_submitted" {
 			return service.ErrGrsaiSettlementClaimLost
 		}
 		claimVersion = record.ClaimVersion
-	} else if record.ClaimVersion != claimVersion || (record.InternalStatus != GrsaiSettlementStatusProcessing && !(record.InternalStatus == GrsaiSettlementStatusPendingUpstream && claimVersion == 0)) || (guard == "unbound" && record.UpstreamTaskID != nil) {
+	} else if record.ClaimVersion != claimVersion || !validStatus || (guard == "unbound" && record.UpstreamTaskID != nil) {
 		return service.ErrGrsaiSettlementClaimLost
 	}
 	if record.HoldState == "held" {
@@ -741,9 +742,10 @@ func (r *grsaiSettlementRepository) terminalWithHold(ctx context.Context, id, cl
 		}
 	}
 	where := ` AND (internal_status = 'processing' OR (internal_status = 'pending_upstream' AND $2 = 0))`
-	if guard == "unsubmitted" {
+	switch guard {
+	case "unsubmitted":
 		where = ` AND internal_status IN ('processing','pending_upstream') AND upstream_status = 'not_submitted' AND upstream_task_id IS NULL`
-	} else if guard == "unbound" {
+	case "unbound":
 		where += ` AND upstream_task_id IS NULL`
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE grsai_settlements SET internal_status = $3, hold_state = CASE WHEN hold_state = 'held' THEN 'released' ELSE hold_state END, settled_amount = 0, last_error_summary = NULLIF($4,''), closed_at = NOW(), updated_at = NOW() WHERE id = $1 AND claim_version = $2`+where, id, claimVersion, status, summary)

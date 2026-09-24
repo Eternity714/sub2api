@@ -114,12 +114,11 @@ func (s *GrsaiTaskService) CreateGrsaiTask(ctx context.Context, input GrsaiTaskI
 		releaseErr := s.Settlement.markManualReviewWithRelease(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "async payload could not be durably stored")
 		return nil, errors.Join(err, releaseErr)
 	}
-	if err := s.Repo.MarkPendingUpstream(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, now); err != nil {
-		// This update may have committed and been claimed by a worker before
-		// the error was observed. The payload and hold already exist; returning
-		// the task ID prevents the caller from creating a second one.
-		// If it did not commit, the processing lease makes it recoverable.
-	}
+	// This update may have committed and been claimed by a worker before
+	// an error is observed. The payload and hold already exist; returning
+	// the task ID prevents the caller from creating a second one.
+	// If it did not commit, the processing lease makes it recoverable.
+	_ = s.Repo.MarkPendingUpstream(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, now)
 	// MarkPendingUpstream is the last required durable write. Reading again
 	// through a canceled request could report failure for an accepted task.
 	claim.InternalStatus = "pending_upstream"
@@ -222,7 +221,7 @@ func (s *GrsaiTaskService) RunGrsaiTask(ctx context.Context, claim *GrsaiSettlem
 	if stream == nil || stream.Body == nil {
 		return nil, s.markManualReview(ctx, claim, "upstream stream unavailable")
 	}
-	defer stream.Body.Close()
+	defer func() { _ = stream.Body.Close() }()
 	final, consumeErr := s.Settlement.ConsumeGrsaiSSE(ctx, claim, stream.Body, func(event GrsaiStreamEvent) error {
 		// RecordStreamEvent has already durably bound the ID at this point.
 		if claim.UpstreamTaskID != nil && strings.TrimSpace(*claim.UpstreamTaskID) != "" {
@@ -364,7 +363,7 @@ func sanitizeGrsaiPublicSummary(value string) string {
 		if unicode.IsControl(r) {
 			continue
 		}
-		b.WriteRune(r)
+		_, _ = b.WriteRune(r)
 		if b.Len() >= maxGrsaiPublicErrorSummary {
 			break
 		}

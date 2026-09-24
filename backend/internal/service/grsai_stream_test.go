@@ -97,7 +97,9 @@ func TestOpenGenerateStreamRejectsNonSSEAndClosesBody(t *testing.T) {
 	client := NewGrsaiNativeClient(&http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: closeTrackingReader{Reader: strings.NewReader(`{"id":"task"}`), closed: &closed}}, nil
 	})})
-	_, err := client.(GrsaiStreamClient).OpenGenerateStream(context.Background(), grsaiTestAccount("https://api.grsai.example", "secret"), []byte(`{"model":"nano-banana-2-lite"}`))
+	streamClient, ok := client.(GrsaiStreamClient)
+	require.True(t, ok)
+	_, err := streamClient.OpenGenerateStream(context.Background(), grsaiTestAccount("https://api.grsai.example", "secret"), []byte(`{"model":"nano-banana-2-lite"}`))
 	require.ErrorIs(t, err, ErrGrsaiInvalidStreamResponse)
 	require.True(t, closed.Load())
 }
@@ -108,7 +110,9 @@ func TestOpenGenerateStreamRejectsNon2xxRedactsAndClosesBody(t *testing.T) {
 	client := NewGrsaiNativeClient(&http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: http.StatusBadGateway, Header: http.Header{"Content-Type": []string{"text/event-stream"}}, Body: closeTrackingReader{Reader: strings.NewReader("upstream " + secret), closed: &closed}}, nil
 	})})
-	_, err := client.(GrsaiStreamClient).OpenGenerateStream(context.Background(), grsaiTestAccount("https://api.grsai.example", secret), []byte(`{"model":"nano-banana-2-lite"}`))
+	streamClient, ok := client.(GrsaiStreamClient)
+	require.True(t, ok)
+	_, err := streamClient.OpenGenerateStream(context.Background(), grsaiTestAccount("https://api.grsai.example", secret), []byte(`{"model":"nano-banana-2-lite"}`))
 	require.ErrorIs(t, err, ErrGrsaiInvalidStreamResponse)
 	require.NotContains(t, err.Error(), secret)
 	require.True(t, closed.Load())
@@ -120,7 +124,9 @@ func TestOpenGenerateStreamExposesValidatedBodyAndHeaders(t *testing.T) {
 		gotAccept = req.Header.Get("Accept")
 		return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"text/event-stream; charset=utf-8"}}, Body: io.NopCloser(strings.NewReader("data: {}\n\n"))}, nil
 	})})
-	stream, err := client.(GrsaiStreamClient).OpenGenerateStream(context.Background(), grsaiTestAccount("https://api.grsai.example", "secret"), []byte(`{"model":"nano-banana-2-lite","replyType":"json"}`))
+	streamClient, ok := client.(GrsaiStreamClient)
+	require.True(t, ok)
+	stream, err := streamClient.OpenGenerateStream(context.Background(), grsaiTestAccount("https://api.grsai.example", "secret"), []byte(`{"model":"nano-banana-2-lite","replyType":"json"}`))
 	require.NoError(t, err)
 	require.Equal(t, "text/event-stream", gotAccept)
 	require.Equal(t, http.StatusOK, stream.StatusCode)

@@ -97,9 +97,9 @@ func ParseGrsaiSSE(r io.Reader, callback func(GrsaiStreamEvent) error) (*GrsaiUp
 			value := strings.TrimPrefix(line, "data:")
 			value = strings.TrimPrefix(value, " ")
 			if data.Len() > 0 {
-				data.WriteByte('\n')
+				_ = data.WriteByte('\n')
 			}
-			data.WriteString(value)
+			_, _ = data.WriteString(value)
 		}
 	}
 	if err := scanner.Err(); err != nil {
