@@ -138,22 +138,28 @@ def request(opener, method, url, key, deadline, body=None, accept="application/j
     return response
 
 
-def run_probe(args, env=None, opener=None):
-    if args != LIVE_FLAGS:
-        return 2, "usage: --live (or --self-test offline)"
-    if env is None:
-        env = os.environ
+def live_credentials(env):
     key = env.get("GRSAI_KEY", "").strip()
     base = env.get("GRSAI_BASE", "").strip()
     try:
         parsed = urllib.parse.urlsplit(base)
         port = parsed.port
     except ValueError:
-        return 2, "configuration_error: invalid GRSAI_BASE"
+        return None
     if (not key or not base or parsed.scheme != "https" or parsed.hostname !=
             "grsaiapi.com" or port is not None or parsed.username or
             parsed.password or parsed.query or parsed.fragment or parsed.path not in ("", "/")):
+        return None
+    return base.rstrip("/"), key
+
+
+def run_probe(args, env=None, opener=None):
+    if args != LIVE_FLAGS:
+        return 2, "usage: --live (or --self-test offline)"
+    credentials = live_credentials(os.environ if env is None else env)
+    if credentials is None:
         return 2, "configuration_error: require GRSAI_BASE and GRSAI_KEY"
+    base, key = credentials
     if opener is None:
         opener = urllib.request.build_opener(NoRedirect()).open
     deadline = time.monotonic() + 180
@@ -221,6 +227,89 @@ def event_result(raw):
     return task_id, status, None
 
 
+def compare_mode(mode, base, key, opener):
+    deadline = time.monotonic() + 180
+    summary = {"generate_http": None, "generate_status": None,
+               "result_http": None, "result_status": None, "result_id_match": None}
+    payload = json.dumps({"model": "nano-banana-2-lite", "replyType": mode, "prompt": PROMPT}).encode()
+    phase = "generate_post"
+    try:
+        with request(opener, "POST", base + "/v1/api/generate", key, deadline,
+                     payload, "text/event-stream" if mode == "stream" else "application/json") as response:
+            summary["generate_http"] = response.status
+            phase = "generate_read"
+            if mode == "stream":
+                if response.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "text/event-stream":
+                    raise ProbeError("invalid_content_type")
+                task_id, summary["generate_status"], _ = parse_stream(response, deadline)
+            else:
+                if response.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+                    raise ProbeError("invalid_content_type")
+                body = response.read(1 << 20)
+                if len(body) >= 1 << 20:
+                    raise ProbeError("response_too_large")
+                task_id, summary["generate_status"], _ = event_result(body)
+        url = base + "/v1/api/result?" + urllib.parse.urlencode({"id": task_id})
+        summary["result_http_history"] = []
+        for attempt in range(3):
+            phase = "result_get"
+            try:
+                with request(opener, "GET", url, key, deadline) as response:
+                    summary["result_http"] = response.status
+                    summary["result_http_history"].append(response.status)
+                    phase = "result_read"
+                    if response.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+                        raise ProbeError("invalid_content_type")
+                    body = response.read(1 << 20)
+                    if len(body) >= 1 << 20:
+                        raise ProbeError("response_too_large")
+                    result_id, summary["result_status"], _ = event_result(body)
+                    summary["result_id_match"] = result_id == task_id
+                    break
+            except urllib.error.HTTPError as exc:
+                summary["result_http"] = exc.code
+                summary["result_http_history"].append(exc.code)
+                exc.close()
+                if exc.code != 404 or attempt == 2:
+                    break
+                time.sleep(min(5, max(0, deadline - time.monotonic())))
+    except urllib.error.HTTPError as exc:
+        if phase == "generate_post":
+            summary["generate_http"] = exc.code
+        elif phase == "result_get":
+            summary["result_http"] = exc.code
+        else:
+            summary["error"] = phase + "_http_error"
+        exc.close()
+    except (urllib.error.URLError, TimeoutError):
+        summary["error"] = phase + "_transport_error"
+    except Exception as exc:
+        summary["error"] = phase + "_" + (exc.args[0] if isinstance(exc, ProbeError) else "transport_error")
+    return summary
+
+
+def run_mode_comparison(args, env=None, opener=None):
+    if args != ["--compare-modes"]:
+        return 2, "usage: --compare-modes"
+    credentials = live_credentials(os.environ if env is None else env)
+    if credentials is None:
+        return 2, "configuration_error: require GRSAI_BASE and GRSAI_KEY"
+    base, key = credentials
+    if opener is None:
+        opener = urllib.request.build_opener(NoRedirect()).open
+    results = {}
+    for mode in ("stream", "async", "json"):
+        results[mode] = compare_mode(mode, base, key, opener)
+        # A transport error during POST may still have submitted a task. Stop
+        # instead of creating more tasks while the outcome is unknown.
+        if results[mode].get("error") in ("generate_post_transport_error", "generate_read_transport_error"):
+            break
+    complete = len(results) == 3 and all(
+        item["generate_http"] == 200 and item["result_http"] is not None and "error" not in item
+        for item in results.values())
+    return 0 if complete else 1, json.dumps(results, separators=(",", ":"))
+
+
 class FakeResponse(io.BytesIO):
     def __init__(self, body, content_type):
         super().__init__(body)
@@ -233,6 +322,56 @@ def valid_env():
 
 
 class ProbeTests(unittest.TestCase):
+    def test_mode_comparison_checks_each_generated_id_once_without_leaking_data(self):
+        stream = b'data: {"id":"stream-private","status":"succeeded","results":["https://images.example/private.png"]}\n\n'
+        replies = [FakeResponse(stream, "text/event-stream"),
+                   FakeResponse(b'{"id":"async-private","status":"running"}', "application/json"),
+                   FakeResponse(b'{"id":"async-private","status":"running"}', "application/json"),
+                   FakeResponse(b'{"id":"json-private","status":"succeeded"}', "application/json")]
+        calls = []
+
+        def opener(req, timeout):
+            calls.append(req)
+            if req.get_method() == "GET" and ("stream-private" in req.full_url or "json-private" in req.full_url):
+                raise urllib.error.HTTPError(req.full_url, 404, "private", {}, io.BytesIO(b"private"))
+            return replies.pop(0)
+
+        with patch("time.sleep"):
+            code, output = run_mode_comparison(["--compare-modes"], valid_env(), opener)
+        self.assertEqual(0, code)
+        self.assertEqual(["POST", "GET", "GET", "GET", "POST", "GET", "POST", "GET", "GET", "GET"],
+                         [req.get_method() for req in calls])
+        self.assertEqual(["stream", "async", "json"],
+                         [json.loads(req.data)["replyType"] for req in calls if req.get_method() == "POST"])
+        results = json.loads(output)
+        self.assertEqual(404, results["stream"]["result_http"])
+        self.assertEqual([404, 404, 404], results["stream"]["result_http_history"])
+        self.assertEqual(200, results["async"]["result_http"])
+        self.assertTrue(results["async"]["result_id_match"])
+        self.assertEqual(404, results["json"]["result_http"])
+        for private in ("secret-key", "private", "red square", "images.example"):
+            self.assertNotIn(private, output)
+
+    def test_mode_comparison_requires_explicit_flag_and_credentials(self):
+        calls = []
+        opener = lambda req, timeout: calls.append(req)
+        self.assertEqual(2, run_mode_comparison([], valid_env(), opener)[0])
+        self.assertEqual(2, run_mode_comparison(["--compare-modes"], {}, opener)[0])
+        self.assertEqual([], calls)
+
+    def test_mode_comparison_stops_after_uncertain_post_transport(self):
+        calls = []
+
+        def failing(req, timeout):
+            calls.append(req)
+            raise urllib.error.URLError(TimeoutError("private"))
+
+        code, output = run_mode_comparison(["--compare-modes"], valid_env(), failing)
+        self.assertEqual(1, code)
+        self.assertEqual(["POST"], [req.get_method() for req in calls])
+        self.assertEqual("generate_post_transport_error", json.loads(output)["stream"]["error"])
+        self.assertNotIn("private", output)
+
     def test_default_and_invalid_flags_never_open_network(self):
         # @covers AC-008
         for args in ([], ["--live", "--max-credits", "10000"], ["--self-test", "--live"]):
@@ -386,6 +525,7 @@ if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         unittest.main(argv=[sys.argv[0]])
     else:
-        code, message = run_probe(sys.argv[1:])
+        code, message = (run_mode_comparison(sys.argv[1:]) if sys.argv[1:] == ["--compare-modes"]
+                         else run_probe(sys.argv[1:]))
         print(message)
         sys.exit(code)

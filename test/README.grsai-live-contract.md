@@ -30,6 +30,14 @@ or `result_parse`) without printing response bodies or task identifiers. A
 `result_get_http_status_404` after a successful stream is not a failed POST and
 must not be treated as evidence that the task was never submitted.
 
+For an explicit one-time comparison, `python test/grsai_live_contract.py --compare-modes`
+submits exactly one generation POST each for `stream`, `async`, and `json` (three
+billable tasks), then queries each returned ID. A 404 is retried with read-only
+GET at most twice, five seconds apart. Output contains only modes, HTTP status
+codes, normalized statuses, and ID-match booleans; it never prints IDs, prompts,
+image URLs, keys, or response bodies. If a generation POST has an uncertain
+transport outcome, the comparison stops instead of submitting the next mode.
+
 This probe validates the upstream protocol, not upstream costs. Exit 0 means the
 stream and result query matched; exit 1 denotes failed protocol/transport, and exit 2
 denotes input rejection. A successful probe does not validate local billing.
