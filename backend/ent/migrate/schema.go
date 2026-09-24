@@ -1016,6 +1016,138 @@ var (
 			},
 		},
 	}
+	// GrsaiSettlementsColumns holds the columns for the "grsai_settlements" table.
+	GrsaiSettlementsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "account_id", Type: field.TypeInt64},
+		{Name: "group_id", Type: field.TypeInt64},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "api_key_id", Type: field.TypeInt64},
+		{Name: "model", Type: field.TypeString, Size: 128},
+		{Name: "base_unit_price", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
+		{Name: "group_rate_multiplier", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
+		{Name: "account_rate_multiplier", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
+		{Name: "billable_unit_price", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
+		{Name: "requested_image_count", Type: field.TypeInt},
+		{Name: "currency", Type: field.TypeString, Size: 16, Default: "USD"},
+		{Name: "billing_idempotency_key", Type: field.TypeString, Size: 128},
+		{Name: "public_task_id", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "delivery_mode", Type: field.TypeString, Size: 16, Default: "json"},
+		{Name: "async_started_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "progress", Type: field.TypeInt, Default: 0},
+		{Name: "result_urls", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "hold_amount", Type: field.TypeFloat64, Default: 0},
+		{Name: "hold_state", Type: field.TypeString, Size: 16, Default: "none"},
+		{Name: "payload_delete_after", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "upstream_task_id", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "upstream_status", Type: field.TypeString, Size: 32, Default: "not_submitted"},
+		{Name: "internal_status", Type: field.TypeString, Size: 32, Default: "pending_upstream"},
+		{Name: "retry_count", Type: field.TypeInt, Default: 0},
+		{Name: "settlement_retry_count", Type: field.TypeInt, Default: 0},
+		{Name: "claim_version", Type: field.TypeInt64, Default: 0},
+		{Name: "next_attempt_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "last_error_summary", Type: field.TypeString, Nullable: true, Size: 1024},
+		{Name: "settled_amount", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "upstream_bound_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "result_updated_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "settled_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "closed_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// GrsaiSettlementsTable holds the schema information for the "grsai_settlements" table.
+	GrsaiSettlementsTable = &schema.Table{
+		Name:       "grsai_settlements",
+		Columns:    GrsaiSettlementsColumns,
+		PrimaryKey: []*schema.Column{GrsaiSettlementsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "grsaisettlement_billing_idempotency_key",
+				Unique:  true,
+				Columns: []*schema.Column{GrsaiSettlementsColumns[12]},
+			},
+			{
+				Name:    "grsaisettlement_public_task_id",
+				Unique:  true,
+				Columns: []*schema.Column{GrsaiSettlementsColumns[13]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "public_task_id IS NOT NULL",
+				},
+			},
+			{
+				Name:    "grsaisettlement_user_id_api_key_id_public_task_id",
+				Unique:  false,
+				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[4], GrsaiSettlementsColumns[13]},
+			},
+			{
+				Name:    "grsaisettlement_user_id_api_key_id_upstream_task_id",
+				Unique:  false,
+				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[4], GrsaiSettlementsColumns[22]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "upstream_task_id IS NOT NULL",
+				},
+			},
+			{
+				Name:    "grsaisettlement_account_id_upstream_task_id",
+				Unique:  true,
+				Columns: []*schema.Column{GrsaiSettlementsColumns[1], GrsaiSettlementsColumns[22]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "upstream_task_id IS NOT NULL AND upstream_task_id <> ''",
+				},
+			},
+			{
+				Name:    "grsaisettlement_internal_status_next_attempt_at",
+				Unique:  false,
+				Columns: []*schema.Column{GrsaiSettlementsColumns[24], GrsaiSettlementsColumns[28]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "internal_status IN ('pending_upstream', 'pending_settlement', 'processing')",
+				},
+			},
+			{
+				Name:    "grsaisettlement_user_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[31]},
+			},
+			{
+				Name:    "grsai_settlements_async_user_capacity_idx",
+				Unique:  false,
+				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[15], GrsaiSettlementsColumns[24]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "delivery_mode = 'async'",
+				},
+			},
+		},
+	}
+	// GrsaiTaskPayloadsColumns holds the columns for the "grsai_task_payloads" table.
+	GrsaiTaskPayloadsColumns = []*schema.Column{
+		{Name: "settlement_id", Type: field.TypeInt64},
+		{Name: "ciphertext", Type: field.TypeString},
+		{Name: "expires_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// GrsaiTaskPayloadsTable holds the schema information for the "grsai_task_payloads" table.
+	GrsaiTaskPayloadsTable = &schema.Table{
+		Name:       "grsai_task_payloads",
+		Columns:    GrsaiTaskPayloadsColumns,
+		PrimaryKey: []*schema.Column{GrsaiTaskPayloadsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "grsai_task_payloads_grsai_settlements_task_payload",
+				Columns:    []*schema.Column{GrsaiTaskPayloadsColumns[0]},
+				RefColumns: []*schema.Column{GrsaiSettlementsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "grsaitaskpayload_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{GrsaiTaskPayloadsColumns[2]},
+			},
+		},
+	}
 	// IdempotencyRecordsColumns holds the columns for the "idempotency_records" table.
 	IdempotencyRecordsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -2105,6 +2237,8 @@ var (
 		CompositeModelRoutesTable,
 		ErrorPassthroughRulesTable,
 		GroupsTable,
+		GrsaiSettlementsTable,
+		GrsaiTaskPayloadsTable,
 		IdempotencyRecordsTable,
 		IdentityAdoptionDecisionsTable,
 		PaymentAuditLogsTable,
@@ -2195,6 +2329,13 @@ func init() {
 	}
 	GroupsTable.Annotation = &entsql.Annotation{
 		Table: "groups",
+	}
+	GrsaiSettlementsTable.Annotation = &entsql.Annotation{
+		Table: "grsai_settlements",
+	}
+	GrsaiTaskPayloadsTable.ForeignKeys[0].RefTable = GrsaiSettlementsTable
+	GrsaiTaskPayloadsTable.Annotation = &entsql.Annotation{
+		Table: "grsai_task_payloads",
 	}
 	IdempotencyRecordsTable.Annotation = &entsql.Annotation{
 		Table: "idempotency_records",

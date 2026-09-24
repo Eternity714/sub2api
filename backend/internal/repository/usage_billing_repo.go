@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
@@ -16,6 +17,7 @@ type usageBillingRepository struct {
 }
 
 var _ service.UsageBillingTransactionalRepository = (*usageBillingRepository)(nil)
+var _ service.GrsaiHoldBillingRepository = (*usageBillingRepository)(nil)
 
 func NewUsageBillingRepository(_ *dbent.Client, sqlDB *sql.DB) service.UsageBillingRepository {
 	return &usageBillingRepository{db: sqlDB}
@@ -144,6 +146,160 @@ func (r *usageBillingRepository) CaptureBatchImageBalance(ctx context.Context, c
 
 func (r *usageBillingRepository) ReleaseBatchImageBalance(ctx context.Context, cmd *service.BatchImageBalanceHoldCommand) (*service.BatchImageBalanceHoldResult, error) {
 	return r.applyBatchImageBalanceHold(ctx, cmd, releaseUsageBillingBatchImageBalance)
+}
+
+func (r *usageBillingRepository) ReserveGrsaiBalance(ctx context.Context, cmd *service.GrsaiBalanceHoldCommand) (*service.GrsaiBalanceHoldResult, error) {
+	if cmd == nil || cmd.IdempotencyKey == "" {
+		return nil, service.ErrUsageBillingRequestIDRequired
+	}
+	if r == nil || r.db == nil {
+		return nil, errors.New("usage billing repository db is nil")
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := r.ReserveGrsaiBalanceTx(ctx, tx, cmd)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (r *usageBillingRepository) ReserveGrsaiBalanceTx(ctx context.Context, tx *sql.Tx, cmd *service.GrsaiBalanceHoldCommand) (*service.GrsaiBalanceHoldResult, error) {
+	if tx == nil || cmd == nil || cmd.IdempotencyKey == "" {
+		return nil, service.ErrUsageBillingRequestIDRequired
+	}
+	applied, err := r.claimUsageBillingRequest(ctx, tx, cmd.IdempotencyKey, cmd.APIKeyID, grsaiHoldFingerprint(cmd))
+	if err != nil {
+		return nil, err
+	}
+	if !applied {
+		return &service.GrsaiBalanceHoldResult{Applied: false}, nil
+	}
+	result, err := reserveGrsaiBalanceTx(ctx, tx, cmd)
+	if err != nil {
+		return nil, err
+	}
+	result.Applied = true
+	return result, nil
+}
+
+func (r *usageBillingRepository) ReleaseGrsaiBalance(ctx context.Context, cmd *service.GrsaiBalanceHoldCommand) (*service.GrsaiBalanceHoldResult, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("usage billing repository db is nil")
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := r.ReleaseGrsaiBalanceTx(ctx, tx, cmd)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (r *usageBillingRepository) CaptureGrsaiBalanceTx(ctx context.Context, tx *sql.Tx, cmd *service.GrsaiBalanceHoldCommand) (*service.GrsaiBalanceHoldResult, error) {
+	if cmd == nil || cmd.IdempotencyKey == "" {
+		return nil, service.ErrUsageBillingRequestIDRequired
+	}
+	applied, err := r.claimUsageBillingRequest(ctx, tx, cmd.IdempotencyKey, cmd.APIKeyID, grsaiHoldFingerprint(cmd))
+	if err != nil {
+		return nil, err
+	}
+	if !applied {
+		return &service.GrsaiBalanceHoldResult{Applied: false}, nil
+	}
+	result, err := captureGrsaiBalanceTx(ctx, tx, cmd)
+	if err != nil {
+		return nil, err
+	}
+	result.Applied = true
+	return result, nil
+}
+
+func (r *usageBillingRepository) ReleaseGrsaiBalanceTx(ctx context.Context, tx *sql.Tx, cmd *service.GrsaiBalanceHoldCommand) (*service.GrsaiBalanceHoldResult, error) {
+	if cmd == nil || cmd.IdempotencyKey == "" {
+		return nil, service.ErrUsageBillingRequestIDRequired
+	}
+	applied, err := r.claimUsageBillingRequest(ctx, tx, cmd.IdempotencyKey, cmd.APIKeyID, grsaiHoldFingerprint(cmd))
+	if err != nil {
+		return nil, err
+	}
+	if !applied {
+		return &service.GrsaiBalanceHoldResult{Applied: false}, nil
+	}
+	result, err := releaseGrsaiBalanceTx(ctx, tx, cmd)
+	if err != nil {
+		return nil, err
+	}
+	result.Applied = true
+	return result, nil
+}
+
+func grsaiHoldFingerprint(cmd *service.GrsaiBalanceHoldCommand) string {
+	return fmt.Sprintf("%d|%d|%.8f", cmd.SettlementID, cmd.UserID, cmd.Amount)
+}
+
+func reserveGrsaiBalanceTx(ctx context.Context, tx *sql.Tx, cmd *service.GrsaiBalanceHoldCommand) (*service.GrsaiBalanceHoldResult, error) {
+	if cmd.Amount <= 0 {
+		return &service.GrsaiBalanceHoldResult{}, nil
+	}
+	var balance, frozen float64
+	err := tx.QueryRowContext(ctx, `UPDATE users SET balance = balance - $1, frozen_balance = COALESCE(frozen_balance,0) + $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL AND balance >= $1 RETURNING balance, frozen_balance`, cmd.Amount, cmd.UserID).Scan(&balance, &frozen)
+	if err == nil {
+		return &service.GrsaiBalanceHoldResult{NewBalance: &balance, Frozen: &frozen}, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+	exists, e := userExistsForBilling(ctx, tx, cmd.UserID)
+	if e != nil {
+		return nil, e
+	}
+	if !exists {
+		return nil, service.ErrUserNotFound
+	}
+	return nil, service.ErrGrsaiInsufficientBalance
+}
+
+func captureGrsaiBalanceTx(ctx context.Context, tx *sql.Tx, cmd *service.GrsaiBalanceHoldCommand) (*service.GrsaiBalanceHoldResult, error) {
+	if cmd.Amount <= 0 {
+		return &service.GrsaiBalanceHoldResult{}, nil
+	}
+	var balance, frozen float64
+	err := tx.QueryRowContext(ctx, `UPDATE users SET frozen_balance = COALESCE(frozen_balance,0) - $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL AND COALESCE(frozen_balance,0) >= $1 RETURNING balance, frozen_balance`, cmd.Amount, cmd.UserID).Scan(&balance, &frozen)
+	if err == nil {
+		return &service.GrsaiBalanceHoldResult{NewBalance: &balance, Frozen: &frozen}, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+	return nil, errors.New("grsai frozen balance is insufficient")
+}
+
+func releaseGrsaiBalanceTx(ctx context.Context, tx *sql.Tx, cmd *service.GrsaiBalanceHoldCommand) (*service.GrsaiBalanceHoldResult, error) {
+	if cmd.Amount <= 0 {
+		return &service.GrsaiBalanceHoldResult{}, nil
+	}
+	var balance, frozen float64
+	err := tx.QueryRowContext(ctx, `UPDATE users SET balance = balance + $1, frozen_balance = COALESCE(frozen_balance,0) - $1, updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL AND COALESCE(frozen_balance,0) >= $1 RETURNING balance, frozen_balance`, cmd.Amount, cmd.UserID).Scan(&balance, &frozen)
+	if err == nil {
+		return &service.GrsaiBalanceHoldResult{NewBalance: &balance, Frozen: &frozen}, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+	return nil, errors.New("grsai frozen balance is insufficient")
 }
 
 func (r *usageBillingRepository) applyBatchImageBalanceHold(

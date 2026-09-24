@@ -35,6 +35,296 @@ func TestGrsaiSettlementRepository_DerivesUniqueBillingIdempotencyKeyFromSettlem
 	require.NotEqual(t, firstRecord.BillingIdempotencyKey, secondRecord.BillingIdempotencyKey)
 }
 
+func TestGrsaiDeliveryCleanupOnlyExpiredSafeTerminalRows(t *testing.T) {
+	ctx := context.Background()
+	repo := NewGrsaiSettlementRepository(integrationDB)
+	now := time.Now().UTC()
+	cutoff := now.Add(-24 * time.Hour)
+	type row struct {
+		mode, state, hold string
+		closed            time.Time
+		created, expires  time.Time
+		wantDeleted       bool
+	}
+	cases := []row{
+		{mode: "async", state: "settled", hold: "captured", closed: cutoff.Add(-time.Second), wantDeleted: true},
+		{mode: "json", state: "closed_no_charge", hold: "released", closed: cutoff.Add(-time.Second), wantDeleted: true},
+		{mode: "stream", state: "settled", hold: "none", closed: cutoff.Add(-time.Second), wantDeleted: true},
+		{mode: "async", state: "settled", hold: "captured", closed: cutoff.Add(time.Second)},
+		{mode: "async", state: "pending_settlement", hold: "held", closed: cutoff.Add(-time.Second)},
+		{mode: "async", state: "manual_review", hold: "released", closed: cutoff.Add(-time.Second)},
+		{mode: "async", state: "closed_no_charge", hold: "held", closed: cutoff.Add(-time.Second)},
+		{mode: "async", state: "settled", hold: "captured", closed: cutoff.Add(-time.Second), created: now.Add(-48 * time.Hour), expires: now.Add(120 * time.Hour)},
+		{mode: "async", state: "settled", hold: "captured", closed: now.Add(-2 * time.Hour), created: now.Add(-48 * time.Hour), expires: now.Add(-47 * time.Hour), wantDeleted: true},
+	}
+	ids := make([]int64, 0, len(cases))
+	for i, tc := range cases {
+		params := grsaiSettlementTestParams(t, "cleanup")
+		params.DeliveryMode = service.GrsaiDeliveryMode(tc.mode)
+		record, err := repo.Create(ctx, params)
+		require.NoError(t, err)
+		cleanupCreatedGrsaiSettlements(t, record)
+		ids = append(ids, record.ID)
+		if tc.created.IsZero() {
+			_, err = integrationDB.ExecContext(ctx, `UPDATE grsai_settlements SET internal_status = $2, hold_state = $3, closed_at = $4 WHERE id = $1`, record.ID, tc.state, tc.hold, tc.closed)
+		} else {
+			_, err = integrationDB.ExecContext(ctx, `UPDATE grsai_settlements SET internal_status = $2, hold_state = $3, closed_at = $4, created_at = $5, expires_at = $6 WHERE id = $1`, record.ID, tc.state, tc.hold, tc.closed, tc.created, tc.expires)
+		}
+		require.NoError(t, err, "case %d", i)
+	}
+	deleted, err := repo.DeleteTerminal(ctx, now, 24*time.Hour, 100)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, deleted, int64(4))
+	for i, id := range ids {
+		var count int
+		require.NoError(t, integrationDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM grsai_settlements WHERE id = $1`, id).Scan(&count))
+		if cases[i].wantDeleted {
+			require.Zero(t, count, "case %d", i)
+		} else {
+			require.Equal(t, 1, count, "case %d", i)
+		}
+	}
+}
+
+func TestGrsaiDeliveryCleanupRemovesBoundPayloadBeforeTTLButKeepsQueue(t *testing.T) {
+	ctx := context.Background()
+	repo := NewGrsaiSettlementRepository(integrationDB)
+	payloads := NewGrsaiTaskPayloadRepository(integrationDB, testSecretEncryptor{})
+	now := time.Now().UTC()
+	ids := make([]int64, 0, 2)
+	for i := 0; i < 2; i++ {
+		params := grsaiSettlementTestParams(t, "cleanup-payload")
+		params.DeliveryMode = service.GrsaiDeliveryAsync
+		record, err := repo.Create(ctx, params)
+		require.NoError(t, err)
+		cleanupCreatedGrsaiSettlements(t, record)
+		ids = append(ids, record.ID)
+		require.NoError(t, payloads.PutEncrypted(ctx, record.ID, []byte(`{"prompt":"private"}`), now.Add(time.Hour)))
+	}
+	_, err := integrationDB.ExecContext(ctx, `UPDATE grsai_settlements SET upstream_task_id = $2 WHERE id = $1`, ids[1], "bound-cleanup-task")
+	require.NoError(t, err)
+	_, err = payloads.DeleteExpired(ctx, now)
+	require.NoError(t, err)
+	_, err = payloads.GetEncrypted(ctx, ids[0])
+	require.NoError(t, err)
+	_, err = payloads.GetEncrypted(ctx, ids[1])
+	require.ErrorIs(t, err, service.ErrGrsaiTaskPayloadNotFound)
+}
+
+func TestGrsaiDeliveryCleanupKeepsExpiredSubmittingPayloadForUnsentFenceRollback(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now().UTC()
+	params := grsaiSettlementTestParams(t, "submitting-payload")
+	params.DeliveryMode = service.GrsaiDeliveryAsync
+	repo := NewGrsaiSettlementRepository(integrationDB)
+	record, err := repo.Create(ctx, params)
+	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
+	payloads := NewGrsaiTaskPayloadRepository(integrationDB, testSecretEncryptor{})
+	require.NoError(t, payloads.PutEncrypted(ctx, record.ID, []byte(`{"model":"m","replyType":"async"}`), now.Add(-time.Hour)))
+	_, err = integrationDB.ExecContext(ctx, `UPDATE grsai_settlements SET internal_status = 'processing', upstream_status = 'submitting', claim_version = 1 WHERE id = $1`, record.ID)
+	require.NoError(t, err)
+	_, err = payloads.DeleteExpired(ctx, now)
+	require.NoError(t, err)
+	require.NoError(t, repo.DeferUnsentSubmission(ctx, record.ID, 1, now.Add(time.Minute)))
+	got, err := payloads.GetEncrypted(ctx, record.ID)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"model":"m","replyType":"async"}`, string(got))
+}
+
+// @covers AC-009 AC-011
+func TestGrsaiSettlementRepository_AsyncWaitingLimitAcrossConcurrentKeys(t *testing.T) {
+	ctx := context.Background()
+	repo := NewGrsaiSettlementRepository(integrationDB)
+	userID := time.Now().UnixNano()
+	start := make(chan struct{})
+	results := make(chan *GrsaiSettlement, 25)
+	errs := make(chan error, 25)
+	var wg sync.WaitGroup
+	for i := 0; i < 25; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			<-start
+			params := grsaiSettlementTestParams(t, "async-admission")
+			params.UserID = userID
+			params.APIKeyID += int64(i % 2)
+			params.DeliveryMode = service.GrsaiDeliveryAsync
+			params.AsyncWaitingLimit = 20
+			record, err := repo.Create(ctx, params)
+			if err == nil {
+				results <- record
+			} else {
+				errs <- err
+			}
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+	close(errs)
+	accepted := 0
+	for record := range results {
+		cleanupCreatedGrsaiSettlements(t, record)
+		accepted++
+	}
+	require.Equal(t, 20, accepted)
+	rejected := 0
+	for err := range errs {
+		require.ErrorIs(t, err, service.ErrGrsaiAsyncQueueFull)
+		rejected++
+	}
+	require.Equal(t, 5, rejected)
+}
+
+// @covers AC-010 AC-011
+func TestGrsaiSettlementRepository_AsyncRunningLimitAndLeaseRecovery(t *testing.T) {
+	ctx := context.Background()
+	repo := NewGrsaiSettlementRepository(integrationDB)
+	userID := time.Now().UnixNano()
+	now := time.Now().UTC()
+	for i := 0; i < 4; i++ {
+		params := grsaiSettlementTestParams(t, "async-running")
+		params.UserID = userID
+		params.APIKeyID += int64(i % 2)
+		params.DeliveryMode = service.GrsaiDeliveryAsync
+		params.AsyncWaitingLimit = 20
+		params.NextAttemptAt = now.Add(-time.Minute)
+		record, err := repo.Create(ctx, params)
+		require.NoError(t, err)
+		cleanupCreatedGrsaiSettlements(t, record)
+	}
+	start := make(chan struct{})
+	results := make(chan []*GrsaiSettlement, 4)
+	var wg sync.WaitGroup
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			claims, err := repo.ClaimDueForDeliveryMode(ctx, now, 1, now.Add(time.Hour), service.GrsaiDeliveryAsync)
+			if err != nil {
+				results <- nil
+				return
+			}
+			results <- claims
+		}()
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+	active := make([]*GrsaiSettlement, 0, 3)
+	for claims := range results {
+		active = append(active, claims...)
+	}
+	require.Len(t, active, 3)
+	var waiting, running int
+	require.NoError(t, integrationDB.QueryRowContext(ctx, `SELECT COUNT(*) FILTER (WHERE async_started_at IS NULL), COUNT(*) FILTER (WHERE async_started_at IS NOT NULL) FROM grsai_settlements WHERE user_id = $1 AND delivery_mode = 'async'`, userID).Scan(&waiting, &running))
+	require.Equal(t, 1, waiting)
+	require.Equal(t, 3, running)
+	// An expired lease may be reclaimed without consuming a fourth slot.
+	recovered, err := repo.ClaimDueForDeliveryMode(ctx, now.Add(2*time.Hour), 1, now.Add(3*time.Hour), service.GrsaiDeliveryAsync)
+	require.NoError(t, err)
+	require.Len(t, recovered, 1)
+	require.Contains(t, []int64{active[0].ID, active[1].ID, active[2].ID}, recovered[0].ID)
+	require.NoError(t, repo.CloseNoCharge(ctx, recovered[0].ID, recovered[0].ClaimVersion, "test closed"))
+	claimed, err := repo.ClaimDueForDeliveryMode(ctx, now.Add(time.Second), 1, now.Add(time.Hour), service.GrsaiDeliveryAsync)
+	require.NoError(t, err)
+	require.Len(t, claimed, 1)
+	require.NotContains(t, []int64{active[0].ID, active[1].ID, active[2].ID}, claimed[0].ID)
+}
+
+func TestGrsaiSettlementRepository_UnsentSubmissionFenceCanBeRearmedByOwner(t *testing.T) {
+	ctx := context.Background()
+	repo := NewGrsaiSettlementRepository(integrationDB)
+	params := grsaiSettlementTestParams(t, "unsent-fence-rearm")
+	params.UserID = time.Now().UnixNano()
+	params.DeliveryMode = service.GrsaiDeliveryAsync
+	params.AsyncWaitingLimit = 20
+	record, err := repo.Create(ctx, params)
+	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
+	claim, err := repo.ClaimByID(ctx, record.ID, time.Now(), time.Now().Add(time.Hour))
+	require.NoError(t, err)
+	marked, err := repo.MarkSubmitting(ctx, claim.ID, claim.ClaimVersion)
+	require.NoError(t, err)
+	require.True(t, marked)
+	require.NoError(t, repo.DeferUnsentSubmission(ctx, claim.ID, claim.ClaimVersion, time.Now().Add(-time.Second)))
+	stored, err := repo.GetByID(ctx, record.ID)
+	require.NoError(t, err)
+	require.Equal(t, "pending_upstream", stored.InternalStatus)
+	require.Equal(t, "not_submitted", stored.UpstreamStatus)
+	next, err := repo.ClaimByID(ctx, record.ID, time.Now(), time.Now().Add(time.Hour))
+	require.NoError(t, err)
+	require.Greater(t, next.ClaimVersion, claim.ClaimVersion)
+	require.ErrorIs(t, repo.DeferUnsentSubmission(ctx, claim.ID, claim.ClaimVersion, time.Now().Add(time.Minute)), service.ErrGrsaiSettlementClaimLost)
+}
+
+func TestGrsaiSettlementRepository_PreBindTerminalRejectsCommittedBinding(t *testing.T) {
+	ctx := context.Background()
+	repo := NewGrsaiSettlementRepository(integrationDB)
+	params := grsaiSettlementTestParams(t, "prebind-bound-guard")
+	record, err := repo.Create(ctx, params)
+	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
+	claim, err := repo.ClaimByID(ctx, record.ID, time.Now(), time.Now().Add(time.Hour))
+	require.NoError(t, err)
+	bound, err := repo.BindUpstreamTask(ctx, claim.ID, claim.ClaimVersion, uniqueTestValue(t, "first-frame"), "running")
+	require.NoError(t, err)
+	require.True(t, bound)
+	released := false
+	err = repo.MarkPreBindManualReviewWithRelease(ctx, claim.ID, claim.ClaimVersion, "first frame failed", func(context.Context, *sql.Tx, *GrsaiSettlement) error {
+		released = true
+		return nil
+	})
+	require.ErrorIs(t, err, service.ErrGrsaiSettlementClaimLost)
+	require.False(t, released)
+	stored, err := repo.GetByID(ctx, record.ID)
+	require.NoError(t, err)
+	require.Equal(t, "processing", stored.InternalStatus)
+	require.NotNil(t, stored.UpstreamTaskID)
+}
+
+func TestGrsaiTaskPayloadRepository_QueuedTaskSurvivesPayloadTTL(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now().UTC()
+	params := grsaiSettlementTestParams(t, "queued-payload-ttl")
+	params.UserID = now.UnixNano()
+	params.DeliveryMode = service.GrsaiDeliveryAsync
+	params.AsyncWaitingLimit = 20
+	record, err := NewGrsaiSettlementRepository(integrationDB).Create(ctx, params)
+	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
+	payloads := NewGrsaiTaskPayloadRepository(integrationDB, testSecretEncryptor{})
+	original := []byte(`{"model":"grsai-image","replyType":"async"}`)
+	require.NoError(t, payloads.PutEncrypted(ctx, record.ID, original, now.Add(-time.Minute)))
+	deleted, err := payloads.DeleteExpired(ctx, now)
+	require.NoError(t, err)
+	require.Zero(t, deleted)
+	got, err := payloads.GetEncrypted(ctx, record.ID)
+	require.NoError(t, err)
+	require.Equal(t, original, got)
+	claim, err := NewGrsaiSettlementRepository(integrationDB).ClaimByID(ctx, record.ID, now, now.Add(time.Hour))
+	require.NoError(t, err)
+	got, err = payloads.GetEncrypted(ctx, record.ID)
+	require.NoError(t, err)
+	require.Equal(t, original, got)
+	marked, err := NewGrsaiSettlementRepository(integrationDB).MarkSubmitting(ctx, claim.ID, claim.ClaimVersion)
+	require.NoError(t, err)
+	require.True(t, marked)
+	_, err = payloads.GetEncrypted(ctx, record.ID)
+	require.ErrorIs(t, err, service.ErrGrsaiTaskPayloadNotFound)
+	deleted, err = payloads.DeleteExpired(ctx, now)
+	require.NoError(t, err)
+	require.Zero(t, deleted)
+	bound, err := NewGrsaiSettlementRepository(integrationDB).BindUpstreamTask(ctx, claim.ID, claim.ClaimVersion, "bound-queued-payload", service.GrsaiUpstreamStatusRunning)
+	require.NoError(t, err)
+	require.True(t, bound)
+	deleted, err = payloads.DeleteExpired(ctx, now)
+	require.NoError(t, err)
+	require.EqualValues(t, 1, deleted)
+}
+
 func TestGrsaiSettlementRepository_DeduplicatesNonEmptyTaskWithinAccount(t *testing.T) {
 	ctx := context.Background()
 	repo := NewGrsaiSettlementRepository(integrationDB)
@@ -108,6 +398,33 @@ func TestGrsaiSettlementRepository_BindAndUpdateSanitizedResult(t *testing.T) {
 	require.NotNil(t, got.LastErrorSummary)
 	require.Equal(t, "provider timeout", *got.LastErrorSummary)
 	require.WithinDuration(t, nextAttempt, got.NextAttemptAt, time.Millisecond)
+}
+
+func TestGrsaiSettlementRepository_ResultPollSnapshotIsDurableAndFenced(t *testing.T) {
+	ctx := context.Background()
+	repo := NewGrsaiSettlementRepository(integrationDB)
+	params := grsaiSettlementTestParams(t, "result-snapshot")
+	params.NextAttemptAt = time.Now().UTC().Add(-time.Minute)
+	params.DeliveryMode = service.GrsaiDeliveryAsync
+	record, err := repo.Create(ctx, params)
+	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
+	claim, err := repo.ClaimByID(ctx, record.ID, time.Now().UTC(), time.Now().UTC().Add(time.Minute))
+	require.NoError(t, err)
+	next := time.Now().UTC().Add(time.Minute)
+	updated, err := repo.RecordResultSnapshot(ctx, record.ID, claim.ClaimVersion, "running", "", next, 45, nil)
+	require.NoError(t, err)
+	require.True(t, updated)
+	updated, err = repo.RecordResultSnapshot(ctx, record.ID, claim.ClaimVersion, "succeeded", "", next, 100, []string{"https://img.invalid/recovered.png"})
+	require.NoError(t, err)
+	require.True(t, updated)
+	_, err = repo.RecordResultSnapshot(ctx, record.ID, claim.ClaimVersion-1, "running", "", next, 10, nil)
+	require.ErrorIs(t, err, service.ErrGrsaiSettlementClaimLost)
+	stored, err := repo.GetByID(ctx, record.ID)
+	require.NoError(t, err)
+	require.Equal(t, "succeeded", stored.UpstreamStatus)
+	require.Equal(t, 100, stored.Progress)
+	require.Equal(t, []string{"https://img.invalid/recovered.png"}, stored.ResultURLs)
 }
 
 func TestGrsaiSettlementRepository_SettlementRetryCountIgnoresPollingClaims(t *testing.T) {

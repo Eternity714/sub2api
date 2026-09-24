@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGrsaiNativeClientGeneratePreservesExplicitJSONBody(t *testing.T) {
-	wantBody := []byte("{\n  \"model\": \"gpt-image-2\", \"prompt\": \"private prompt\",\n  \"aspectRatio\": \"16:9\", \"imageSize\": \"2K\", \"quality\": \"high\",\n  \"background\": \"transparent\", \"images\": [\"data:image/png;base64,abc\"],\n  \"stream\": false, \"async\": false, \"futureOption\": {\"enabled\":true}, \"replyType\": \"json\"\n}\n")
+func TestGrsaiNativeClientGenerateUsesForcedStreamBody(t *testing.T) {
+	requestBody := []byte("{\n  \"model\": \"gpt-image-2\", \"prompt\": \"private prompt\",\n  \"aspectRatio\": \"16:9\", \"imageSize\": \"2K\", \"quality\": \"high\",\n  \"background\": \"transparent\", \"images\": [\"data:image/png;base64,abc\"],\n  \"futureOption\": {\"enabled\":true}, \"replyType\": \"json\"\n}\n")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPost, r.Method)
@@ -23,10 +23,13 @@ func TestGrsaiNativeClientGeneratePreservesExplicitJSONBody(t *testing.T) {
 		require.Empty(t, r.URL.RawQuery)
 		require.Equal(t, "Bearer upstream-secret", r.Header.Get("Authorization"))
 		require.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		require.Equal(t, "application/json", r.Header.Get("Accept"))
+		require.Contains(t, r.Header.Get("Accept"), "text/event-stream")
 		gotBody, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
-		require.Equal(t, wantBody, gotBody)
+		var got map[string]json.RawMessage
+		require.NoError(t, json.Unmarshal(gotBody, &got))
+		require.JSONEq(t, `"stream"`, string(got["replyType"]))
+		require.JSONEq(t, `{"enabled":true}`, string(got["futureOption"]))
 
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"id":"task-1","status":"succeeded","results":[{"url":"https://example.test/image.png"}]}`)
@@ -34,7 +37,7 @@ func TestGrsaiNativeClientGeneratePreservesExplicitJSONBody(t *testing.T) {
 	defer server.Close()
 
 	client := NewGrsaiNativeClient(server.Client())
-	result, err := client.Generate(context.Background(), grsaiTestAccount(server.URL+"/tenant/root/", "upstream-secret"), wantBody)
+	result, err := client.Generate(context.Background(), grsaiTestAccount(server.URL+"/tenant/root/", "upstream-secret"), requestBody)
 
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, result.HTTPStatus)
@@ -43,17 +46,15 @@ func TestGrsaiNativeClientGeneratePreservesExplicitJSONBody(t *testing.T) {
 	require.JSONEq(t, `{"id":"task-1","status":"succeeded","results":[{"url":"https://example.test/image.png"}]}`, string(result.RawBody))
 }
 
-func TestGrsaiNativeClientGenerateAddsOnlyDefaultReplyType(t *testing.T) {
+func TestGrsaiNativeClientGenerateUsesStreamForDefaultDelivery(t *testing.T) {
 	original := []byte("{ \"model\" : \"nano-banana\", \"future\" : { \"answer\" : 42 }, \"images\" : [\"one\", \"two\"] }\r\n")
-	want := []byte("{ \"model\" : \"nano-banana\", \"future\" : { \"answer\" : 42 }, \"images\" : [\"one\", \"two\"] ,\"replyType\":\"json\"}\r\n")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
-		require.Equal(t, want, got)
 		var decoded map[string]any
 		require.NoError(t, json.Unmarshal(got, &decoded))
-		require.Equal(t, "json", decoded["replyType"])
+		require.Equal(t, "stream", decoded["replyType"])
 		require.Equal(t, map[string]any{"answer": float64(42)}, decoded["future"])
 		_, _ = io.WriteString(w, `{"id":"task-default","status":"succeeded"}`)
 	}))
@@ -77,20 +78,10 @@ func TestGrsaiNativeClientGenerateRejectsProtocolBoundaryViolations(t *testing.T
 	}{
 		{name: "not json", body: `not-json ` + prompt},
 		{name: "json array", body: `[{"model":"x"}]`},
-		{name: "stream true", body: `{"prompt":"` + prompt + `","stream":true}`},
-		{name: "stream null", body: `{"prompt":"` + prompt + `","stream":null}`},
-		{name: "stream string", body: `{"prompt":"` + prompt + `","stream":"false"}`},
-		{name: "stream object", body: `{"prompt":"` + prompt + `","stream":{}}`},
-		{name: "async true", body: `{"prompt":"` + prompt + `","async":true}`},
-		{name: "async null", body: `{"prompt":"` + prompt + `","async":null}`},
-		{name: "async number", body: `{"prompt":"` + prompt + `","async":0}`},
-		{name: "async array", body: `{"prompt":"` + prompt + `","async":[]}`},
-		{name: "reply type stream", body: `{"prompt":"` + prompt + `","replyType":"stream"}`},
-		{name: "reply type async", body: `{"prompt":"` + prompt + `","replyType":"async"}`},
+		{name: "stream false", body: `{"prompt":"` + prompt + `","stream":false}`},
+		{name: "async false", body: `{"prompt":"` + prompt + `","async":false}`},
 		{name: "reply type wrong type", body: `{"prompt":"` + prompt + `","replyType":1}`},
-		{name: "duplicate stream", body: `{"stream":false,"stream":false}`},
-		{name: "duplicate async", body: `{"async":false,"async":true}`},
-		{name: "duplicate reply type", body: `{"replyType":"json","replyType":"json"}`},
+		{name: "reply type unsupported", body: `{"prompt":"` + prompt + `","replyType":"provider_async"}`},
 	}
 
 	for _, tt := range tests {
@@ -119,20 +110,24 @@ func TestGrsaiNativeClientResultBuildsEscapedQueryAndParsesStatuses(t *testing.T
 		wantErrorCode    string
 		wantErrorMessage string
 		wantHTTPError    bool
+		wantProgress     int
+		wantResults      []string
 	}{
 		{
-			name:       "running",
-			taskID:     "task/running ?&",
-			statusCode: http.StatusOK,
-			body:       `{"id":"task/running ?&","status":"running","progress":45}`,
-			wantStatus: GrsaiUpstreamStatusRunning,
+			name:         "running",
+			taskID:       "task/running ?&",
+			statusCode:   http.StatusOK,
+			body:         `{"id":"task/running ?&","status":"running","progress":45}`,
+			wantStatus:   GrsaiUpstreamStatusRunning,
+			wantProgress: 45,
 		},
 		{
-			name:       "succeeded terminal",
-			taskID:     "task-success",
-			statusCode: http.StatusOK,
-			body:       `{"id":"task-success","status":"succeeded","results":[{"url":"https://example.test/image.png"}]}`,
-			wantStatus: GrsaiUpstreamStatusSucceeded,
+			name:        "succeeded terminal",
+			taskID:      "task-success",
+			statusCode:  http.StatusOK,
+			body:        `{"id":"task-success","status":"succeeded","results":[{"url":"https://example.test/image.png"}]}`,
+			wantStatus:  GrsaiUpstreamStatusSucceeded,
+			wantResults: []string{"https://example.test/image.png"},
 		},
 		{
 			name:             "failed terminal",
@@ -184,6 +179,8 @@ func TestGrsaiNativeClientResultBuildsEscapedQueryAndParsesStatuses(t *testing.T
 			require.Equal(t, tt.statusCode, result.HTTPStatus)
 			require.Equal(t, tt.taskID, result.TaskID)
 			require.Equal(t, tt.wantStatus, result.Status)
+			require.Equal(t, tt.wantProgress, result.Progress)
+			require.Equal(t, tt.wantResults, result.ResultURLs)
 			require.Equal(t, tt.wantErrorCode, result.ErrorCode)
 			require.Equal(t, tt.wantErrorMessage, result.ErrorMessage)
 			require.Equal(t, []byte(tt.body), result.RawBody)

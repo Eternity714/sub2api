@@ -56,6 +56,7 @@ type GrsaiSettlementRecoveryOptions struct {
 
 func NewGrsaiSettlementRecoveryOptionsFromConfig(cfg *config.Config) GrsaiSettlementRecoveryOptions {
 	options := GrsaiSettlementRecoveryOptions{
+		Enabled:                  true,
 		ScanInterval:             defaultGrsaiSettlementRecoveryScanInterval,
 		BatchLimit:               defaultGrsaiSettlementRecoveryBatchLimit,
 		SubmissionUnknownTimeout: defaultGrsaiSubmissionUnknownTimeout,
@@ -64,7 +65,6 @@ func NewGrsaiSettlementRecoveryOptionsFromConfig(cfg *config.Config) GrsaiSettle
 	if cfg == nil {
 		return options
 	}
-	options.Enabled = cfg.GrsaiSettlementRecovery.Enabled
 	if cfg.GrsaiSettlementRecovery.ScanIntervalSeconds > 0 {
 		options.ScanInterval = time.Duration(cfg.GrsaiSettlementRecovery.ScanIntervalSeconds) * time.Second
 	}
@@ -201,16 +201,24 @@ func (r *GrsaiSettlementRecoveryRuntime) recoverClaim(ctx context.Context, claim
 	if claim == nil {
 		return
 	}
-	if claim.UpstreamStatus == GrsaiUpstreamStatusSucceeded || claim.InternalStatus == "pending_settlement" {
+	if (claim.UpstreamStatus == GrsaiUpstreamStatusSucceeded || claim.InternalStatus == "pending_settlement") && !grsaiNeedsResultURLs(claim) {
 		r.recoverSettlement(ctx, claim)
 		return
 	}
 	if claim.UpstreamTaskID == nil || *claim.UpstreamTaskID == "" {
+		if grsaiNeedsResultURLs(claim) {
+			r.manualReview(ctx, claim, "upstream success has no result URL or task ID")
+			return
+		}
 		r.recoverUnknownSubmission(ctx, claim)
 		return
 	}
 	account, err := r.accounts.GetByID(ctx, claim.AccountID)
 	if err != nil || account == nil || account.Platform != PlatformGrsai {
+		if grsaiMissingResultExpired(claim, r.now()) {
+			r.manualReview(ctx, claim, "upstream success remained without result URL beyond deadline")
+			return
+		}
 		r.deferUpstream(ctx, claim, "account unavailable for result polling")
 		return
 	}
@@ -254,6 +262,12 @@ func (r *GrsaiSettlementRecoveryRuntime) recoverUnknownSubmission(ctx context.Co
 
 func (r *GrsaiSettlementRecoveryRuntime) deferUpstream(ctx context.Context, claim *GrsaiSettlement, summary string) {
 	next := r.now().Add(r.opts.ScanInterval)
+	if grsaiNeedsResultURLs(claim) {
+		if err := r.repo.MarkPendingUpstream(ctx, claim.ID, claim.ClaimVersion, next); err != nil && !errors.Is(err, ErrGrsaiSettlementClaimLost) {
+			logger.L().Warn("grsai settlement recovery could not defer result lookup", zap.Int64("settlement_id", claim.ID), zap.Error(err))
+		}
+		return
+	}
 	if _, err := r.repo.UpdateResult(ctx, claim.ID, claim.ClaimVersion, "unknown", summary, next); err != nil {
 		if !errors.Is(err, ErrGrsaiSettlementClaimLost) {
 			logger.L().Warn("grsai settlement recovery could not record poll failure", zap.Int64("settlement_id", claim.ID), zap.Error(err))
@@ -266,8 +280,10 @@ func (r *GrsaiSettlementRecoveryRuntime) deferUpstream(ctx context.Context, clai
 }
 
 func (r *GrsaiSettlementRecoveryRuntime) manualReview(ctx context.Context, claim *GrsaiSettlement, summary string) {
-	if err := r.repo.MarkManualReview(ctx, claim.ID, claim.ClaimVersion, summary); err != nil && !errors.Is(err, ErrGrsaiSettlementClaimLost) {
-		logger.L().Error("grsai settlement requires manual review", zap.String("priority", "high"), zap.Int64("settlement_id", claim.ID), zap.Error(err))
+	if err := r.settlement.markManualReviewWithRelease(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, summary); err != nil {
+		if !errors.Is(err, ErrGrsaiSettlementClaimLost) {
+			logger.L().Error("grsai settlement requires manual review", zap.String("priority", "high"), zap.Int64("settlement_id", claim.ID), zap.Error(err))
+		}
 		return
 	}
 	logger.L().Error("grsai settlement requires manual review", zap.String("priority", "high"), zap.Int64("settlement_id", claim.ID), zap.String("reason", summary))

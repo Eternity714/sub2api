@@ -29,9 +29,10 @@ const (
 )
 
 var (
-	ErrGrsaiInvalidAccount  = errors.New("invalid grsai account")
-	ErrGrsaiInvalidRequest  = errors.New("invalid grsai request")
-	ErrGrsaiInvalidResponse = errors.New("invalid grsai response")
+	ErrGrsaiInvalidAccount        = errors.New("invalid grsai account")
+	ErrGrsaiInvalidRequest        = errors.New("invalid grsai request")
+	ErrGrsaiInvalidResponse       = errors.New("invalid grsai response")
+	ErrGrsaiInvalidStreamResponse = errors.New("invalid grsai stream response")
 )
 
 // GrsaiUpstreamResult preserves the exact upstream response while exposing the
@@ -41,6 +42,8 @@ type GrsaiUpstreamResult struct {
 	RawBody      []byte
 	TaskID       string
 	Status       string
+	Progress     int
+	ResultURLs   []string
 	ErrorCode    string
 	ErrorMessage string
 }
@@ -68,6 +71,18 @@ type GrsaiNativeClient interface {
 	Result(ctx context.Context, account *Account, taskID string) (*GrsaiUpstreamResult, error)
 }
 
+// GrsaiUpstreamStream is the validated HTTP response boundary for the native
+// provider stream. Callers own Body and must close it after consumption.
+type GrsaiUpstreamStream struct {
+	StatusCode  int
+	ContentType string
+	Body        io.ReadCloser
+}
+
+type GrsaiStreamClient interface {
+	OpenGenerateStream(context.Context, *Account, []byte) (*GrsaiUpstreamStream, error)
+}
+
 // GrsaiNativeHTTPClient implements GrsaiNativeClient over the native GRS.AI
 // HTTP protocol. It is deliberately independent from OpenAI-compatible
 // transports.
@@ -75,8 +90,12 @@ type GrsaiNativeHTTPClient struct {
 	client *http.Client
 }
 
-func NewGrsaiNativeClient(client *http.Client) GrsaiNativeClient {
+func NewGrsaiNativeHTTPClient(client *http.Client) *GrsaiNativeHTTPClient {
 	return &GrsaiNativeHTTPClient{client: configureGrsaiHTTPClient(client)}
+}
+
+func NewGrsaiNativeClient(client *http.Client) GrsaiNativeClient {
+	return NewGrsaiNativeHTTPClient(client)
 }
 
 func configureGrsaiHTTPClient(client *http.Client) *http.Client {
@@ -105,7 +124,7 @@ func (c *GrsaiNativeHTTPClient) Generate(ctx context.Context, account *Account, 
 	if err != nil {
 		return nil, err
 	}
-	requestBody, err := PrepareGrsaiGenerateBody(body)
+	delivery, err := ParseGrsaiDeliveryRequest(body)
 	if err != nil {
 		return nil, err
 	}
@@ -113,15 +132,69 @@ func (c *GrsaiNativeHTTPClient) Generate(ctx context.Context, account *Account, 
 	if err != nil {
 		return nil, err
 	}
-	return c.do(ctx, "generate", http.MethodPost, targetURL, apiKey, requestBody, "")
+	return c.do(ctx, "generate", http.MethodPost, targetURL, apiKey, delivery.UpstreamBody, "")
 }
 
-// PrepareGrsaiGenerateBody validates the local protocol controls and fills the
-// only supported reply type without interpreting model-specific fields.
-// Handlers call it before creating a settlement so invalid local requests never
-// leave a durable submission-pending record.
+// OpenGenerateStream sends the provider-safe request body and exposes a body
+// only after both the HTTP status and SSE content type have been validated.
+// Invalid responses are drained only up to the bounded limit before closing,
+// so an upstream error can never leave an open response body behind.
+func (c *GrsaiNativeHTTPClient) OpenGenerateStream(ctx context.Context, account *Account, body []byte) (*GrsaiUpstreamStream, error) {
+	baseURL, apiKey, err := grsaiAccountCredentials(account)
+	if err != nil {
+		return nil, err
+	}
+	delivery, err := ParseGrsaiDeliveryRequest(body)
+	if err != nil {
+		return nil, err
+	}
+	targetURL, err := buildGrsaiEndpointURL(baseURL, grsaiGeneratePath)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, bytes.NewReader(delivery.UpstreamBody))
+	if err != nil {
+		return nil, fmt.Errorf("grsai stream request setup failed: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Content-Type", "application/json")
+	client := c.client
+	if client == nil {
+		client = configureGrsaiHTTPClient(nil)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("grsai stream transport failed: %s", sanitizeGrsaiErrorValue(err.Error(), apiKey))
+	}
+	contentType := resp.Header.Get("Content-Type")
+	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices && strings.Contains(strings.ToLower(contentType), "text/event-stream") {
+		return &GrsaiUpstreamStream{StatusCode: resp.StatusCode, ContentType: contentType, Body: resp.Body}, nil
+	}
+	defer func() { _ = resp.Body.Close() }()
+	errorBody, readErr := io.ReadAll(io.LimitReader(resp.Body, grsaiMaxResponseBodyLen+1))
+	if len(errorBody) > grsaiMaxResponseBodyLen {
+		errorBody = errorBody[:grsaiMaxResponseBodyLen]
+	}
+	detail := sanitizeGrsaiErrorValue(strings.TrimSpace(string(errorBody)), apiKey)
+	if readErr != nil {
+		detail = sanitizeGrsaiErrorValue(readErr.Error(), apiKey)
+	}
+	if detail == "" {
+		detail = "empty upstream response"
+	}
+	return nil, fmt.Errorf("%w: status=%d content_type=%q body=%s", ErrGrsaiInvalidStreamResponse, resp.StatusCode, contentType, detail)
+}
+
+// PrepareGrsaiGenerateBody remains a compatibility boundary for callers that
+// validate a request before handing it to the native client. The returned body
+// is the independent downstream snapshot; only Generate uses UpstreamBody.
 func PrepareGrsaiGenerateBody(body []byte) ([]byte, error) {
-	return prepareGrsaiGenerateBody(body)
+	delivery, err := ParseGrsaiDeliveryRequest(body)
+	if err != nil {
+		return nil, err
+	}
+	return delivery.OriginalBody, nil
 }
 
 func (c *GrsaiNativeHTTPClient) Result(ctx context.Context, account *Account, taskID string) (*GrsaiUpstreamResult, error) {
@@ -165,7 +238,11 @@ func (c *GrsaiNativeHTTPClient) do(
 		return nil, fmt.Errorf("grsai %s request setup failed: %w", operation, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Accept", "application/json")
+	if operation == "generate" {
+		req.Header.Set("Accept", "text/event-stream")
+	} else {
+		req.Header.Set("Accept", "application/json")
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -251,107 +328,6 @@ func buildGrsaiEndpointURL(baseURL, endpointPath string) (string, error) {
 	return parsed.String(), nil
 }
 
-func prepareGrsaiGenerateBody(body []byte) ([]byte, error) {
-	fields, fieldCount, err := decodeGrsaiGenerateFields(body)
-	if err != nil {
-		return nil, err
-	}
-	if err := rejectEnabledGrsaiFlag(fields, "stream"); err != nil {
-		return nil, err
-	}
-	if err := rejectEnabledGrsaiFlag(fields, "async"); err != nil {
-		return nil, err
-	}
-
-	if rawReplyType, ok := fields["replyType"]; ok {
-		var replyType string
-		if err := json.Unmarshal(rawReplyType, &replyType); err != nil || replyType != "json" {
-			return nil, fmt.Errorf("%w: replyType must be json", ErrGrsaiInvalidRequest)
-		}
-		return append([]byte(nil), body...), nil
-	}
-
-	last := len(body) - 1
-	for last >= 0 && isJSONWhitespace(body[last]) {
-		last--
-	}
-	if last < 0 || body[last] != '}' {
-		return nil, fmt.Errorf("%w: body must be a JSON object", ErrGrsaiInvalidRequest)
-	}
-	insertion := []byte(`"replyType":"json"`)
-	if fieldCount > 0 {
-		insertion = append([]byte{','}, insertion...)
-	}
-	prepared := make([]byte, 0, len(body)+len(insertion))
-	prepared = append(prepared, body[:last]...)
-	prepared = append(prepared, insertion...)
-	prepared = append(prepared, body[last:]...)
-	return prepared, nil
-}
-
-func decodeGrsaiGenerateFields(body []byte) (map[string]json.RawMessage, int, error) {
-	decoder := json.NewDecoder(bytes.NewReader(body))
-	start, err := decoder.Token()
-	if err != nil || start != json.Delim('{') {
-		return nil, 0, fmt.Errorf("%w: body must be a JSON object", ErrGrsaiInvalidRequest)
-	}
-
-	fields := make(map[string]json.RawMessage, 3)
-	seenControl := make(map[string]struct{}, 3)
-	fieldCount := 0
-	for decoder.More() {
-		keyToken, keyErr := decoder.Token()
-		if keyErr != nil {
-			return nil, 0, fmt.Errorf("%w: body must be a JSON object", ErrGrsaiInvalidRequest)
-		}
-		key, ok := keyToken.(string)
-		if !ok {
-			return nil, 0, fmt.Errorf("%w: body must be a JSON object", ErrGrsaiInvalidRequest)
-		}
-		var raw json.RawMessage
-		if decodeErr := decoder.Decode(&raw); decodeErr != nil {
-			return nil, 0, fmt.Errorf("%w: body must be valid JSON", ErrGrsaiInvalidRequest)
-		}
-		fieldCount++
-		switch key {
-		case "stream", "async", "replyType":
-			if _, duplicate := seenControl[key]; duplicate {
-				return nil, 0, fmt.Errorf("%w: duplicate %s field", ErrGrsaiInvalidRequest, key)
-			}
-			seenControl[key] = struct{}{}
-			fields[key] = raw
-		}
-	}
-	end, err := decoder.Token()
-	if err != nil || end != json.Delim('}') {
-		return nil, 0, fmt.Errorf("%w: body must be a JSON object", ErrGrsaiInvalidRequest)
-	}
-	var trailing json.RawMessage
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		return nil, 0, fmt.Errorf("%w: body must contain one JSON object", ErrGrsaiInvalidRequest)
-	}
-	return fields, fieldCount, nil
-}
-
-func rejectEnabledGrsaiFlag(fields map[string]json.RawMessage, name string) error {
-	raw, ok := fields[name]
-	if !ok {
-		return nil
-	}
-	switch string(bytes.TrimSpace(raw)) {
-	case "false":
-		return nil
-	case "true":
-		return fmt.Errorf("%w: %s=true is not supported", ErrGrsaiInvalidRequest, name)
-	default:
-		return fmt.Errorf("%w: %s must be a boolean", ErrGrsaiInvalidRequest, name)
-	}
-}
-
-func isJSONWhitespace(value byte) bool {
-	return value == ' ' || value == '\t' || value == '\r' || value == '\n'
-}
-
 func parseGrsaiUpstreamResult(httpStatus int, rawBody []byte, apiKey string) (*GrsaiUpstreamResult, error) {
 	result := &GrsaiUpstreamResult{
 		HTTPStatus: httpStatus,
@@ -365,6 +341,14 @@ func parseGrsaiUpstreamResult(httpStatus int, rawBody []byte, apiKey string) (*G
 	data := rawJSONObject(root["data"])
 	result.TaskID = firstRawScalar(root, data, "id", "taskId", "task_id")
 	result.Status = normalizeGrsaiStatus(firstRawScalar(root, data, "status", "state"))
+	if raw := firstRawMessage(root, data, "progress", "percent", "percentage"); len(raw) > 0 {
+		progress, err := parseGrsaiProgress(raw)
+		if err != nil || progress < 0 || progress > 100 {
+			return result, fmt.Errorf("%w: invalid progress", ErrGrsaiInvalidResponse)
+		}
+		result.Progress = progress
+	}
+	result.ResultURLs = extractGrsaiResultURLs(root, data)
 	result.ErrorCode, result.ErrorMessage = parseGrsaiError(root, data, result.Status, httpStatus, apiKey)
 
 	if httpStatus >= http.StatusOK && httpStatus < http.StatusMultipleChoices && result.Status == "" {

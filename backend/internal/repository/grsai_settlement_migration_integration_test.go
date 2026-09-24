@@ -18,6 +18,7 @@ const (
 	grsaiSettlementRetryCountMigration        = "241_grsai_settlement_retry_count.sql"
 	grsaiSettlementImageSizePrecheckMigration = "241a_grsai_settlement_image_size_precheck.sql"
 	grsaiSettlementImageSizeMigration         = "242_grsai_settlement_image_size.sql"
+	grsaiDeliveryModesMigration               = "243_grsai_delivery_modes.sql"
 )
 
 func TestGrsaiSettlementRepository_MigrationsNewDatabaseIncludeClaimVersion(t *testing.T) {
@@ -30,10 +31,54 @@ func TestGrsaiSettlementRepository_MigrationsNewDatabaseIncludeClaimVersion(t *t
 	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementRetryCountMigration)
 	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementImageSizePrecheckMigration)
 	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementImageSizeMigration)
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiDeliveryModesMigration)
 
 	requireGrsaiClaimVersionColumn(ctx, t, tx)
 	requireGrsaiSettlementRetryCountColumn(ctx, t, tx)
 	requireGrsaiSettlementImageSizeColumn(ctx, t, tx)
+	requireGrsaiDeliveryModeColumns(ctx, t, tx)
+}
+
+func TestGrsaiSettlementRepository_Migration243KeepsFirstPhaseRowsReadable(t *testing.T) {
+	tx := testTx(t)
+	ctx := context.Background()
+	useIsolatedMigrationSchema(ctx, t, tx, "grsai_migration_delivery_modes")
+
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementBaseMigration)
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementClaimVersionMigration)
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementRetryCountMigration)
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementImageSizePrecheckMigration)
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiSettlementImageSizeMigration)
+
+	var settlementID int64
+	require.NoError(t, tx.QueryRowContext(ctx, `
+INSERT INTO grsai_settlements (
+    account_id, group_id, user_id, api_key_id, model,
+    base_unit_price, group_rate_multiplier, account_rate_multiplier,
+    billable_unit_price, requested_image_count, billing_idempotency_key,
+    next_attempt_at
+) VALUES (1, 2, 3, 4, 'grsai-test', 0.01, 1, 1, 0.01, 1, 'migration-delivery-row', NOW())
+RETURNING id
+`).Scan(&settlementID))
+
+	applyGrsaiSettlementMigration(ctx, t, tx, grsaiDeliveryModesMigration)
+
+	var publicTaskID sql.NullString
+	var deliveryMode, resultURLs, holdState string
+	var progress int
+	var holdAmount float64
+	require.NoError(t, tx.QueryRowContext(ctx, `
+SELECT public_task_id, delivery_mode, progress, result_urls::text, hold_amount, hold_state
+FROM grsai_settlements
+WHERE id = $1
+`, settlementID).Scan(&publicTaskID, &deliveryMode, &progress, &resultURLs, &holdAmount, &holdState))
+	require.False(t, publicTaskID.Valid)
+	require.Equal(t, "json", deliveryMode)
+	require.Zero(t, progress)
+	require.JSONEq(t, `[]`, resultURLs)
+	require.Zero(t, holdAmount)
+	require.Equal(t, "none", holdState)
+	requireGrsaiDeliveryModeColumns(ctx, t, tx)
 }
 
 func TestGrsaiSettlementRepository_Migration240UpgradesApplied239WithoutDataLoss(t *testing.T) {
@@ -258,4 +303,31 @@ WHERE table_schema = current_schema()
 	require.Equal(t, "character varying", dataType)
 	require.Equal(t, "NO", isNullable)
 	require.Contains(t, columnDefault, "2K")
+}
+
+func requireGrsaiDeliveryModeColumns(ctx context.Context, t *testing.T, tx *sql.Tx) {
+	t.Helper()
+
+	var settlementColumns int
+	require.NoError(t, tx.QueryRowContext(ctx, `
+SELECT COUNT(*)
+FROM information_schema.columns
+WHERE table_schema = current_schema()
+  AND table_name = 'grsai_settlements'
+  AND column_name IN (
+    'public_task_id', 'delivery_mode', 'progress', 'result_urls',
+    'hold_amount', 'hold_state', 'payload_delete_after', 'expires_at'
+  )
+`).Scan(&settlementColumns))
+	require.Equal(t, 8, settlementColumns)
+
+	var payloadColumns int
+	require.NoError(t, tx.QueryRowContext(ctx, `
+SELECT COUNT(*)
+FROM information_schema.columns
+WHERE table_schema = current_schema()
+  AND table_name = 'grsai_task_payloads'
+  AND column_name IN ('settlement_id', 'ciphertext', 'expires_at', 'created_at', 'updated_at')
+`).Scan(&payloadColumns))
+	require.Equal(t, 5, payloadColumns)
 }

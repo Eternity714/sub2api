@@ -25,6 +25,7 @@ const (
 
 	grsaiSettlementRetryDelay = time.Minute
 	grsaiSettlementLease      = grsaiRequestTimeout + time.Minute
+	grsaiMissingResultTimeout = 24 * time.Hour
 )
 
 var (
@@ -33,6 +34,11 @@ var (
 	ErrGrsaiSettlementInvalidState   = errors.New("invalid grsai settlement state")
 	ErrGrsaiSettlementClaimLost      = errors.New("grsai settlement claim lost")
 	ErrGrsaiSettlementPricingMissing = errors.New("grsai requires explicit flat image or per-request model pricing")
+	ErrGrsaiTaskPayloadNotFound      = errors.New("grsai task payload not found")
+	ErrGrsaiTaskPayloadCorrupt       = errors.New("grsai task payload corrupt")
+	ErrGrsaiHoldReleaseUnavailable   = errors.New("grsai hold release capability unavailable")
+	ErrGrsaiAsyncQueueFull           = errors.New("grsai async waiting queue full")
+	ErrGrsaiAsyncDisabled            = errors.New("grsai async delivery disabled")
 )
 
 // These contracts live in service so the SQL repository can implement them
@@ -51,6 +57,15 @@ type CreateGrsaiSettlementParams struct {
 	ImageSize             string
 	Currency              string
 	BillingIdempotencyKey string
+	PublicTaskID          string
+	DeliveryMode          GrsaiDeliveryMode
+	AsyncWaitingLimit     int
+	Progress              int
+	ResultURLs            []string
+	HoldAmount            float64
+	HoldState             string
+	PayloadDeleteAfter    *time.Time
+	ExpiresAt             *time.Time
 	UpstreamTaskID        *string
 	UpstreamStatus        string
 	NextAttemptAt         time.Time
@@ -71,6 +86,14 @@ type GrsaiSettlement struct {
 	ImageSize             string
 	Currency              string
 	BillingIdempotencyKey string
+	PublicTaskID          string
+	DeliveryMode          GrsaiDeliveryMode
+	Progress              int
+	ResultURLs            []string
+	HoldAmount            float64
+	HoldState             string
+	PayloadDeleteAfter    *time.Time
+	ExpiresAt             *time.Time
 	UpstreamTaskID        *string
 	UpstreamStatus        string
 	InternalStatus        string
@@ -89,6 +112,13 @@ type GrsaiSettlement struct {
 	ResultUpdatedAt      *time.Time
 	SettledAt            *time.Time
 	ClosedAt             *time.Time
+
+	// OriginalBody and UpstreamBody are transient request-scoped values. They
+	// are never selected from or written to grsai_settlements. Async work
+	// restores OriginalBody from the encrypted payload table and reparses it
+	// before assigning UpstreamBody.
+	OriginalBody []byte
+	UpstreamBody []byte
 }
 
 // State projects the business state from the existing durable status pair.
@@ -104,7 +134,11 @@ func (r *GrsaiSettlement) State() GrsaiSettlementState {
 		return GrsaiStateClosedNoCharge
 	case "manual_review":
 		return GrsaiStateManualReview
-	case "pending_settlement":
+	}
+	if grsaiNeedsResultURLs(r) {
+		return GrsaiStateAwaitingResult
+	}
+	if r.InternalStatus == "pending_settlement" {
 		return GrsaiStateSettlementPending
 	}
 	switch r.UpstreamStatus {
@@ -125,6 +159,7 @@ type GrsaiSettlementTxFunc func(context.Context, *sql.Tx, *GrsaiSettlement) erro
 type GrsaiSettlementRepository interface {
 	Create(context.Context, CreateGrsaiSettlementParams) (*GrsaiSettlement, error)
 	GetByID(context.Context, int64) (*GrsaiSettlement, error)
+	GetOwnedByPublicOrUpstreamID(context.Context, int64, int64, string) (*GrsaiSettlement, error)
 	ClaimByID(context.Context, int64, time.Time, time.Time) (*GrsaiSettlement, error)
 	ClaimDue(context.Context, time.Time, int, time.Time) ([]*GrsaiSettlement, error)
 	BindUpstreamTask(context.Context, int64, int64, string, string) (bool, error)
@@ -134,6 +169,41 @@ type GrsaiSettlementRepository interface {
 	Settle(context.Context, int64, int64, float64, GrsaiSettlementTxFunc) (bool, error)
 	CloseNoCharge(context.Context, int64, int64, string) error
 	MarkManualReview(context.Context, int64, int64, string) error
+}
+
+// GrsaiDeliveryModeRepository is implemented by repositories that can fence
+// a worker claim to one downstream delivery contract. Async recovery must use
+// this narrower claim so it cannot lease or mutate legacy JSON/stream rows.
+type GrsaiDeliveryModeRepository interface {
+	ClaimDueForDeliveryMode(context.Context, time.Time, int, time.Time, GrsaiDeliveryMode) ([]*GrsaiSettlement, error)
+}
+
+// GrsaiSubmissionRepository fences the only permitted POST for an unbound task.
+type GrsaiSubmissionRepository interface {
+	MarkSubmitting(context.Context, int64, int64) (bool, error)
+}
+
+// This transition is only called after a fence write returned an error and
+// before the caller could make any provider POST under the same claim.
+type GrsaiUnsentSubmissionRepository interface {
+	DeferUnsentSubmission(context.Context, int64, int64, time.Time) error
+}
+
+type GrsaiUnsubmittedAbortRepository interface {
+	AbortUnsubmitted(context.Context, int64, string, GrsaiSettlementTxFunc) error
+}
+
+type GrsaiPreBindTerminalRepository interface {
+	MarkPreBindManualReviewWithRelease(context.Context, int64, int64, string, GrsaiSettlementTxFunc) error
+}
+
+// GrsaiTaskPayloadRepository stores the original async request only in
+// encrypted form and removes it independently from the public task record.
+type GrsaiTaskPayloadRepository interface {
+	PutEncrypted(context.Context, int64, []byte, time.Time) error
+	GetEncrypted(context.Context, int64) ([]byte, error)
+	DeleteBySettlementID(context.Context, int64) error
+	DeleteExpired(context.Context, time.Time) (int64, error)
 }
 
 // UsageBillingTransactionalRepository is an optional extension implemented by
@@ -171,6 +241,7 @@ func (r *GrsaiModelPricingResolver) GrsaiUnitPrice(ctx context.Context, model st
 type GrsaiSettlementService struct {
 	Repo         GrsaiSettlementRepository
 	Billing      UsageBillingTransactionalRepository
+	HoldBilling  GrsaiHoldBillingRepository
 	Pricing      GrsaiPricingResolver
 	UsageLogRepo UsageLogRepository
 	AuthCache    APIKeyAuthCacheInvalidator
@@ -185,6 +256,9 @@ type GrsaiPrepareInput struct {
 	// Pass the existing user/group rate resolver's result when it overrides the
 	// group default. Independent image rates still take precedence.
 	EffectiveGroupMultiplier *float64
+	DeliveryMode             GrsaiDeliveryMode
+	PayloadDeleteAfter       *time.Time
+	ExpiresAt                *time.Time
 }
 
 // Prepare persists and claims the immutable snapshot. The caller may send
@@ -222,18 +296,33 @@ func (s *GrsaiSettlementService) Prepare(ctx context.Context, input GrsaiPrepare
 		return nil, ErrGrsaiSettlementPricingMissing
 	}
 	now := time.Now()
+	waitingLimit := 0
+	if input.DeliveryMode == GrsaiDeliveryAsync {
+		waitingLimit = 20
+	}
 	record, err := s.Repo.Create(ctx, CreateGrsaiSettlementParams{
 		AccountID: input.Account.ID, GroupID: group.ID, UserID: input.APIKey.UserID, APIKeyID: input.APIKey.ID,
 		Model: strings.TrimSpace(input.Model), BaseUnitPrice: base, GroupRateMultiplier: groupRate,
 		AccountRateMultiplier: accountRate, BillableUnitPrice: billable, RequestedImageCount: input.ImageCount,
+		HoldAmount: grsaiBalanceAmount(billable, input.ImageCount), HoldState: "none",
 		ImageSize: NormalizeImageBillingTierOrDefault(input.ImageSize), Currency: "USD", UpstreamStatus: "not_submitted",
+		DeliveryMode: input.DeliveryMode, AsyncWaitingLimit: waitingLimit, PayloadDeleteAfter: input.PayloadDeleteAfter, ExpiresAt: input.ExpiresAt,
 		// Keep the scanner out of the create -> initial claim window.
 		NextAttemptAt: now.Add(grsaiSettlementLease),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return s.Repo.ClaimByID(ctx, record.ID, now, now.Add(grsaiSettlementLease))
+	if err := s.reserveGrsaiBalance(ctx, record); err != nil {
+		// An ambiguous commit may have reserved the hold. Re-read its state
+		// under the terminal transaction and release only when it is held.
+		return nil, errors.Join(err, s.abortUnsubmitted(context.WithoutCancel(ctx), record.ID, "balance reservation failed"))
+	}
+	claimed, err := s.Repo.ClaimByID(ctx, record.ID, now, now.Add(grsaiSettlementLease))
+	if err != nil {
+		return nil, errors.Join(err, s.abortUnsubmitted(context.WithoutCancel(ctx), record.ID, "initial claim failed"))
+	}
+	return claimed, nil
 }
 
 type GrsaiSettlementOutcome struct {
@@ -275,7 +364,24 @@ func (s *GrsaiSettlementService) FinishAt(ctx context.Context, claim *GrsaiSettl
 		return out
 	}
 	if record.UpstreamStatus == GrsaiUpstreamStatusSucceeded {
-		_, out.SettlementError = s.SettleAt(ctx, record.ID, record.ClaimVersion, retryAt)
+		if grsaiNeedsResultURLs(record) {
+			switch {
+			case upstreamErr == nil && upstream != nil && upstream.Status == GrsaiUpstreamStatusSucceeded && len(upstream.ResultURLs) > 0:
+				out.SettlementError = s.recordResult(ctx, record, upstream, nil, retryAt)
+			case record.UpstreamTaskID == nil || *record.UpstreamTaskID == "":
+				out.SettlementError = s.markManualReviewWithRelease(ctx, record.ID, record.ClaimVersion, "upstream success has no result URL or task ID")
+			case grsaiUpstreamHTTPFailed(upstream, upstreamErr) && !grsaiResultPollRetryable(upstream, upstreamErr):
+				out.SettlementError = s.markManualReviewWithRelease(ctx, record.ID, record.ClaimVersion, "upstream result polling failed permanently; do not resubmit")
+			case upstreamErr == nil && upstream != nil && (upstream.Status == GrsaiUpstreamStatusFailed || upstream.Status == GrsaiUpstreamStatusViolation):
+				out.SettlementError = s.markManualReviewWithRelease(ctx, record.ID, record.ClaimVersion, "upstream result conflicts with recorded success")
+			case grsaiMissingResultExpired(record, time.Now()):
+				out.SettlementError = s.markManualReviewWithRelease(ctx, record.ID, record.ClaimVersion, "upstream success remained without result URL beyond deadline")
+			default:
+				out.SettlementError = s.Repo.MarkPendingUpstream(ctx, record.ID, record.ClaimVersion, retryAt)
+			}
+		} else {
+			_, out.SettlementError = s.SettleAt(ctx, record.ID, record.ClaimVersion, retryAt)
+		}
 	} else {
 		out.SettlementError = s.recordResult(ctx, record, upstream, upstreamErr, retryAt)
 	}
@@ -295,13 +401,13 @@ func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *Grsai
 			return s.deferResultPoll(ctx, record, grsaiResultPollFailureSummary(upstream, upstreamErr), retryAt)
 		}
 		if grsaiUpstreamHTTPFailed(upstream, upstreamErr) {
-			return s.Repo.MarkManualReview(ctx, record.ID, record.ClaimVersion, "upstream result polling failed permanently; do not resubmit")
+			return s.markManualReviewWithRelease(ctx, record.ID, record.ClaimVersion, "upstream result polling failed permanently; do not resubmit")
 		}
 	}
 	// A received HTTP failure is a final failed submission, even if an error
 	// payload happens to include a task-like identifier. Never poll or bind it.
 	if grsaiUpstreamHTTPFailed(upstream, upstreamErr) {
-		return s.Repo.CloseNoCharge(ctx, record.ID, record.ClaimVersion, "upstream HTTP request failed; no charge")
+		return s.closeNoChargeWithRelease(ctx, record.ID, record.ClaimVersion, "upstream HTTP request failed; no charge")
 	}
 	status := "unknown"
 	if upstream != nil && upstreamErr == nil && (upstream.HTTPStatus == 0 || (upstream.HTTPStatus >= 200 && upstream.HTTPStatus < 300)) {
@@ -313,7 +419,7 @@ func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *Grsai
 	if upstream != nil && strings.TrimSpace(upstream.TaskID) != "" {
 		taskID := strings.TrimSpace(upstream.TaskID)
 		if record.UpstreamTaskID != nil && *record.UpstreamTaskID != taskID {
-			return s.Repo.MarkManualReview(ctx, record.ID, record.ClaimVersion, "upstream task identity conflict")
+			return s.markManualReviewWithRelease(ctx, record.ID, record.ClaimVersion, "upstream task identity conflict")
 		}
 		if record.UpstreamTaskID == nil {
 			if _, err := s.Repo.BindUpstreamTask(ctx, record.ID, record.ClaimVersion, taskID, status); err != nil {
@@ -325,13 +431,39 @@ func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *Grsai
 	if status == GrsaiUpstreamStatusRunning && record.UpstreamTaskID == nil {
 		status = "unknown"
 	}
+	if status == GrsaiUpstreamStatusSucceeded &&
+		(record.DeliveryMode == GrsaiDeliveryAsync || record.DeliveryMode == GrsaiDeliveryStream) &&
+		record.UpstreamTaskID != nil && len(record.ResultURLs) == 0 && (upstream == nil || len(upstream.ResultURLs) == 0) {
+		// This is the first durable observation of success without URLs. The
+		// result_updated_at write starts its recovery window, not created_at.
+		if _, err := s.Repo.UpdateResult(ctx, record.ID, record.ClaimVersion, status, "upstream success without result URL; retry result query", retryAt); err != nil {
+			return err
+		}
+		return s.Repo.MarkPendingUpstream(ctx, record.ID, record.ClaimVersion, retryAt)
+	}
 	next := retryAt
 	// Persist only fixed summaries; upstream errors can contain prompts or keys.
 	summary := ""
 	if status == "unknown" {
 		summary = "upstream outcome unknown; do not resubmit"
 	}
-	if _, err := s.Repo.UpdateResult(ctx, record.ID, record.ClaimVersion, status, summary, next); err != nil {
+	var err error
+	if upstream != nil && upstreamErr == nil && status != "unknown" {
+		if snapshot, ok := s.Repo.(GrsaiResultSnapshotRepository); ok {
+			progress := upstream.Progress
+			if status == GrsaiUpstreamStatusSucceeded {
+				progress = 100
+			}
+			_, err = snapshot.RecordResultSnapshot(ctx, record.ID, record.ClaimVersion, status, summary, next, progress, upstream.ResultURLs)
+		} else if upstream.Progress > 0 || len(upstream.ResultURLs) > 0 {
+			err = ErrGrsaiStreamPersistenceUnavailable
+		} else {
+			_, err = s.Repo.UpdateResult(ctx, record.ID, record.ClaimVersion, status, summary, next)
+		}
+	} else {
+		_, err = s.Repo.UpdateResult(ctx, record.ID, record.ClaimVersion, status, summary, next)
+	}
+	if err != nil {
 		return err
 	}
 	switch status {
@@ -339,10 +471,52 @@ func (s *GrsaiSettlementService) recordResult(ctx context.Context, record *Grsai
 		_, err := s.SettleAt(ctx, record.ID, record.ClaimVersion, retryAt)
 		return err
 	case GrsaiUpstreamStatusFailed, GrsaiUpstreamStatusViolation:
-		return s.Repo.CloseNoCharge(ctx, record.ID, record.ClaimVersion, "upstream "+status)
+		return s.closeNoChargeWithRelease(ctx, record.ID, record.ClaimVersion, "upstream "+status)
 	default:
 		return s.Repo.MarkPendingUpstream(ctx, record.ID, record.ClaimVersion, next)
 	}
+}
+
+func (s *GrsaiSettlementService) closeNoChargeWithRelease(ctx context.Context, id, claimVersion int64, summary string) error {
+	if ext, ok := s.Repo.(GrsaiHoldStateRepository); ok {
+		return ext.CloseNoChargeWithRelease(ctx, id, claimVersion, summary, func(txCtx context.Context, tx *sql.Tx, record *GrsaiSettlement) error {
+			return s.releaseGrsaiBalanceTx(txCtx, tx, record)
+		})
+	}
+	return s.Repo.CloseNoCharge(ctx, id, claimVersion, summary)
+}
+
+func (s *GrsaiSettlementService) abortUnsubmitted(ctx context.Context, id int64, summary string) error {
+	if ext, ok := s.Repo.(GrsaiUnsubmittedAbortRepository); ok {
+		return ext.AbortUnsubmitted(ctx, id, summary, func(txCtx context.Context, tx *sql.Tx, record *GrsaiSettlement) error {
+			return s.releaseGrsaiBalanceTx(txCtx, tx, record)
+		})
+	}
+	return s.closeNoChargeWithRelease(ctx, id, 0, summary)
+}
+
+func (s *GrsaiSettlementService) markPreBindManualReviewWithRelease(ctx context.Context, id, claimVersion int64, summary string) error {
+	if ext, ok := s.Repo.(GrsaiPreBindTerminalRepository); ok {
+		return ext.MarkPreBindManualReviewWithRelease(ctx, id, claimVersion, summary, func(txCtx context.Context, tx *sql.Tx, record *GrsaiSettlement) error {
+			return s.releaseGrsaiBalanceTx(txCtx, tx, record)
+		})
+	}
+	return s.markManualReviewWithRelease(ctx, id, claimVersion, summary)
+}
+
+func (s *GrsaiSettlementService) markManualReviewWithRelease(ctx context.Context, id, claimVersion int64, summary string) error {
+	if ext, ok := s.Repo.(GrsaiHoldStateRepository); ok {
+		return ext.MarkManualReviewWithRelease(ctx, id, claimVersion, summary, func(txCtx context.Context, tx *sql.Tx, record *GrsaiSettlement) error {
+			return s.releaseGrsaiBalanceTx(txCtx, tx, record)
+		})
+	}
+	// A zero-value hold is used by lightweight repositories and requires no
+	// release side effect. Real held balances must implement the transactional
+	// extension above; never downgrade those failures to a status-only write.
+	if record, err := s.Repo.GetByID(ctx, id); err == nil && record != nil && record.HoldAmount == 0 {
+		return s.Repo.MarkManualReview(ctx, id, claimVersion, summary)
+	}
+	return ErrGrsaiHoldReleaseUnavailable
 }
 
 func (s *GrsaiSettlementService) deferResultPoll(ctx context.Context, record *GrsaiSettlement, summary string, retryAt time.Time) error {
@@ -430,12 +604,18 @@ func (s *GrsaiSettlementService) SettleAt(ctx context.Context, id, claimVersion 
 	if record.InternalStatus != "processing" || record.UpstreamStatus != GrsaiUpstreamStatusSucceeded {
 		return false, ErrGrsaiSettlementInvalidState
 	}
+	if grsaiNeedsResultURLs(record) {
+		return false, ErrGrsaiSettlementInvalidState
+	}
 	cmd, err := grsaiBillingCommand(record)
 	if err != nil {
 		return false, err
 	}
 	applied, err := s.Repo.Settle(ctx, id, claimVersion, cmd.BalanceCost, func(txCtx context.Context, tx *sql.Tx, locked *GrsaiSettlement) error {
 		if locked.UpstreamStatus != GrsaiUpstreamStatusSucceeded {
+			return ErrGrsaiSettlementInvalidState
+		}
+		if grsaiNeedsResultURLs(locked) {
 			return ErrGrsaiSettlementInvalidState
 		}
 		lockedCommand, buildErr := grsaiBillingCommand(locked)
@@ -445,7 +625,23 @@ func (s *GrsaiSettlementService) SettleAt(ctx context.Context, id, claimVersion 
 		if lockedCommand.RequestFingerprint != cmd.RequestFingerprint {
 			return ErrUsageBillingRequestConflict
 		}
-		_, applyErr := s.Billing.ApplyTx(txCtx, tx, lockedCommand)
+		billingCommand := *lockedCommand
+		switch {
+		case locked.HoldState == "held" && locked.HoldAmount > 0:
+			if s.holdBilling() == nil {
+				return ErrGrsaiHoldReleaseUnavailable
+			}
+			if err := s.captureGrsaiBalanceTx(txCtx, tx, locked); err != nil {
+				return err
+			}
+			// The reservation already debited the balance; only quota is billed here.
+			billingCommand.BalanceCost = 0
+		case locked.HoldState == "none" && locked.HoldAmount == 0:
+			// Pre-migration rows have no reservation and still need their balance debit.
+		default:
+			return ErrGrsaiSettlementInvalidState
+		}
+		_, applyErr := s.Billing.ApplyTx(txCtx, tx, &billingCommand)
 		return applyErr
 	})
 	if err != nil {
@@ -472,8 +668,8 @@ func grsaiBillingCommand(record *GrsaiSettlement) (*UsageBillingCommand, error) 
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
 	count := decimal.NewFromInt(int64(record.RequestedImageCount))
-	amount, _ := decimal.NewFromFloat(record.BillableUnitPrice).Mul(count).Float64()
-	accountCost, _ := decimal.NewFromFloat(record.BaseUnitPrice).Mul(count).Mul(decimal.NewFromFloat(record.AccountRateMultiplier)).Float64()
+	amount := grsaiBalanceAmount(record.BillableUnitPrice, record.RequestedImageCount)
+	accountCost, _ := decimal.NewFromFloat(record.BaseUnitPrice).Mul(count).Mul(decimal.NewFromFloat(record.AccountRateMultiplier)).Round(8).Float64()
 	if !grsaiFiniteNonNegative(amount) || !grsaiFiniteNonNegative(accountCost) {
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
@@ -501,6 +697,27 @@ func (s *GrsaiSettlementService) recordUsage(ctx context.Context, record *GrsaiS
 }
 
 func GrsaiSettlementRequestID(id int64) string { return fmt.Sprintf("grsai_settlement:%d", id) }
+
+func grsaiBalanceAmount(unitPrice float64, count int) float64 {
+	amount, _ := decimal.NewFromFloat(unitPrice).Mul(decimal.NewFromInt(int64(count))).Round(8).Float64()
+	return amount
+}
+
+func grsaiNeedsResultURLs(record *GrsaiSettlement) bool {
+	return record != nil && record.UpstreamStatus == GrsaiUpstreamStatusSucceeded &&
+		(record.DeliveryMode == GrsaiDeliveryAsync || record.DeliveryMode == GrsaiDeliveryStream) && len(record.ResultURLs) == 0
+}
+
+func grsaiMissingResultExpired(record *GrsaiSettlement, now time.Time) bool {
+	if !grsaiNeedsResultURLs(record) {
+		return false
+	}
+	firstMissing := record.CreatedAt // Legacy rows may not have a result timestamp.
+	if record.ResultUpdatedAt != nil {
+		firstMissing = *record.ResultUpdatedAt
+	}
+	return !firstMissing.IsZero() && !now.Before(firstMissing.Add(grsaiMissingResultTimeout))
+}
 
 func grsaiFiniteNonNegative(value float64) bool {
 	return value >= 0 && !math.IsNaN(value) && !math.IsInf(value, 0)

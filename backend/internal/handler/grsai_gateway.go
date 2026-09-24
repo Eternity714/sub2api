@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -20,13 +21,32 @@ import (
 // It is intentionally separate from the OpenAI images handler because native
 // fields and terminal task semantics must not be translated.
 type GrsaiGatewayHandler struct {
-	gatewayService           *service.GatewayService
-	billingCacheService      *service.BillingCacheService
+	gatewayService           grsaiAccountSelector
+	billingCacheService      grsaiBillingEligibility
 	nativeClient             service.GrsaiNativeClient
 	settlementService        *service.GrsaiSettlementService
+	taskService              *service.GrsaiTaskService
 	contentModerationService *service.ContentModerationService
 	securityAuditCoordinator *securityaudit.Coordinator
 	concurrencyHelper        *ConcurrencyHelper
+}
+
+type grsaiAccountSelector interface {
+	SelectAccountWithLoadAwareness(context.Context, *int64, string, string, map[int64]struct{}, string, int64) (*service.AccountSelectionResult, error)
+	ResolveUserGroupRateMultiplier(context.Context, int64, int64, float64) float64
+}
+
+type grsaiBillingEligibility interface {
+	CheckBillingEligibility(context.Context, *service.User, *service.APIKey, *service.Group, *service.UserSubscription, string) error
+}
+
+// SetTaskService wires the durable delivery state machine. It is kept as a
+// setter so existing handler constructors and tests remain source-compatible;
+// production wiring supplies it during Task 7 lifecycle setup.
+func (h *GrsaiGatewayHandler) SetTaskService(tasks *service.GrsaiTaskService) {
+	if h != nil {
+		h.taskService = tasks
+	}
 }
 
 func NewGrsaiGatewayHandler(
@@ -65,7 +85,7 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		h.errorResponse(c, http.StatusNotFound, "not_found_error", "GRS.AI native images are not supported for this group")
 		return
 	}
-	if h.gatewayService == nil || h.billingCacheService == nil || h.nativeClient == nil || h.settlementService == nil || h.concurrencyHelper == nil {
+	if h.gatewayService == nil || h.billingCacheService == nil || h.nativeClient == nil || h.settlementService == nil || h.taskService == nil || h.concurrencyHelper == nil {
 		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "GRS.AI gateway is unavailable")
 		return
 	}
@@ -94,6 +114,15 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "model is required")
 		return
 	}
+	delivery, err := service.ParseGrsaiDeliveryRequest(body)
+	if err != nil {
+		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", err.Error())
+		return
+	}
+	if delivery.Mode == service.GrsaiDeliveryStream && !h.taskService.Options.StreamEnabled {
+		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "GRS.AI stream delivery is unavailable")
+		return
+	}
 
 	reqLog := requestLogger(c, "handler.grsai_gateway.generate",
 		zap.Int64("user_id", subject.UserID), zap.Int64("api_key_id", apiKey.ID), zap.Any("group_id", apiKey.GroupID),
@@ -117,7 +146,9 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		return
 	}
 	if userRelease != nil {
-		defer wrapReleaseOnDone(c.Request.Context(), userRelease)()
+		// Streaming requests continue durable upstream processing after an SSE
+		// client disconnects, so the user slot must stay held until that work ends.
+		defer userRelease()
 	}
 
 	subscription, _ := middleware2.GetSubscriptionFromContext(c)
@@ -153,12 +184,36 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		return
 	}
 	if accountRelease != nil {
-		defer wrapReleaseOnDone(c.Request.Context(), accountRelease)()
+		// See the user-slot note above: releasing on the request context's
+		// cancellation would allow another request to exceed account concurrency
+		// while this durable stream is still active.
+		defer accountRelease()
 	}
 
 	groupRate := h.gatewayService.ResolveUserGroupRateMultiplier(c.Request.Context(), apiKey.UserID, apiKey.Group.ID, apiKey.Group.RateMultiplier)
+	if delivery.Mode == service.GrsaiDeliveryAsync {
+		if h.taskService == nil || !h.taskService.Options.Enabled {
+			h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "GRS.AI async delivery is unavailable")
+			return
+		}
+		task, err := h.taskService.CreateGrsaiTask(c.Request.Context(), service.GrsaiTaskInput{
+			Account: account, APIKey: apiKey, Body: body, Request: delivery,
+			EffectiveGroupMultiplier: &groupRate,
+		})
+		if err != nil {
+			reqLog.Warn("grsai.async_task_create_failed", zap.Error(err))
+			if errors.Is(err, service.ErrGrsaiAsyncQueueFull) {
+				h.errorResponse(c, http.StatusTooManyRequests, "rate_limit_error", "Too many pending GRS.AI tasks")
+				return
+			}
+			h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Unable to create GRS.AI task")
+			return
+		}
+		c.JSON(http.StatusAccepted, gin.H{"id": task.PublicTaskID, "status": "queued", "model": task.Model, "created_at": task.CreatedAt, "updated_at": task.UpdatedAt})
+		return
+	}
 	settlement, err := h.settlementService.Prepare(c.Request.Context(), service.GrsaiPrepareInput{
-		Account: account, APIKey: apiKey, Model: model, ImageCount: imageCount, ImageSize: imageSize, EffectiveGroupMultiplier: &groupRate,
+		Account: account, APIKey: apiKey, Model: model, ImageCount: imageCount, ImageSize: imageSize, EffectiveGroupMultiplier: &groupRate, DeliveryMode: delivery.Mode,
 	})
 	if err != nil {
 		reqLog.Warn("grsai.settlement_prepare_failed", zap.Error(err))
@@ -166,29 +221,107 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		return
 	}
 
-	upstream, upstreamErr := h.nativeClient.Generate(c.Request.Context(), account, preparedBody)
-	outcome := h.settlementService.Finish(c.Request.Context(), settlement, upstream, upstreamErr)
-	if outcome != nil && outcome.SettlementError != nil && !errors.Is(outcome.SettlementError, service.ErrGrsaiSettlementClaimLost) {
-		// The upstream outcome has already been determined. Returning it avoids a
-		// client retry that could create a second provider task.
-		reqLog.Error("grsai.settlement_finish_failed", zap.String("priority", "high"), zap.Int64("settlement_id", settlement.ID), zap.Error(outcome.SettlementError))
-	}
-
-	var upstreamHTTPError *service.GrsaiHTTPError
-	if upstream != nil && len(upstream.RawBody) > 0 && (upstreamErr == nil || errors.As(upstreamErr, &upstreamHTTPError)) {
-		status := upstream.HTTPStatus
-		if status == 0 {
-			status = http.StatusBadGateway
+	if delivery.Mode == service.GrsaiDeliveryJSON || delivery.Mode == service.GrsaiDeliveryStream {
+		settlement.OriginalBody = append([]byte(nil), delivery.OriginalBody...)
+		settlement.UpstreamBody = append([]byte(nil), delivery.UpstreamBody...)
+		streamCtx := context.WithoutCancel(c.Request.Context())
+		var firstWrite bool
+		var downstreamDisconnected bool
+		final, runErr := h.taskService.RunGrsaiTask(streamCtx, settlement, func(event service.GrsaiStreamEvent) error {
+			if delivery.Mode == service.GrsaiDeliveryStream {
+				if downstreamDisconnected || c.Request.Context().Err() != nil {
+					downstreamDisconnected = true
+					return nil
+				}
+				if !firstWrite {
+					c.Header("Content-Type", "text/event-stream")
+					c.Header("Cache-Control", "no-cache")
+					c.Header("Connection", "keep-alive")
+					c.Writer.WriteHeader(http.StatusOK)
+					firstWrite = true
+				}
+				if _, err := c.Writer.Write([]byte("data: " + string(event.RawData) + "\n\n")); err != nil {
+					downstreamDisconnected = true
+					return nil
+				}
+				if flusher, ok := c.Writer.(http.Flusher); ok {
+					flusher.Flush()
+				}
+				return nil
+			}
+			return nil
+		})
+		if delivery.Mode == service.GrsaiDeliveryStream {
+			// Once SSE headers or a frame have been written, the response cannot
+			// be changed to JSON. A client disconnect is an output concern only;
+			// the durable task service has already recorded the provider event and
+			// will continue recovery without resubmitting it.
+			if runErr != nil && !firstWrite && !errors.Is(runErr, context.Canceled) {
+				h.errorResponse(c, http.StatusBadGateway, "api_error", "GRS.AI upstream stream failed")
+			}
+			return
 		}
-		c.Data(status, "application/json", redactGrsaiUpstreamBody(upstream.RawBody, account))
+		h.writeGrsaiJSONRunResult(c, final, runErr)
 		return
 	}
-	if upstreamErr != nil {
-		reqLog.Warn("grsai.upstream_request_failed", zap.Error(upstreamErr))
+	h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "GRS.AI delivery mode is unavailable")
+}
+
+func (h *GrsaiGatewayHandler) writeGrsaiJSONRunResult(c *gin.Context, final *service.GrsaiUpstreamResult, runErr error) {
+	// RunGrsaiTask returns a verified terminal result even when durable billing
+	// is pending retry. Do not turn a successful generation into a retryable 502.
+	if final != nil && final.TaskID != "" && (final.Status == service.GrsaiUpstreamStatusSucceeded ||
+		final.Status == service.GrsaiUpstreamStatusFailed || final.Status == service.GrsaiUpstreamStatusViolation) {
+		h.writeGrsaiTerminalJSON(c, final)
+		return
+	}
+	if runErr != nil {
 		h.errorResponse(c, http.StatusBadGateway, "api_error", "GRS.AI upstream request failed")
 		return
 	}
 	h.errorResponse(c, http.StatusBadGateway, "api_error", "GRS.AI upstream returned an invalid response")
+}
+
+func (h *GrsaiGatewayHandler) writeGrsaiTerminalJSON(c *gin.Context, result *service.GrsaiUpstreamResult) {
+	if result == nil {
+		h.errorResponse(c, http.StatusBadGateway, "api_error", "GRS.AI upstream returned an invalid response")
+		return
+	}
+	status := result.HTTPStatus
+	if status < 200 || status >= 300 {
+		status = http.StatusBadGateway
+	}
+	body := gin.H{"id": result.TaskID, "status": result.Status, "progress": result.Progress}
+	if len(result.ResultURLs) > 0 {
+		body["results"] = result.ResultURLs
+	}
+	if result.ErrorCode != "" {
+		body["error_code"] = result.ErrorCode
+	}
+	if result.ErrorMessage != "" {
+		body["error_message"] = result.ErrorMessage
+	}
+	c.JSON(status, body)
+}
+
+// Result returns an owner-scoped public task view by local or upstream ID.
+func (h *GrsaiGatewayHandler) Result(c *gin.Context) {
+	apiKey, ok := middleware2.GetAPIKeyFromContext(c)
+	if !ok || apiKey == nil {
+		h.errorResponse(c, http.StatusUnauthorized, "authentication_error", "Invalid API key")
+		return
+	}
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok || apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGrsai || h.taskService == nil {
+		h.errorResponse(c, http.StatusNotFound, "not_found", "task not found")
+		return
+	}
+	view, err := h.taskService.GetPublicTaskView(c.Request.Context(), subject.UserID, apiKey.ID, c.Query("id"))
+	if err != nil || view == nil {
+		h.errorResponse(c, http.StatusNotFound, "not_found", "task not found")
+		return
+	}
+	c.JSON(http.StatusOK, view)
 }
 
 // acquireAccountSlot honors the scheduler's immediate lease or its bounded

@@ -19,6 +19,31 @@ type grsaiRecoveryRepo struct {
 	lastClaimLimit int
 }
 
+type grsaiRecoveryHoldRepo struct {
+	*grsaiRecoveryRepo
+	releaseCalled bool
+}
+
+func (r *grsaiRecoveryHoldRepo) MarkHoldHeld(context.Context, int64, int64) error { return nil }
+func (r *grsaiRecoveryHoldRepo) CloseNoChargeWithRelease(context.Context, int64, int64, string, GrsaiSettlementTxFunc) error {
+	return errors.New("not used by recovery")
+}
+func (r *grsaiRecoveryHoldRepo) MarkManualReviewWithRelease(ctx context.Context, id, version int64, summary string, release GrsaiSettlementTxFunc) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if err := r.check(version); err != nil {
+		return err
+	}
+	if err := release(ctx, new(sql.Tx), r.record); err != nil {
+		return err
+	}
+	r.releaseCalled = true
+	r.record.HoldState = "released"
+	r.record.InternalStatus = "manual_review"
+	r.record.LastErrorSummary = &summary
+	return nil
+}
+
 func (r *grsaiRecoveryRepo) Create(context.Context, CreateGrsaiSettlementParams) (*GrsaiSettlement, error) {
 	return nil, errors.New("not used by recovery")
 }
@@ -27,6 +52,10 @@ func (r *grsaiRecoveryRepo) GetByID(_ context.Context, _ int64) (*GrsaiSettlemen
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.copy(), nil
+}
+
+func (r *grsaiRecoveryRepo) GetOwnedByPublicOrUpstreamID(context.Context, int64, int64, string) (*GrsaiSettlement, error) {
+	return nil, errors.New("not used by recovery")
 }
 
 func (r *grsaiRecoveryRepo) ClaimByID(context.Context, int64, time.Time, time.Time) (*GrsaiSettlement, error) {
@@ -72,6 +101,17 @@ func (r *grsaiRecoveryRepo) UpdateResult(_ context.Context, _, version int64, st
 	}
 	r.record.NextAttemptAt = next
 	return true, nil
+}
+
+func (r *grsaiRecoveryRepo) RecordResultSnapshot(ctx context.Context, id, version int64, status, summary string, next time.Time, progress int, urls []string) (bool, error) {
+	updated, err := r.UpdateResult(ctx, id, version, status, summary, next)
+	if updated && err == nil {
+		r.mu.Lock()
+		r.record.Progress = progress
+		r.record.ResultURLs = append([]string(nil), urls...)
+		r.mu.Unlock()
+	}
+	return updated, err
 }
 
 func (r *grsaiRecoveryRepo) MarkPendingSettlement(_ context.Context, _, version int64, next time.Time) error {
@@ -201,11 +241,51 @@ func newGrsaiRecoveryRuntime(now time.Time, record *GrsaiSettlement, client *grs
 	return runtime, repo
 }
 
+func TestGrsaiLegacyRecoveryContinuesAfterNewDeliveryDisabled(t *testing.T) {
+	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	id := "legacy-bound"
+	client := &grsaiRecoveryClient{result: &GrsaiUpstreamResult{TaskID: id, Status: GrsaiUpstreamStatusRunning}}
+	runtime, _ := newGrsaiRecoveryRuntime(now, grsaiRecoveryRecord(now, &id, GrsaiUpstreamStatusRunning, "pending_upstream"), client, &grsaiRecoveryBilling{})
+	runtime.opts = NewGrsaiSettlementRecoveryOptionsFromConfig(&config.Config{})
+	runtime.RunOnce(context.Background())
+	require.Equal(t, 1, client.resultCalls)
+	runtime.Start()
+	require.True(t, runtime.Running(), "existing JSON/stream records still need recovery when new delivery is disabled")
+	runtime.Stop()
+}
+
+func TestGrsaiLegacyStreamSuccessWithoutResultRepollsBeforeBilling(t *testing.T) {
+	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	id := "legacy-stream-task"
+	client := &grsaiRecoveryClient{err: errors.New("temporary result lookup failure")}
+	billing := &grsaiRecoveryBilling{}
+	record := grsaiRecoveryRecord(now, &id, GrsaiUpstreamStatusSucceeded, "pending_settlement")
+	record.DeliveryMode = GrsaiDeliveryStream
+	runtime, repo := newGrsaiRecoveryRuntime(now, record, client, billing)
+	runtime.now = func() time.Time { return now }
+	runtime.RunOnce(context.Background())
+	require.Equal(t, 1, client.resultCalls)
+	require.Empty(t, billing.commands)
+	require.Equal(t, "pending_upstream", repo.record.InternalStatus)
+	require.Equal(t, GrsaiUpstreamStatusSucceeded, repo.record.UpstreamStatus)
+
+	now = now.Add(time.Minute)
+	client.err = nil
+	client.result = &GrsaiUpstreamResult{HTTPStatus: 200, TaskID: id, Status: GrsaiUpstreamStatusSucceeded,
+		ResultURLs: []string{"https://img.invalid/recovered-stream.png"}}
+	runtime.RunOnce(context.Background())
+	require.Equal(t, 2, client.resultCalls)
+	require.Equal(t, "settled", repo.record.InternalStatus)
+	require.Equal(t, []string{"https://img.invalid/recovered-stream.png"}, repo.record.ResultURLs)
+	require.Len(t, billing.commands, 1)
+}
+
 func grsaiRecoveryRecord(now time.Time, taskID *string, upstreamStatus, internalStatus string) *GrsaiSettlement {
 	return &GrsaiSettlement{
 		ID: 19, AccountID: 8, GroupID: 3, UserID: 2, APIKeyID: 4, Model: "nano-banana-2",
 		BaseUnitPrice: 0.2, GroupRateMultiplier: 1, AccountRateMultiplier: 1, BillableUnitPrice: 0.2,
 		RequestedImageCount: 1, Currency: "USD", BillingIdempotencyKey: "grsai_settlement:19",
+		HoldState:      "none",
 		UpstreamTaskID: taskID, UpstreamStatus: upstreamStatus, InternalStatus: internalStatus,
 		CreatedAt: now.Add(-time.Minute), NextAttemptAt: now.Add(-time.Second),
 	}
@@ -297,6 +377,27 @@ func TestGrsaiSettlementRecoverySettlementBackoffAndManualReview(t *testing.T) {
 	require.Equal(t, "manual_review", repo.record.InternalStatus)
 	require.Contains(t, *repo.record.LastErrorSummary, "no upstream request was retried")
 	require.Zero(t, client.generateCalls)
+}
+
+// @covers AC-006
+func TestGrsaiSettlementRecoveryManualReviewReleasesHeldBalance(t *testing.T) {
+	now := time.Date(2026, 9, 19, 12, 0, 0, 0, time.UTC)
+	record := grsaiRecoveryRecord(now, nil, "submitting", "pending_upstream")
+	record.CreatedAt = now.Add(-time.Hour)
+	record.HoldAmount, record.HoldState = 0.2, "held"
+	runtime, base := newGrsaiRecoveryRuntime(now, record, &grsaiRecoveryClient{}, &grsaiRecoveryBilling{})
+	repo := &grsaiRecoveryHoldRepo{grsaiRecoveryRepo: base}
+	billing := &grsaiBillingSpy{}
+	runtime.repo = repo
+	runtime.settlement.Repo = repo
+	runtime.settlement.HoldBilling = billing
+
+	runtime.RunOnce(context.Background())
+
+	require.True(t, repo.releaseCalled)
+	require.Equal(t, 1, billing.holdReleased)
+	require.Equal(t, "released", record.HoldState)
+	require.Equal(t, "manual_review", record.InternalStatus)
 }
 
 func TestGrsaiSettlementRecoveryLimitsClaimsToOneLongRequestLease(t *testing.T) {

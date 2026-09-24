@@ -213,6 +213,30 @@ func (f GroupFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GroupMutation", m)
 }
 
+// The GrsaiSettlementFunc type is an adapter to allow the use of ordinary
+// function as GrsaiSettlement mutator.
+type GrsaiSettlementFunc func(context.Context, *ent.GrsaiSettlementMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GrsaiSettlementFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GrsaiSettlementMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GrsaiSettlementMutation", m)
+}
+
+// The GrsaiTaskPayloadFunc type is an adapter to allow the use of ordinary
+// function as GrsaiTaskPayload mutator.
+type GrsaiTaskPayloadFunc func(context.Context, *ent.GrsaiTaskPayloadMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GrsaiTaskPayloadFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GrsaiTaskPayloadMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GrsaiTaskPayloadMutation", m)
+}
+
 // The IdempotencyRecordFunc type is an adapter to allow the use of ordinary
 // function as IdempotencyRecord mutator.
 type IdempotencyRecordFunc func(context.Context, *ent.IdempotencyRecordMutation) (ent.Value, error)

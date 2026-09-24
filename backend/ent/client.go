@@ -32,6 +32,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/compositemodelroute"
 	"github.com/Wei-Shaw/sub2api/ent/errorpassthroughrule"
 	"github.com/Wei-Shaw/sub2api/ent/group"
+	"github.com/Wei-Shaw/sub2api/ent/grsaisettlement"
+	"github.com/Wei-Shaw/sub2api/ent/grsaitaskpayload"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
@@ -97,6 +99,10 @@ type Client struct {
 	ErrorPassthroughRule *ErrorPassthroughRuleClient
 	// Group is the client for interacting with the Group builders.
 	Group *GroupClient
+	// GrsaiSettlement is the client for interacting with the GrsaiSettlement builders.
+	GrsaiSettlement *GrsaiSettlementClient
+	// GrsaiTaskPayload is the client for interacting with the GrsaiTaskPayload builders.
+	GrsaiTaskPayload *GrsaiTaskPayloadClient
 	// IdempotencyRecord is the client for interacting with the IdempotencyRecord builders.
 	IdempotencyRecord *IdempotencyRecordClient
 	// IdentityAdoptionDecision is the client for interacting with the IdentityAdoptionDecision builders.
@@ -169,6 +175,8 @@ func (c *Client) init() {
 	c.CompositeModelRoute = NewCompositeModelRouteClient(c.config)
 	c.ErrorPassthroughRule = NewErrorPassthroughRuleClient(c.config)
 	c.Group = NewGroupClient(c.config)
+	c.GrsaiSettlement = NewGrsaiSettlementClient(c.config)
+	c.GrsaiTaskPayload = NewGrsaiTaskPayloadClient(c.config)
 	c.IdempotencyRecord = NewIdempotencyRecordClient(c.config)
 	c.IdentityAdoptionDecision = NewIdentityAdoptionDecisionClient(c.config)
 	c.PaymentAuditLog = NewPaymentAuditLogClient(c.config)
@@ -300,6 +308,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		CompositeModelRoute:           NewCompositeModelRouteClient(cfg),
 		ErrorPassthroughRule:          NewErrorPassthroughRuleClient(cfg),
 		Group:                         NewGroupClient(cfg),
+		GrsaiSettlement:               NewGrsaiSettlementClient(cfg),
+		GrsaiTaskPayload:              NewGrsaiTaskPayloadClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
 		PaymentAuditLog:               NewPaymentAuditLogClient(cfg),
@@ -358,6 +368,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		CompositeModelRoute:           NewCompositeModelRouteClient(cfg),
 		ErrorPassthroughRule:          NewErrorPassthroughRuleClient(cfg),
 		Group:                         NewGroupClient(cfg),
+		GrsaiSettlement:               NewGrsaiSettlementClient(cfg),
+		GrsaiTaskPayload:              NewGrsaiTaskPayloadClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
 		PaymentAuditLog:               NewPaymentAuditLogClient(cfg),
@@ -413,13 +425,14 @@ func (c *Client) Use(hooks ...Hook) {
 		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
 		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
 		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate,
-		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
-		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
-		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
-		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.GrsaiSettlement,
+		c.GrsaiTaskPayload, c.IdempotencyRecord, c.IdentityAdoptionDecision,
+		c.PaymentAuditLog, c.PaymentOrder, c.PaymentProviderInstance,
+		c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage, c.Proxy, c.RedeemCode,
+		c.SecuritySecret, c.Setting, c.SubscriptionPlan, c.TLSFingerprintProfile,
+		c.UsageCleanupTask, c.UsageLog, c.User, c.UserAllowedGroup,
+		c.UserAttributeDefinition, c.UserAttributeValue, c.UserPlatformQuota,
+		c.UserSubscription,
 	} {
 		n.Use(hooks...)
 	}
@@ -433,13 +446,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
 		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
 		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate,
-		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
-		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
-		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
-		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.GrsaiSettlement,
+		c.GrsaiTaskPayload, c.IdempotencyRecord, c.IdentityAdoptionDecision,
+		c.PaymentAuditLog, c.PaymentOrder, c.PaymentProviderInstance,
+		c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage, c.Proxy, c.RedeemCode,
+		c.SecuritySecret, c.Setting, c.SubscriptionPlan, c.TLSFingerprintProfile,
+		c.UsageCleanupTask, c.UsageLog, c.User, c.UserAllowedGroup,
+		c.UserAttributeDefinition, c.UserAttributeValue, c.UserPlatformQuota,
+		c.UserSubscription,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -482,6 +496,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ErrorPassthroughRule.mutate(ctx, m)
 	case *GroupMutation:
 		return c.Group.mutate(ctx, m)
+	case *GrsaiSettlementMutation:
+		return c.GrsaiSettlement.mutate(ctx, m)
+	case *GrsaiTaskPayloadMutation:
+		return c.GrsaiTaskPayload.mutate(ctx, m)
 	case *IdempotencyRecordMutation:
 		return c.IdempotencyRecord.mutate(ctx, m)
 	case *IdentityAdoptionDecisionMutation:
@@ -3276,6 +3294,304 @@ func (c *GroupClient) mutate(ctx context.Context, m *GroupMutation) (Value, erro
 		return (&GroupDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Group mutation op: %q", m.Op())
+	}
+}
+
+// GrsaiSettlementClient is a client for the GrsaiSettlement schema.
+type GrsaiSettlementClient struct {
+	config
+}
+
+// NewGrsaiSettlementClient returns a client for the GrsaiSettlement from the given config.
+func NewGrsaiSettlementClient(c config) *GrsaiSettlementClient {
+	return &GrsaiSettlementClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `grsaisettlement.Hooks(f(g(h())))`.
+func (c *GrsaiSettlementClient) Use(hooks ...Hook) {
+	c.hooks.GrsaiSettlement = append(c.hooks.GrsaiSettlement, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `grsaisettlement.Intercept(f(g(h())))`.
+func (c *GrsaiSettlementClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GrsaiSettlement = append(c.inters.GrsaiSettlement, interceptors...)
+}
+
+// Create returns a builder for creating a GrsaiSettlement entity.
+func (c *GrsaiSettlementClient) Create() *GrsaiSettlementCreate {
+	mutation := newGrsaiSettlementMutation(c.config, OpCreate)
+	return &GrsaiSettlementCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of GrsaiSettlement entities.
+func (c *GrsaiSettlementClient) CreateBulk(builders ...*GrsaiSettlementCreate) *GrsaiSettlementCreateBulk {
+	return &GrsaiSettlementCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GrsaiSettlementClient) MapCreateBulk(slice any, setFunc func(*GrsaiSettlementCreate, int)) *GrsaiSettlementCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GrsaiSettlementCreateBulk{err: fmt.Errorf("calling to GrsaiSettlementClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GrsaiSettlementCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GrsaiSettlementCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for GrsaiSettlement.
+func (c *GrsaiSettlementClient) Update() *GrsaiSettlementUpdate {
+	mutation := newGrsaiSettlementMutation(c.config, OpUpdate)
+	return &GrsaiSettlementUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GrsaiSettlementClient) UpdateOne(_m *GrsaiSettlement) *GrsaiSettlementUpdateOne {
+	mutation := newGrsaiSettlementMutation(c.config, OpUpdateOne, withGrsaiSettlement(_m))
+	return &GrsaiSettlementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GrsaiSettlementClient) UpdateOneID(id int64) *GrsaiSettlementUpdateOne {
+	mutation := newGrsaiSettlementMutation(c.config, OpUpdateOne, withGrsaiSettlementID(id))
+	return &GrsaiSettlementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for GrsaiSettlement.
+func (c *GrsaiSettlementClient) Delete() *GrsaiSettlementDelete {
+	mutation := newGrsaiSettlementMutation(c.config, OpDelete)
+	return &GrsaiSettlementDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GrsaiSettlementClient) DeleteOne(_m *GrsaiSettlement) *GrsaiSettlementDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GrsaiSettlementClient) DeleteOneID(id int64) *GrsaiSettlementDeleteOne {
+	builder := c.Delete().Where(grsaisettlement.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GrsaiSettlementDeleteOne{builder}
+}
+
+// Query returns a query builder for GrsaiSettlement.
+func (c *GrsaiSettlementClient) Query() *GrsaiSettlementQuery {
+	return &GrsaiSettlementQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGrsaiSettlement},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a GrsaiSettlement entity by its id.
+func (c *GrsaiSettlementClient) Get(ctx context.Context, id int64) (*GrsaiSettlement, error) {
+	return c.Query().Where(grsaisettlement.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GrsaiSettlementClient) GetX(ctx context.Context, id int64) *GrsaiSettlement {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTaskPayload queries the task_payload edge of a GrsaiSettlement.
+func (c *GrsaiSettlementClient) QueryTaskPayload(_m *GrsaiSettlement) *GrsaiTaskPayloadQuery {
+	query := (&GrsaiTaskPayloadClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(grsaisettlement.Table, grsaisettlement.FieldID, id),
+			sqlgraph.To(grsaitaskpayload.Table, grsaitaskpayload.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, grsaisettlement.TaskPayloadTable, grsaisettlement.TaskPayloadColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *GrsaiSettlementClient) Hooks() []Hook {
+	return c.hooks.GrsaiSettlement
+}
+
+// Interceptors returns the client interceptors.
+func (c *GrsaiSettlementClient) Interceptors() []Interceptor {
+	return c.inters.GrsaiSettlement
+}
+
+func (c *GrsaiSettlementClient) mutate(ctx context.Context, m *GrsaiSettlementMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GrsaiSettlementCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GrsaiSettlementUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GrsaiSettlementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GrsaiSettlementDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GrsaiSettlement mutation op: %q", m.Op())
+	}
+}
+
+// GrsaiTaskPayloadClient is a client for the GrsaiTaskPayload schema.
+type GrsaiTaskPayloadClient struct {
+	config
+}
+
+// NewGrsaiTaskPayloadClient returns a client for the GrsaiTaskPayload from the given config.
+func NewGrsaiTaskPayloadClient(c config) *GrsaiTaskPayloadClient {
+	return &GrsaiTaskPayloadClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `grsaitaskpayload.Hooks(f(g(h())))`.
+func (c *GrsaiTaskPayloadClient) Use(hooks ...Hook) {
+	c.hooks.GrsaiTaskPayload = append(c.hooks.GrsaiTaskPayload, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `grsaitaskpayload.Intercept(f(g(h())))`.
+func (c *GrsaiTaskPayloadClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GrsaiTaskPayload = append(c.inters.GrsaiTaskPayload, interceptors...)
+}
+
+// Create returns a builder for creating a GrsaiTaskPayload entity.
+func (c *GrsaiTaskPayloadClient) Create() *GrsaiTaskPayloadCreate {
+	mutation := newGrsaiTaskPayloadMutation(c.config, OpCreate)
+	return &GrsaiTaskPayloadCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of GrsaiTaskPayload entities.
+func (c *GrsaiTaskPayloadClient) CreateBulk(builders ...*GrsaiTaskPayloadCreate) *GrsaiTaskPayloadCreateBulk {
+	return &GrsaiTaskPayloadCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GrsaiTaskPayloadClient) MapCreateBulk(slice any, setFunc func(*GrsaiTaskPayloadCreate, int)) *GrsaiTaskPayloadCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GrsaiTaskPayloadCreateBulk{err: fmt.Errorf("calling to GrsaiTaskPayloadClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GrsaiTaskPayloadCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GrsaiTaskPayloadCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for GrsaiTaskPayload.
+func (c *GrsaiTaskPayloadClient) Update() *GrsaiTaskPayloadUpdate {
+	mutation := newGrsaiTaskPayloadMutation(c.config, OpUpdate)
+	return &GrsaiTaskPayloadUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GrsaiTaskPayloadClient) UpdateOne(_m *GrsaiTaskPayload) *GrsaiTaskPayloadUpdateOne {
+	mutation := newGrsaiTaskPayloadMutation(c.config, OpUpdateOne, withGrsaiTaskPayload(_m))
+	return &GrsaiTaskPayloadUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GrsaiTaskPayloadClient) UpdateOneID(id int64) *GrsaiTaskPayloadUpdateOne {
+	mutation := newGrsaiTaskPayloadMutation(c.config, OpUpdateOne, withGrsaiTaskPayloadID(id))
+	return &GrsaiTaskPayloadUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for GrsaiTaskPayload.
+func (c *GrsaiTaskPayloadClient) Delete() *GrsaiTaskPayloadDelete {
+	mutation := newGrsaiTaskPayloadMutation(c.config, OpDelete)
+	return &GrsaiTaskPayloadDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GrsaiTaskPayloadClient) DeleteOne(_m *GrsaiTaskPayload) *GrsaiTaskPayloadDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GrsaiTaskPayloadClient) DeleteOneID(id int64) *GrsaiTaskPayloadDeleteOne {
+	builder := c.Delete().Where(grsaitaskpayload.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GrsaiTaskPayloadDeleteOne{builder}
+}
+
+// Query returns a query builder for GrsaiTaskPayload.
+func (c *GrsaiTaskPayloadClient) Query() *GrsaiTaskPayloadQuery {
+	return &GrsaiTaskPayloadQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGrsaiTaskPayload},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a GrsaiTaskPayload entity by its id.
+func (c *GrsaiTaskPayloadClient) Get(ctx context.Context, id int64) (*GrsaiTaskPayload, error) {
+	return c.Query().Where(grsaitaskpayload.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GrsaiTaskPayloadClient) GetX(ctx context.Context, id int64) *GrsaiTaskPayload {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySettlement queries the settlement edge of a GrsaiTaskPayload.
+func (c *GrsaiTaskPayloadClient) QuerySettlement(_m *GrsaiTaskPayload) *GrsaiSettlementQuery {
+	query := (&GrsaiSettlementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(grsaitaskpayload.Table, grsaitaskpayload.FieldID, id),
+			sqlgraph.To(grsaisettlement.Table, grsaisettlement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, grsaitaskpayload.SettlementTable, grsaitaskpayload.SettlementColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *GrsaiTaskPayloadClient) Hooks() []Hook {
+	return c.hooks.GrsaiTaskPayload
+}
+
+// Interceptors returns the client interceptors.
+func (c *GrsaiTaskPayloadClient) Interceptors() []Interceptor {
+	return c.inters.GrsaiTaskPayload
+}
+
+func (c *GrsaiTaskPayloadClient) mutate(ctx context.Context, m *GrsaiTaskPayloadMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GrsaiTaskPayloadCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GrsaiTaskPayloadUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GrsaiTaskPayloadUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GrsaiTaskPayloadDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GrsaiTaskPayload mutation op: %q", m.Op())
 	}
 }
 
@@ -6845,24 +7161,24 @@ type (
 		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
 		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
 		ChannelMonitorRequestTemplate, CompositeModelRoute, ErrorPassthroughRule,
-		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
-		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
-		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
-		TLSFingerprintProfile, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
-		UserAttributeDefinition, UserAttributeValue, UserPlatformQuota,
-		UserSubscription []ent.Hook
+		Group, GrsaiSettlement, GrsaiTaskPayload, IdempotencyRecord,
+		IdentityAdoptionDecision, PaymentAuditLog, PaymentOrder,
+		PaymentProviderInstance, PendingAuthSession, PromoCode, PromoCodeUsage, Proxy,
+		RedeemCode, SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
+		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
+		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Hook
 	}
 	inters struct {
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
 		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
 		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
 		ChannelMonitorRequestTemplate, CompositeModelRoute, ErrorPassthroughRule,
-		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
-		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
-		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
-		TLSFingerprintProfile, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
-		UserAttributeDefinition, UserAttributeValue, UserPlatformQuota,
-		UserSubscription []ent.Interceptor
+		Group, GrsaiSettlement, GrsaiTaskPayload, IdempotencyRecord,
+		IdentityAdoptionDecision, PaymentAuditLog, PaymentOrder,
+		PaymentProviderInstance, PendingAuthSession, PromoCode, PromoCodeUsage, Proxy,
+		RedeemCode, SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
+		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
+		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Interceptor
 	}
 )
 
