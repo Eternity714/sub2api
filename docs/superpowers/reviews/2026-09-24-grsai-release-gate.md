@@ -12,7 +12,7 @@ JSON、Async、Stream 共用上游 Stream 协议；Async 每用户等待 20、�
 - `go test -tags=integration ./...`：独立重跑通过；最初与其他全量任务并行时 repository 包曾失败，单包和随后全量独立重跑均通过，首次失败原因未得到确定定位。
 - `go vet ./...`、前端 lint/typecheck、Vitest 299 文件/2274 项：通过。
 - `python test/grsai_live_contract.py --self-test`：9/9 通过，未访问真实上游。
-- AC 追溯脚本红绿自检通过；对 PRD 及 6 个含 AC 引用的第一方测试文件扫描，11 条声明/11 条引用，无孤儿或幽灵 ID。脚本仅检查文本引用，不证明测试语义。
+- AC 追溯脚本红绿自检通过；对 PRD 及 6 个含 AC 引用的第一方测试文件扫描，11 条声明/11 条引用，无孤儿或幽灵 ID。仓库内的 `test/grsai_ac_traceability.py` 已接入 CI。脚本仅检查文本引用，不证明测试语义。
 - `git diff --check`：无格式错误。
 
 ## 上线前硬门
