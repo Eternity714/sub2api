@@ -7,6 +7,7 @@ import os
 import re
 import time
 import unittest
+import urllib.error
 import urllib.parse
 import urllib.request
 from unittest.mock import patch
@@ -149,8 +150,8 @@ def run_probe(args, env=None, opener=None):
         port = parsed.port
     except ValueError:
         return 2, "configuration_error: invalid GRSAI_BASE"
-    if (not key or not base or parsed.scheme != "https" or parsed.hostname not in
-            ("grsai.com", "api.grsai.com") or port is not None or parsed.username or
+    if (not key or not base or parsed.scheme != "https" or parsed.hostname !=
+            "grsaiapi.com" or port is not None or parsed.username or
             parsed.password or parsed.query or parsed.fragment or parsed.path not in ("", "/")):
         return 2, "configuration_error: require GRSAI_BASE and GRSAI_KEY"
     if opener is None:
@@ -192,6 +193,12 @@ def run_probe(args, env=None, opener=None):
         suffix = "".join(c if c.isascii() and (c.isalnum() or c in "-_") else "?"
                          for c in task_id[-4:])
         return 0, "protocol=passed task_suffix=***" + suffix + f" content_type=text/event-stream status={status} progress={progress}"
+    except urllib.error.HTTPError as exc:
+        exc.close()
+        return 1, f"probe_failed=http_status_{exc.code}"
+    except urllib.error.URLError as exc:
+        reason = "transport_timeout" if isinstance(exc.reason, TimeoutError) else "transport_error"
+        return 1, "probe_failed=" + reason
     except Exception as exc:
         # Never print exception text, request URLs, response bodies, or the task ID.
         reason = exc.args[0] if isinstance(exc, ProbeError) else "transport_error"
@@ -218,7 +225,7 @@ class FakeResponse(io.BytesIO):
 
 
 def valid_env():
-    return {"GRSAI_BASE": "https://api.grsai.com", "GRSAI_KEY": "secret-key"}
+    return {"GRSAI_BASE": "https://grsaiapi.com", "GRSAI_KEY": "secret-key"}
 
 
 class ProbeTests(unittest.TestCase):
@@ -232,15 +239,31 @@ class ProbeTests(unittest.TestCase):
             self.assertEqual([], calls)
 
     def test_bad_environment_never_open_network(self):
-        for env in ({}, {"GRSAI_BASE": "https://api.grsai.com"},
+        for env in ({}, {"GRSAI_BASE": "https://grsaiapi.com"},
                     {**valid_env(), "GRSAI_BASE": "https://evil.example"},
-                    {**valid_env(), "GRSAI_BASE": "https://api.grsai.com:bad"}):
+                    {**valid_env(), "GRSAI_BASE": "https://api.grsai.com"},
+                    {**valid_env(), "GRSAI_BASE": "https://grsaiapi.com:bad"}):
             calls = []
             code, output = run_probe(["--live"], env,
                                      lambda req, timeout: calls.append(req))
             self.assertEqual(2, code)
             self.assertEqual([], calls)
             self.assertNotIn("secret-key", output)
+
+    def test_global_base_uses_provider_endpoints(self):
+        stream = b'data: {"id":"task-1","status":"succeeded","results":[{"url":"https://images.example/1.png"}]}\n\n'
+        replies = [FakeResponse(stream, "text/event-stream"),
+                   FakeResponse(b'{"id":"task-1","status":"succeeded"}', "application/json")]
+        urls = []
+
+        def opener(req, timeout):
+            urls.append(req.full_url)
+            return replies.pop(0)
+
+        code, _ = run_probe(["--live"], valid_env(), opener)
+        self.assertEqual(0, code)
+        self.assertEqual(["https://grsaiapi.com/v1/api/generate",
+                          "https://grsaiapi.com/v1/api/result?id=task-1"], urls)
 
     def test_scrubber(self):
         output = scrub("Bearer secret-key prompt=private https://images.example/a.png", "secret-key")
@@ -319,6 +342,22 @@ class ProbeTests(unittest.TestCase):
                                 lambda req, timeout: calls.append(req))
         self.assertEqual(1, code)
         self.assertEqual([], calls)
+
+    def test_http_error_reports_only_status_without_response_body(self):
+        def failing(req, timeout):
+            raise urllib.error.HTTPError(req.full_url, 403, "secret-key", {}, io.BytesIO(b"secret-key"))
+
+        code, output = run_probe(["--live"], valid_env(), failing)
+        self.assertEqual(1, code)
+        self.assertEqual("probe_failed=http_status_403", output)
+
+    def test_transport_timeout_does_not_expose_error(self):
+        def failing(req, timeout):
+            raise urllib.error.URLError(TimeoutError("secret-key"))
+
+        code, output = run_probe(["--live"], valid_env(), failing)
+        self.assertEqual(1, code)
+        self.assertEqual("probe_failed=transport_timeout", output)
 
 
 if __name__ == "__main__":

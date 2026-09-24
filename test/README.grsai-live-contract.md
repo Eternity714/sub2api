@@ -7,7 +7,7 @@ opening a connection. No credentials are required for the self-tests.
 ## Separate operator-controlled run
 
 Do not run live during routine testing. Set `GRSAI_BASE` to
-`https://api.grsai.com` (or `https://grsai.com` if appropriate)
+`https://grsaiapi.com` (the provider's global node)
 and `GRSAI_KEY` to a dedicated key through your secret-management process. Do not
 put the key in shell history or CI. Then run:
 
@@ -15,7 +15,11 @@ put the key in shell history or CI. Then run:
 python test/grsai_live_contract.py --live
 ```
 
-The `--live` flag must match exactly; HTTPS is restricted to those two provider hosts,
+If the local Python proxy path is unreliable, verify connectivity with a read-only
+request first and set `NO_PROXY=grsaiapi.com` for this invocation only. Do not
+repeat a failed generation request without checking upstream task activity.
+
+The `--live` flag must match exactly; HTTPS is restricted to that provider host,
 redirects are refused, and the process starts at most one POST to `/v1/api/generate`
 with `model=nano-banana-2-lite` and `replyType=stream`. It checks SSE frames and
 then queries `/v1/api/result?id=...` with a total 180-second deadline. A transport
