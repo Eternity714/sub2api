@@ -158,6 +158,7 @@ def run_probe(args, env=None, opener=None):
         opener = urllib.request.build_opener(NoRedirect()).open
     deadline = time.monotonic() + 180
     post_started = False
+    phase = "generate_post"
     try:
         payload = json.dumps({"model": "nano-banana-2-lite", "replyType": "stream", "prompt": PROMPT}).encode()
         if post_started:
@@ -166,13 +167,16 @@ def run_probe(args, env=None, opener=None):
         post_started = True
         with request(opener, "POST", base.rstrip("/") + "/v1/api/generate", key, deadline,
                      payload, "text/event-stream") as response:
+            phase = "stream_read"
             content_type = response.headers.get("Content-Type", "")
             if content_type.split(";", 1)[0].strip().lower() != "text/event-stream":
                 raise ProbeError("invalid_content_type")
             task_id, status, progress = parse_stream(response, deadline)
         result_url = base.rstrip("/") + "/v1/api/result?" + urllib.parse.urlencode({"id": task_id})
         while True:
+            phase = "result_get"
             with request(opener, "GET", result_url, key, deadline) as response:
+                phase = "result_parse"
                 if response.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
                     raise ProbeError("invalid_result_content_type")
                 raw = response.read(1 << 20)
@@ -195,14 +199,14 @@ def run_probe(args, env=None, opener=None):
         return 0, "protocol=passed task_suffix=***" + suffix + f" content_type=text/event-stream status={status} progress={progress}"
     except urllib.error.HTTPError as exc:
         exc.close()
-        return 1, f"probe_failed=http_status_{exc.code}"
+        return 1, f"probe_failed={phase}_http_status_{exc.code}"
     except urllib.error.URLError as exc:
         reason = "transport_timeout" if isinstance(exc.reason, TimeoutError) else "transport_error"
-        return 1, "probe_failed=" + reason
+        return 1, f"probe_failed={phase}_{reason}"
     except Exception as exc:
         # Never print exception text, request URLs, response bodies, or the task ID.
         reason = exc.args[0] if isinstance(exc, ProbeError) else "transport_error"
-        return 1, "probe_failed=" + reason
+        return 1, f"probe_failed={phase}_{reason}"
 
 
 def event_result(raw):
@@ -349,7 +353,24 @@ class ProbeTests(unittest.TestCase):
 
         code, output = run_probe(["--live"], valid_env(), failing)
         self.assertEqual(1, code)
-        self.assertEqual("probe_failed=http_status_403", output)
+        self.assertEqual("probe_failed=generate_post_http_status_403", output)
+
+    def test_result_http_error_is_distinguished_from_successful_stream(self):
+        stream = b'data: {"id":"task-123456","status":"succeeded","results":["https://images.example/private.png"]}\n\n'
+        calls = []
+
+        def failing_result(req, timeout):
+            calls.append(req)
+            if req.get_method() == "POST":
+                return FakeResponse(stream, "text/event-stream")
+            raise urllib.error.HTTPError(req.full_url, 404, "private", {}, io.BytesIO(b"private"))
+
+        code, output = run_probe(["--live"], valid_env(), failing_result)
+        self.assertEqual(1, code)
+        self.assertEqual(["POST", "GET"], [req.get_method() for req in calls])
+        self.assertEqual("probe_failed=result_get_http_status_404", output)
+        for private in ("task-123456", "private.png", "secret-key", "red square"):
+            self.assertNotIn(private, output)
 
     def test_transport_timeout_does_not_expose_error(self):
         def failing(req, timeout):
@@ -357,7 +378,7 @@ class ProbeTests(unittest.TestCase):
 
         code, output = run_probe(["--live"], valid_env(), failing)
         self.assertEqual(1, code)
-        self.assertEqual("probe_failed=transport_timeout", output)
+        self.assertEqual("probe_failed=generate_post_transport_timeout", output)
 
 
 if __name__ == "__main__":

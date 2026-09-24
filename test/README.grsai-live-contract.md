@@ -25,6 +25,10 @@ with `model=nano-banana-2-lite` and `replyType=stream`. It checks SSE frames and
 then queries `/v1/api/result?id=...` with a total 180-second deadline. A transport
 failure after opening the POST may still represent a submitted task: **do not rerun
 automatically**. Review upstream activity and charges manually before any retry.
+Failure output includes a fixed phase (`generate_post`, `stream_read`, `result_get`,
+or `result_parse`) without printing response bodies or task identifiers. A
+`result_get_http_status_404` after a successful stream is not a failed POST and
+must not be treated as evidence that the task was never submitted.
 
 This probe validates the upstream protocol, not upstream costs. Exit 0 means the
 stream and result query matched; exit 1 denotes failed protocol/transport, and exit 2
