@@ -82,8 +82,20 @@ func ProvideGrsaiTaskService(
 	accounts AccountRepository,
 	upstream GrsaiStreamClient,
 	settlement *GrsaiSettlementService,
+	cfg *config.Config,
 ) *GrsaiTaskService {
-	return &GrsaiTaskService{Repo: repo, Payloads: payloads, Accounts: accounts, Upstream: upstream, Settlement: settlement}
+	return &GrsaiTaskService{Repo: repo, Payloads: payloads, Accounts: accounts, Upstream: upstream, Settlement: settlement,
+		Options: GrsaiTaskOptions{Enabled: cfg.GrsaiDelivery.Enabled, StreamEnabled: cfg.GrsaiDelivery.StreamEnabled, PayloadTTL: time.Duration(cfg.GrsaiDelivery.PayloadTTLSeconds) * time.Second,
+			ResultRetention: time.Duration(cfg.GrsaiDelivery.ResultRetentionHours) * time.Hour}}
+}
+
+func ProvideGrsaiTaskRuntime(tasks *GrsaiTaskService, repo GrsaiSettlementRepository, upstream GrsaiNativeClient, cfg *config.Config) *GrsaiTaskRuntime {
+	runtime := NewGrsaiTaskRuntime(tasks, repo, upstream, GrsaiTaskRuntimeOptions{
+		Enabled: true, ScanInterval: time.Duration(cfg.GrsaiDelivery.ScanIntervalSeconds) * time.Second,
+		BatchLimit: cfg.GrsaiDelivery.BatchLimit, ResultRetention: time.Duration(cfg.GrsaiDelivery.ResultRetentionHours) * time.Hour,
+	})
+	runtime.Start()
+	return runtime
 }
 
 func ProvideGrsaiSettlementRecoveryRuntime(
@@ -909,6 +921,7 @@ var ProviderSet = wire.NewSet(
 	ProvideGrsaiNativeStreamClient,
 	ProvideGrsaiSettlementService,
 	ProvideGrsaiTaskService,
+	ProvideGrsaiTaskRuntime,
 	ProvideGrsaiSettlementRecoveryRuntime,
 	wire.Bind(new(AccountRuntimeBlocker), new(*OpenAIGatewayService)),
 	NewOAuthService,

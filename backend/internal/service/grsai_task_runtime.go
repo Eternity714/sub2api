@@ -5,6 +5,9 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type GrsaiTaskRuntimeOptions struct {
@@ -13,6 +16,7 @@ type GrsaiTaskRuntimeOptions struct {
 	BatchLimit               int
 	SubmissionUnknownTimeout time.Duration
 	ClaimLease               time.Duration
+	ResultRetention          time.Duration
 	Now                      func() time.Time
 }
 
@@ -59,6 +63,9 @@ func (r *GrsaiTaskRuntime) normalizeOptions() {
 	if r.Options.ClaimLease <= 0 {
 		r.Options.ClaimLease = grsaiSettlementLease
 	}
+	if r.Options.ResultRetention <= 0 {
+		r.Options.ResultRetention = defaultGrsaiTaskResultRetention
+	}
 }
 
 func (r *GrsaiTaskRuntime) Start() {
@@ -79,13 +86,13 @@ func (r *GrsaiTaskRuntime) Start() {
 		defer close(done)
 		ticker := time.NewTicker(r.Options.ScanInterval)
 		defer ticker.Stop()
-		r.RunOnce(ctx)
+		r.runOnce(ctx, context.WithoutCancel(ctx))
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				r.RunOnce(ctx)
+				r.runOnce(ctx, context.WithoutCancel(ctx))
 			}
 		}
 	}()
@@ -117,28 +124,63 @@ func (r *GrsaiTaskRuntime) Running() bool {
 }
 
 func (r *GrsaiTaskRuntime) RunOnce(ctx context.Context) {
+	r.runOnce(ctx, ctx)
+}
+
+func (r *GrsaiTaskRuntime) runOnce(ctx, claimContext context.Context) {
 	if r == nil || r.Repo == nil || r.Tasks == nil {
 		return
 	}
 	r.normalizeOptions()
-	now := r.now()
-	var claims []*GrsaiSettlement
-	var err error
-	if modeRepo, ok := r.Repo.(GrsaiDeliveryModeRepository); ok {
-		claims, err = modeRepo.ClaimDueForDeliveryMode(ctx, now, r.Options.BatchLimit, now.Add(r.Options.ClaimLease), GrsaiDeliveryAsync)
-	} else {
-		// Compatibility for in-memory/test repositories. Production SQL uses the
-		// mode-fenced method above, so legacy rows are never leased by this worker.
-		claims, err = r.Repo.ClaimDue(ctx, now, r.Options.BatchLimit, now.Add(r.Options.ClaimLease))
-	}
-	if err != nil {
-		return
-	}
-	for _, claim := range claims {
+	r.cleanup(ctx)
+	for processed := 0; processed < r.Options.BatchLimit; processed++ {
 		if ctx.Err() != nil {
 			return
 		}
-		r.runClaim(ctx, claim)
+		now := r.now()
+		var claims []*GrsaiSettlement
+		var err error
+		if modeRepo, ok := r.Repo.(GrsaiDeliveryModeRepository); ok {
+			// Claim exactly one record at a time. A task can spend longer than the
+			// lease in the upstream stream, and pre-claiming later records would let
+			// another process re-claim one before this worker reaches its first POST.
+			claims, err = modeRepo.ClaimDueForDeliveryMode(ctx, now, 1, now.Add(r.Options.ClaimLease), GrsaiDeliveryAsync)
+		} else {
+			// Compatibility for in-memory/test repositories. Production SQL uses the
+			// mode-fenced method above, so legacy rows are never leased by this worker.
+			claims, err = r.Repo.ClaimDue(ctx, now, 1, now.Add(r.Options.ClaimLease))
+		}
+		if err != nil || len(claims) == 0 {
+			return
+		}
+		if ctx.Err() != nil {
+			return
+		}
+		claim := claims[0]
+		// A shutdown stops future claims, but an already-started provider POST
+		// must drain so cancellation cannot turn it into an unknown submission.
+		r.runClaim(claimContext, claim)
+	}
+}
+
+type grsaiTerminalCleanupRepository interface {
+	DeleteTerminal(context.Context, time.Time, time.Duration, int) (int64, error)
+}
+
+func (r *GrsaiTaskRuntime) cleanup(ctx context.Context) {
+	if ctx.Err() != nil {
+		return
+	}
+	now := r.now()
+	if r.Tasks.Payloads != nil {
+		if _, err := r.Tasks.Payloads.DeleteExpired(ctx, now); err != nil && ctx.Err() == nil {
+			logger.L().Warn("grsai async payload cleanup failed", zap.Error(err))
+		}
+	}
+	if repo, ok := r.Repo.(grsaiTerminalCleanupRepository); ok && ctx.Err() == nil {
+		if _, err := repo.DeleteTerminal(ctx, now, r.Options.ResultRetention, r.Options.BatchLimit); err != nil && ctx.Err() == nil {
+			logger.L().Warn("grsai terminal task cleanup failed", zap.Error(err))
+		}
 	}
 }
 
@@ -152,12 +194,16 @@ func (r *GrsaiTaskRuntime) runClaim(ctx context.Context, claim *GrsaiSettlement)
 		// an older repository implementation returns one anyway.
 		return
 	}
-	if claim.InternalStatus == "pending_settlement" || claim.UpstreamStatus == GrsaiUpstreamStatusSucceeded {
+	if (claim.InternalStatus == "pending_settlement" || claim.UpstreamStatus == GrsaiUpstreamStatusSucceeded) && !grsaiNeedsResultURLs(claim) {
 		_, _ = r.Tasks.Settlement.SettleAt(ctx, claim.ID, claim.ClaimVersion, r.now().Add(time.Minute))
 		return
 	}
 	if claim.UpstreamTaskID != nil && grsaiTaskTrim(*claim.UpstreamTaskID) != "" {
 		r.pollBound(ctx, claim)
+		return
+	}
+	if grsaiNeedsResultURLs(claim) {
+		_ = r.Tasks.markManualReview(ctx, claim, "upstream success has no result URL or task ID")
 		return
 	}
 	if claim.UpstreamStatus != "not_submitted" && claim.UpstreamStatus != "unknown" && claim.UpstreamStatus != "submitting" {
@@ -186,7 +232,13 @@ func (r *GrsaiTaskRuntime) pollBound(ctx context.Context, claim *GrsaiSettlement
 	}
 	account, err := r.Tasks.Accounts.GetByID(ctx, claim.AccountID)
 	if err != nil || account == nil || account.Platform != PlatformGrsai {
-		_, _ = r.Repo.UpdateResult(ctx, claim.ID, claim.ClaimVersion, "unknown", "account unavailable for result polling", r.now().Add(r.Options.ScanInterval))
+		if grsaiMissingResultExpired(claim, r.now()) {
+			_ = r.Tasks.markManualReview(ctx, claim, "upstream success remained without result URL beyond deadline")
+			return
+		}
+		if !grsaiNeedsResultURLs(claim) {
+			_, _ = r.Repo.UpdateResult(ctx, claim.ID, claim.ClaimVersion, "unknown", "account unavailable for result polling", r.now().Add(r.Options.ScanInterval))
+		}
 		_ = r.Repo.MarkPendingUpstream(ctx, claim.ID, claim.ClaimVersion, r.now().Add(r.Options.ScanInterval))
 		return
 	}

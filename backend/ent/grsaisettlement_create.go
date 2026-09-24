@@ -131,6 +131,20 @@ func (_c *GrsaiSettlementCreate) SetNillableDeliveryMode(v *string) *GrsaiSettle
 	return _c
 }
 
+// SetAsyncStartedAt sets the "async_started_at" field.
+func (_c *GrsaiSettlementCreate) SetAsyncStartedAt(v time.Time) *GrsaiSettlementCreate {
+	_c.mutation.SetAsyncStartedAt(v)
+	return _c
+}
+
+// SetNillableAsyncStartedAt sets the "async_started_at" field if the given value is not nil.
+func (_c *GrsaiSettlementCreate) SetNillableAsyncStartedAt(v *time.Time) *GrsaiSettlementCreate {
+	if v != nil {
+		_c.SetAsyncStartedAt(*v)
+	}
+	return _c
+}
+
 // SetProgress sets the "progress" field.
 func (_c *GrsaiSettlementCreate) SetProgress(v int) *GrsaiSettlementCreate {
 	_c.mutation.SetProgress(v)
@@ -732,6 +746,10 @@ func (_c *GrsaiSettlementCreate) createSpec() (*GrsaiSettlement, *sqlgraph.Creat
 		_spec.SetField(grsaisettlement.FieldDeliveryMode, field.TypeString, value)
 		_node.DeliveryMode = value
 	}
+	if value, ok := _c.mutation.AsyncStartedAt(); ok {
+		_spec.SetField(grsaisettlement.FieldAsyncStartedAt, field.TypeTime, value)
+		_node.AsyncStartedAt = &value
+	}
 	if value, ok := _c.mutation.Progress(); ok {
 		_spec.SetField(grsaisettlement.FieldProgress, field.TypeInt, value)
 		_node.Progress = value
@@ -1097,6 +1115,24 @@ func (u *GrsaiSettlementUpsert) SetDeliveryMode(v string) *GrsaiSettlementUpsert
 // UpdateDeliveryMode sets the "delivery_mode" field to the value that was provided on create.
 func (u *GrsaiSettlementUpsert) UpdateDeliveryMode() *GrsaiSettlementUpsert {
 	u.SetExcluded(grsaisettlement.FieldDeliveryMode)
+	return u
+}
+
+// SetAsyncStartedAt sets the "async_started_at" field.
+func (u *GrsaiSettlementUpsert) SetAsyncStartedAt(v time.Time) *GrsaiSettlementUpsert {
+	u.Set(grsaisettlement.FieldAsyncStartedAt, v)
+	return u
+}
+
+// UpdateAsyncStartedAt sets the "async_started_at" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsert) UpdateAsyncStartedAt() *GrsaiSettlementUpsert {
+	u.SetExcluded(grsaisettlement.FieldAsyncStartedAt)
+	return u
+}
+
+// ClearAsyncStartedAt clears the value of the "async_started_at" field.
+func (u *GrsaiSettlementUpsert) ClearAsyncStartedAt() *GrsaiSettlementUpsert {
+	u.SetNull(grsaisettlement.FieldAsyncStartedAt)
 	return u
 }
 
@@ -1727,6 +1763,27 @@ func (u *GrsaiSettlementUpsertOne) SetDeliveryMode(v string) *GrsaiSettlementUps
 func (u *GrsaiSettlementUpsertOne) UpdateDeliveryMode() *GrsaiSettlementUpsertOne {
 	return u.Update(func(s *GrsaiSettlementUpsert) {
 		s.UpdateDeliveryMode()
+	})
+}
+
+// SetAsyncStartedAt sets the "async_started_at" field.
+func (u *GrsaiSettlementUpsertOne) SetAsyncStartedAt(v time.Time) *GrsaiSettlementUpsertOne {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.SetAsyncStartedAt(v)
+	})
+}
+
+// UpdateAsyncStartedAt sets the "async_started_at" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsertOne) UpdateAsyncStartedAt() *GrsaiSettlementUpsertOne {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.UpdateAsyncStartedAt()
+	})
+}
+
+// ClearAsyncStartedAt clears the value of the "async_started_at" field.
+func (u *GrsaiSettlementUpsertOne) ClearAsyncStartedAt() *GrsaiSettlementUpsertOne {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.ClearAsyncStartedAt()
 	})
 }
 
@@ -2578,6 +2635,27 @@ func (u *GrsaiSettlementUpsertBulk) SetDeliveryMode(v string) *GrsaiSettlementUp
 func (u *GrsaiSettlementUpsertBulk) UpdateDeliveryMode() *GrsaiSettlementUpsertBulk {
 	return u.Update(func(s *GrsaiSettlementUpsert) {
 		s.UpdateDeliveryMode()
+	})
+}
+
+// SetAsyncStartedAt sets the "async_started_at" field.
+func (u *GrsaiSettlementUpsertBulk) SetAsyncStartedAt(v time.Time) *GrsaiSettlementUpsertBulk {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.SetAsyncStartedAt(v)
+	})
+}
+
+// UpdateAsyncStartedAt sets the "async_started_at" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsertBulk) UpdateAsyncStartedAt() *GrsaiSettlementUpsertBulk {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.UpdateAsyncStartedAt()
+	})
+}
+
+// ClearAsyncStartedAt clears the value of the "async_started_at" field.
+func (u *GrsaiSettlementUpsertBulk) ClearAsyncStartedAt() *GrsaiSettlementUpsertBulk {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.ClearAsyncStartedAt()
 	})
 }
 

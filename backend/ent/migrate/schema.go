@@ -1033,6 +1033,7 @@ var (
 		{Name: "billing_idempotency_key", Type: field.TypeString, Size: 128},
 		{Name: "public_task_id", Type: field.TypeString, Nullable: true, Size: 64},
 		{Name: "delivery_mode", Type: field.TypeString, Size: 16, Default: "json"},
+		{Name: "async_started_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "progress", Type: field.TypeInt, Default: 0},
 		{Name: "result_urls", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "hold_amount", Type: field.TypeFloat64, Default: 0},
@@ -1082,7 +1083,7 @@ var (
 			{
 				Name:    "grsaisettlement_user_id_api_key_id_upstream_task_id",
 				Unique:  false,
-				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[4], GrsaiSettlementsColumns[21]},
+				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[4], GrsaiSettlementsColumns[22]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "upstream_task_id IS NOT NULL",
 				},
@@ -1090,7 +1091,7 @@ var (
 			{
 				Name:    "grsaisettlement_account_id_upstream_task_id",
 				Unique:  true,
-				Columns: []*schema.Column{GrsaiSettlementsColumns[1], GrsaiSettlementsColumns[21]},
+				Columns: []*schema.Column{GrsaiSettlementsColumns[1], GrsaiSettlementsColumns[22]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "upstream_task_id IS NOT NULL AND upstream_task_id <> ''",
 				},
@@ -1098,7 +1099,7 @@ var (
 			{
 				Name:    "grsaisettlement_internal_status_next_attempt_at",
 				Unique:  false,
-				Columns: []*schema.Column{GrsaiSettlementsColumns[23], GrsaiSettlementsColumns[27]},
+				Columns: []*schema.Column{GrsaiSettlementsColumns[24], GrsaiSettlementsColumns[28]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "internal_status IN ('pending_upstream', 'pending_settlement', 'processing')",
 				},
@@ -1106,7 +1107,15 @@ var (
 			{
 				Name:    "grsaisettlement_user_id_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[30]},
+				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[31]},
+			},
+			{
+				Name:    "grsai_settlements_async_user_capacity_idx",
+				Unique:  false,
+				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[15], GrsaiSettlementsColumns[24]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "delivery_mode = 'async'",
+				},
 			},
 		},
 	}

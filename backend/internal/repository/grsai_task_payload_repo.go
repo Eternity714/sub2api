@@ -45,10 +45,16 @@ func (r *grsaiTaskPayloadRepository) GetEncrypted(ctx context.Context, settlemen
 	}
 	var ciphertext string
 	err := r.db.QueryRowContext(ctx, `
-SELECT ciphertext
-FROM grsai_task_payloads
-WHERE settlement_id = $1
-  AND expires_at > NOW()`, settlementID).Scan(&ciphertext)
+SELECT p.ciphertext
+FROM grsai_task_payloads p
+JOIN grsai_settlements s ON s.id = p.settlement_id
+WHERE p.settlement_id = $1
+  AND (p.expires_at > NOW() OR (
+    s.delivery_mode = 'async'
+    AND s.upstream_status = 'not_submitted'
+    AND s.upstream_task_id IS NULL
+    AND s.internal_status IN ('pending_upstream', 'processing')
+  ))`, settlementID).Scan(&ciphertext)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, service.ErrGrsaiTaskPayloadNotFound
 	}
@@ -57,7 +63,7 @@ WHERE settlement_id = $1
 	}
 	plaintext, err := r.encryptor.Decrypt(ciphertext)
 	if err != nil {
-		return nil, fmt.Errorf("decrypt grsai task payload: %w", err)
+		return nil, fmt.Errorf("%w: %v", service.ErrGrsaiTaskPayloadCorrupt, err)
 	}
 	return []byte(plaintext), nil
 }
@@ -74,7 +80,28 @@ func (r *grsaiTaskPayloadRepository) DeleteExpired(ctx context.Context, now time
 	if r == nil || r.db == nil || now.IsZero() {
 		return 0, service.ErrGrsaiSettlementInvalidInput
 	}
-	result, err := r.db.ExecContext(ctx, `DELETE FROM grsai_task_payloads WHERE expires_at <= $1`, now)
+	result, err := r.db.ExecContext(ctx, `
+WITH removable AS (
+  SELECT p.settlement_id FROM grsai_task_payloads p
+  WHERE (p.expires_at <= $1 OR EXISTS (
+    SELECT 1 FROM grsai_settlements s
+    WHERE s.id = p.settlement_id
+      AND (s.upstream_task_id IS NOT NULL
+        OR s.internal_status IN ('settled', 'closed_no_charge', 'manual_review'))
+  ))
+    AND NOT EXISTS (
+    SELECT 1 FROM grsai_settlements s
+    WHERE s.id = p.settlement_id
+      AND s.delivery_mode = 'async'
+      AND s.upstream_status IN ('not_submitted', 'submitting')
+      AND s.upstream_task_id IS NULL
+      AND s.internal_status IN ('pending_upstream', 'processing')
+  )
+  ORDER BY p.settlement_id
+  LIMIT 100 FOR UPDATE OF p SKIP LOCKED
+)
+DELETE FROM grsai_task_payloads p USING removable
+WHERE p.settlement_id = removable.settlement_id`, now)
 	if err != nil {
 		return 0, err
 	}

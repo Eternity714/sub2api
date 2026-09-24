@@ -42,6 +42,8 @@ const (
 	FieldPublicTaskID = "public_task_id"
 	// FieldDeliveryMode holds the string denoting the delivery_mode field in the database.
 	FieldDeliveryMode = "delivery_mode"
+	// FieldAsyncStartedAt holds the string denoting the async_started_at field in the database.
+	FieldAsyncStartedAt = "async_started_at"
 	// FieldProgress holds the string denoting the progress field in the database.
 	FieldProgress = "progress"
 	// FieldResultUrls holds the string denoting the result_urls field in the database.
@@ -116,6 +118,7 @@ var Columns = []string{
 	FieldBillingIdempotencyKey,
 	FieldPublicTaskID,
 	FieldDeliveryMode,
+	FieldAsyncStartedAt,
 	FieldProgress,
 	FieldResultUrls,
 	FieldHoldAmount,
@@ -278,6 +281,11 @@ func ByPublicTaskID(opts ...sql.OrderTermOption) OrderOption {
 // ByDeliveryMode orders the results by the delivery_mode field.
 func ByDeliveryMode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeliveryMode, opts...).ToFunc()
+}
+
+// ByAsyncStartedAt orders the results by the async_started_at field.
+func ByAsyncStartedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAsyncStartedAt, opts...).ToFunc()
 }
 
 // ByProgress orders the results by the progress field.

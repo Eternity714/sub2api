@@ -47,6 +47,8 @@ type GrsaiSettlement struct {
 	PublicTaskID *string `json:"public_task_id,omitempty"`
 	// DeliveryMode holds the value of the "delivery_mode" field.
 	DeliveryMode string `json:"delivery_mode,omitempty"`
+	// AsyncStartedAt holds the value of the "async_started_at" field.
+	AsyncStartedAt *time.Time `json:"async_started_at,omitempty"`
 	// Progress holds the value of the "progress" field.
 	Progress int `json:"progress,omitempty"`
 	// ResultUrls holds the value of the "result_urls" field.
@@ -128,7 +130,7 @@ func (*GrsaiSettlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case grsaisettlement.FieldModel, grsaisettlement.FieldCurrency, grsaisettlement.FieldBillingIdempotencyKey, grsaisettlement.FieldPublicTaskID, grsaisettlement.FieldDeliveryMode, grsaisettlement.FieldHoldState, grsaisettlement.FieldUpstreamTaskID, grsaisettlement.FieldUpstreamStatus, grsaisettlement.FieldInternalStatus, grsaisettlement.FieldLastErrorSummary:
 			values[i] = new(sql.NullString)
-		case grsaisettlement.FieldPayloadDeleteAfter, grsaisettlement.FieldExpiresAt, grsaisettlement.FieldNextAttemptAt, grsaisettlement.FieldCreatedAt, grsaisettlement.FieldUpdatedAt, grsaisettlement.FieldUpstreamBoundAt, grsaisettlement.FieldResultUpdatedAt, grsaisettlement.FieldSettledAt, grsaisettlement.FieldClosedAt:
+		case grsaisettlement.FieldAsyncStartedAt, grsaisettlement.FieldPayloadDeleteAfter, grsaisettlement.FieldExpiresAt, grsaisettlement.FieldNextAttemptAt, grsaisettlement.FieldCreatedAt, grsaisettlement.FieldUpdatedAt, grsaisettlement.FieldUpstreamBoundAt, grsaisettlement.FieldResultUpdatedAt, grsaisettlement.FieldSettledAt, grsaisettlement.FieldClosedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -235,6 +237,13 @@ func (_m *GrsaiSettlement) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field delivery_mode", values[i])
 			} else if value.Valid {
 				_m.DeliveryMode = value.String
+			}
+		case grsaisettlement.FieldAsyncStartedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field async_started_at", values[i])
+			} else if value.Valid {
+				_m.AsyncStartedAt = new(time.Time)
+				*_m.AsyncStartedAt = value.Time
 			}
 		case grsaisettlement.FieldProgress:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -457,6 +466,11 @@ func (_m *GrsaiSettlement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("delivery_mode=")
 	builder.WriteString(_m.DeliveryMode)
+	builder.WriteString(", ")
+	if v := _m.AsyncStartedAt; v != nil {
+		builder.WriteString("async_started_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("progress=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Progress))

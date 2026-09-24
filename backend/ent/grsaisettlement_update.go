@@ -281,6 +281,26 @@ func (_u *GrsaiSettlementUpdate) SetNillableDeliveryMode(v *string) *GrsaiSettle
 	return _u
 }
 
+// SetAsyncStartedAt sets the "async_started_at" field.
+func (_u *GrsaiSettlementUpdate) SetAsyncStartedAt(v time.Time) *GrsaiSettlementUpdate {
+	_u.mutation.SetAsyncStartedAt(v)
+	return _u
+}
+
+// SetNillableAsyncStartedAt sets the "async_started_at" field if the given value is not nil.
+func (_u *GrsaiSettlementUpdate) SetNillableAsyncStartedAt(v *time.Time) *GrsaiSettlementUpdate {
+	if v != nil {
+		_u.SetAsyncStartedAt(*v)
+	}
+	return _u
+}
+
+// ClearAsyncStartedAt clears the value of the "async_started_at" field.
+func (_u *GrsaiSettlementUpdate) ClearAsyncStartedAt() *GrsaiSettlementUpdate {
+	_u.mutation.ClearAsyncStartedAt()
+	return _u
+}
+
 // SetProgress sets the "progress" field.
 func (_u *GrsaiSettlementUpdate) SetProgress(v int) *GrsaiSettlementUpdate {
 	_u.mutation.ResetProgress()
@@ -849,6 +869,12 @@ func (_u *GrsaiSettlementUpdate) sqlSave(ctx context.Context) (_node int, err er
 	if value, ok := _u.mutation.DeliveryMode(); ok {
 		_spec.SetField(grsaisettlement.FieldDeliveryMode, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.AsyncStartedAt(); ok {
+		_spec.SetField(grsaisettlement.FieldAsyncStartedAt, field.TypeTime, value)
+	}
+	if _u.mutation.AsyncStartedAtCleared() {
+		_spec.ClearField(grsaisettlement.FieldAsyncStartedAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.Progress(); ok {
 		_spec.SetField(grsaisettlement.FieldProgress, field.TypeInt, value)
 	}
@@ -1256,6 +1282,26 @@ func (_u *GrsaiSettlementUpdateOne) SetNillableDeliveryMode(v *string) *GrsaiSet
 	if v != nil {
 		_u.SetDeliveryMode(*v)
 	}
+	return _u
+}
+
+// SetAsyncStartedAt sets the "async_started_at" field.
+func (_u *GrsaiSettlementUpdateOne) SetAsyncStartedAt(v time.Time) *GrsaiSettlementUpdateOne {
+	_u.mutation.SetAsyncStartedAt(v)
+	return _u
+}
+
+// SetNillableAsyncStartedAt sets the "async_started_at" field if the given value is not nil.
+func (_u *GrsaiSettlementUpdateOne) SetNillableAsyncStartedAt(v *time.Time) *GrsaiSettlementUpdateOne {
+	if v != nil {
+		_u.SetAsyncStartedAt(*v)
+	}
+	return _u
+}
+
+// ClearAsyncStartedAt clears the value of the "async_started_at" field.
+func (_u *GrsaiSettlementUpdateOne) ClearAsyncStartedAt() *GrsaiSettlementUpdateOne {
+	_u.mutation.ClearAsyncStartedAt()
 	return _u
 }
 
@@ -1856,6 +1902,12 @@ func (_u *GrsaiSettlementUpdateOne) sqlSave(ctx context.Context) (_node *GrsaiSe
 	}
 	if value, ok := _u.mutation.DeliveryMode(); ok {
 		_spec.SetField(grsaisettlement.FieldDeliveryMode, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.AsyncStartedAt(); ok {
+		_spec.SetField(grsaisettlement.FieldAsyncStartedAt, field.TypeTime, value)
+	}
+	if _u.mutation.AsyncStartedAtCleared() {
+		_spec.ClearField(grsaisettlement.FieldAsyncStartedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Progress(); ok {
 		_spec.SetField(grsaisettlement.FieldProgress, field.TypeInt, value)

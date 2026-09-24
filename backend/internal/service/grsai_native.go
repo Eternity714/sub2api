@@ -341,6 +341,14 @@ func parseGrsaiUpstreamResult(httpStatus int, rawBody []byte, apiKey string) (*G
 	data := rawJSONObject(root["data"])
 	result.TaskID = firstRawScalar(root, data, "id", "taskId", "task_id")
 	result.Status = normalizeGrsaiStatus(firstRawScalar(root, data, "status", "state"))
+	if raw := firstRawMessage(root, data, "progress", "percent", "percentage"); len(raw) > 0 {
+		progress, err := parseGrsaiProgress(raw)
+		if err != nil || progress < 0 || progress > 100 {
+			return result, fmt.Errorf("%w: invalid progress", ErrGrsaiInvalidResponse)
+		}
+		result.Progress = progress
+	}
+	result.ResultURLs = extractGrsaiResultURLs(root, data)
 	result.ErrorCode, result.ErrorMessage = parseGrsaiError(root, data, result.Status, httpStatus, apiKey)
 
 	if httpStatus >= http.StatusOK && httpStatus < http.StatusMultipleChoices && result.Status == "" {

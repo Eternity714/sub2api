@@ -110,20 +110,24 @@ func TestGrsaiNativeClientResultBuildsEscapedQueryAndParsesStatuses(t *testing.T
 		wantErrorCode    string
 		wantErrorMessage string
 		wantHTTPError    bool
+		wantProgress     int
+		wantResults      []string
 	}{
 		{
-			name:       "running",
-			taskID:     "task/running ?&",
-			statusCode: http.StatusOK,
-			body:       `{"id":"task/running ?&","status":"running","progress":45}`,
-			wantStatus: GrsaiUpstreamStatusRunning,
+			name:         "running",
+			taskID:       "task/running ?&",
+			statusCode:   http.StatusOK,
+			body:         `{"id":"task/running ?&","status":"running","progress":45}`,
+			wantStatus:   GrsaiUpstreamStatusRunning,
+			wantProgress: 45,
 		},
 		{
-			name:       "succeeded terminal",
-			taskID:     "task-success",
-			statusCode: http.StatusOK,
-			body:       `{"id":"task-success","status":"succeeded","results":[{"url":"https://example.test/image.png"}]}`,
-			wantStatus: GrsaiUpstreamStatusSucceeded,
+			name:        "succeeded terminal",
+			taskID:      "task-success",
+			statusCode:  http.StatusOK,
+			body:        `{"id":"task-success","status":"succeeded","results":[{"url":"https://example.test/image.png"}]}`,
+			wantStatus:  GrsaiUpstreamStatusSucceeded,
+			wantResults: []string{"https://example.test/image.png"},
 		},
 		{
 			name:             "failed terminal",
@@ -175,6 +179,8 @@ func TestGrsaiNativeClientResultBuildsEscapedQueryAndParsesStatuses(t *testing.T
 			require.Equal(t, tt.statusCode, result.HTTPStatus)
 			require.Equal(t, tt.taskID, result.TaskID)
 			require.Equal(t, tt.wantStatus, result.Status)
+			require.Equal(t, tt.wantProgress, result.Progress)
+			require.Equal(t, tt.wantResults, result.ResultURLs)
 			require.Equal(t, tt.wantErrorCode, result.ErrorCode)
 			require.Equal(t, tt.wantErrorMessage, result.ErrorMessage)
 			require.Equal(t, []byte(tt.body), result.RawBody)

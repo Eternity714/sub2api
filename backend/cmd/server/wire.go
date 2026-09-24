@@ -106,6 +106,7 @@ func provideCleanup(
 	batchImageCleanup *service.BatchImageCleanupService,
 	batchImageWorker *service.BatchImageWorkerRuntime,
 	grsaiSettlementRecovery *service.GrsaiSettlementRecoveryRuntime,
+	grsaiTaskRuntime *service.GrsaiTaskRuntime,
 	pricing *service.PricingService,
 	emailQueue *service.EmailQueueService,
 	billingCache *service.BillingCacheService,
@@ -131,6 +132,11 @@ func provideCleanup(
 	pluginManager *service.PluginManager,
 ) func() {
 	return func() {
+		// Drain an already-started GRS.AI submission before closing its database
+		// dependencies. This can take as long as the upstream request timeout.
+		if grsaiTaskRuntime != nil {
+			grsaiTaskRuntime.Stop()
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 

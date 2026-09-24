@@ -16,10 +16,59 @@ import (
 // by the repository integration tests using the real billing repository.
 type grsaiSettlementMemoryRepo struct {
 	GrsaiSettlementRepository
-	record     *GrsaiSettlement
-	failSettle bool
-	createErr  error
-	claimErr   error
+	record            *GrsaiSettlement
+	failSettle        bool
+	createErr         error
+	claimErr          error
+	claimCommittedErr error
+	reserveErr        error
+	terminalErr       error
+	readErrAt         int
+	readCount         int
+	onPending         func()
+}
+
+func (r *grsaiSettlementMemoryRepo) MarkHoldHeld(context.Context, int64, int64) error {
+	return errors.New("non-atomic hold marking must not be used")
+}
+
+func (r *grsaiSettlementMemoryRepo) ReserveHold(ctx context.Context, id, version int64, reserve GrsaiSettlementTxFunc) error {
+	if r.reserveErr != nil {
+		return r.reserveErr
+	}
+	if err := reserve(ctx, new(sql.Tx), r.record); err != nil {
+		return err
+	}
+	r.record.HoldState = "held"
+	return nil
+}
+
+func (r *grsaiSettlementMemoryRepo) CloseNoChargeWithRelease(ctx context.Context, id, version int64, summary string, release GrsaiSettlementTxFunc) error {
+	if r.terminalErr != nil {
+		return r.terminalErr
+	}
+	if r.record.ClaimVersion != version {
+		return ErrGrsaiSettlementClaimLost
+	}
+	if r.record.HoldState == "held" {
+		if err := release(ctx, new(sql.Tx), r.record); err != nil {
+			return err
+		}
+		r.record.HoldState = "released"
+	}
+	r.record.InternalStatus = "closed_no_charge"
+	return nil
+}
+
+func (r *grsaiSettlementMemoryRepo) MarkManualReviewWithRelease(ctx context.Context, id, version int64, summary string, release GrsaiSettlementTxFunc) error {
+	if r.record.HoldState == "held" {
+		if err := release(ctx, new(sql.Tx), r.record); err != nil {
+			return err
+		}
+		r.record.HoldState = "released"
+	}
+	r.record.InternalStatus = "manual_review"
+	return nil
 }
 
 func (r *grsaiSettlementMemoryRepo) Create(_ context.Context, p CreateGrsaiSettlementParams) (*GrsaiSettlement, error) {
@@ -40,6 +89,10 @@ func (r *grsaiSettlementMemoryRepo) GetByID(ctx context.Context, _ int64) (*Grsa
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	r.readCount++
+	if r.readErrAt > 0 && r.readCount == r.readErrAt {
+		return nil, errors.New("injected settlement read failure")
+	}
 	copy := *r.record
 	return &copy, nil
 }
@@ -55,7 +108,17 @@ func (r *grsaiSettlementMemoryRepo) ClaimByID(_ context.Context, _ int64, now, u
 	r.record.InternalStatus = "processing"
 	r.record.ClaimVersion++
 	r.record.NextAttemptAt = until
+	if r.claimCommittedErr != nil {
+		return nil, r.claimCommittedErr
+	}
 	return r.GetByID(context.Background(), 17)
+}
+
+func (r *grsaiSettlementMemoryRepo) AbortUnsubmitted(ctx context.Context, id int64, summary string, release GrsaiSettlementTxFunc) error {
+	if r.record.UpstreamTaskID != nil || r.record.UpstreamStatus != "not_submitted" || (r.record.InternalStatus != "processing" && r.record.InternalStatus != "pending_upstream") {
+		return ErrGrsaiSettlementClaimLost
+	}
+	return r.CloseNoChargeWithRelease(ctx, id, r.record.ClaimVersion, summary, release)
 }
 
 func (r *grsaiSettlementMemoryRepo) check(v int64) error {
@@ -87,6 +150,15 @@ func (r *grsaiSettlementMemoryRepo) UpdateResult(_ context.Context, _, v int64, 
 	return true, nil
 }
 
+func (r *grsaiSettlementMemoryRepo) RecordResultSnapshot(ctx context.Context, id, version int64, status, summary string, next time.Time, progress int, urls []string) (bool, error) {
+	updated, err := r.UpdateResult(ctx, id, version, status, summary, next)
+	if updated && err == nil {
+		r.record.Progress = progress
+		r.record.ResultURLs = append([]string(nil), urls...)
+	}
+	return updated, err
+}
+
 func (r *grsaiSettlementMemoryRepo) MarkPendingSettlement(_ context.Context, _, v int64, next time.Time) error {
 	if err := r.check(v); err != nil {
 		return err
@@ -103,6 +175,9 @@ func (r *grsaiSettlementMemoryRepo) MarkPendingUpstream(_ context.Context, _, v 
 	}
 	r.record.InternalStatus = "pending_upstream"
 	r.record.NextAttemptAt = next
+	if r.onPending != nil {
+		r.onPending()
+	}
 	return nil
 }
 
@@ -149,6 +224,10 @@ type grsaiBillingSpy struct {
 }
 
 func (b *grsaiBillingSpy) ReserveGrsaiBalance(_ context.Context, _ *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error) {
+	b.holdReserved++
+	return &GrsaiBalanceHoldResult{Applied: true}, nil
+}
+func (b *grsaiBillingSpy) ReserveGrsaiBalanceTx(_ context.Context, _ *sql.Tx, _ *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error) {
 	b.holdReserved++
 	return &GrsaiBalanceHoldResult{Applied: true}, nil
 }
@@ -243,6 +322,171 @@ func TestGrsaiSettlementSnapshotSurvivesRepricingAndDuplicateSuccess(t *testing.
 	require.Equal(t, 2, usage.logs[0].ImageCount)
 	require.NotNil(t, usage.logs[0].ImageSize)
 	require.Equal(t, ImageBillingSize1K, *usage.logs[0].ImageSize)
+}
+
+func TestGrsaiSettlementLegacyUnreservedSuccessDebitsBalance(t *testing.T) {
+	s, repo, billing, claim, _ := grsaiSettlementFixture(t)
+	// Rows created before migration 243 have no hold but retain a priced snapshot.
+	repo.record.HoldAmount = 0
+	repo.record.HoldState = "none"
+	out := s.Finish(context.Background(), claim, &GrsaiUpstreamResult{TaskID: "legacy-17", Status: GrsaiUpstreamStatusSucceeded}, nil)
+	require.NoError(t, out.SettlementError)
+	require.Equal(t, GrsaiStateSettled, out.State)
+	require.Len(t, billing.commands, 1)
+	require.InDelta(t, 1.2, billing.commands[0].BalanceCost, 1e-10)
+}
+
+func TestGrsaiSettlementRecoveredResultAppearsInPublicTask(t *testing.T) {
+	s, repo, _, claim, _ := grsaiSettlementFixture(t)
+	repo.record.PublicTaskID = "public-17"
+	repo.record.DeliveryMode = GrsaiDeliveryAsync
+	id := "provider-17"
+	repo.record.UpstreamTaskID = &id
+	claim.UpstreamTaskID = &id
+	result := &GrsaiUpstreamResult{HTTPStatus: 200, TaskID: id, Status: GrsaiUpstreamStatusSucceeded,
+		Progress: 100, ResultURLs: []string{"https://img.invalid/recovered.png"}}
+	out := s.Finish(context.Background(), claim, result, nil)
+	require.NoError(t, out.SettlementError)
+	view := BuildGrsaiTaskView(repo.record)
+	require.Equal(t, "settled", view.Status)
+	require.Equal(t, 100, view.Progress)
+	require.Equal(t, []string{"https://img.invalid/recovered.png"}, view.Results)
+}
+
+func TestGrsaiSettlementBoundAsyncSuccessWithoutResultDoesNotBill(t *testing.T) {
+	s, repo, billing, claim, _ := grsaiSettlementFixture(t)
+	repo.record.DeliveryMode = GrsaiDeliveryAsync
+	id := "provider-17"
+	repo.record.UpstreamTaskID = &id
+	claim.UpstreamTaskID = &id
+	out := s.Finish(context.Background(), claim, &GrsaiUpstreamResult{HTTPStatus: 200, TaskID: id, Status: GrsaiUpstreamStatusSucceeded}, nil)
+	require.NoError(t, out.SettlementError)
+	require.Equal(t, "pending_upstream", repo.record.InternalStatus)
+	require.Equal(t, GrsaiUpstreamStatusSucceeded, repo.record.UpstreamStatus)
+	require.Empty(t, billing.commands)
+	require.Equal(t, "held", repo.record.HoldState)
+}
+
+func TestGrsaiSettlementFirstSuccessWithoutResultStartsFreshRecoveryWindow(t *testing.T) {
+	s, repo, billing, claim, _ := grsaiSettlementFixture(t)
+	repo.record.DeliveryMode = GrsaiDeliveryAsync
+	repo.record.CreatedAt = time.Now().Add(-24*time.Hour - time.Minute)
+	id := "provider-late-success"
+	repo.record.UpstreamTaskID = &id
+	claim.UpstreamTaskID = &id
+	claim.DeliveryMode = GrsaiDeliveryAsync
+
+	out := s.FinishAt(context.Background(), claim, &GrsaiUpstreamResult{HTTPStatus: 200, TaskID: id,
+		Status: GrsaiUpstreamStatusSucceeded}, nil, time.Now().Add(time.Minute))
+	require.NoError(t, out.SettlementError)
+	require.Equal(t, GrsaiStateAwaitingResult, out.State)
+	require.Equal(t, GrsaiUpstreamStatusSucceeded, repo.record.UpstreamStatus)
+	require.Empty(t, billing.commands)
+}
+
+func TestGrsaiPrepareQuantizesHoldToBalanceScale(t *testing.T) {
+	s, repo, _, _, price := grsaiSettlementFixture(t)
+	price.price = 0.01234567
+	group := &Group{ID: 2, Platform: PlatformGrsai, RateMultiplier: 1.0005}
+	record, err := s.Prepare(context.Background(), GrsaiPrepareInput{
+		Account: &Account{ID: 3, Platform: PlatformGrsai, Type: AccountTypeAPIKey},
+		APIKey:  &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group},
+		Model:   "image", ImageCount: 1,
+	})
+	require.NoError(t, err)
+	require.InDelta(t, 0.01235184, record.HoldAmount, 1e-12)
+	require.InDelta(t, record.HoldAmount, repo.record.HoldAmount, 1e-12)
+	cmd, err := grsaiBillingCommand(record)
+	require.NoError(t, err)
+	require.InDelta(t, record.HoldAmount, cmd.BalanceCost, 1e-12)
+	record.HoldAmount = 0.0123518428 // Rows reserved before quantization still need a releasable command.
+	hold, err := grsaiHoldCommand(record, GrsaiHoldReleaseRequestID(record.ID))
+	require.NoError(t, err)
+	require.InDelta(t, 0.01235184, hold.Amount, 1e-12)
+}
+
+func TestGrsaiSettlementLegacyAsyncSuccessWithoutResultRepollsBeforeBilling(t *testing.T) {
+	s, repo, billing, claim, _ := grsaiSettlementFixture(t)
+	repo.record.DeliveryMode = GrsaiDeliveryAsync
+	id := "legacy-provider-17"
+	repo.record.UpstreamTaskID = &id
+	repo.record.UpstreamStatus = GrsaiUpstreamStatusSucceeded
+	claim.UpstreamTaskID = &id
+	claim.DeliveryMode = GrsaiDeliveryAsync
+
+	applied, err := s.Settle(context.Background(), claim.ID, claim.ClaimVersion)
+	require.False(t, applied)
+	require.ErrorIs(t, err, ErrGrsaiSettlementInvalidState)
+	require.Empty(t, billing.commands)
+
+	out := s.FinishAt(context.Background(), claim, nil, errors.New("poll unavailable"), time.Now().Add(time.Minute))
+	require.NoError(t, out.SettlementError)
+	require.Equal(t, GrsaiStateAwaitingResult, out.State)
+	require.Equal(t, "pending_upstream", repo.record.InternalStatus)
+	require.Empty(t, billing.commands)
+
+	repo.record.InternalStatus = "processing"
+	out = s.FinishAt(context.Background(), claim, &GrsaiUpstreamResult{HTTPStatus: 200, TaskID: id,
+		Status: GrsaiUpstreamStatusSucceeded, ResultURLs: []string{"https://img.invalid/legacy.png"}}, nil, time.Now().Add(time.Minute))
+	require.NoError(t, out.SettlementError)
+	require.Equal(t, "settled", repo.record.InternalStatus)
+	require.Equal(t, []string{"https://img.invalid/legacy.png"}, repo.record.ResultURLs)
+	require.Len(t, billing.commands, 1)
+}
+
+func TestGrsaiSettlementLegacySuccessWithoutResultStopsOnPermanentPollFailure(t *testing.T) {
+	s, repo, billing, claim, _ := grsaiSettlementFixture(t)
+	repo.record.DeliveryMode = GrsaiDeliveryAsync
+	id := "legacy-provider-404"
+	repo.record.UpstreamTaskID = &id
+	repo.record.UpstreamStatus = GrsaiUpstreamStatusSucceeded
+	claim.UpstreamTaskID = &id
+	claim.DeliveryMode = GrsaiDeliveryAsync
+
+	out := s.FinishAt(context.Background(), claim, &GrsaiUpstreamResult{HTTPStatus: 404},
+		&GrsaiHTTPError{Operation: "result", StatusCode: 404}, time.Now().Add(time.Minute))
+	require.NoError(t, out.SettlementError)
+	require.Equal(t, GrsaiStateManualReview, out.State)
+	require.Equal(t, "manual_review", repo.record.InternalStatus)
+	require.Empty(t, billing.commands)
+}
+
+func TestGrsaiSettlementLegacySuccessWithoutResultStopsAfterDeadline(t *testing.T) {
+	s, repo, billing, claim, _ := grsaiSettlementFixture(t)
+	repo.record.DeliveryMode = GrsaiDeliveryStream
+	id := "legacy-provider-no-url"
+	repo.record.UpstreamTaskID = &id
+	repo.record.UpstreamStatus = GrsaiUpstreamStatusSucceeded
+	firstMissing := time.Now().Add(-24*time.Hour - time.Minute)
+	repo.record.ResultUpdatedAt = &firstMissing
+	claim.UpstreamTaskID = &id
+	claim.DeliveryMode = GrsaiDeliveryStream
+
+	out := s.FinishAt(context.Background(), claim, &GrsaiUpstreamResult{HTTPStatus: 200, TaskID: id,
+		Status: GrsaiUpstreamStatusSucceeded}, nil, time.Now().Add(time.Minute))
+	require.NoError(t, out.SettlementError)
+	require.Equal(t, GrsaiStateManualReview, out.State)
+	require.Equal(t, "manual_review", repo.record.InternalStatus)
+	require.Empty(t, billing.commands)
+}
+
+func TestGrsaiSettlementMissingResultAtDeadlineStillAcceptsURL(t *testing.T) {
+	s, repo, billing, claim, _ := grsaiSettlementFixture(t)
+	repo.record.DeliveryMode = GrsaiDeliveryAsync
+	id := "provider-late-url"
+	repo.record.UpstreamTaskID = &id
+	repo.record.UpstreamStatus = GrsaiUpstreamStatusSucceeded
+	firstMissing := time.Now().Add(-24*time.Hour - time.Minute)
+	repo.record.ResultUpdatedAt = &firstMissing
+	claim.UpstreamTaskID = &id
+	claim.DeliveryMode = GrsaiDeliveryAsync
+
+	out := s.FinishAt(context.Background(), claim, &GrsaiUpstreamResult{HTTPStatus: 200, TaskID: id,
+		Status: GrsaiUpstreamStatusSucceeded, ResultURLs: []string{"https://img.invalid/late.png"}}, nil, time.Now().Add(time.Minute))
+	require.NoError(t, out.SettlementError)
+	require.Equal(t, GrsaiStateSettled, out.State)
+	require.Equal(t, []string{"https://img.invalid/late.png"}, repo.record.ResultURLs)
+	require.Len(t, billing.commands, 1)
 }
 
 func TestGrsaiSettlementPrepareNormalizesImageSizeSnapshot(t *testing.T) {
@@ -400,8 +644,10 @@ func TestGrsaiSettlementConflictingTaskGoesToManualReview(t *testing.T) {
 	known := "known-task"
 	repo.record.UpstreamTaskID = &known
 	out := s.Finish(context.Background(), record, &GrsaiUpstreamResult{TaskID: "different-task", Status: "succeeded"}, nil)
-	require.ErrorIs(t, out.SettlementError, ErrGrsaiHoldReleaseUnavailable)
-	require.NotEqual(t, GrsaiStateManualReview, out.State)
+	require.NoError(t, out.SettlementError)
+	require.Equal(t, GrsaiStateManualReview, out.State)
+	require.Equal(t, "released", repo.record.HoldState)
+	require.Equal(t, 1, billing.holdReleased)
 	require.Empty(t, billing.commands)
 }
 
@@ -425,15 +671,40 @@ func TestGrsaiPrepareReleasesHoldWhenSubmissionClaimFails(t *testing.T) {
 	require.ErrorIs(t, err, repo.claimErr)
 	require.Equal(t, 1, billing.holdReserved)
 	require.Equal(t, 1, billing.holdReleased)
+	require.Equal(t, "released", repo.record.HoldState)
+	require.Equal(t, "closed_no_charge", repo.record.InternalStatus)
 }
 
 func TestGrsaiPrepareReturnsClaimAndReleaseErrors(t *testing.T) {
 	s, repo, billing, _, _ := grsaiSettlementFixture(t)
 	s.HoldBilling = billing
 	repo.claimErr = errors.New("claim failed")
-	billing.releaseErr = errors.New("release failed")
+	repo.terminalErr = errors.New("terminal transition failed")
 	group := &Group{ID: 2, Platform: PlatformGrsai, RateMultiplier: 1}
 	_, err := s.Prepare(context.Background(), GrsaiPrepareInput{Account: &Account{ID: 3, Platform: PlatformGrsai, Type: AccountTypeAPIKey}, APIKey: &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group}, Model: "image", ImageCount: 1})
 	require.ErrorIs(t, err, repo.claimErr)
-	require.ErrorIs(t, err, billing.releaseErr)
+	require.ErrorIs(t, err, repo.terminalErr)
+}
+
+func TestGrsaiPrepareReserveFailureCannotLeaveUnmarkedHold(t *testing.T) {
+	s, repo, billing, _, _ := grsaiSettlementFixture(t)
+	repo.reserveErr = errors.New("hold state write failed")
+	group := &Group{ID: 2, Platform: PlatformGrsai, RateMultiplier: 1}
+	_, err := s.Prepare(context.Background(), GrsaiPrepareInput{Account: &Account{ID: 3, Platform: PlatformGrsai, Type: AccountTypeAPIKey}, APIKey: &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group}, Model: "image", ImageCount: 1})
+	require.ErrorIs(t, err, repo.reserveErr)
+	require.Equal(t, "none", repo.record.HoldState)
+	require.Equal(t, "closed_no_charge", repo.record.InternalStatus)
+	require.Zero(t, billing.holdReleased)
+}
+
+func TestGrsaiPrepareClaimCommittedButResponseLostReleasesHold(t *testing.T) {
+	s, repo, billing, _, _ := grsaiSettlementFixture(t)
+	repo.claimCommittedErr = errors.New("claim commit response lost")
+	group := &Group{ID: 2, Platform: PlatformGrsai, RateMultiplier: 1}
+	_, err := s.Prepare(context.Background(), GrsaiPrepareInput{Account: &Account{ID: 3, Platform: PlatformGrsai, Type: AccountTypeAPIKey}, APIKey: &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group}, Model: "image", ImageCount: 1})
+	require.ErrorIs(t, err, repo.claimCommittedErr)
+	require.Equal(t, int64(1), repo.record.ClaimVersion)
+	require.Equal(t, "closed_no_charge", repo.record.InternalStatus)
+	require.Equal(t, "released", repo.record.HoldState)
+	require.Equal(t, 1, billing.holdReleased)
 }

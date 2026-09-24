@@ -103,6 +103,7 @@ type Config struct {
 	Idempotency             IdempotencyConfig             `mapstructure:"idempotency"`
 	BatchImage              BatchImageConfig              `mapstructure:"batch_image"`
 	GrsaiSettlementRecovery GrsaiSettlementRecoveryConfig `mapstructure:"grsai_settlement_recovery"`
+	GrsaiDelivery           GrsaiDeliveryConfig           `mapstructure:"grsai_delivery"`
 	ImageStorage            ImageStorageConfig            `mapstructure:"image_storage"`
 	Plugins                 PluginConfig                  `mapstructure:"plugins"`
 }
@@ -248,15 +249,24 @@ type BatchImageConfig struct {
 	VertexGCSBaseURL             string `mapstructure:"vertex_gcs_base_url"`
 }
 
-// GrsaiSettlementRecoveryConfig controls the durable GRS.AI settlement
-// recovery worker. It is opt-in so existing installations do not start
-// polling records until native GRS.AI routing has been configured.
+// GrsaiSettlementRecoveryConfig tunes the durable recovery worker. Enabled is
+// retained for config compatibility, but recovery always runs to drain records
+// accepted before an intake switch was turned off.
 type GrsaiSettlementRecoveryConfig struct {
 	Enabled                         bool `mapstructure:"enabled"`
 	ScanIntervalSeconds             int  `mapstructure:"scan_interval_seconds"`
 	BatchLimit                      int  `mapstructure:"batch_limit"`
 	SubmissionUnknownTimeoutSeconds int  `mapstructure:"submission_unknown_timeout_seconds"`
 	SettlementRetryLimit            int  `mapstructure:"settlement_retry_limit"`
+}
+
+type GrsaiDeliveryConfig struct {
+	Enabled              bool `mapstructure:"enabled"`
+	StreamEnabled        bool `mapstructure:"stream_enabled"`
+	ScanIntervalSeconds  int  `mapstructure:"scan_interval_seconds"`
+	BatchLimit           int  `mapstructure:"batch_limit"`
+	PayloadTTLSeconds    int  `mapstructure:"payload_ttl_seconds"`
+	ResultRetentionHours int  `mapstructure:"result_retention_hours"`
 }
 
 // ImageStorageConfig 配置异步图片任务结果上传的 S3 兼容对象存储。
@@ -2251,6 +2261,12 @@ func setDefaults() {
 	viper.SetDefault("grsai_settlement_recovery.batch_limit", 100)
 	viper.SetDefault("grsai_settlement_recovery.submission_unknown_timeout_seconds", 600)
 	viper.SetDefault("grsai_settlement_recovery.settlement_retry_limit", 5)
+	viper.SetDefault("grsai_delivery.enabled", false)
+	viper.SetDefault("grsai_delivery.stream_enabled", false)
+	viper.SetDefault("grsai_delivery.scan_interval_seconds", 5)
+	viper.SetDefault("grsai_delivery.batch_limit", 20)
+	viper.SetDefault("grsai_delivery.payload_ttl_seconds", 900)
+	viper.SetDefault("grsai_delivery.result_retention_hours", 24)
 
 	// Image storage (async image task result offload to S3-compatible object storage)
 	viper.SetDefault("image_storage.enabled", false)
@@ -3172,6 +3188,18 @@ func (c *Config) Validate() error {
 		if c.GrsaiSettlementRecovery.SettlementRetryLimit <= 0 {
 			return fmt.Errorf("grsai_settlement_recovery.settlement_retry_limit must be positive")
 		}
+	}
+	if c.GrsaiDelivery.ScanIntervalSeconds < 1 || c.GrsaiDelivery.ScanIntervalSeconds > 300 {
+		return fmt.Errorf("grsai_delivery.scan_interval_seconds must be between 1 and 300")
+	}
+	if c.GrsaiDelivery.BatchLimit < 1 || c.GrsaiDelivery.BatchLimit > 100 {
+		return fmt.Errorf("grsai_delivery.batch_limit must be between 1 and 100")
+	}
+	if c.GrsaiDelivery.PayloadTTLSeconds < 60 || c.GrsaiDelivery.PayloadTTLSeconds > 3600 {
+		return fmt.Errorf("grsai_delivery.payload_ttl_seconds must be between 60 and 3600")
+	}
+	if c.GrsaiDelivery.ResultRetentionHours < 1 || c.GrsaiDelivery.ResultRetentionHours > 168 {
+		return fmt.Errorf("grsai_delivery.result_retention_hours must be between 1 and 168")
 	}
 	if c.Dashboard.Enabled {
 		if c.Dashboard.StatsFreshTTLSeconds <= 0 {

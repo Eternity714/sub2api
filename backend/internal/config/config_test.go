@@ -23,6 +23,38 @@ func resetViperWithJWTSecret(t *testing.T) {
 	t.Setenv("JWT_SECRET", strings.Repeat("x", 32))
 }
 
+func TestGrsaiDeliveryConfigDefaultsAndValidation(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.False(t, cfg.GrsaiDelivery.Enabled)
+	require.Equal(t, 5, cfg.GrsaiDelivery.ScanIntervalSeconds)
+	require.Equal(t, 20, cfg.GrsaiDelivery.BatchLimit)
+	require.Equal(t, 900, cfg.GrsaiDelivery.PayloadTTLSeconds)
+	require.Equal(t, 24, cfg.GrsaiDelivery.ResultRetentionHours)
+
+	for _, tc := range []struct {
+		name string
+		set  func(*Config)
+		key  string
+	}{
+		{"scan low", func(c *Config) { c.GrsaiDelivery.ScanIntervalSeconds = 0 }, "scan_interval_seconds"},
+		{"scan high", func(c *Config) { c.GrsaiDelivery.ScanIntervalSeconds = 301 }, "scan_interval_seconds"},
+		{"batch low", func(c *Config) { c.GrsaiDelivery.BatchLimit = 0 }, "batch_limit"},
+		{"batch high", func(c *Config) { c.GrsaiDelivery.BatchLimit = 101 }, "batch_limit"},
+		{"ttl low", func(c *Config) { c.GrsaiDelivery.PayloadTTLSeconds = 59 }, "payload_ttl_seconds"},
+		{"ttl high", func(c *Config) { c.GrsaiDelivery.PayloadTTLSeconds = 3601 }, "payload_ttl_seconds"},
+		{"retention low", func(c *Config) { c.GrsaiDelivery.ResultRetentionHours = 0 }, "result_retention_hours"},
+		{"retention high", func(c *Config) { c.GrsaiDelivery.ResultRetentionHours = 169 }, "result_retention_hours"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			changed := *cfg
+			tc.set(&changed)
+			require.ErrorContains(t, changed.Validate(), "grsai_delivery."+tc.key)
+		})
+	}
+}
+
 func TestLoadDefaultModelsListReadMaxBytes(t *testing.T) {
 	resetViperWithJWTSecret(t)
 	cfg, err := Load()

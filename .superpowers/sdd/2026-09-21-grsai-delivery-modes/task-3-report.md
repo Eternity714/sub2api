@@ -53,3 +53,4 @@ docker run --rm -v "${PWD}:/workspace" -w /workspace/backend golang:1.27.0 sh -c
 - Capture 现在只消费 frozen balance，传给 `ApplyTx` 的 `BalanceCost` 置零，因此 reserve + success 最终只扣一次 users.balance，同时保留 API Key、rate-limit、account quota 和 usage 记账金额。
 - Prepare 在 `MarkHoldHeld` 或 submission claim 失败后调用幂等 release，覆盖 hold_state 为 none/held 的补偿路径。
 - 新增 capture SQL 的余额断言与 claim 失败补偿测试；原有成功结算幂等、失败不记 usage 测试继续覆盖服务流程。
+- 复审修复：capture SQL 仅减少 `frozen_balance`，不恢复 `balance`；成功结算仅在锁定副本上将 `BalanceCost` 置零；Prepare 补偿 release 错误通过 `errors.Join` 返回。定向 Docker Go 测试 `TestGrsai(PrepareReleases|PrepareReturns|CaptureGrsai|Hold|Settlement)` 已通过。

@@ -125,6 +125,11 @@ func DeliveryMode(v string) predicate.GrsaiSettlement {
 	return predicate.GrsaiSettlement(sql.FieldEQ(FieldDeliveryMode, v))
 }
 
+// AsyncStartedAt applies equality check predicate on the "async_started_at" field. It's identical to AsyncStartedAtEQ.
+func AsyncStartedAt(v time.Time) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldEQ(FieldAsyncStartedAt, v))
+}
+
 // Progress applies equality check predicate on the "progress" field. It's identical to ProgressEQ.
 func Progress(v int) predicate.GrsaiSettlement {
 	return predicate.GrsaiSettlement(sql.FieldEQ(FieldProgress, v))
@@ -918,6 +923,56 @@ func DeliveryModeEqualFold(v string) predicate.GrsaiSettlement {
 // DeliveryModeContainsFold applies the ContainsFold predicate on the "delivery_mode" field.
 func DeliveryModeContainsFold(v string) predicate.GrsaiSettlement {
 	return predicate.GrsaiSettlement(sql.FieldContainsFold(FieldDeliveryMode, v))
+}
+
+// AsyncStartedAtEQ applies the EQ predicate on the "async_started_at" field.
+func AsyncStartedAtEQ(v time.Time) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldEQ(FieldAsyncStartedAt, v))
+}
+
+// AsyncStartedAtNEQ applies the NEQ predicate on the "async_started_at" field.
+func AsyncStartedAtNEQ(v time.Time) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldNEQ(FieldAsyncStartedAt, v))
+}
+
+// AsyncStartedAtIn applies the In predicate on the "async_started_at" field.
+func AsyncStartedAtIn(vs ...time.Time) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldIn(FieldAsyncStartedAt, vs...))
+}
+
+// AsyncStartedAtNotIn applies the NotIn predicate on the "async_started_at" field.
+func AsyncStartedAtNotIn(vs ...time.Time) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldNotIn(FieldAsyncStartedAt, vs...))
+}
+
+// AsyncStartedAtGT applies the GT predicate on the "async_started_at" field.
+func AsyncStartedAtGT(v time.Time) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldGT(FieldAsyncStartedAt, v))
+}
+
+// AsyncStartedAtGTE applies the GTE predicate on the "async_started_at" field.
+func AsyncStartedAtGTE(v time.Time) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldGTE(FieldAsyncStartedAt, v))
+}
+
+// AsyncStartedAtLT applies the LT predicate on the "async_started_at" field.
+func AsyncStartedAtLT(v time.Time) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldLT(FieldAsyncStartedAt, v))
+}
+
+// AsyncStartedAtLTE applies the LTE predicate on the "async_started_at" field.
+func AsyncStartedAtLTE(v time.Time) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldLTE(FieldAsyncStartedAt, v))
+}
+
+// AsyncStartedAtIsNil applies the IsNil predicate on the "async_started_at" field.
+func AsyncStartedAtIsNil() predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldIsNull(FieldAsyncStartedAt))
+}
+
+// AsyncStartedAtNotNil applies the NotNil predicate on the "async_started_at" field.
+func AsyncStartedAtNotNil() predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldNotNull(FieldAsyncStartedAt))
 }
 
 // ProgressEQ applies the EQ predicate on the "progress" field.

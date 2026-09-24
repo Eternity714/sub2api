@@ -27832,6 +27832,7 @@ type GrsaiSettlementMutation struct {
 	billing_idempotency_key    *string
 	public_task_id             *string
 	delivery_mode              *string
+	async_started_at           *time.Time
 	progress                   *int
 	addprogress                *int
 	result_urls                *[]string
@@ -28661,6 +28662,55 @@ func (m *GrsaiSettlementMutation) OldDeliveryMode(ctx context.Context) (v string
 // ResetDeliveryMode resets all changes to the "delivery_mode" field.
 func (m *GrsaiSettlementMutation) ResetDeliveryMode() {
 	m.delivery_mode = nil
+}
+
+// SetAsyncStartedAt sets the "async_started_at" field.
+func (m *GrsaiSettlementMutation) SetAsyncStartedAt(t time.Time) {
+	m.async_started_at = &t
+}
+
+// AsyncStartedAt returns the value of the "async_started_at" field in the mutation.
+func (m *GrsaiSettlementMutation) AsyncStartedAt() (r time.Time, exists bool) {
+	v := m.async_started_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAsyncStartedAt returns the old "async_started_at" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldAsyncStartedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAsyncStartedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAsyncStartedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAsyncStartedAt: %w", err)
+	}
+	return oldValue.AsyncStartedAt, nil
+}
+
+// ClearAsyncStartedAt clears the value of the "async_started_at" field.
+func (m *GrsaiSettlementMutation) ClearAsyncStartedAt() {
+	m.async_started_at = nil
+	m.clearedFields[grsaisettlement.FieldAsyncStartedAt] = struct{}{}
+}
+
+// AsyncStartedAtCleared returns if the "async_started_at" field was cleared in this mutation.
+func (m *GrsaiSettlementMutation) AsyncStartedAtCleared() bool {
+	_, ok := m.clearedFields[grsaisettlement.FieldAsyncStartedAt]
+	return ok
+}
+
+// ResetAsyncStartedAt resets all changes to the "async_started_at" field.
+func (m *GrsaiSettlementMutation) ResetAsyncStartedAt() {
+	m.async_started_at = nil
+	delete(m.clearedFields, grsaisettlement.FieldAsyncStartedAt)
 }
 
 // SetProgress sets the "progress" field.
@@ -29745,7 +29795,7 @@ func (m *GrsaiSettlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GrsaiSettlementMutation) Fields() []string {
-	fields := make([]string, 0, 35)
+	fields := make([]string, 0, 36)
 	if m.account_id != nil {
 		fields = append(fields, grsaisettlement.FieldAccountID)
 	}
@@ -29787,6 +29837,9 @@ func (m *GrsaiSettlementMutation) Fields() []string {
 	}
 	if m.delivery_mode != nil {
 		fields = append(fields, grsaisettlement.FieldDeliveryMode)
+	}
+	if m.async_started_at != nil {
+		fields = append(fields, grsaisettlement.FieldAsyncStartedAt)
 	}
 	if m.progress != nil {
 		fields = append(fields, grsaisettlement.FieldProgress)
@@ -29887,6 +29940,8 @@ func (m *GrsaiSettlementMutation) Field(name string) (ent.Value, bool) {
 		return m.PublicTaskID()
 	case grsaisettlement.FieldDeliveryMode:
 		return m.DeliveryMode()
+	case grsaisettlement.FieldAsyncStartedAt:
+		return m.AsyncStartedAt()
 	case grsaisettlement.FieldProgress:
 		return m.Progress()
 	case grsaisettlement.FieldResultUrls:
@@ -29966,6 +30021,8 @@ func (m *GrsaiSettlementMutation) OldField(ctx context.Context, name string) (en
 		return m.OldPublicTaskID(ctx)
 	case grsaisettlement.FieldDeliveryMode:
 		return m.OldDeliveryMode(ctx)
+	case grsaisettlement.FieldAsyncStartedAt:
+		return m.OldAsyncStartedAt(ctx)
 	case grsaisettlement.FieldProgress:
 		return m.OldProgress(ctx)
 	case grsaisettlement.FieldResultUrls:
@@ -30114,6 +30171,13 @@ func (m *GrsaiSettlementMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeliveryMode(v)
+		return nil
+	case grsaisettlement.FieldAsyncStartedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAsyncStartedAt(v)
 		return nil
 	case grsaisettlement.FieldProgress:
 		v, ok := value.(int)
@@ -30478,6 +30542,9 @@ func (m *GrsaiSettlementMutation) ClearedFields() []string {
 	if m.FieldCleared(grsaisettlement.FieldPublicTaskID) {
 		fields = append(fields, grsaisettlement.FieldPublicTaskID)
 	}
+	if m.FieldCleared(grsaisettlement.FieldAsyncStartedAt) {
+		fields = append(fields, grsaisettlement.FieldAsyncStartedAt)
+	}
 	if m.FieldCleared(grsaisettlement.FieldPayloadDeleteAfter) {
 		fields = append(fields, grsaisettlement.FieldPayloadDeleteAfter)
 	}
@@ -30521,6 +30588,9 @@ func (m *GrsaiSettlementMutation) ClearField(name string) error {
 	switch name {
 	case grsaisettlement.FieldPublicTaskID:
 		m.ClearPublicTaskID()
+		return nil
+	case grsaisettlement.FieldAsyncStartedAt:
+		m.ClearAsyncStartedAt()
 		return nil
 	case grsaisettlement.FieldPayloadDeleteAfter:
 		m.ClearPayloadDeleteAfter()
@@ -30598,6 +30668,9 @@ func (m *GrsaiSettlementMutation) ResetField(name string) error {
 		return nil
 	case grsaisettlement.FieldDeliveryMode:
 		m.ResetDeliveryMode()
+		return nil
+	case grsaisettlement.FieldAsyncStartedAt:
+		m.ResetAsyncStartedAt()
 		return nil
 	case grsaisettlement.FieldProgress:
 		m.ResetProgress()

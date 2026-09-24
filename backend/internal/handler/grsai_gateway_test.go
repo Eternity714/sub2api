@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -135,6 +136,19 @@ func TestGrsaiGatewayWritesSanitizedTerminalJSON(t *testing.T) {
 	require.Equal(t, http.StatusOK, recorder.Code)
 	require.Contains(t, recorder.Body.String(), `"status":"succeeded"`)
 	require.Contains(t, recorder.Body.String(), `"progress":100`)
+}
+
+func TestGrsaiGatewayReturnsVerifiedTerminalWhenSettlementIsPending(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := &GrsaiGatewayHandler{}
+	c, recorder := newGrsaiGatewayTestContext(t)
+	h.writeGrsaiJSONRunResult(c, &service.GrsaiUpstreamResult{
+		HTTPStatus: http.StatusOK, TaskID: "upstream-1", Status: service.GrsaiUpstreamStatusSucceeded,
+		Progress: 100, ResultURLs: []string{"https://example.test/image.png"},
+	}, errors.New("billing temporarily unavailable"))
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Contains(t, recorder.Body.String(), `"status":"succeeded"`)
+	require.NotContains(t, recorder.Body.String(), "billing temporarily unavailable")
 }
 
 func TestGrsaiGatewayResultRejectsEmptyID(t *testing.T) {

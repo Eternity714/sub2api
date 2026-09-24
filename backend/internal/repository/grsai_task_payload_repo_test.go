@@ -43,7 +43,7 @@ func TestGrsaiTaskPayloadRepositoryNeverPersistsPlaintext(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	require.NoError(t, repo.PutEncrypted(context.Background(), 18, payload, expiresAt))
 
-	mock.ExpectQuery(`(?s)SELECT ciphertext.*expires_at > NOW\(\)`).
+	mock.ExpectQuery(`(?s)SELECT p.ciphertext.*expires_at > NOW\(\)`).
 		WithArgs(int64(18)).
 		WillReturnRows(sqlmock.NewRows([]string{"ciphertext"}).AddRow(ciphertext))
 	got, err := repo.GetEncrypted(context.Background(), 18)
@@ -59,12 +59,46 @@ func TestGrsaiTaskPayloadRepositoryExpiredPayloadIsNotFound(t *testing.T) {
 	t.Cleanup(func() { _ = db.Close() })
 
 	repo := NewGrsaiTaskPayloadRepository(db, testSecretEncryptor{})
-	mock.ExpectQuery(`(?s)SELECT ciphertext.*expires_at > NOW\(\)`).
+	mock.ExpectQuery(`(?s)SELECT p.ciphertext.*expires_at > NOW\(\)`).
 		WithArgs(int64(18)).
 		WillReturnRows(sqlmock.NewRows([]string{"ciphertext"}))
 
 	_, err = repo.GetEncrypted(context.Background(), 18)
 	require.ErrorIs(t, err, service.ErrGrsaiTaskPayloadNotFound)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGrsaiTaskPayloadRepositoryCorruptCiphertextIsPermanentError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	repo := NewGrsaiTaskPayloadRepository(db, testSecretEncryptor{})
+	mock.ExpectQuery(`(?s)SELECT p.ciphertext.*`).WithArgs(int64(18)).
+		WillReturnRows(sqlmock.NewRows([]string{"ciphertext"}).AddRow("corrupt"))
+	_, err = repo.GetEncrypted(context.Background(), 18)
+	require.ErrorIs(t, err, service.ErrGrsaiTaskPayloadCorrupt)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGrsaiTaskPayloadRepositoryKeepsExpiredButStillQueuedTask(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	repo := NewGrsaiTaskPayloadRepository(db, testSecretEncryptor{})
+	ciphertext, err := (testSecretEncryptor{}).Encrypt(`{"model":"m","replyType":"async"}`)
+	require.NoError(t, err)
+	mock.ExpectQuery(`(?s)SELECT p.ciphertext.*s.upstream_status = 'not_submitted'.*`).
+		WithArgs(int64(18)).
+		WillReturnRows(sqlmock.NewRows([]string{"ciphertext"}).AddRow(ciphertext))
+	body, err := repo.GetEncrypted(context.Background(), 18)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"model":"m","replyType":"async"}`, string(body))
+	now := time.Now().UTC()
+	mock.ExpectExec(`(?s)WITH removable.*NOT EXISTS.*s.upstream_status IN \('not_submitted', 'submitting'\).*LIMIT 100.*DELETE FROM grsai_task_payloads`).
+		WithArgs(now).WillReturnResult(sqlmock.NewResult(0, 0))
+	deleted, err := repo.DeleteExpired(context.Background(), now)
+	require.NoError(t, err)
+	require.Zero(t, deleted)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -80,7 +114,7 @@ func TestGrsaiTaskPayloadRepositoryDeletesIdempotentlyAndOnlyWhenDue(t *testing.
 	require.NoError(t, repo.DeleteBySettlementID(context.Background(), 18))
 
 	now := time.Now().UTC()
-	mock.ExpectExec("DELETE FROM grsai_task_payloads WHERE expires_at <= \\$1").
+	mock.ExpectExec(`(?s)WITH removable.*expires_at <= \$1.*LIMIT 100.*DELETE FROM grsai_task_payloads`).
 		WithArgs(now).
 		WillReturnResult(sqlmock.NewResult(0, 3))
 	deleted, err := repo.DeleteExpired(context.Background(), now)

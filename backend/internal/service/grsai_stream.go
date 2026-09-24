@@ -19,6 +19,7 @@ var (
 	ErrGrsaiSSEProtocol                  = errors.New("invalid grsai SSE protocol")
 	ErrGrsaiSSERead                      = errors.New("grsai SSE stream read failed")
 	ErrGrsaiStreamPersistenceUnavailable = errors.New("grsai stream persistence is unavailable")
+	errGrsaiSSEResultMissing             = fmt.Errorf("%w: succeeded event must contain a result URL", ErrGrsaiSSEProtocol)
 )
 
 // GrsaiStreamEvent is one validated provider SSE data frame. RawData is a
@@ -33,8 +34,8 @@ type GrsaiStreamEvent struct {
 }
 
 // ParseGrsaiSSE validates the provider stream and returns its terminal result.
-// The callback is invoked only after a complete frame has passed all protocol
-// checks. Persistence ordering is owned by the callback caller.
+// The callback receives structurally valid frames before a resultless success
+// is rejected, so its task ID can be durably bound for result polling.
 func ParseGrsaiSSE(r io.Reader, callback func(GrsaiStreamEvent) error) (*GrsaiUpstreamResult, error) {
 	if r == nil {
 		return nil, fmt.Errorf("%w: nil reader", ErrGrsaiSSEProtocol)
@@ -74,6 +75,9 @@ func ParseGrsaiSSE(r io.Reader, callback func(GrsaiStreamEvent) error) (*GrsaiUp
 			if err := callback(event); err != nil {
 				return err
 			}
+		}
+		if event.Status == GrsaiUpstreamStatusSucceeded && len(event.ResultURLs) == 0 {
+			return errGrsaiSSEResultMissing
 		}
 		final = &GrsaiUpstreamResult{HTTPStatus: 200, RawBody: append([]byte(nil), raw...), TaskID: event.TaskID, Status: event.Status, Progress: event.Progress, ResultURLs: append([]string(nil), event.ResultURLs...)}
 		return nil
@@ -154,9 +158,6 @@ func decodeGrsaiStreamEvent(raw []byte, previousID string, previousProgress int,
 	}
 	urls := extractGrsaiResultURLs(root, dataObject)
 	terminal := status == GrsaiUpstreamStatusSucceeded || status == GrsaiUpstreamStatusFailed || status == GrsaiUpstreamStatusViolation
-	if status == GrsaiUpstreamStatusSucceeded && len(urls) == 0 {
-		return GrsaiStreamEvent{}, fmt.Errorf("%w: succeeded event must contain a result URL", ErrGrsaiSSEProtocol)
-	}
 	return GrsaiStreamEvent{TaskID: id, Status: status, Progress: progress, ResultURLs: urls, Terminal: terminal}, nil
 }
 
@@ -239,6 +240,11 @@ func (s *GrsaiSettlementService) ConsumeGrsaiSSE(ctx context.Context, claim *Grs
 		if persistErr := s.RecordStreamEvent(ctx, claim, event); persistErr != nil {
 			return persistErr
 		}
+		// Bind a resultless terminal ID for polling, but never publish an
+		// incomplete success frame to the downstream client.
+		if event.Status == GrsaiUpstreamStatusSucceeded && len(event.ResultURLs) == 0 {
+			return nil
+		}
 		if onPersistedEvent != nil {
 			if callbackErr := onPersistedEvent(event); callbackErr != nil {
 				return callbackErr
@@ -249,23 +255,46 @@ func (s *GrsaiSettlementService) ConsumeGrsaiSSE(ctx context.Context, claim *Grs
 	if err == nil {
 		return final, nil
 	}
+	if claim.UpstreamTaskID == nil || strings.TrimSpace(*claim.UpstreamTaskID) == "" {
+		// A first-event write can commit and still return a transport error.
+		// The locked terminal transition also checks that no ID was bound.
+		persisted, readErr := s.Repo.GetByID(context.WithoutCancel(ctx), claim.ID)
+		if readErr != nil {
+			return final, errors.Join(err, readErr)
+		}
+		if persisted.ClaimVersion != claim.ClaimVersion {
+			return final, errors.Join(err, ErrGrsaiSettlementClaimLost)
+		}
+		if persisted.UpstreamTaskID != nil && strings.TrimSpace(*persisted.UpstreamTaskID) != "" {
+			pendingErr := s.Repo.MarkPendingUpstream(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, time.Now().Add(grsaiSettlementRetryDelay))
+			return final, errors.Join(err, pendingErr)
+		}
+		summary := "upstream stream protocol, persistence, or callback failure before task ID binding"
+		if errors.Is(err, ErrGrsaiSSERead) {
+			summary = "upstream stream interrupted before task ID binding"
+		}
+		return final, errors.Join(err, s.markPreBindManualReviewWithRelease(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, summary))
+	}
 	// Only an I/O interruption leaves the provider outcome uncertain. Protocol,
 	// persistence and downstream callback failures are local failures and must
 	// not mutate the durable settlement state behind the caller's back.
-	if !errors.Is(err, ErrGrsaiSSERead) {
-		if claim.UpstreamTaskID == nil || strings.TrimSpace(*claim.UpstreamTaskID) == "" {
-			return final, errors.Join(err, s.markManualReviewWithRelease(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "upstream stream protocol, persistence, or callback failure before task ID binding"))
+	if errors.Is(err, errGrsaiSSEResultMissing) {
+		if claim.DeliveryMode == GrsaiDeliveryAsync {
+			pendingErr := s.Repo.MarkPendingUpstream(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, time.Now().Add(grsaiSettlementRetryDelay))
+			return final, errors.Join(err, pendingErr)
 		}
+		// Synchronous callers receive an error, not a pollable task ID. Never
+		// settle a result that they cannot retrieve through the public API.
+		reviewErr := s.markManualReviewWithRelease(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "upstream success has no result URL in synchronous delivery")
+		return final, errors.Join(err, reviewErr)
+	}
+	if !errors.Is(err, ErrGrsaiSSERead) {
 		retryAt := time.Now().Add(grsaiSettlementRetryDelay)
 		_, updateErr := s.Repo.UpdateResult(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "unknown", "upstream stream protocol, persistence, or callback failure after task ID binding", retryAt)
 		pendingErr := s.Repo.MarkPendingUpstream(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, retryAt)
 		return final, errors.Join(err, updateErr, pendingErr)
 	}
 	retryAt := time.Now().Add(grsaiSettlementRetryDelay)
-	firstEvent := claim.UpstreamTaskID == nil || strings.TrimSpace(*claim.UpstreamTaskID) == ""
-	if firstEvent {
-		return final, errors.Join(err, s.markManualReviewWithRelease(ctx, claim.ID, claim.ClaimVersion, "upstream stream interrupted before task ID binding"))
-	}
 	summary := "upstream stream interrupted after task ID binding; result polling required"
 	_, updateErr := s.Repo.UpdateResult(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, "unknown", summary, retryAt)
 	pendingErr := s.Repo.MarkPendingUpstream(context.WithoutCancel(ctx), claim.ID, claim.ClaimVersion, retryAt)
@@ -276,6 +305,11 @@ func (s *GrsaiSettlementService) ConsumeGrsaiSSE(ctx context.Context, claim *Grs
 // repository. Keeping it separate preserves existing recovery mocks.
 type GrsaiStreamEventRepository interface {
 	RecordStreamEvent(context.Context, int64, int64, GrsaiStreamEvent) (bool, error)
+}
+
+// GrsaiResultSnapshotRepository stores result-poll output under the active claim.
+type GrsaiResultSnapshotRepository interface {
+	RecordResultSnapshot(context.Context, int64, int64, string, string, time.Time, int, []string) (bool, error)
 }
 
 // GrsaiStreamBindRepository atomically binds the first provider ID and stores

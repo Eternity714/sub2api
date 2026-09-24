@@ -160,6 +160,20 @@ func (r *usageBillingRepository) ReserveGrsaiBalance(ctx context.Context, cmd *s
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback() }()
+	result, err := r.ReserveGrsaiBalanceTx(ctx, tx, cmd)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (r *usageBillingRepository) ReserveGrsaiBalanceTx(ctx context.Context, tx *sql.Tx, cmd *service.GrsaiBalanceHoldCommand) (*service.GrsaiBalanceHoldResult, error) {
+	if tx == nil || cmd == nil || cmd.IdempotencyKey == "" {
+		return nil, service.ErrUsageBillingRequestIDRequired
+	}
 	applied, err := r.claimUsageBillingRequest(ctx, tx, cmd.IdempotencyKey, cmd.APIKeyID, grsaiHoldFingerprint(cmd))
 	if err != nil {
 		return nil, err
@@ -172,9 +186,6 @@ func (r *usageBillingRepository) ReserveGrsaiBalance(ctx context.Context, cmd *s
 		return nil, err
 	}
 	result.Applied = true
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
 	return result, nil
 }
 

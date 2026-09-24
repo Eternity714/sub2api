@@ -48,6 +48,43 @@ func TestParseGrsaiSSERejectsChangedIDRegressiveProgressAndResultlessSuccess(t *
 	}
 }
 
+func TestConsumeGrsaiSSEFirstResultlessSuccessBindsForPollingWithoutBilling(t *testing.T) {
+	s, repo, claim := grsaiStreamServiceFixture(t)
+	claim.DeliveryMode = GrsaiDeliveryAsync
+	forwarded := 0
+	_, err := s.ConsumeGrsaiSSE(context.Background(), claim,
+		strings.NewReader("data: {\"id\":\"a\",\"status\":\"succeeded\",\"progress\":100}\n\n"),
+		func(GrsaiStreamEvent) error { forwarded++; return nil })
+	require.ErrorIs(t, err, ErrGrsaiSSEProtocol)
+	require.NotNil(t, claim.UpstreamTaskID)
+	require.Equal(t, "a", *claim.UpstreamTaskID)
+	require.Equal(t, GrsaiUpstreamStatusSucceeded, repo.record.UpstreamStatus)
+	require.Equal(t, 1, repo.recordEventCalls)
+	require.Equal(t, 1, repo.pendingUpstreamCalls)
+	require.Zero(t, repo.manualReviewCalls)
+	require.Zero(t, repo.releaseCalls)
+	require.Zero(t, forwarded, "do not publish an incomplete success frame")
+}
+
+func TestConsumeGrsaiSSEResultlessSynchronousSuccessReleasesWithoutBilling(t *testing.T) {
+	for _, mode := range []GrsaiDeliveryMode{GrsaiDeliveryJSON, GrsaiDeliveryStream} {
+		t.Run(string(mode), func(t *testing.T) {
+			s, repo, claim := grsaiStreamServiceFixture(t)
+			claim.DeliveryMode = mode
+			forwarded := 0
+			_, err := s.ConsumeGrsaiSSE(context.Background(), claim,
+				strings.NewReader("data: {\"id\":\"a\",\"status\":\"succeeded\",\"progress\":100}\n\n"),
+				func(GrsaiStreamEvent) error { forwarded++; return nil })
+			require.ErrorIs(t, err, ErrGrsaiSSEProtocol)
+			require.Equal(t, "a", *claim.UpstreamTaskID)
+			require.Equal(t, 1, repo.manualReviewCalls)
+			require.Equal(t, 1, repo.releaseCalls)
+			require.Zero(t, repo.pendingUpstreamCalls)
+			require.Zero(t, forwarded)
+		})
+	}
+}
+
 func TestParseGrsaiSSERequiresTaskIDAndTerminal(t *testing.T) {
 	_, err := ParseGrsaiSSE(strings.NewReader("data: {\"status\":\"running\"}\n\n"), nil)
 	require.ErrorIs(t, err, ErrGrsaiSSEProtocol)
@@ -130,6 +167,20 @@ func TestConsumeGrsaiSSEAtomicFirstEventFailureDoesNotBindOrCallback(t *testing.
 	require.Zero(t, repo.recordEventCalls)
 }
 
+func TestConsumeGrsaiSSEFirstEventCommittedButResponseLostKeepsHold(t *testing.T) {
+	s, repo, claim := grsaiStreamServiceFixture(t)
+	claimCopy := *claim
+	repo.bindEventErr = errors.New("event commit response lost")
+	repo.bindCommitted = true
+	_, err := s.ConsumeGrsaiSSE(context.Background(), &claimCopy, strings.NewReader("data: {\"id\":\"a\",\"status\":\"running\"}\n\n"), nil)
+	require.ErrorIs(t, err, repo.bindEventErr)
+	require.Nil(t, claimCopy.UpstreamTaskID)
+	require.Equal(t, "a", *repo.record.UpstreamTaskID)
+	require.Zero(t, repo.manualReviewCalls)
+	require.Zero(t, repo.releaseCalls)
+	require.Equal(t, 1, repo.pendingUpstreamCalls)
+}
+
 func TestConsumeGrsaiSSEPreBindInterruptionFailsClosedWithoutHoldExtension(t *testing.T) {
 	s, repo, claim := grsaiStreamServiceFixture(t)
 	s.Repo = &noHoldStreamRepo{GrsaiSettlementRepository: repo, stream: repo}
@@ -175,6 +226,7 @@ type grsaiStreamRepo struct {
 	order                                                                                      []string
 	recordEventCalls, manualReviewCalls, releaseCalls, updateResultCalls, pendingUpstreamCalls int
 	bindEventErr                                                                               error
+	bindCommitted                                                                              bool
 }
 
 type noHoldStreamRepo struct {
@@ -200,6 +252,11 @@ func (r *grsaiStreamRepo) BindUpstreamTask(_ context.Context, _ int64, _ int64, 
 }
 func (r *grsaiStreamRepo) BindAndRecordStreamEvent(_ context.Context, _ int64, _ int64, event GrsaiStreamEvent) (bool, error) {
 	if r.bindEventErr != nil {
+		if r.bindCommitted {
+			id := event.TaskID
+			r.record.UpstreamTaskID = &id
+			r.record.UpstreamStatus = event.Status
+		}
 		return false, r.bindEventErr
 	}
 	id := event.TaskID

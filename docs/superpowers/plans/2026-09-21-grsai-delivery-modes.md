@@ -18,8 +18,9 @@
 - 不提供任务取消；客户端断线不是取消，也绝不重投可能已被上游接收的任务。
 - 提交时冻结额度；仅 succeeded 在幂等事务内捕获冻结并记一次用量。失败、违规、未知提交和人工关闭都释放冻结。
 - Async 原始载荷须加密持久化，且不得进入日志、公开 API、测试产物或用量记录。绑定上游 ID 后删除；终态安全查询视图保存 24 小时。
+- Async 跨 API Key 按用户限额：等待中 20、进行中 3。受理/领取均需数据库原子门槛；等待满额 429 且不冻结；进行中满额不得 POST，租约恢复不得重置进行中标记。
 - GET /v1/api/result 同时限制 user_id 和 api_key_id；本地公开 ID/上游 ID 不存在或无权访问均返回相同 404。
-- Live probe 默认不联网；只有 --live --max-credits 10000 才能运行；单次最多一个 nano-banana-2-lite 任务，且不进 CI。
+- Live probe 默认不联网；只有显式 --live 才能运行；单次最多一个 nano-banana-2-lite 任务，CI 只运行离线自测。
 - migration 只能新增；提交日志用中文；不改动用户现有未跟踪目录或 test/test_images_api.py。
 
 ---
@@ -400,6 +401,8 @@ git commit -m "feat: 解析并持久化 GRS.AI 上游流"
 
 ## Task 5: 实现任务服务、Async Worker、恢复和公开视图
 
+**补充验收（2026-09-23）：** 受理在创建/冻结前原子检查每用户 20 个等待名额；Worker 首次领取原子检查每用户 3 个进行中名额，并持久标记首次领取。已领取任务恢复不再消耗第二个名额；终态及仅结算重试释放名额。先以真库并发、跨 API Key、租约恢复和 20/21、3/4 边界测试验证，不能以 `BatchLimit` 代替容量门槛。
+
 **Files:**
 - Create: backend/internal/service/grsai_task_service.go
 - Create: backend/internal/service/grsai_task_service_test.go
@@ -462,7 +465,7 @@ RunGrsaiTask may POST only an active claim without UpstreamTaskID. After Task 4 
 
 RunOnce claim-version-fences due records and processes:
 
-1. queued: only valid decryptable payload can POST; missing/expired payload becomes manual review plus release.
+1. queued: only valid decryptable payload can POST; missing/corrupt payload becomes manual review plus release. Nominal payload TTL must not expire a still-queued or newly claimed, unsubmitted task.
 2. bound running/upstream_unknown/expired processing: only GET /v1/api/result?id=<upstream-id>, then settle/release from final state.
 3. pending_settlement: only retry Task 3 capture/use transaction.
 4. unbound submitting beyond submission_unknown_timeout_seconds: manual review plus release.
@@ -473,7 +476,7 @@ No recovery branch re-POSTs a bound record. Public view is constructed from owne
 
 Run: go test ./internal/service ./internal/repository -run 'Test(AsyncTask|BoundDisconnect|PublicTaskView|Grsai.*(Claim|Recover|Settle))' -count=1
 
-Expected: PASS; two runtimes yield one claimant, bound work makes zero second POSTs, payload disappears when bound/terminal/expired.
+Expected: PASS; two runtimes yield one claimant, bound work makes zero second POSTs, payload disappears when bound/terminal or expired outside the unsubmitted queue.
 
 ~~~powershell
 git add backend/internal/service/grsai_task_service.go backend/internal/service/grsai_task_service_test.go backend/internal/service/grsai_task_runtime.go backend/internal/service/grsai_task_runtime_test.go backend/internal/service/grsai_settlement.go backend/internal/repository/grsai_settlement_repo.go
@@ -553,6 +556,8 @@ git commit -m "feat: 提供 GRS.AI 多模式交付接口"
 
 ## Task 7: 配置、Wire 生命周期和清理
 
+实现与独立复审记录：`docs/superpowers/reviews/2026-09-23-grsai-task7-integration.md`。代码与测试已完成；当前工作树包含此前未提交的 Task 5/6 混合改动，Task 7 的提交步骤暂不单独执行。
+
 **Files:**
 - Modify: backend/internal/config/config.go
 - Modify: backend/internal/config/config_test.go
@@ -566,7 +571,7 @@ git commit -m "feat: 提供 GRS.AI 多模式交付接口"
 - GrsaiDeliveryConfig under grsai_delivery: enabled, scan_interval_seconds, batch_limit, payload_ttl_seconds, result_retention_hours.
 - Runtime cleanup deletes bound/terminal/expired ciphertext and expires terminal safe-task records.
 
-- [ ] **Step 1: Write failing config/lifecycle test.**
+- [x] **Step 1: Write failing config/lifecycle test.**
 
 ~~~go
 func TestGrsaiDeliveryConfigDefaultsAndValidation(t *testing.T) {
@@ -580,13 +585,13 @@ func TestGrsaiDeliveryConfigDefaultsAndValidation(t *testing.T) {
 }
 ~~~
 
-- [ ] **Step 2: Run and verify failure.**
+- [x] **Step 2: Run and verify failure.**
 
 Run: go test ./internal/config ./cmd/server -run 'TestGrsaiDelivery' -count=1
 
 Expected: FAIL because config/runtime are not injected.
 
-- [ ] **Step 3: Add conservative defaults and validation.**
+- [x] **Step 3: Add conservative defaults and validation.**
 
 ~~~go
 viper.SetDefault("grsai_delivery.enabled", false)
@@ -598,11 +603,11 @@ viper.SetDefault("grsai_delivery.result_retention_hours", 24)
 
 Validate scan 1..300 seconds, batch 1..100, payload TTL 60..3600 seconds, result retention 1..168 hours. Keep disabled by default. Existing grsai_settlement_recovery retains its existing meaning.
 
-- [ ] **Step 4: Wire runtime and cleanup.**
+- [x] **Step 4: Wire runtime and cleanup.**
 
 Inject SecretEncryptor, payload repo, holds, native client and task service. Append GrsaiTaskRuntime.Stop to provideCleanup; Stop cancels ticker/work scheduling without deleting data. Regenerate Wire; never manually edit wire_gen.go.
 
-Each RunOnce deletes payload once upstream ID binds, task turns terminal, or payload expires. Delete only terminal task records whose expires_at is due. Retain pending_settlement, upstream_unknown and actionable manual_review.
+Each RunOnce deletes payload once upstream ID binds, task turns terminal, or payload expires outside the unsubmitted queue. Delete only terminal task records after the configured retention measured from closed_at, not the create-time expires_at. Retain pending_settlement, upstream_unknown and actionable manual_review.
 
 - [ ] **Step 5: Run verification and commit.**
 
@@ -623,9 +628,9 @@ git commit -m "feat: 接入 GRS.AI 任务恢复运行时"
 - Modify: an existing Python-test selector only if it exists, to explicitly exclude the live probe
 
 **Interfaces:**
-- CLI requires exactly --live --max-credits 10000; reads GRSAI_BASE and GRSAI_KEY; timeout default 180 seconds.
+- CLI requires exactly --live; reads GRSAI_BASE and GRSAI_KEY; timeout default 180 seconds.
 - One POST uses nano-banana-2-lite and replyType=stream; subsequent GET calls use /v1/api/result.
-- Output contains only masked task-ID suffix, content type, terminal status, progress, masked credit delta.
+- Output contains only masked task-ID suffix, content type, terminal status and progress.
 
 - [ ] **Step 1: Write offline self-tests in the script.**
 
@@ -633,7 +638,7 @@ git commit -m "feat: 接入 GRS.AI 任务恢复运行时"
 def test_live_gate_requires_explicit_flags():
     code, output = run_probe([])
     assert code == 2
-    assert "--live --max-credits 10000" in output
+    assert "--live" in output
 
 def test_scrubber_removes_key_prompt_and_result_url():
     text = scrub("Bearer secret-key prompt=private https://images.example/a.png")
@@ -648,11 +653,11 @@ Use only unittest and standard library; do not modify existing user test script.
 
 Run: python test/grsai_live_contract.py --self-test; python test/grsai_live_contract.py
 
-Expected: self-test PASS; second command exits code 2, asks for both flags, opens no network connection.
+Expected: self-test PASS; second command exits code 2, asks for --live, opens no network connection.
 
 - [ ] **Step 3: Implement a single scrubbed live call.**
 
-Use urllib.request, fixed minimal in-memory prompt, one POST guard post_started and exact max-credit validation. Require SSE Content-Type; parse data frames for stable ID, monotonic progress and terminal state; poll /v1/api/result?id=<id> until matching state or timeout. Pre/post credits are optional diagnostics: report masked/rounded delta only; never assert exact price, save response, prompt, key or image URL.
+Use urllib.request, fixed minimal in-memory prompt and one POST guard post_started. Require SSE Content-Type; parse data frames for stable ID, monotonic progress and terminal state; poll /v1/api/result?id=<id> until matching state or timeout. Upstream credits/cost are not a release gate; never save response, prompt, key or image URL.
 
 - [ ] **Step 4: Run local full verification without spending credits.**
 
@@ -662,7 +667,7 @@ Expected: Go tests/self-test pass; no-flags probe safely exits. Do not run --liv
 
 - [ ] **Step 5: Document gates and commit.**
 
-Document that operator must verify current single-task price; live command is python test/grsai_live_contract.py --live --max-credits 10000; rollout is JSON → Async → Stream. Stream remains disabled until live probe repeatedly passes, bound disconnect recovers by query, no duplicate settlement occurs, and abnormal manual_review has no backlog.
+Document the live command as python test/grsai_live_contract.py --live; rollout is JSON → Async → Stream. Stream remains disabled until live probe repeatedly passes, bound disconnect recovers by query, no duplicate settlement occurs, and abnormal manual_review has no backlog.
 
 ~~~powershell
 git add test/grsai_live_contract.py test/README.grsai-live-contract.md
@@ -675,7 +680,7 @@ git commit -m "test: 增加 GRS.AI 上游流式契约探测"
 - [ ] go vet ./internal/service ./internal/repository ./internal/handler ./internal/server/routes passes.
 - [ ] go generate ./ent then git diff --exit-code -- backend/ent passes.
 - [ ] python test/grsai_live_contract.py --self-test passes; no-flags invocation has no network request.
-- [ ] Separately authorized live run uses --live --max-credits 10000, creates one nano-banana-2-lite task and prints no secret/prompt/URL/raw SSE.
+- [ ] Explicit live run uses --live, creates one nano-banana-2-lite task and prints no secret/prompt/URL/raw SSE.
 - [ ] Production uses gray-status.sh, immutable sha-<commit> to a 0% candidate, validates JSON then Async then Stream, and uses only gray scripts for traffic. On billing/auth/5xx anomaly return traffic to stable and preserve candidate evidence.
 
 ## Self-Review
@@ -689,7 +694,7 @@ git commit -m "test: 增加 GRS.AI 上游流式契约探测"
 | 加密载荷和删除 | Tasks 2, 5, 7 |
 | 冻结/捕获/释放和重试 | Tasks 3, 5 |
 | 无取消 | Global Constraints, Tasks 5, 6 |
-| nano-banana-2-lite、单任务、10,000 credits | Task 8 |
+| nano-banana-2-lite、单任务、显式 live 探测 | Task 8 |
 | JSON → Async → Stream 灰度门 | Task 8 and Final Verification |
 
 Placeholder scan completed: each task supplies files, interfaces, tests, commands, expected result and commit. Type review completed: Task 1 produces request types; Task 2 persistence; Task 3 hold contract; Task 4 stream contract; Task 5 task service; Tasks 6--7 consume them.

@@ -41,6 +41,7 @@ func (GrsaiSettlement) Fields() []ent.Field {
 		field.String("billing_idempotency_key").MaxLen(128).Immutable(),
 		field.String("public_task_id").MaxLen(64).Optional().Nillable(),
 		field.String("delivery_mode").MaxLen(16).Default("json"),
+		field.Time("async_started_at").Optional().Nillable().SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
 		field.Int("progress").Default(0).Min(0).Max(100),
 		field.JSON("result_urls", []string{}).
 			Default([]string{}).
@@ -91,5 +92,8 @@ func (GrsaiSettlement) Indexes() []ent.Index {
 		index.Fields("internal_status", "next_attempt_at").
 			Annotations(entsql.IndexWhere("internal_status IN ('pending_upstream', 'pending_settlement', 'processing')")),
 		index.Fields("user_id", "created_at"),
+		index.Fields("user_id", "async_started_at", "internal_status").
+			StorageKey("grsai_settlements_async_user_capacity_idx").
+			Annotations(entsql.IndexWhere("delivery_mode = 'async'")),
 	}
 }

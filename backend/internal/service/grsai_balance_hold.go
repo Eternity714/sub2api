@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
+	"github.com/shopspring/decimal"
 )
 
 var ErrGrsaiInsufficientBalance = ErrInsufficientBalance
@@ -25,6 +27,7 @@ type GrsaiBalanceHoldResult struct {
 
 type GrsaiHoldBillingRepository interface {
 	ReserveGrsaiBalance(context.Context, *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error)
+	ReserveGrsaiBalanceTx(context.Context, *sql.Tx, *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error)
 	CaptureGrsaiBalanceTx(context.Context, *sql.Tx, *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error)
 	ReleaseGrsaiBalanceTx(context.Context, *sql.Tx, *GrsaiBalanceHoldCommand) (*GrsaiBalanceHoldResult, error)
 }
@@ -37,6 +40,10 @@ type GrsaiHoldStateRepository interface {
 	MarkHoldHeld(context.Context, int64, int64) error
 	CloseNoChargeWithRelease(context.Context, int64, int64, string, GrsaiSettlementTxFunc) error
 	MarkManualReviewWithRelease(context.Context, int64, int64, string, GrsaiSettlementTxFunc) error
+}
+
+type GrsaiHoldReservationRepository interface {
+	ReserveHold(context.Context, int64, int64, GrsaiSettlementTxFunc) error
 }
 
 func GrsaiHoldReserveRequestID(id int64) string { return fmt.Sprintf("grsai_hold:%d", id) }
@@ -58,20 +65,31 @@ func grsaiHoldCommand(record *GrsaiSettlement, operation string) (*GrsaiBalanceH
 	if record == nil || record.ID <= 0 || record.UserID <= 0 || record.APIKeyID <= 0 || !grsaiFiniteNonNegative(record.HoldAmount) {
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
+	amount, _ := decimal.NewFromFloat(record.HoldAmount).Round(8).Float64()
 	return &GrsaiBalanceHoldCommand{SettlementID: record.ID, UserID: record.UserID, APIKeyID: record.APIKeyID,
-		Amount: record.HoldAmount, IdempotencyKey: operation}, nil
+		Amount: amount, IdempotencyKey: operation}, nil
 }
 
 func (s *GrsaiSettlementService) reserveGrsaiBalance(ctx context.Context, record *GrsaiSettlement) error {
-	h := s.holdBilling()
-	if h == nil || record.HoldAmount <= 0 {
+	if record.HoldAmount <= 0 {
 		return nil
+	}
+	h := s.holdBilling()
+	repo, ok := s.Repo.(GrsaiHoldReservationRepository)
+	if h == nil || !ok {
+		return ErrGrsaiHoldReleaseUnavailable
 	}
 	cmd, err := grsaiHoldCommand(record, GrsaiHoldReserveRequestID(record.ID))
 	if err != nil {
 		return err
 	}
-	_, err = h.ReserveGrsaiBalance(ctx, cmd)
+	err = repo.ReserveHold(ctx, record.ID, record.ClaimVersion, func(txCtx context.Context, tx *sql.Tx, locked *GrsaiSettlement) error {
+		if locked.UserID != record.UserID || locked.APIKeyID != record.APIKeyID || locked.HoldAmount != record.HoldAmount {
+			return ErrGrsaiSettlementInvalidState
+		}
+		_, reserveErr := h.ReserveGrsaiBalanceTx(txCtx, tx, cmd)
+		return reserveErr
+	})
 	if errors.Is(err, ErrBatchImageInsufficientBalance) || errors.Is(err, ErrInsufficientBalance) {
 		return ErrGrsaiInsufficientBalance
 	}
