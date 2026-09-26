@@ -355,7 +355,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	grsaiSettlementRecoveryRuntime := service.ProvideGrsaiSettlementRecoveryRuntime(grsaiSettlementRepository, accountRepository, grsaiNativeClient, grsaiSettlementService, configConfig)
 	grsaiTaskPayloadRepository := repository.ProvideGrsaiTaskPayloadRepository(db, secretEncryptor)
 	grsaiTaskUpstream := service.ProvideGrsaiTaskUpstream()
-	grsaiTaskRuntime := service.ProvideGrsaiTaskRuntime(grsaiV2TaskRepository, grsaiTaskPayloadRepository, accountRepository, grsaiTaskUpstream, imageStorageSettingService, grsaiBalanceHoldRepository, configConfig)
+	grsaiTaskRuntime := service.ProvideGrsaiTaskRuntime(grsaiV2TaskRepository, grsaiTaskPayloadRepository, accountRepository, grsaiTaskUpstream, imageStorageSettingService, grsaiBalanceHoldRepository, usageLogRepository, configConfig)
 	scheduledTestRunnerService := service.ProvideScheduledTestRunnerService(scheduledTestPlanRepository, scheduledTestService, accountTestService, rateLimitService, configConfig)
 	paymentOrderExpiryService := service.ProvidePaymentOrderExpiryService(paymentService, leaderLockCache, db)
 	channelMonitorQuotaFetcher := service.NewChannelMonitorQuotaFetcher(accountUsageService, cnProviderQuotaService, cnProviderBalanceService, accountRepository, configConfig)

@@ -459,9 +459,10 @@ func (r *grsaiSettlementRepository) UpdateV2Progress(ctx context.Context, id, cl
 	}
 	result, err := r.sql.ExecContext(ctx, `
 UPDATE grsai_settlements
-SET public_status = $3,
+SET public_status = $3::text,
     progress = $4,
-    internal_status = CASE WHEN $3 = 'running' THEN 'v2_running' ELSE internal_status END,
+    internal_status = CASE WHEN $3::text = 'running' THEN 'v2_running' ELSE internal_status END,
+    settlement_retry_count = 0,
     next_attempt_at = $5,
     result_updated_at = NOW(),
     updated_at = NOW()

@@ -29,17 +29,25 @@ type GrsaiTaskRuntimeOptions struct {
 }
 
 type GrsaiTaskRuntime struct {
-	repo     GrsaiV2TaskRepository
-	payloads GrsaiTaskPayloadRepository
-	accounts GrsaiSettlementAccountReader
-	upstream GrsaiTaskUpstream
-	images   GrsaiTaskImagePersister
-	balance  GrsaiBalanceHoldRepository
-	opts     GrsaiTaskRuntimeOptions
-	now      func() time.Time
-	mu       sync.Mutex
-	cancel   context.CancelFunc
-	done     chan struct{}
+	repo      GrsaiV2TaskRepository
+	payloads  GrsaiTaskPayloadRepository
+	accounts  GrsaiSettlementAccountReader
+	upstream  GrsaiTaskUpstream
+	images    GrsaiTaskImagePersister
+	balance   GrsaiBalanceHoldRepository
+	usageLogs UsageLogRepository
+	opts      GrsaiTaskRuntimeOptions
+	now       func() time.Time
+	mu        sync.Mutex
+	cancel    context.CancelFunc
+	done      chan struct{}
+}
+
+func (r *GrsaiTaskRuntime) WithUsageLogs(repo UsageLogRepository) *GrsaiTaskRuntime {
+	if r != nil {
+		r.usageLogs = repo
+	}
+	return r
 }
 
 func NewGrsaiTaskRuntime(repo GrsaiV2TaskRepository, payloads GrsaiTaskPayloadRepository,
@@ -167,15 +175,15 @@ func (r *GrsaiTaskRuntime) processClaim(ctx context.Context, claim *GrsaiSettlem
 		return r.deferPoll(ctx, claim)
 	}
 	if claim.SettlementRetryCount >= r.opts.FailureRetryLimit {
-		return r.manualReview(ctx, claim)
+		return r.manualReview(ctx, claim, "result_retries_exhausted")
 	}
 	account, err := r.accounts.GetByID(ctx, claim.AccountID)
 	if err != nil || account == nil || account.Platform != PlatformGrsai {
-		return r.deferPoll(ctx, claim)
+		return r.deferFailure(ctx, claim, "account_unavailable")
 	}
 	result, err := r.upstream.Result(ctx, account, *claim.UpstreamTaskID)
 	if err != nil || result == nil {
-		if retryErr := r.deferPoll(ctx, claim); retryErr != nil {
+		if retryErr := r.deferFailure(ctx, claim, "result_poll_failed"); retryErr != nil {
 			return retryErr
 		}
 		return fmt.Errorf("grsai result polling failed")
@@ -184,7 +192,7 @@ func (r *GrsaiTaskRuntime) processClaim(ctx context.Context, claim *GrsaiSettlem
 	case GrsaiUpstreamStatusSucceeded:
 		stored, err := r.images.PersistGrsaiImages(ctx, *claim.LocalTaskID, result)
 		if err != nil {
-			if retryErr := r.deferFailure(ctx, claim); retryErr != nil {
+			if retryErr := r.deferFailure(ctx, claim, "result_persistence_failed"); retryErr != nil {
 				return retryErr
 			}
 			return err
@@ -196,7 +204,7 @@ func (r *GrsaiTaskRuntime) processClaim(ctx context.Context, claim *GrsaiSettlem
 		completed, err := r.repo.CompleteV2(ctx, claim.ID, claim.ClaimVersion, stored.ResultJSON,
 			stored.ObjectMetadata, stored.LinkExpiresAt, amount, r.balance.CaptureGrsaiBalanceTx)
 		if err != nil {
-			if retryErr := r.deferFailure(ctx, claim); retryErr != nil {
+			if retryErr := r.deferFailure(ctx, claim, "result_persistence_failed"); retryErr != nil {
 				return retryErr
 			}
 			return err
@@ -204,12 +212,36 @@ func (r *GrsaiTaskRuntime) processClaim(ctx context.Context, claim *GrsaiSettlem
 		if !completed {
 			return ErrGrsaiSettlementClaimLost
 		}
+		r.recordUsage(claim, amount)
 		return nil
 	case GrsaiUpstreamStatusFailed, GrsaiUpstreamStatusViolation:
 		return r.fail(ctx, claim, "upstream_failed")
 	default:
 		return r.deferPoll(ctx, claim)
 	}
+}
+
+func (r *GrsaiTaskRuntime) recordUsage(claim *GrsaiSettlement, amount float64) {
+	if r.usageLogs == nil || claim == nil || claim.LocalTaskID == nil {
+		return
+	}
+	mode, endpoint := string(BillingModeImage), "/v1/api/generate"
+	baseCost := claim.BaseUnitPrice * float64(claim.RequestedImageCount)
+	requestType := RequestTypeSync
+	if claim.DeliveryMode == string(GrsaiDeliveryStream) {
+		requestType = RequestTypeStream
+	}
+	usage := &UsageLog{UserID: claim.UserID, APIKeyID: claim.APIKeyID, AccountID: claim.AccountID,
+		GroupID: &claim.GroupID, RequestID: "grsai_task:" + *claim.LocalTaskID,
+		Model: claim.Model, RequestedModel: claim.Model, ImageCount: claim.RequestedImageCount,
+		ImageSize: &claim.ImageSize, ImageOutputCost: baseCost, TotalCost: baseCost,
+		ActualCost: amount, RateMultiplier: claim.GroupRateMultiplier,
+		AccountRateMultiplier: &claim.AccountRateMultiplier,
+		BillingType:           BillingTypeBalance, RequestType: requestType, BillingMode: &mode,
+		InboundEndpoint: &endpoint, UpstreamEndpoint: &endpoint, CreatedAt: r.now()}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	writeUsageLogBestEffort(ctx, r.usageLogs, usage, "service.grsai_task_runtime")
 }
 
 func (r *GrsaiTaskRuntime) deferPoll(ctx context.Context, claim *GrsaiSettlement) error {
@@ -234,9 +266,9 @@ func (r *GrsaiTaskRuntime) fail(ctx context.Context, claim *GrsaiSettlement, cod
 	return nil
 }
 
-func (r *GrsaiTaskRuntime) deferFailure(ctx context.Context, claim *GrsaiSettlement) error {
+func (r *GrsaiTaskRuntime) deferFailure(ctx context.Context, claim *GrsaiSettlement, reason string) error {
 	if claim.SettlementRetryCount+1 >= r.opts.FailureRetryLimit {
-		return r.manualReview(ctx, claim)
+		return r.manualReview(ctx, claim, reason)
 	}
 	index := claim.SettlementRetryCount
 	if index >= len(grsaiSettlementRecoveryBackoff) {
@@ -253,8 +285,8 @@ func (r *GrsaiTaskRuntime) deferFailure(ctx context.Context, claim *GrsaiSettlem
 	return nil
 }
 
-func (r *GrsaiTaskRuntime) manualReview(ctx context.Context, claim *GrsaiSettlement) error {
-	marked, err := r.repo.MarkV2ManualReview(ctx, claim.ID, claim.ClaimVersion, "result_persistence_failed")
+func (r *GrsaiTaskRuntime) manualReview(ctx context.Context, claim *GrsaiSettlement, reason string) error {
+	marked, err := r.repo.MarkV2ManualReview(ctx, claim.ID, claim.ClaimVersion, reason)
 	if err != nil {
 		return err
 	}

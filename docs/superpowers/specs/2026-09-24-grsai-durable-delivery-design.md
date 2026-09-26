@@ -137,6 +137,9 @@ presigned URL TTL 沿用现有图片存储设置 `presign_expiry_hours`，默认
 - 上游成功但图片下载或上传失败：保留上游 ID 和只在内部可用的恢复依据，
   以受界限的退避重试；超界转人工核查，不报告成功、不透出上游图片 URL。
   这类任务的冻结及结算待运营处置，不能假称已退款或已扣费。
+- 上游 `/result` 暂时不可用（含 404、网络错误）或账号暂不可读取：
+  不把查询错误当作上游明确失败；连续错误按受界限的退避重试，正常
+  `running` 响应清零连续失败计数，超界转人工核查并保留冻结资金。
 - 图片已经落地但数据库提交失败：继续可幂等恢复；绝不先向 JSON/Stream
   发成功。成功轮询和多个 worker 最多捕获冻结并记一笔用量。
 
@@ -152,25 +155,27 @@ presigned URL TTL 沿用现有图片存储设置 `presign_expiry_hours`，默认
 以及 Async 20/3 容量边界与重启后的正确计数。
 假上游与假 S3 做离线测试；现有 GRS.AI 结算、OpenAI 生图须回归。
 
-以下是待实施的 AC-ID 到测试契约追溯表，**不是测试已通过的声明**：
+实际测试函数与文件路径维护在 `test/grsai_ac_traceability.json`，
+运行 `python test/grsai_traceability.py` 检查 PRD AC-ID 是否缺项及测试引用是否失效。
+下表列出主要执行证据；离线测试通过不等于 live 或生产灰度验收通过。
 
-| AC-ID | 计划测试层与场景 |
+| AC-ID | 主要测试函数 / 现场门 |
 | --- | --- |
-| 01 | Service/parser + httptest：三种输入只有一个上游 Async POST，非法模式 400。 |
-| 02 | Repository/handler：上游 POST 前已持久化本地归属；响应遍历无上游 ID。 |
-| 03 | Service/handler + 假 S3：上传与 DB 提交前 JSON 无成功响应，完成后一并给本地 ID。 |
-| 04 | Handler SSE：本地 ID、5/running、100/succeeded 顺序；失败无 100。 |
-| 05 | Handler/runtime：Async 立即 202，后台才提交并可用本地 ID 查询。 |
-| 06 | Repository/runtime 重启：已绑定任务只 GET，上游 POST 次数不增加。 |
-| 07 | 假 S3 失败注入：重试/人工核查，公开响应无上游 URL。 |
-| 08 | 不确定提交与失败注入：无 ID 终态失败、冻结释放、零次重 POST。 |
-| 09 | API 集成：当前 Key、同用户另一 Key、另一用户、缺 Key 的列表/详情隔离；图片 URL 不纳入这层鉴权。 |
-| 10 | 存储集成 + 假 S3：配置公开 URL 时直接返回公开 URL；未配置时返回 presigned URL，不创建图片代理接口。 |
-| 11 | 时间与配置测试：presigned 默认 24 小时、公开 URL 期限不适用、改配置不重签旧链接、过期仍可列表、不探测 S3。 |
-| 12 | 真库并发：重复领取/轮询成功只捕获一次；失败/违规/未知提交解冻。 |
-| 13 | 离线 probe 自检 + 显式 live：默认零网络，Async `/result` 可达终态。 |
-| 14 | 真库多实例：同用户 20 等待/3 运行上限、重启计数与拒绝/延迟领取。 |
-| 15 | 双版本真库/灰度演练：旧版只处理旧任务、兼容版分别处理旧/v2 任务；切流、候选退出、回滚和晋升后任务/冻结/账本保持一致。 |
+| 01 | `TestParseGrsaiDeliveryRequestBuildsIndependentAsyncBody`、`TestGrsaiNativeClientGenerateAsyncUsesPreparedBody`。 |
+| 02 | `TestGrsaiGrayCandidateHandoffUsesBoundResultOnly`、`TestGrsaiDeliveryModesExposeOnlyLocalTask`。 |
+| 03 | `TestGrsaiResultPersistenceStoresAllImagesBeforeReturning`、`TestGrsaiV2TerminalBillingFailureRollsBackStatus`。 |
+| 04 | `TestGrsaiDeliveryModesExposeOnlyLocalTask`、`TestGrsaiDeliveryFailedStreamNeverReportsSuccess`。 |
+| 05 | `TestGrsaiTaskServiceCreatesLocalTaskBeforeAsyncSubmission`、`TestGrsaiDeliveryModesExposeOnlyLocalTask`。 |
+| 06 | `TestGrsaiGrayCandidateHandoffUsesBoundResultOnly`、`TestGrsaiTaskRuntimeBoundResultPersistsBeforeSuccess`。 |
+| 07 | `TestGrsaiTaskRuntimeExhaustedStorageRetriesRetainsHoldForReview`、`TestGrsaiResultPersistenceDoesNotReturnPartialSuccess`。 |
+| 08 | `TestGrsaiTaskRuntimeNeverResubmitsUnboundClaim`、`TestGrsaiBalanceHoldCapturesOrReleasesOnce`。 |
+| 09 | `TestGrsaiDeliveryResultIsScopedToCreatingAPIKey`、`TestGrsaiDeliveryTasksListOnlyIncludesCreatingKey`。 |
+| 10 | `TestImageStorageS3ReturnsPublicURLWithoutExpiry`、`TestImageStorageS3PresignedExpiryMatchesURL`。 |
+| 11 | `TestGrsaiTaskViewOmitsPrivateFieldsAndReportsLinkExpiry`、`TestGrsaiTaskViewPublicLinkHasNoExpiry`。 |
+| 12 | `TestGrsaiBalanceHoldCapturesOrReleasesOnce`、`TestGrsaiV2ClaimIsSingleWinnerAndDoesNotRetrySubmission`。 |
+| 13 | `grsai_live_contract.py --self-test` 已离线通过；真实 Async `/result` 仍待 live 验证。 |
+| 14 | `TestGrsaiV2WaitingAndRunningLimitsPersistAcrossWorkers`、`TestGrsaiV2WaitingLimitIsAtomicAcrossInstances`。 |
+| 15 | `TestGrsaiGrayCandidateHandoffUsesBoundResultOnly` 已验证同库接手；真实双版本切流/回滚仍待灰度演练。 |
 
 live probe 默认禁用且不进入 CI，显式运行时验证目标上游 Async POST
 返回可查询 ID，随后 `/result` 能到达终态；脱敏输出，不保存真实密钥、

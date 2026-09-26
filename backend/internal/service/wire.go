@@ -80,7 +80,7 @@ func ProvideGrsaiTaskService(repo GrsaiV2TaskRepository, balance GrsaiBalanceHol
 
 func ProvideGrsaiTaskRuntime(repo GrsaiV2TaskRepository, payloads GrsaiTaskPayloadRepository,
 	accounts AccountRepository, upstream GrsaiTaskUpstream, storage *ImageStorageSettingService,
-	balance GrsaiBalanceHoldRepository, cfg *config.Config) *GrsaiTaskRuntime {
+	balance GrsaiBalanceHoldRepository, usageLogRepo UsageLogRepository, cfg *config.Config) *GrsaiTaskRuntime {
 	runtime := NewGrsaiTaskRuntime(repo, payloads, accounts, upstream,
 		grsaiTaskImageResolver{resolve: storage.Resolver()}, balance, GrsaiTaskRuntimeOptions{
 			Enabled:      cfg.GrsaiDelivery.WorkerEnabled,
@@ -88,6 +88,7 @@ func ProvideGrsaiTaskRuntime(repo GrsaiV2TaskRepository, payloads GrsaiTaskPaylo
 			BatchLimit:   cfg.GrsaiDelivery.BatchLimit, MaxRunning: cfg.GrsaiDelivery.MaxRunning,
 			FailureRetryLimit: cfg.GrsaiDelivery.FailureRetryLimit,
 		})
+	runtime.WithUsageLogs(usageLogRepo)
 	runtime.Start()
 	return runtime
 }

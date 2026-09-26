@@ -14,6 +14,7 @@ type grsaiRuntimeRepoStub struct {
 	GrsaiV2TaskRepository
 	bound, failed, completed, updated, deferred, manual int
 	lastNext                                            time.Time
+	manualReason                                        string
 }
 
 func (r *grsaiRuntimeRepoStub) BindV2UpstreamTask(context.Context, int64, int64, string) (bool, error) {
@@ -27,13 +28,15 @@ func (r *grsaiRuntimeRepoStub) UpdateV2Progress(_ context.Context, _, _ int64, _
 	return true, nil
 }
 
-func (r *grsaiRuntimeRepoStub) DeferV2Failure(context.Context, int64, int64, time.Time) (bool, error) {
+func (r *grsaiRuntimeRepoStub) DeferV2Failure(_ context.Context, _, _ int64, next time.Time) (bool, error) {
 	r.deferred++
+	r.lastNext = next
 	return true, nil
 }
 
-func (r *grsaiRuntimeRepoStub) MarkV2ManualReview(context.Context, int64, int64, string) (bool, error) {
+func (r *grsaiRuntimeRepoStub) MarkV2ManualReview(_ context.Context, _, _ int64, reason string) (bool, error) {
 	r.manual++
+	r.manualReason = reason
 	return true, nil
 }
 
@@ -66,6 +69,7 @@ func (grsaiRuntimeAccountStub) GetByID(context.Context, int64) (*Account, error)
 type grsaiRuntimeUpstreamStub struct {
 	posts, polls int
 	result       *GrsaiUpstreamResult
+	err          error
 }
 
 func (u *grsaiRuntimeUpstreamStub) GenerateAsync(context.Context, *Account, []byte) (*GrsaiUpstreamResult, error) {
@@ -75,7 +79,7 @@ func (u *grsaiRuntimeUpstreamStub) GenerateAsync(context.Context, *Account, []by
 
 func (u *grsaiRuntimeUpstreamStub) Result(context.Context, *Account, string) (*GrsaiUpstreamResult, error) {
 	u.polls++
-	return u.result, nil
+	return u.result, u.err
 }
 
 type grsaiRuntimeImagesStub struct {
@@ -134,6 +138,9 @@ func TestGrsaiTaskRuntimeBoundResultPersistsBeforeSuccess(t *testing.T) {
 	claim := grsaiRuntimeClaim()
 	upstreamID := "upstream-private"
 	claim.UpstreamTaskID = &upstreamID
+	claim.DeliveryMode = string(GrsaiDeliveryStream)
+	usage := &grsaiUsageSpy{}
+	runtime.WithUsageLogs(usage)
 	images.err = errors.New("s3 unavailable")
 	require.Error(t, runtime.processClaim(context.Background(), claim))
 	require.Equal(t, 0, repo.completed)
@@ -144,6 +151,10 @@ func TestGrsaiTaskRuntimeBoundResultPersistsBeforeSuccess(t *testing.T) {
 	require.Equal(t, 0, upstream.posts)
 	require.Equal(t, 2, upstream.polls)
 	require.Zero(t, payload.reads)
+	require.Len(t, usage.logs, 1)
+	require.Equal(t, "grsai_task:grsai-local", usage.logs[0].RequestID)
+	require.Equal(t, RequestTypeStream, usage.logs[0].RequestType)
+	require.InDelta(t, 0.25, usage.logs[0].ActualCost, 0.000001)
 }
 
 func TestGrsaiTaskRuntimeExhaustedStorageRetriesRetainsHoldForReview(t *testing.T) {
@@ -159,4 +170,29 @@ func TestGrsaiTaskRuntimeExhaustedStorageRetriesRetainsHoldForReview(t *testing.
 	require.Equal(t, 1, repo.manual)
 	require.Zero(t, repo.failed)
 	require.Zero(t, repo.completed)
+}
+
+func TestGrsaiTaskRuntimeResultErrorsBackOffThenRequireReview(t *testing.T) {
+	repo, payload, upstream, images := &grsaiRuntimeRepoStub{}, &grsaiRuntimePayloadStub{}, &grsaiRuntimeUpstreamStub{err: errors.New("temporary upstream failure")}, &grsaiRuntimeImagesStub{}
+	runtime := newGrsaiRuntimeTest(repo, payload, upstream, images)
+	now := time.Now().UTC()
+	runtime.now = func() time.Time { return now }
+	claim := grsaiRuntimeClaim()
+	upstreamID := "upstream-private"
+	claim.UpstreamTaskID = &upstreamID
+	for retry := 0; retry < runtime.opts.FailureRetryLimit; retry++ {
+		claim.SettlementRetryCount = retry
+		require.Error(t, runtime.processClaim(context.Background(), claim))
+		if retry+1 < runtime.opts.FailureRetryLimit {
+			require.Equal(t, retry+1, repo.deferred)
+			require.Equal(t, now.Add(grsaiSettlementRecoveryBackoff[retry]), repo.lastNext)
+			require.Zero(t, repo.manual)
+		}
+	}
+	require.Equal(t, runtime.opts.FailureRetryLimit, upstream.polls)
+	require.Equal(t, 1, repo.manual)
+	require.Equal(t, "result_poll_failed", repo.manualReason)
+	require.Zero(t, repo.failed)
+	require.Zero(t, repo.completed)
+	require.Zero(t, images.calls)
 }
