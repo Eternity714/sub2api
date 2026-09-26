@@ -56,6 +56,42 @@ func ProvideGrsaiNativeClient() GrsaiNativeClient {
 	return NewGrsaiNativeClient(nil)
 }
 
+func ProvideGrsaiTaskUpstream() GrsaiTaskUpstream {
+	return NewGrsaiAsyncNativeClient(nil)
+}
+
+type grsaiTaskImageResolver struct{ resolve ImageStorageResolver }
+
+func (r grsaiTaskImageResolver) PersistGrsaiImages(ctx context.Context, id string, result *GrsaiUpstreamResult) (*GrsaiStoredResult, error) {
+	uploader, enabled := r.resolve()
+	if !enabled || uploader == nil {
+		return nil, ErrImageTaskUnavailable
+	}
+	return uploader.PersistGrsaiImages(ctx, id, result)
+}
+
+func ProvideGrsaiTaskService(repo GrsaiV2TaskRepository, balance GrsaiBalanceHoldRepository,
+	pricing *ModelPricingResolver, storage *ImageStorageSettingService, cfg *config.Config) *GrsaiTaskService {
+	resolve := storage.Resolver()
+	return &GrsaiTaskService{Repo: repo, Balance: balance, Pricing: &GrsaiModelPricingResolver{Resolver: pricing},
+		Enabled: cfg.GrsaiDelivery.Enabled, PayloadTTL: time.Duration(cfg.GrsaiDelivery.PayloadTTLHours) * time.Hour,
+		MaxWaiting: cfg.GrsaiDelivery.MaxWaiting, StorageReady: func() bool { _, enabled := resolve(); return enabled }}
+}
+
+func ProvideGrsaiTaskRuntime(repo GrsaiV2TaskRepository, payloads GrsaiTaskPayloadRepository,
+	accounts AccountRepository, upstream GrsaiTaskUpstream, storage *ImageStorageSettingService,
+	balance GrsaiBalanceHoldRepository, cfg *config.Config) *GrsaiTaskRuntime {
+	runtime := NewGrsaiTaskRuntime(repo, payloads, accounts, upstream,
+		grsaiTaskImageResolver{resolve: storage.Resolver()}, balance, GrsaiTaskRuntimeOptions{
+			Enabled:      cfg.GrsaiDelivery.WorkerEnabled,
+			ScanInterval: time.Duration(cfg.GrsaiDelivery.ScanIntervalSeconds) * time.Second,
+			BatchLimit:   cfg.GrsaiDelivery.BatchLimit, MaxRunning: cfg.GrsaiDelivery.MaxRunning,
+			FailureRetryLimit: cfg.GrsaiDelivery.FailureRetryLimit,
+		})
+	runtime.Start()
+	return runtime
+}
+
 func ProvideGrsaiSettlementService(
 	repo GrsaiSettlementRepository,
 	billing UsageBillingTransactionalRepository,
@@ -892,6 +928,9 @@ var ProviderSet = wire.NewSet(
 	ProvideBatchImageCleanupService,
 	ProvideBatchImageWorkerRuntime,
 	ProvideGrsaiNativeClient,
+	ProvideGrsaiTaskUpstream,
+	ProvideGrsaiTaskService,
+	ProvideGrsaiTaskRuntime,
 	ProvideGrsaiSettlementService,
 	ProvideGrsaiSettlementRecoveryRuntime,
 	wire.Bind(new(AccountRuntimeBlocker), new(*OpenAIGatewayService)),

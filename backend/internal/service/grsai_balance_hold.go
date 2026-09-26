@@ -27,3 +27,24 @@ func GrsaiTaskHoldAmount(record *GrsaiSettlement) (float64, error) {
 	}
 	return amount, nil
 }
+
+func GrsaiTaskUsageCommand(record *GrsaiSettlement) (*UsageBillingCommand, error) {
+	cmd, err := grsaiBillingCommand(record)
+	if err != nil {
+		return nil, err
+	}
+	if record.LocalTaskID == nil || *record.LocalTaskID == "" {
+		return nil, ErrGrsaiSettlementInvalidInput
+	}
+	amount, err := GrsaiTaskHoldAmount(record)
+	if err != nil {
+		return nil, err
+	}
+	cmd.RequestID = "grsai_task:" + *record.LocalTaskID
+	cmd.BalanceCost = 0
+	cmd.APIKeyQuotaCost = amount
+	cmd.APIKeyRateLimitCost = amount
+	cmd.RequestFingerprint = ""
+	cmd.Normalize()
+	return cmd, nil
+}

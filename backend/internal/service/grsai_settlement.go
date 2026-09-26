@@ -167,6 +167,8 @@ type GrsaiV2TaskRepository interface {
 	ClaimDueV2(context.Context, time.Time, int, time.Time, int) ([]*GrsaiSettlement, error)
 	BindV2UpstreamTask(context.Context, int64, int64, string) (bool, error)
 	UpdateV2Progress(context.Context, int64, int64, string, int, time.Time) (bool, error)
+	DeferV2Failure(context.Context, int64, int64, time.Time) (bool, error)
+	MarkV2ManualReview(context.Context, int64, int64, string) (bool, error)
 	CompleteV2(context.Context, int64, int64, []byte, []byte, *time.Time, float64, GrsaiSettlementTxFunc) (bool, error)
 	FailV2(context.Context, int64, int64, string, string, GrsaiSettlementTxFunc) (bool, error)
 	GetOwnedV2(context.Context, int64, int64, string) (*GrsaiSettlement, error)

@@ -474,6 +474,44 @@ WHERE id = $1 AND claim_version = $2 AND task_version = 2
 	return claimedUpdateResult(result)
 }
 
+func (r *grsaiSettlementRepository) DeferV2Failure(ctx context.Context, id, claimVersion int64, nextAttemptAt time.Time) (bool, error) {
+	if id <= 0 || claimVersion <= 0 || nextAttemptAt.IsZero() {
+		return false, ErrGrsaiSettlementInvalidInput
+	}
+	result, err := r.sql.ExecContext(ctx, `UPDATE grsai_settlements SET
+internal_status = 'v2_running', public_status = 'running', progress = 5,
+settlement_retry_count = settlement_retry_count + 1,
+next_attempt_at = $3, updated_at = NOW()
+WHERE id = $1 AND claim_version = $2 AND task_version = 2
+AND upstream_task_id IS NOT NULL AND next_attempt_at > NOW()
+AND internal_status IN ('v2_running', 'v2_processing')`, id, claimVersion, nextAttemptAt)
+	if err != nil {
+		return false, err
+	}
+	return claimedUpdateResult(result)
+}
+
+func (r *grsaiSettlementRepository) MarkV2ManualReview(ctx context.Context, id, claimVersion int64, reason string) (bool, error) {
+	if id <= 0 || claimVersion <= 0 || strings.TrimSpace(reason) == "" {
+		return false, ErrGrsaiSettlementInvalidInput
+	}
+	return r.withClaimedV2Tx(ctx, id, claimVersion, func(tx *sql.Tx, record *GrsaiSettlement) error {
+		if record.UpstreamTaskID == nil || (record.InternalStatus != "v2_running" && record.InternalStatus != "v2_processing") {
+			return ErrGrsaiSettlementInvalidState
+		}
+		result, err := tx.ExecContext(ctx, `UPDATE grsai_settlements SET
+internal_status = 'v2_manual_review', public_status = 'manual_review',
+last_error_summary = $3, updated_at = NOW()
+WHERE id = $1 AND claim_version = $2 AND task_version = 2
+AND internal_status IN ('v2_running', 'v2_processing')`, id, claimVersion, reason)
+		if err != nil {
+			return err
+		}
+		_, err = claimedUpdateResult(result)
+		return err
+	})
+}
+
 func (r *grsaiSettlementRepository) CompleteV2(ctx context.Context, id, claimVersion int64, resultJSON, objectMetadata []byte, linkExpiresAt *time.Time, settledAmount float64, capture GrsaiSettlementTxFunc) (bool, error) {
 	if id <= 0 || claimVersion <= 0 || !json.Valid(resultJSON) || !json.Valid(objectMetadata) || !isFiniteNonNegative(settledAmount) || capture == nil {
 		return false, ErrGrsaiSettlementInvalidInput

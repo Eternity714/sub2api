@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,11 +23,18 @@ func TestGrsaiBalanceHoldCapturesOrReleasesOnce(t *testing.T) {
 				Email:        fmt.Sprintf("grsai-hold-%d@example.com", time.Now().UnixNano()),
 				PasswordHash: "hash", Balance: 10,
 			})
+			account := mustCreateAccount(t, client, &service.Account{
+				Name: "grsai-hold-" + uuid.NewString(), Type: service.AccountTypeAPIKey,
+			})
+			apiKey := mustCreateApiKey(t, client, &service.APIKey{
+				UserID: user.ID, Key: "sk-grsai-hold-" + uuid.NewString(), Name: "grsai-hold",
+			})
 			billing := &usageBillingRepository{db: integrationDB}
 			repo := grsaiV2TestRepo(t)
 			params := grsaiV2TestParams(t)
 			params.UserID = user.ID
-			params.APIKeyID = user.ID
+			params.APIKeyID = apiKey.ID
+			params.AccountID = account.ID
 			params.BillableUnitPrice = 0.25
 			record, err := repo.CreateV2GrsaiTask(ctx, params, billing.ReserveGrsaiBalance)
 			require.NoError(t, err)
@@ -47,6 +55,11 @@ func TestGrsaiBalanceHoldCapturesOrReleasesOnce(t *testing.T) {
 				require.NoError(t, completeErr)
 				require.True(t, completed)
 				assertGrsaiBalance(t, user.ID, 9.5, 0)
+				var quotaUsed, usage5h float64
+				require.NoError(t, integrationDB.QueryRowContext(ctx,
+					`SELECT quota_used, usage_5h FROM api_keys WHERE id = $1`, apiKey.ID).Scan(&quotaUsed, &usage5h))
+				require.InDelta(t, 0.5, quotaUsed, 0.000001)
+				require.InDelta(t, 0.5, usage5h, 0.000001)
 			} else {
 				failed, failErr := repo.FailV2(ctx, record.ID, claimed[0].ClaimVersion, "test", "", billing.ReleaseGrsaiBalanceTx)
 				require.NoError(t, failErr)
@@ -65,6 +78,15 @@ func TestGrsaiBalanceHoldCapturesOrReleasesOnce(t *testing.T) {
 			require.NoError(t, replay(ctx, tx, record))
 			require.ErrorIs(t, opposite(ctx, tx, record), service.ErrGrsaiSettlementInvalidState)
 			require.NoError(t, tx.Rollback())
+			var markers int
+			require.NoError(t, integrationDB.QueryRowContext(ctx,
+				`SELECT count(*) FROM usage_billing_dedup WHERE request_id = $1 AND api_key_id = $2`,
+				"grsai_task:"+params.LocalTaskID, apiKey.ID).Scan(&markers))
+			if terminal == "succeeded" {
+				require.Equal(t, 1, markers)
+			} else {
+				require.Zero(t, markers)
+			}
 		})
 	}
 }
