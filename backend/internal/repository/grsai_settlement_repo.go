@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -35,8 +36,9 @@ type grsaiSettlementSQLExecutor interface {
 }
 
 type grsaiSettlementRepository struct {
-	db  *sql.DB
-	sql grsaiSettlementSQLExecutor
+	db        *sql.DB
+	sql       grsaiSettlementSQLExecutor
+	encryptor service.SecretEncryptor
 }
 
 type CreateGrsaiSettlementParams = service.CreateGrsaiSettlementParams
@@ -48,9 +50,14 @@ type GrsaiSettlement = service.GrsaiSettlement
 type GrsaiSettlementTxFunc = service.GrsaiSettlementTxFunc
 
 var _ service.GrsaiSettlementRepository = (*grsaiSettlementRepository)(nil)
+var _ service.GrsaiV2TaskRepository = (*grsaiSettlementRepository)(nil)
 
 func NewGrsaiSettlementRepository(db *sql.DB) *grsaiSettlementRepository {
 	return &grsaiSettlementRepository{db: db, sql: db}
+}
+
+func NewGrsaiV2TaskRepository(db *sql.DB, encryptor service.SecretEncryptor) *grsaiSettlementRepository {
+	return &grsaiSettlementRepository{db: db, sql: db, encryptor: encryptor}
 }
 
 func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrsaiSettlementParams) (*GrsaiSettlement, error) {
@@ -70,6 +77,18 @@ func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrs
 	}
 	if params.NextAttemptAt.IsZero() {
 		params.NextAttemptAt = time.Now()
+	}
+	if params.DeliveryMode == "" {
+		params.DeliveryMode = string(service.GrsaiDeliveryJSON)
+	}
+	if params.PublicStatus == "" {
+		params.PublicStatus = "queued"
+	}
+	if params.TaskVersion == 0 {
+		params.TaskVersion = 1
+	}
+	if params.TaskVersion != 1 || !validGrsaiDeliveryMode(params.DeliveryMode) {
+		return nil, ErrGrsaiSettlementInvalidInput
 	}
 	if params.UpstreamTaskID != nil {
 		trimmed := strings.TrimSpace(*params.UpstreamTaskID)
@@ -96,6 +115,76 @@ func (r *grsaiSettlementRepository) Create(ctx context.Context, params CreateGrs
 		params.UpstreamTaskID,
 		params.UpstreamStatus,
 		params.NextAttemptAt,
+		optionalStringArg(params.LocalTaskID),
+		params.DeliveryMode,
+		params.PublicStatus,
+		params.Progress,
+		optionalBytesArg(params.ResultJSON),
+		params.LinkExpiresAt,
+		optionalBytesArg(params.ImageObjectMetadata),
+		params.TaskVersion,
+	)
+	return scanGrsaiSettlement(row)
+}
+
+func (r *grsaiSettlementRepository) CreateV2GrsaiTask(ctx context.Context, params service.CreateV2GrsaiTaskParams, reserve GrsaiSettlementTxFunc) (*GrsaiSettlement, error) {
+	params.LocalTaskID = strings.TrimSpace(params.LocalTaskID)
+	if r.db == nil || r.encryptor == nil || reserve == nil || params.LocalTaskID == "" ||
+		!params.PayloadExpiresAt.After(time.Now()) || len(params.UpstreamPayload) == 0 {
+		return nil, ErrGrsaiSettlementInvalidInput
+	}
+	ciphertext, err := r.encryptor.Encrypt(string(params.UpstreamPayload))
+	if err != nil {
+		return nil, fmt.Errorf("encrypt grsai task payload: %w", err)
+	}
+	params.TaskVersion = 2
+	params.PublicStatus = "queued"
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	record, err := r.createV2(ctx, tx, params)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO grsai_task_payloads (local_task_id, payload_ciphertext, expires_at) VALUES ($1, $2, $3)`,
+		params.LocalTaskID, ciphertext, params.PayloadExpiresAt); err != nil {
+		return nil, err
+	}
+	if err := reserve(ctx, tx, record); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func (r *grsaiSettlementRepository) createV2(ctx context.Context, tx *sql.Tx, params service.CreateV2GrsaiTaskParams) (*GrsaiSettlement, error) {
+	params.Model = strings.TrimSpace(params.Model)
+	params.ImageSize = service.NormalizeImageBillingTierOrDefault(params.ImageSize)
+	if params.AccountID <= 0 || params.GroupID <= 0 || params.UserID <= 0 || params.APIKeyID <= 0 ||
+		params.Model == "" || params.RequestedImageCount <= 0 || !validGrsaiDeliveryMode(params.DeliveryMode) ||
+		!isFiniteNonNegative(params.BaseUnitPrice) || !isFiniteNonNegative(params.GroupRateMultiplier) ||
+		!isFiniteNonNegative(params.AccountRateMultiplier) || !isFiniteNonNegative(params.BillableUnitPrice) {
+		return nil, ErrGrsaiSettlementInvalidInput
+	}
+	if params.Currency == "" {
+		params.Currency = "USD"
+	}
+	if params.UpstreamStatus == "" {
+		params.UpstreamStatus = "not_submitted"
+	}
+	if params.NextAttemptAt.IsZero() {
+		params.NextAttemptAt = time.Now()
+	}
+	row := tx.QueryRowContext(ctx, grsaiSettlementV2InsertSQL,
+		params.AccountID, params.GroupID, params.UserID, params.APIKeyID, params.Model,
+		params.BaseUnitPrice, params.GroupRateMultiplier, params.AccountRateMultiplier, params.BillableUnitPrice,
+		params.RequestedImageCount, params.ImageSize, params.Currency, params.UpstreamStatus,
+		params.LocalTaskID, params.DeliveryMode,
+		params.PublicStatus, params.Progress, params.TaskVersion, params.NextAttemptAt,
 	)
 	return scanGrsaiSettlement(row)
 }
@@ -238,6 +327,251 @@ RETURNING `+grsaiSettlementReturningColumns("settlements"), now, limit, leaseUnt
 	return records, nil
 }
 
+func (r *grsaiSettlementRepository) ClaimDueV2(ctx context.Context, now time.Time, limit int, leaseUntil time.Time) ([]*GrsaiSettlement, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > 1000 {
+		limit = 1000
+	}
+	if now.IsZero() || !leaseUntil.After(now) {
+		return nil, ErrGrsaiSettlementInvalidInput
+	}
+	rows, err := r.sql.QueryContext(ctx, `
+WITH due AS (
+    SELECT id
+    FROM grsai_settlements
+    WHERE next_attempt_at <= $1
+      AND internal_status IN ('v2_queued', 'v2_submitting', 'v2_running', 'v2_persisting_images', 'v2_pending_settlement', 'v2_processing')
+      AND task_version = 2
+    ORDER BY next_attempt_at ASC, id ASC
+    LIMIT $2
+    FOR UPDATE SKIP LOCKED
+)
+UPDATE grsai_settlements AS settlements
+SET internal_status = CASE WHEN settlements.internal_status IN ('v2_queued', 'v2_submitting') THEN 'v2_submitting' ELSE 'v2_processing' END,
+    submission_attempt = CASE WHEN settlements.internal_status IN ('v2_queued', 'v2_submitting') THEN settlements.submission_attempt + 1 ELSE settlements.submission_attempt END,
+    retry_count = settlements.retry_count + 1,
+    claim_version = settlements.claim_version + 1,
+    next_attempt_at = $3,
+    updated_at = $1
+FROM due
+WHERE settlements.id = due.id
+RETURNING `+grsaiSettlementReturningColumns("settlements"), now, limit, leaseUntil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	records := make([]*GrsaiSettlement, 0, limit)
+	for rows.Next() {
+		record, scanErr := scanGrsaiSettlement(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		records = append(records, record)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return records, nil
+}
+
+func (r *grsaiSettlementRepository) BindV2UpstreamTask(ctx context.Context, id, claimVersion int64, taskID string) (bool, error) {
+	taskID = strings.TrimSpace(taskID)
+	if id <= 0 || claimVersion <= 0 || taskID == "" {
+		return false, ErrGrsaiSettlementInvalidInput
+	}
+	return r.withClaimedV2Tx(ctx, id, claimVersion, func(tx *sql.Tx, record *GrsaiSettlement) error {
+		if record.InternalStatus != "v2_submitting" || record.SubmissionAttempt != 1 || record.UpstreamTaskID != nil || !record.NextAttemptAt.After(time.Now()) {
+			return ErrGrsaiSettlementClaimLost
+		}
+		result, err := tx.ExecContext(ctx, `
+UPDATE grsai_settlements
+SET upstream_task_id = $3,
+    upstream_status = 'running',
+    internal_status = 'v2_running',
+    public_status = 'running',
+    progress = GREATEST(progress, 5),
+    upstream_bound_at = COALESCE(upstream_bound_at, NOW()),
+    updated_at = NOW()
+WHERE id = $1 AND claim_version = $2 AND task_version = 2
+  AND upstream_task_id IS NULL AND internal_status = 'v2_submitting' AND submission_attempt = 1
+  AND next_attempt_at > NOW()`, id, claimVersion, taskID)
+		if err != nil {
+			return err
+		}
+		if _, err := claimedUpdateResult(result); err != nil {
+			return err
+		}
+		if record.LocalTaskID == nil {
+			return ErrGrsaiSettlementInvalidState
+		}
+		_, err = tx.ExecContext(ctx, `DELETE FROM grsai_task_payloads WHERE local_task_id = $1`, *record.LocalTaskID)
+		return err
+	})
+}
+
+func (r *grsaiSettlementRepository) UpdateV2Progress(ctx context.Context, id, claimVersion int64, publicStatus string, progress int, nextAttemptAt time.Time) (bool, error) {
+	publicStatus = strings.TrimSpace(publicStatus)
+	if id <= 0 || claimVersion <= 0 || publicStatus != "running" || progress != 5 || nextAttemptAt.IsZero() {
+		return false, ErrGrsaiSettlementInvalidInput
+	}
+	result, err := r.sql.ExecContext(ctx, `
+UPDATE grsai_settlements
+SET public_status = $3,
+    progress = $4,
+    internal_status = CASE WHEN $3 = 'running' THEN 'v2_running' ELSE internal_status END,
+    next_attempt_at = $5,
+    result_updated_at = NOW(),
+    updated_at = NOW()
+WHERE id = $1 AND claim_version = $2 AND task_version = 2
+  AND upstream_task_id IS NOT NULL AND next_attempt_at > NOW()
+  AND internal_status IN ('v2_processing', 'v2_running')`, id, claimVersion, publicStatus, progress, nextAttemptAt)
+	if err != nil {
+		return false, err
+	}
+	return claimedUpdateResult(result)
+}
+
+func (r *grsaiSettlementRepository) CompleteV2(ctx context.Context, id, claimVersion int64, resultJSON, objectMetadata []byte, linkExpiresAt *time.Time, settledAmount float64, capture GrsaiSettlementTxFunc) (bool, error) {
+	if id <= 0 || claimVersion <= 0 || !json.Valid(resultJSON) || !json.Valid(objectMetadata) || !isFiniteNonNegative(settledAmount) || capture == nil {
+		return false, ErrGrsaiSettlementInvalidInput
+	}
+	return r.withClaimedV2Tx(ctx, id, claimVersion, func(tx *sql.Tx, record *GrsaiSettlement) error {
+		if record.LocalTaskID == nil || record.UpstreamTaskID == nil || (record.InternalStatus != "v2_processing" && record.InternalStatus != "v2_running") {
+			return ErrGrsaiSettlementInvalidState
+		}
+		if err := capture(ctx, tx, record); err != nil {
+			return err
+		}
+		result, err := tx.ExecContext(ctx, `
+UPDATE grsai_settlements
+SET public_status = 'succeeded',
+    progress = 100,
+    internal_status = 'v2_succeeded',
+    upstream_status = 'succeeded',
+    result_json = $3,
+    image_object_metadata = $4,
+    link_expires_at = $5,
+    result_updated_at = NOW(),
+    settled_amount = $6,
+    settled_at = NOW(),
+    closed_at = NOW(),
+    updated_at = NOW()
+WHERE id = $1 AND claim_version = $2 AND task_version = 2
+  AND internal_status IN ('v2_processing', 'v2_running')`, id, claimVersion, resultJSON, objectMetadata, linkExpiresAt, settledAmount)
+		if err != nil {
+			return err
+		}
+		if _, err := claimedUpdateResult(result); err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `DELETE FROM grsai_task_payloads WHERE local_task_id = $1`, *record.LocalTaskID)
+		return err
+	})
+}
+
+func (r *grsaiSettlementRepository) FailV2(ctx context.Context, id, claimVersion int64, code, summary string, release GrsaiSettlementTxFunc) (bool, error) {
+	code = strings.TrimSpace(code)
+	summary = strings.TrimSpace(summary)
+	if id <= 0 || claimVersion <= 0 || code == "" || release == nil {
+		return false, ErrGrsaiSettlementInvalidInput
+	}
+	return r.withClaimedV2Tx(ctx, id, claimVersion, func(tx *sql.Tx, record *GrsaiSettlement) error {
+		if record.LocalTaskID == nil || (record.InternalStatus != "v2_processing" && record.InternalStatus != "v2_running" && record.InternalStatus != "v2_submitting") {
+			return ErrGrsaiSettlementInvalidState
+		}
+		if err := release(ctx, tx, record); err != nil {
+			return err
+		}
+		result, err := tx.ExecContext(ctx, `
+UPDATE grsai_settlements
+SET public_status = 'failed',
+    internal_status = 'v2_failed',
+    upstream_status = 'failed',
+    last_error_summary = NULLIF($3, ''),
+    settled_amount = 0,
+    closed_at = NOW(),
+    updated_at = NOW()
+WHERE id = $1 AND claim_version = $2 AND task_version = 2
+  AND internal_status IN ('v2_processing', 'v2_running', 'v2_submitting')`, id, claimVersion, code+": "+summary)
+		if err != nil {
+			return err
+		}
+		if _, err := claimedUpdateResult(result); err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `DELETE FROM grsai_task_payloads WHERE local_task_id = $1`, *record.LocalTaskID)
+		return err
+	})
+}
+
+func (r *grsaiSettlementRepository) withClaimedV2Tx(ctx context.Context, id, claimVersion int64, apply func(*sql.Tx, *GrsaiSettlement) error) (bool, error) {
+	if r.db == nil {
+		return false, ErrGrsaiSettlementInvalidInput
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	record, err := scanGrsaiSettlement(tx.QueryRowContext(ctx, grsaiSettlementSelectSQL+" WHERE id = $1 AND task_version = 2 FOR UPDATE", id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, ErrGrsaiSettlementNotFound
+	}
+	if err != nil {
+		return false, err
+	}
+	if record.ClaimVersion != claimVersion || !record.NextAttemptAt.After(time.Now()) {
+		return false, ErrGrsaiSettlementClaimLost
+	}
+	if err := apply(tx, record); err != nil {
+		return false, err
+	}
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *grsaiSettlementRepository) GetOwnedV2(ctx context.Context, userID, apiKeyID int64, localTaskID string) (*GrsaiSettlement, error) {
+	localTaskID = strings.TrimSpace(localTaskID)
+	if userID <= 0 || apiKeyID <= 0 || localTaskID == "" {
+		return nil, ErrGrsaiSettlementNotFound
+	}
+	record, err := scanGrsaiSettlement(r.sql.QueryRowContext(ctx, grsaiSettlementSelectSQL+`
+ WHERE local_task_id = $1 AND user_id = $2 AND api_key_id = $3 AND task_version = 2`, localTaskID, userID, apiKeyID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrGrsaiSettlementNotFound
+	}
+	return record, err
+}
+
+func (r *grsaiSettlementRepository) ListOwnedV2(ctx context.Context, userID, apiKeyID int64, limit, offset int) ([]*GrsaiSettlement, error) {
+	if userID <= 0 || apiKeyID <= 0 || limit <= 0 || offset < 0 {
+		return nil, ErrGrsaiSettlementInvalidInput
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	rows, err := r.sql.QueryContext(ctx, grsaiSettlementSelectSQL+`
+ WHERE user_id = $1 AND api_key_id = $2 AND task_version = 2
+ ORDER BY created_at DESC, id DESC LIMIT $3 OFFSET $4`, userID, apiKeyID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	result := make([]*GrsaiSettlement, 0, limit)
+	for rows.Next() {
+		record, scanErr := scanGrsaiSettlement(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		result = append(result, record)
+	}
+	return result, rows.Err()
+}
+
 func (r *grsaiSettlementRepository) MarkPendingSettlement(ctx context.Context, id, claimVersion int64, nextAttemptAt time.Time) error {
 	if nextAttemptAt.IsZero() {
 		return ErrGrsaiSettlementInvalidInput
@@ -358,12 +692,14 @@ const grsaiSettlementSelectSQL = `
 SELECT id, account_id, group_id, user_id, api_key_id, model,
        base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
 	       requested_image_count, image_size, currency, billing_idempotency_key, upstream_task_id,
-	       upstream_status, internal_status, retry_count, settlement_retry_count, claim_version, next_attempt_at, last_error_summary,
+	       upstream_status, internal_status, local_task_id, delivery_mode, public_status, progress,
+	       result_json, link_expires_at, image_object_metadata, task_version, submission_attempt,
+	       retry_count, settlement_retry_count, claim_version, next_attempt_at, last_error_summary,
        settled_amount, created_at, updated_at, upstream_bound_at, result_updated_at,
        settled_at, closed_at
 FROM grsai_settlements`
 
-const grsaiSettlementInsertSQL = `
+var grsaiSettlementInsertSQL = `
 WITH new_id AS (
     SELECT nextval(pg_get_serial_sequence('grsai_settlements', 'id')) AS id
 )
@@ -371,26 +707,43 @@ INSERT INTO grsai_settlements (
     id, account_id, group_id, user_id, api_key_id, model,
     base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
     requested_image_count, image_size, currency, billing_idempotency_key, upstream_task_id,
-    upstream_status, next_attempt_at, upstream_bound_at
+    upstream_status, next_attempt_at, upstream_bound_at, local_task_id, delivery_mode,
+    public_status, progress, result_json, link_expires_at, image_object_metadata, task_version
 ) VALUES (
     (SELECT id FROM new_id), $1, $2, $3, $4, $5,
     $6, $7, $8, $9,
     $10, $11, $12, CONCAT('grsai_settlement:', (SELECT id FROM new_id)), $13,
-    $14, $15, CASE WHEN $13::varchar IS NULL THEN NULL ELSE NOW() END
+    $14, $15, CASE WHEN $13::varchar IS NULL THEN NULL ELSE NOW() END, $16, $17,
+    $18, $19, $20, $21, $22, $23
 )
-RETURNING id, account_id, group_id, user_id, api_key_id, model,
-          base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
-	      requested_image_count, image_size, currency, billing_idempotency_key, upstream_task_id,
-	          upstream_status, internal_status, retry_count, settlement_retry_count, claim_version, next_attempt_at, last_error_summary,
-          settled_amount, created_at, updated_at, upstream_bound_at, result_updated_at,
-          settled_at, closed_at`
+RETURNING ` + grsaiSettlementReturningColumns("grsai_settlements")
+
+var grsaiSettlementV2InsertSQL = `
+WITH new_id AS (
+    SELECT nextval(pg_get_serial_sequence('grsai_settlements', 'id')) AS id
+)
+INSERT INTO grsai_settlements (
+    id, account_id, group_id, user_id, api_key_id, model,
+    base_unit_price, group_rate_multiplier, account_rate_multiplier, billable_unit_price,
+    requested_image_count, image_size, currency, billing_idempotency_key,
+    upstream_status, internal_status, next_attempt_at, local_task_id, delivery_mode,
+    public_status, progress, task_version
+) VALUES (
+    (SELECT id FROM new_id), $1, $2, $3, $4, $5,
+    $6, $7, $8, $9,
+    $10, $11, $12, CONCAT('grsai_settlement:', (SELECT id FROM new_id)),
+    $13, 'v2_queued', $19, $14, $15, $16, $17, $18
+)
+RETURNING ` + grsaiSettlementReturningColumns("grsai_settlements")
 
 func grsaiSettlementReturningColumns(alias string) string {
 	columns := []string{
 		"id", "account_id", "group_id", "user_id", "api_key_id", "model",
 		"base_unit_price", "group_rate_multiplier", "account_rate_multiplier", "billable_unit_price",
 		"requested_image_count", "image_size", "currency", "billing_idempotency_key", "upstream_task_id",
-		"upstream_status", "internal_status", "retry_count", "settlement_retry_count", "claim_version", "next_attempt_at", "last_error_summary",
+		"upstream_status", "internal_status", "local_task_id", "delivery_mode", "public_status", "progress",
+		"result_json", "link_expires_at", "image_object_metadata", "task_version", "submission_attempt",
+		"retry_count", "settlement_retry_count", "claim_version", "next_attempt_at", "last_error_summary",
 		"settled_amount", "created_at", "updated_at", "upstream_bound_at", "result_updated_at",
 		"settled_at", "closed_at",
 	}
@@ -407,6 +760,10 @@ type grsaiSettlementScanner interface {
 func scanGrsaiSettlement(scanner grsaiSettlementScanner) (*GrsaiSettlement, error) {
 	record := &GrsaiSettlement{}
 	var upstreamTaskID sql.NullString
+	var localTaskID sql.NullString
+	var resultJSON []byte
+	var linkExpiresAt sql.NullTime
+	var imageObjectMetadata []byte
 	var lastErrorSummary sql.NullString
 	var settledAmount sql.NullFloat64
 	var upstreamBoundAt sql.NullTime
@@ -431,6 +788,15 @@ func scanGrsaiSettlement(scanner grsaiSettlementScanner) (*GrsaiSettlement, erro
 		&upstreamTaskID,
 		&record.UpstreamStatus,
 		&record.InternalStatus,
+		&localTaskID,
+		&record.DeliveryMode,
+		&record.PublicStatus,
+		&record.Progress,
+		&resultJSON,
+		&linkExpiresAt,
+		&imageObjectMetadata,
+		&record.TaskVersion,
+		&record.SubmissionAttempt,
 		&record.RetryCount,
 		&record.SettlementRetryCount,
 		&record.ClaimVersion,
@@ -449,6 +815,18 @@ func scanGrsaiSettlement(scanner grsaiSettlementScanner) (*GrsaiSettlement, erro
 	}
 	if upstreamTaskID.Valid {
 		record.UpstreamTaskID = &upstreamTaskID.String
+	}
+	if localTaskID.Valid {
+		record.LocalTaskID = &localTaskID.String
+	}
+	if resultJSON != nil {
+		record.ResultJSON = append([]byte(nil), resultJSON...)
+	}
+	if linkExpiresAt.Valid {
+		record.LinkExpiresAt = &linkExpiresAt.Time
+	}
+	if imageObjectMetadata != nil {
+		record.ImageObjectMetadata = append([]byte(nil), imageObjectMetadata...)
 	}
 	if lastErrorSummary.Valid {
 		record.LastErrorSummary = &lastErrorSummary.String
@@ -484,4 +862,27 @@ func claimedUpdateResult(result sql.Result) (bool, error) {
 
 func isFiniteNonNegative(value float64) bool {
 	return value >= 0 && !math.IsNaN(value) && !math.IsInf(value, 0)
+}
+
+func optionalStringArg(value string) any {
+	if value == "" {
+		return nil
+	}
+	return value
+}
+
+func optionalBytesArg(value []byte) any {
+	if len(value) == 0 {
+		return nil
+	}
+	return value
+}
+
+func validGrsaiDeliveryMode(value string) bool {
+	switch service.GrsaiDeliveryMode(value) {
+	case service.GrsaiDeliveryJSON, service.GrsaiDeliveryStream, service.GrsaiDeliveryAsync:
+		return true
+	default:
+		return false
+	}
 }
