@@ -120,7 +120,7 @@ func TestGrsaiV2ClaimIsSingleWinnerAndDoesNotRetrySubmission(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			<-start
-			claimed, claimErr := repo.ClaimDueV2(ctx, now, 1, now.Add(time.Minute))
+			claimed, claimErr := repo.ClaimDueV2(ctx, now, 1, now.Add(time.Minute), 3)
 			results <- claimed
 			errs <- claimErr
 		}()
@@ -155,7 +155,7 @@ func TestGrsaiV2ClaimIsSingleWinnerAndDoesNotRetrySubmission(t *testing.T) {
 	for _, item := range legacy {
 		require.NotEqual(t, record.ID, item.ID)
 	}
-	second, err := repo.ClaimDueV2(ctx, now.Add(2*time.Minute), 1, now.Add(3*time.Minute))
+	second, err := repo.ClaimDueV2(ctx, now.Add(2*time.Minute), 1, now.Add(3*time.Minute), 3)
 	require.NoError(t, err)
 	require.Len(t, second, 1)
 	require.Equal(t, record.ID, second[0].ID)
@@ -176,7 +176,7 @@ func TestGrsaiV2BindingDeletesEncryptedPayloadAtomically(t *testing.T) {
 	require.NoError(t, err)
 	cleanupCreatedGrsaiSettlements(t, record)
 	now := time.Now().UTC()
-	claimed, err := repo.ClaimDueV2(ctx, now, 1, now.Add(time.Minute))
+	claimed, err := repo.ClaimDueV2(ctx, now, 1, now.Add(time.Minute), 3)
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
 	bound, err := repo.BindV2UpstreamTask(ctx, record.ID, claimed[0].ClaimVersion, "provider-id")
@@ -198,13 +198,13 @@ func TestGrsaiV2TerminalBillingFailureRollsBackStatus(t *testing.T) {
 		_, _ = integrationDB.ExecContext(context.Background(), `DELETE FROM grsai_task_payloads WHERE local_task_id = $1`, params.LocalTaskID)
 	})
 	now := time.Now().UTC()
-	claimed, err := repo.ClaimDueV2(ctx, now, 1, now.Add(time.Minute))
+	claimed, err := repo.ClaimDueV2(ctx, now, 1, now.Add(time.Minute), 3)
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
 	bound, err := repo.BindV2UpstreamTask(ctx, record.ID, claimed[0].ClaimVersion, "provider-id")
 	require.NoError(t, err)
 	require.True(t, bound)
-	claimed, err = repo.ClaimDueV2(ctx, now.Add(2*time.Minute), 1, now.Add(3*time.Minute))
+	claimed, err = repo.ClaimDueV2(ctx, now.Add(2*time.Minute), 1, now.Add(3*time.Minute), 3)
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
 	failure := errors.New("billing unavailable")
@@ -236,7 +236,7 @@ func TestGrsaiV2ReleaseFailureRollsBackFailureStatus(t *testing.T) {
 		_, _ = integrationDB.ExecContext(context.Background(), `DELETE FROM grsai_task_payloads WHERE local_task_id = $1`, params.LocalTaskID)
 	})
 	now := time.Now().UTC()
-	claimed, err := repo.ClaimDueV2(ctx, now, 1, now.Add(time.Minute))
+	claimed, err := repo.ClaimDueV2(ctx, now, 1, now.Add(time.Minute), 3)
 	require.NoError(t, err)
 	require.Len(t, claimed, 1)
 	failure := errors.New("release unavailable")

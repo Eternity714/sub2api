@@ -1,0 +1,29 @@
+package service
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+
+	"github.com/shopspring/decimal"
+)
+
+var ErrGrsaiInsufficientBalance = errors.New("insufficient balance for grsai task")
+
+type GrsaiBalanceHoldRepository interface {
+	ReserveGrsaiBalance(context.Context, *sql.Tx, *GrsaiSettlement) error
+	CaptureGrsaiBalanceTx(context.Context, *sql.Tx, *GrsaiSettlement) error
+	ReleaseGrsaiBalanceTx(context.Context, *sql.Tx, *GrsaiSettlement) error
+}
+
+func GrsaiTaskHoldAmount(record *GrsaiSettlement) (float64, error) {
+	if record == nil || record.LocalTaskID == nil || *record.LocalTaskID == "" || record.UserID <= 0 ||
+		record.RequestedImageCount <= 0 || !grsaiFiniteNonNegative(record.BillableUnitPrice) {
+		return 0, ErrGrsaiSettlementInvalidInput
+	}
+	amount, _ := decimal.NewFromFloat(record.BillableUnitPrice).Mul(decimal.NewFromInt(int64(record.RequestedImageCount))).Round(8).Float64()
+	if !grsaiFiniteNonNegative(amount) {
+		return 0, ErrGrsaiSettlementInvalidInput
+	}
+	return amount, nil
+}

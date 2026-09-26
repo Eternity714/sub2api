@@ -34,6 +34,7 @@ var (
 	ErrGrsaiSettlementInvalidState   = errors.New("invalid grsai settlement state")
 	ErrGrsaiSettlementClaimLost      = errors.New("grsai settlement claim lost")
 	ErrGrsaiSettlementPricingMissing = errors.New("grsai requires explicit flat image or per-request model pricing")
+	ErrGrsaiTaskWaitingLimit         = errors.New("grsai waiting task limit reached")
 )
 
 // These contracts live in service so the SQL repository can implement them
@@ -69,6 +70,7 @@ type CreateV2GrsaiTaskParams struct {
 	CreateGrsaiSettlementParams
 	PayloadExpiresAt time.Time
 	UpstreamPayload  []byte
+	MaxWaiting       int
 }
 
 type GrsaiSettlement struct {
@@ -162,7 +164,7 @@ type GrsaiSettlementRepository interface {
 
 type GrsaiV2TaskRepository interface {
 	CreateV2GrsaiTask(context.Context, CreateV2GrsaiTaskParams, GrsaiSettlementTxFunc) (*GrsaiSettlement, error)
-	ClaimDueV2(context.Context, time.Time, int, time.Time) ([]*GrsaiSettlement, error)
+	ClaimDueV2(context.Context, time.Time, int, time.Time, int) ([]*GrsaiSettlement, error)
 	BindV2UpstreamTask(context.Context, int64, int64, string) (bool, error)
 	UpdateV2Progress(context.Context, int64, int64, string, int, time.Time) (bool, error)
 	CompleteV2(context.Context, int64, int64, []byte, []byte, *time.Time, float64, GrsaiSettlementTxFunc) (bool, error)

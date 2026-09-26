@@ -27,7 +27,10 @@ var (
 	ErrGrsaiSettlementInvalidInput = service.ErrGrsaiSettlementInvalidInput
 	ErrGrsaiSettlementInvalidState = service.ErrGrsaiSettlementInvalidState
 	ErrGrsaiSettlementClaimLost    = service.ErrGrsaiSettlementClaimLost
+	ErrGrsaiTaskWaitingLimit       = service.ErrGrsaiTaskWaitingLimit
 )
+
+const grsaiV2CapacityLock int64 = 74319284011
 
 type grsaiSettlementSQLExecutor interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
@@ -144,6 +147,20 @@ func (r *grsaiSettlementRepository) CreateV2GrsaiTask(ctx context.Context, param
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock($1)`, grsaiV2CapacityLock); err != nil {
+		return nil, err
+	}
+	if params.DeliveryMode == string(service.GrsaiDeliveryAsync) && params.MaxWaiting > 0 {
+		var waiting int
+		err = tx.QueryRowContext(ctx, `SELECT count(*) FROM grsai_settlements
+WHERE user_id = $1 AND task_version = 2 AND delivery_mode = 'async' AND internal_status = 'v2_queued'`, params.UserID).Scan(&waiting)
+		if err != nil {
+			return nil, err
+		}
+		if waiting >= params.MaxWaiting {
+			return nil, ErrGrsaiTaskWaitingLimit
+		}
+	}
 	record, err := r.createV2(ctx, tx, params)
 	if err != nil {
 		return nil, err
@@ -327,26 +344,42 @@ RETURNING `+grsaiSettlementReturningColumns("settlements"), now, limit, leaseUnt
 	return records, nil
 }
 
-func (r *grsaiSettlementRepository) ClaimDueV2(ctx context.Context, now time.Time, limit int, leaseUntil time.Time) ([]*GrsaiSettlement, error) {
+func (r *grsaiSettlementRepository) ClaimDueV2(ctx context.Context, now time.Time, limit int, leaseUntil time.Time, maxRunning int) ([]*GrsaiSettlement, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	if limit > 1000 {
 		limit = 1000
 	}
-	if now.IsZero() || !leaseUntil.After(now) {
+	if r.db == nil || now.IsZero() || !leaseUntil.After(now) || maxRunning <= 0 {
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
-	rows, err := r.sql.QueryContext(ctx, `
-WITH due AS (
-    SELECT id
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock($1)`, grsaiV2CapacityLock); err != nil {
+		return nil, err
+	}
+	rows, err := tx.QueryContext(ctx, `
+WITH candidates AS (
+    SELECT id, user_id, internal_status, next_attempt_at,
+           count(*) FILTER (WHERE internal_status = 'v2_queued') OVER (
+               PARTITION BY user_id ORDER BY next_attempt_at, id) AS queued_rank
     FROM grsai_settlements
-    WHERE next_attempt_at <= $1
+    WHERE next_attempt_at <= $1 AND task_version = 2
       AND internal_status IN ('v2_queued', 'v2_submitting', 'v2_running', 'v2_persisting_images', 'v2_pending_settlement', 'v2_processing')
-      AND task_version = 2
-    ORDER BY next_attempt_at ASC, id ASC
-    LIMIT $2
-    FOR UPDATE SKIP LOCKED
+), due AS (
+    SELECT settlements.id FROM grsai_settlements AS settlements
+    JOIN candidates ON candidates.id = settlements.id
+    WHERE candidates.internal_status <> 'v2_queued'
+       OR candidates.queued_rank <= $4 - (
+           SELECT count(*) FROM grsai_settlements AS active
+           WHERE active.user_id = candidates.user_id AND active.task_version = 2
+             AND active.internal_status IN ('v2_submitting', 'v2_running', 'v2_persisting_images', 'v2_pending_settlement', 'v2_processing'))
+    ORDER BY candidates.next_attempt_at ASC, candidates.id ASC
+    LIMIT $2 FOR UPDATE OF settlements SKIP LOCKED
 )
 UPDATE grsai_settlements AS settlements
 SET internal_status = CASE WHEN settlements.internal_status IN ('v2_queued', 'v2_submitting') THEN 'v2_submitting' ELSE 'v2_processing' END,
@@ -356,8 +389,10 @@ SET internal_status = CASE WHEN settlements.internal_status IN ('v2_queued', 'v2
     next_attempt_at = $3,
     updated_at = $1
 FROM due
-WHERE settlements.id = due.id
-RETURNING `+grsaiSettlementReturningColumns("settlements"), now, limit, leaseUntil)
+WHERE settlements.id = due.id AND settlements.task_version = 2
+  AND settlements.next_attempt_at <= $1
+  AND settlements.internal_status IN ('v2_queued', 'v2_submitting', 'v2_running', 'v2_persisting_images', 'v2_pending_settlement', 'v2_processing')
+RETURNING `+grsaiSettlementReturningColumns("settlements"), now, limit, leaseUntil, maxRunning)
 	if err != nil {
 		return nil, err
 	}
@@ -371,6 +406,12 @@ RETURNING `+grsaiSettlementReturningColumns("settlements"), now, limit, leaseUnt
 		records = append(records, record)
 	}
 	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	return records, nil
