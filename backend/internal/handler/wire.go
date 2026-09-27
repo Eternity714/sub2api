@@ -151,10 +151,12 @@ func ProvideGrsaiGatewayHandler(
 	billingCacheService *service.BillingCacheService,
 	nativeClient service.GrsaiNativeClient,
 	settlementService *service.GrsaiSettlementService,
+	taskService *service.GrsaiTaskService,
 	contentModerationService *service.ContentModerationService,
 	coordinator *securityaudit.Coordinator,
 ) *GrsaiGatewayHandler {
 	h := NewGrsaiGatewayHandler(gatewayService, concurrencyService, billingCacheService, nativeClient, settlementService, contentModerationService)
+	h.taskService = taskService
 	h.securityAuditCoordinator = coordinator
 	return h
 }
