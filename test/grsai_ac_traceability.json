@@ -1,0 +1,17 @@
+{
+  "GRSAI-DM-AC-01": ["backend/internal/service/grsai_delivery_test.go::TestParseGrsaiDeliveryRequestBuildsIndependentAsyncBody", "backend/internal/service/grsai_native_test.go::TestGrsaiNativeClientGenerateAsyncUsesPreparedBody"],
+  "GRSAI-DM-AC-02": ["backend/internal/repository/grsai_gray_compatibility_test.go::TestGrsaiGrayCandidateHandoffUsesBoundResultOnly", "backend/internal/handler/grsai_delivery_handler_test.go::TestGrsaiDeliveryModesExposeOnlyLocalTask"],
+  "GRSAI-DM-AC-03": ["backend/internal/service/grsai_result_persistence_test.go::TestGrsaiResultPersistenceStoresAllImagesBeforeReturning", "backend/internal/repository/grsai_v2_repo_integration_test.go::TestGrsaiV2TerminalBillingFailureRollsBackStatus"],
+  "GRSAI-DM-AC-04": ["backend/internal/handler/grsai_delivery_handler_test.go::TestGrsaiDeliveryModesExposeOnlyLocalTask", "backend/internal/handler/grsai_delivery_handler_test.go::TestGrsaiDeliveryFailedStreamNeverReportsSuccess"],
+  "GRSAI-DM-AC-05": ["backend/internal/service/grsai_task_service_test.go::TestGrsaiTaskServiceCreatesLocalTaskBeforeAsyncSubmission", "backend/internal/handler/grsai_delivery_handler_test.go::TestGrsaiDeliveryModesExposeOnlyLocalTask"],
+  "GRSAI-DM-AC-06": ["backend/internal/repository/grsai_gray_compatibility_test.go::TestGrsaiGrayCandidateHandoffUsesBoundResultOnly", "backend/internal/service/grsai_task_runtime_test.go::TestGrsaiTaskRuntimeBoundResultPersistsBeforeSuccess"],
+  "GRSAI-DM-AC-07": ["backend/internal/service/grsai_task_runtime_test.go::TestGrsaiTaskRuntimeExhaustedStorageRetriesRetainsHoldForReview", "backend/internal/service/grsai_result_persistence_test.go::TestGrsaiResultPersistenceDoesNotReturnPartialSuccess"],
+  "GRSAI-DM-AC-08": ["backend/internal/service/grsai_task_runtime_test.go::TestGrsaiTaskRuntimeNeverResubmitsUnboundClaim", "backend/internal/repository/grsai_balance_hold_integration_test.go::TestGrsaiBalanceHoldCapturesOrReleasesOnce"],
+  "GRSAI-DM-AC-09": ["backend/internal/handler/grsai_delivery_handler_test.go::TestGrsaiDeliveryResultIsScopedToCreatingAPIKey", "backend/internal/handler/grsai_delivery_handler_test.go::TestGrsaiDeliveryTasksListOnlyIncludesCreatingKey"],
+  "GRSAI-DM-AC-10": ["backend/internal/repository/image_storage_s3_test.go::TestImageStorageS3ReturnsPublicURLWithoutExpiry", "backend/internal/repository/image_storage_s3_test.go::TestImageStorageS3PresignedExpiryMatchesURL", "backend/internal/server/routes/gateway_test.go::TestGrsaiTaskQueryRoutesAreV1Only"],
+  "GRSAI-DM-AC-11": ["backend/internal/service/grsai_task_view_test.go::TestGrsaiTaskViewOmitsPrivateFieldsAndReportsLinkExpiry", "backend/internal/service/grsai_task_view_test.go::TestGrsaiTaskViewPublicLinkHasNoExpiry"],
+  "GRSAI-DM-AC-12": ["backend/internal/repository/grsai_balance_hold_integration_test.go::TestGrsaiBalanceHoldCapturesOrReleasesOnce", "backend/internal/repository/grsai_v2_repo_integration_test.go::TestGrsaiV2ClaimIsSingleWinnerAndDoesNotRetrySubmission"],
+  "GRSAI-DM-AC-13": ["test/grsai_live_contract.py::self_test"],
+  "GRSAI-DM-AC-14": ["backend/internal/repository/grsai_v2_limits_integration_test.go::TestGrsaiV2WaitingAndRunningLimitsPersistAcrossWorkers", "backend/internal/repository/grsai_v2_limits_integration_test.go::TestGrsaiV2WaitingLimitIsAtomicAcrossInstances"],
+  "GRSAI-DM-AC-15": ["backend/internal/repository/grsai_gray_compatibility_test.go::TestGrsaiGrayCandidateHandoffUsesBoundResultOnly"]
+}

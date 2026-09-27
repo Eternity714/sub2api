@@ -76,6 +76,18 @@ func TestGatewayRoutesOpenAIResponsesCompactPathIsRegistered(t *testing.T) {
 	}
 }
 
+func TestGrsaiTaskQueryRoutesAreV1Only(t *testing.T) {
+	router := newGatewayRoutesTestRouter(service.PlatformGrsai)
+	routes := make(map[string]bool)
+	for _, route := range router.Routes() {
+		routes[route.Method+" "+route.Path] = true
+	}
+	require.True(t, routes["GET /v1/api/result"])
+	require.True(t, routes["GET /v1/api/tasks"])
+	require.False(t, routes["GET /api/result"])
+	require.False(t, routes["GET /api/tasks"])
+}
+
 func TestGatewayRoutesOpenAIAlphaSearchPathsAreRegistered(t *testing.T) {
 	router := newGatewayRoutesTestRouter()
 	registered := make(map[string]bool)
