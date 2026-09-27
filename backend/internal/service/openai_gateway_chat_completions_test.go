@@ -1152,6 +1152,12 @@ func TestGPT6RawChatRejectsReasoningToolCalls(t *testing.T) {
 
 func TestGPT6ReasoningModeAndSamplingCompatibility(t *testing.T) {
 	for _, model := range []string{"gpt-6-sol", "gpt-6-luna"} {
+		expectedDefaultReasoningLevel := "medium"
+		expectedReasoningLevelCount := 5
+		if model == "gpt-6-sol" {
+			expectedDefaultReasoningLevel = "low"
+			expectedReasoningLevelCount = 6
+		}
 		body := []byte(`{"model":"` + model + `","reasoning":{"mode":"pro","effort":"max"},"temperature":0.7,"top_p":0.9,"top_logprobs":2,"include":["reasoning.encrypted_content","message.output_text.logprobs"],"prompt_cache_options":{"ttl":"30m"}}`)
 		out, changed, err := normalizeOpenAIResponsesReasoningMode(body, "")
 		require.NoError(t, err)
@@ -1166,9 +1172,9 @@ func TestGPT6ReasoningModeAndSamplingCompatibility(t *testing.T) {
 		require.Equal(t, "max", normalizeOpenAIReasoningEffortForModel("max", model))
 		d := newConfiguredCodexModelDescriptor(model)
 		require.NotNil(t, d.DefaultReasoningLevel)
-		require.Equal(t, "medium", *d.DefaultReasoningLevel)
+		require.Equal(t, expectedDefaultReasoningLevel, *d.DefaultReasoningLevel)
 		require.EqualValues(t, 872000, d.MaxContextWindow)
-		require.Len(t, d.SupportedReasoningLevels, 5)
+		require.Len(t, d.SupportedReasoningLevels, expectedReasoningLevelCount)
 		require.Len(t, d.ServiceTiers, 1)
 	}
 }
