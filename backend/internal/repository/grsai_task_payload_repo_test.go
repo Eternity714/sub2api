@@ -26,7 +26,7 @@ func (grsaiPayloadTestEncryptor) Decrypt(value string) (string, error) {
 func TestGrsaiTaskPayloadRepositoryEncryptsBeforePersistingAndDecryptsOnRead(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	t.Cleanup(func() { _ = db.Close() })
 
 	expiresAt := time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
 	mock.ExpectExec("INSERT INTO grsai_task_payloads").
@@ -47,7 +47,7 @@ func TestGrsaiTaskPayloadRepositoryEncryptsBeforePersistingAndDecryptsOnRead(t *
 func TestGrsaiTaskPayloadRepositoryRejectsInvalidInputWithoutWriting(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	t.Cleanup(func() { _ = db.Close() })
 	repo := NewGrsaiTaskPayloadRepository(db, grsaiPayloadTestEncryptor{})
 
 	err = repo.PutEncrypted(context.Background(), "", []byte("payload"), time.Now())

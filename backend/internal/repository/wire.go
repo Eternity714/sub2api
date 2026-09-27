@@ -51,7 +51,11 @@ func ProvideGrsaiTaskPayloadRepository(db *sql.DB, encryptor service.SecretEncry
 }
 
 func ProvideGrsaiBalanceHoldRepository(billing service.UsageBillingRepository) service.GrsaiBalanceHoldRepository {
-	return billing.(service.GrsaiBalanceHoldRepository)
+	holdRepository, ok := billing.(service.GrsaiBalanceHoldRepository)
+	if !ok {
+		panic("usage billing repository does not support balance holds")
+	}
+	return holdRepository
 }
 
 func ProvideGrsaiUsageBillingRepository(billing service.UsageBillingRepository) service.UsageBillingTransactionalRepository {
