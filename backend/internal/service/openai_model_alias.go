@@ -122,12 +122,6 @@ func isOpenAIGPT6SolModel(model string) bool {
 	return normalized == "gpt-6-sol" || strings.HasPrefix(normalized, "gpt-6-sol-")
 }
 
-// isOpenAIGPT6LunaModel reports GPT-6 Luna and dated/provider-prefixed variants.
-func isOpenAIGPT6LunaModel(model string) bool {
-	normalized := canonicalizeOpenAIModelAliasSpelling(model)
-	return normalized == "gpt-6-luna" || strings.HasPrefix(normalized, "gpt-6-luna-")
-}
-
 func appendUsageBillingModelCandidate(candidates []string, seen map[string]struct{}, model string) []string {
 	trimmed := strings.TrimSpace(model)
 	if trimmed == "" {
