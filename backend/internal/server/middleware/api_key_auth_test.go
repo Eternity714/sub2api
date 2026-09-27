@@ -1427,6 +1427,66 @@ func TestAPIKeyAuthRejectsExhaustedBalance(t *testing.T) {
 	requireAPIKeyAuthError(t, w, "INSUFFICIENT_BALANCE", "Insufficient account balance")
 }
 
+func TestAPIKeyAuthTaskReadsAfterBalanceOrQuotaExhaustion(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	for _, tc := range []struct {
+		name       string
+		balance    float64
+		status     string
+		postStatus int
+	}{
+		{name: "zero balance", balance: 0, status: service.StatusActive, postStatus: http.StatusForbidden},
+		{name: "quota exhausted", balance: 10, status: service.StatusAPIKeyQuotaExhausted, postStatus: http.StatusTooManyRequests},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			user := &service.User{ID: 10, Role: service.RoleUser, Status: service.StatusActive, Balance: tc.balance}
+			apiKey := &service.APIKey{ID: 104, UserID: user.ID, Key: "task-read-key", Status: tc.status, User: user}
+			repo := &stubApiKeyRepo{getByKey: func(_ context.Context, key string) (*service.APIKey, error) {
+				if key != apiKey.Key {
+					return nil, service.ErrAPIKeyNotFound
+				}
+				return apiKey, nil
+			}}
+			cfg := &config.Config{RunMode: config.RunModeStandard}
+			router := newAuthTestRouter(service.NewAPIKeyService(repo, nil, nil, nil, nil, nil, cfg), nil, cfg)
+			for _, path := range []string{"/v1/api/result", "/v1/api/tasks"} {
+				for _, key := range []string{apiKey.Key, "invalid"} {
+					w := httptest.NewRecorder()
+					req := httptest.NewRequest(http.MethodGet, path, nil)
+					req.Header.Set("x-api-key", key)
+					router.ServeHTTP(w, req)
+					if key == apiKey.Key {
+						require.Equal(t, http.StatusOK, w.Code, path)
+					} else {
+						require.Equal(t, http.StatusUnauthorized, w.Code, path)
+					}
+				}
+			}
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/v1/api/generate", nil)
+			req.Header.Set("x-api-key", apiKey.Key)
+			router.ServeHTTP(w, req)
+			require.Equal(t, tc.postStatus, w.Code)
+		})
+	}
+}
+
+func TestAPIKeyAuthDisabledKeyCannotReadTasks(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	user := &service.User{ID: 10, Role: service.RoleUser, Status: service.StatusActive, Balance: 10}
+	key := &service.APIKey{ID: 104, UserID: user.ID, Key: "disabled-task-key", Status: service.StatusAPIKeyDisabled, User: user}
+	repo := &stubApiKeyRepo{getByKey: func(context.Context, string) (*service.APIKey, error) { return key, nil }}
+	cfg := &config.Config{RunMode: config.RunModeStandard}
+	router := newAuthTestRouter(service.NewAPIKeyService(repo, nil, nil, nil, nil, nil, cfg), nil, cfg)
+	for _, path := range []string{"/v1/api/result", "/v1/api/tasks"} {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req.Header.Set("x-api-key", key.Key)
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusUnauthorized, w.Code, path)
+	}
+}
+
 func TestAPIKeyAuthOpenAIQuotaErrorFormat(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -1510,6 +1570,9 @@ func newAuthTestRouter(apiKeyService *service.APIKeyService, subscriptionService
 	router.POST("/v1/messages", ok)
 	router.GET("/v1/usage", ok)
 	router.GET("/v1/sub2api/billing", ok)
+	router.GET("/v1/api/result", ok)
+	router.GET("/v1/api/tasks", ok)
+	router.POST("/v1/api/generate", ok)
 	return router
 }
 

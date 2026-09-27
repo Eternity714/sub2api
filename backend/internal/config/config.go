@@ -105,6 +105,7 @@ type Config struct {
 	Idempotency             IdempotencyConfig             `mapstructure:"idempotency"`
 	BatchImage              BatchImageConfig              `mapstructure:"batch_image"`
 	GrsaiSettlementRecovery GrsaiSettlementRecoveryConfig `mapstructure:"grsai_settlement_recovery"`
+	GrsaiDelivery           GrsaiDeliveryConfig           `mapstructure:"grsai_delivery"`
 	ImageStorage            ImageStorageConfig            `mapstructure:"image_storage"`
 	Plugins                 PluginConfig                  `mapstructure:"plugins"`
 
@@ -267,6 +268,17 @@ type GrsaiSettlementRecoveryConfig struct {
 	BatchLimit                      int  `mapstructure:"batch_limit"`
 	SubmissionUnknownTimeoutSeconds int  `mapstructure:"submission_unknown_timeout_seconds"`
 	SettlementRetryLimit            int  `mapstructure:"settlement_retry_limit"`
+}
+
+type GrsaiDeliveryConfig struct {
+	Enabled             bool `mapstructure:"enabled"`
+	WorkerEnabled       bool `mapstructure:"worker_enabled"`
+	ScanIntervalSeconds int  `mapstructure:"scan_interval_seconds"`
+	BatchLimit          int  `mapstructure:"batch_limit"`
+	PayloadTTLHours     int  `mapstructure:"payload_ttl_hours"`
+	MaxWaiting          int  `mapstructure:"max_waiting"`
+	MaxRunning          int  `mapstructure:"max_running"`
+	FailureRetryLimit   int  `mapstructure:"failure_retry_limit"`
 }
 
 // ImageStorageConfig 配置异步图片任务结果上传的 S3 兼容对象存储。
@@ -2301,6 +2313,14 @@ func setDefaults() {
 	viper.SetDefault("grsai_settlement_recovery.batch_limit", 100)
 	viper.SetDefault("grsai_settlement_recovery.submission_unknown_timeout_seconds", 600)
 	viper.SetDefault("grsai_settlement_recovery.settlement_retry_limit", 5)
+	viper.SetDefault("grsai_delivery.enabled", false)
+	viper.SetDefault("grsai_delivery.worker_enabled", true)
+	viper.SetDefault("grsai_delivery.scan_interval_seconds", 10)
+	viper.SetDefault("grsai_delivery.batch_limit", 20)
+	viper.SetDefault("grsai_delivery.payload_ttl_hours", 24)
+	viper.SetDefault("grsai_delivery.max_waiting", 20)
+	viper.SetDefault("grsai_delivery.max_running", 3)
+	viper.SetDefault("grsai_delivery.failure_retry_limit", 5)
 
 	// Image storage (async image task result offload to S3-compatible object storage)
 	viper.SetDefault("image_storage.enabled", false)
@@ -3234,6 +3254,16 @@ func (c *Config) Validate() error {
 		}
 		if c.GrsaiSettlementRecovery.SettlementRetryLimit <= 0 {
 			return fmt.Errorf("grsai_settlement_recovery.settlement_retry_limit must be positive")
+		}
+	}
+	if c.GrsaiDelivery.Enabled || c.GrsaiDelivery.WorkerEnabled {
+		if c.GrsaiDelivery.Enabled && !c.GrsaiDelivery.WorkerEnabled {
+			return fmt.Errorf("grsai_delivery.worker_enabled must be true when delivery is enabled")
+		}
+		if c.GrsaiDelivery.ScanIntervalSeconds <= 0 || c.GrsaiDelivery.BatchLimit <= 0 || c.GrsaiDelivery.BatchLimit > 1000 ||
+			c.GrsaiDelivery.PayloadTTLHours <= 0 || c.GrsaiDelivery.MaxWaiting <= 0 || c.GrsaiDelivery.MaxRunning <= 0 ||
+			c.GrsaiDelivery.FailureRetryLimit <= 0 {
+			return fmt.Errorf("grsai_delivery intervals, limits and payload TTL must be positive")
 		}
 	}
 	if c.Dashboard.Enabled {

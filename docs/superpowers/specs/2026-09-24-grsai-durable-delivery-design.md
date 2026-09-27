@@ -1,0 +1,216 @@
+# GRS.AI 持久任务与三种下游交付技术设计
+
+## 文档信息
+
+| 项目 | 内容 |
+| --- | --- |
+| 日期 | 2026-09-25 |
+| 状态 | 对话设计已确认，待书面规格评审 |
+| PRD | `2026-09-24-grsai-durable-delivery-prd.md` |
+| 取代 | 2026-09-21 版本的上游 Stream、逐帧透传及上游 ID 公开方案 |
+
+## 1. 决策与证据
+
+- 下游 `replyType=json|stream|async` 只决定交付方式，缺省 JSON；上游始终
+  `replyType=async`。实测目标模型的 Stream/JSON 生成可成功，但其 `/result`
+  返回 404；Async 的 `/result` 可查询。这个结论限于已测试的接口/模型，
+  上线前复测，不推断所有上游模型的行为。
+- 三种交付方式都在上游 POST 之前持久创建本地任务 ID。上游 ID 一旦取得，
+  尽快与本地 ID 绑定，只供内部轮询，不出现在下游响应、事件、列表或链接。
+- Worker 生命周期独立于 HTTP 连接；重启恢复的是后台任务，而非原 JSON/SSE
+  连接或逐帧事件。存储和数据库终态成功以前不交付上游结果。
+
+第一阶段 GRS.AI 原生生图、结算与账号/分组路由已存在；本阶段继承鉴权、模型
+许可、审核、账号选择和结算幂等能力，但替换原始上游响应透传的公开行为。
+当前 `ImageStorage.Save` 已能按 `public_base_url` 返回公开 URL，否则返回
+S3 presigned URL；本阶段直接复用这一结果，不新增图片下载代理。
+兼容发布期间，现有 `GrsaiNativeClient.Generate` 及旧 HTTP 路由行为保持不变；
+新增独立的 Async 提交方法和可开关的新路由分支。只有新分支启用后才创建 v2
+任务。这样第一阶段任务在兼容阶段仍按旧协议完成，关闭新分支也不会停止
+v2 Worker 对既有新任务的恢复。
+
+## 2. 持久状态和提交顺序
+
+```text
+鉴权、审核、准入、选账号、价格快照
+  -> 数据库中创建本地 ID + 归属 + 冻结额度
+  -> claim 一次提交 -> 上游 Async POST -> 持久绑定上游 ID
+  -> worker 上游 GET /result -> running 时继续轮询
+  -> succeeded -> 下载所有图片并上传本地 S3
+  -> 数据库保存对象 key、结果、链接到期时间及终态
+  -> 幂等捕获冻结与计费，或进入待结算恢复
+  -> JSON/Stream 可报告结果，Async 查询可看到成功
+
+  failed/violation -> 失败并释放冻结
+  不确定提交且无上游 ID -> 失败并释放冻结，不重发
+  上游成功但转存失败 -> 保留恢复信息重试，超界人工核查
+```
+
+任务行保存不可预测本地 ID、user_id、api_key_id、账号、价格快照、
+交付方式、上游 ID（内部）、内部/公开状态、claim 版本/租约、冻结状态、
+图片对象标识、到期时间、有限错误以及必要的重试信息。借用现有结算表演进，
+而不是以现有 Redis 图片任务 24 小时 TTL 替代持久数据库。数据库领先于
+上游请求：持久写入或冻结失败时不 POST。
+
+新阶段任务使用独立的 v2 内部状态集合，旧恢复 Worker 现有 SQL 仅领取
+`pending_upstream`、`pending_settlement`、`processing`，不能领取任何 v2
+状态；v2 Worker 的领取条件也必须排除旧任务。新增数据库字段和索引仅做
+兼容性扩展，不改旧列含义或旧查询结果。新版本继续启动并保留旧恢复运行时，
+让灰度和晋升后的旧任务仍可完成；两套运行时各自领取自己的任务。
+
+Async 单用户等待上限默认 20、运行中后台任务上限默认 3，均可配置；
+任务计数以数据库持久状态及租约为准，不能仅以进程内 worker/HTTP 连接数
+判定。满额入队返回明确容量错误，运行上限使后续任务留在队列等待，
+重启和多实例领取不会绕过这些上限。既有账号级调度/并发约束仍适用。
+
+提交前及提交中的领取使用数据库租约和围栏；多 worker 不得同时 POST 同一
+本地任务。只有明确尚未启动提交的任务可以首次 POST；一旦可能触达上游却
+没有取得并持久化 ID，转失败并解冻，不能猜测或再次 POST。已绑定 ID 的
+恢复分支仅使用上游 GET。冻结释放与状态事务协调；数据库失败不可向下游
+声称解冻已经完成，须继续重试/告警。
+
+若待提交载荷需跨重启使用，依现有密钥管理能力加密持久化，仅允许唯一提交者
+读取；绑定上游 ID 后删除。请求/提示词、参考图、上游凭据不进入日志或公开
+查询。待恢复和人工核查记录不能因图片链接到期而丢失。
+
+## 3. 下游契约
+
+### 3.1 POST /v1/api/generate
+
+解析只允许字符串 `replyType=json|stream|async`，缺省 JSON，冲突控制字段
+或无效类型本地 400。输入请求体保持只读；上游构造独立 JSON 对象，保留模型
+字段，仅把 `replyType` 设为 `async`。不得向上游发送本地任务 ID。
+
+- JSON：等待任务可交付终态，成功返回一次完整结果及本地 ID，不提前发送 ID。
+  若连接因断开/重启未收到最终响应，用列表找回 ID；错误用本地安全格式，
+  不透传上游图片链接、上游 ID 或原始响应。
+- Stream：首先发送本地 ID，运行中合成 `5/running`；只有数据库已保存本地
+  结果且图片可交付时发送 `100/succeeded` 和结果。失败发送终态但不发送
+  100；不伪称上游实时帧，也不提供断线续传。断线只停止向该连接写数据。
+- Async：持久本地任务后立即 202 返回本地 ID，随后后台负责首次上游提交
+  和轮询；创建被接受不等于生成成功。
+
+内部状态可区分 queued、submitting、awaiting_result、persisting_images、
+pending_settlement、manual_review、settled、closed_no_charge；公开状态
+至少区分 queued、running、succeeded、failed、manual_review。上游
+`succeeded` 但图片未入 S3 或数据库未保存终态时公开仍不是 succeeded。
+
+### 3.2 GET /v1/api/result 与任务列表
+
+`GET /v1/api/result?id=<local-id>` 只按本地 ID 查询；新增
+`GET /v1/api/tasks`，按创建时 `user_id + api_key_id` 过滤，稳定时间倒序
+并分页、限制页大小。同一用户的另一把 Key 不得查询。无 Key 返回 401，
+未知/无归属详情统一 404；列表不泄露别的 Key 的总量。
+
+仅返回本地 ID、公开状态/简化进度、模型、创建/完成时间、有限错误摘要、
+本地链接、链接期限信息和 `link_expired`。上游 ID、账号、冻结金额、上游 URL、
+存储对象 key 和诊断明细绝不出现在公开视图。使用 presigned URL 时，链接过期
+由任务记录的时间戳计算；使用公开 URL 时期限为 null/不适用，`link_expired`
+为 false 或不返回。列表/详情不访问 S3。任务元数据保留期独立于链接 TTL，
+过期任务仍可在历史列表查到；不按链接到期时间清理记录。
+
+## 4. 图片保存与图片链接
+
+复用现有 S3 配置/对象生命周期和 `ImageStorage.Save`。上传可按本地任务 ID
+与图片序号采用稳定 key，以便重试幂等。只有全部所需图片已本地保存且结果
+数据库提交后才发布成功；部分成功不向下游暴露。
+
+结果直接保存存储层返回的图片 URL：配置 `public_base_url` 时使用公开 URL，
+否则使用 S3 presigned URL。Sub2API 不新增图片下载代理，不对图片请求做
+API Key 校验，不重定向或中转图片；调用方拿到 URL 后可直接访问。公开 URL
+可能被任何持有者访问，presigned URL 也可被任何持有者访问直到过期，因此
+图片 URL 不属于任务 API 的访问控制边界。
+
+presigned URL TTL 沿用现有图片存储设置 `presign_expiry_hours`，默认 24 小时；
+绝对 `link_expires_at` 须从生成签名时的有效期推导，并保守地取多张图片中
+最早到期时间，不能从稍后的数据库提交时间起算而高估可访问期限。以后配置
+变化不改变旧链接。公开 URL
+的 `link_expires_at` 为 null/不适用，不人为套用 24 小时。两种链接均不因到期
+专门删除 S3 对象；沿用现有 S3 管理和清理策略。列表和详情不检查对象是否存在，
+也不重新签发或重新生成过期链接。
+
+## 5. 异常、结算与运营
+
+- 上游明确 failed/violation：失败、释放冻结、不计费。提交结果未知且无
+  上游 ID：直接失败并解冻，不自动重发；极少数已在上游产生的费用由
+  平台内部对账，不把任务留为待人工认领的下游状态。
+- 上游成功但图片下载或上传失败：保留上游 ID 和只在内部可用的恢复依据，
+  以受界限的退避重试；超界转人工核查，不报告成功、不透出上游图片 URL。
+  这类任务的冻结及结算待运营处置，不能假称已退款或已扣费。
+- 上游 `/result` 暂时不可用（含 404、网络错误）或账号暂不可读取：
+  不把查询错误当作上游明确失败；连续错误按受界限的退避重试，正常
+  `running` 响应清零连续失败计数，超界转人工核查并保留冻结资金。
+- 图片已经落地但数据库提交失败：继续可幂等恢复；绝不先向 JSON/Stream
+  发成功。成功轮询和多个 worker 最多捕获冻结并记一笔用量。
+
+告警与观测覆盖无上游 ID 的未知提交、冻结释放失败、S3 转存失败、上游长期
+无终态、人工核查、结算重试和重复领取。不得记录上游图片 URL、提示词
+和任何真实密钥。
+
+## 6. 测试与发布门
+
+为 PRD `GRSAI-DM-AC-01..15` 建需求到测试的逐项映射；覆盖解析、先建
+任务后 POST、三模式公开响应、重启后只 GET、无 ID 失败解冻、S3 失败
+与数据库写入失败、公开 URL/presigned URL 两种存储配置及链接期限、跨 API Key 任务查询越权、并发幂等结算，
+以及 Async 20/3 容量边界与重启后的正确计数。
+假上游与假 S3 做离线测试；现有 GRS.AI 结算、OpenAI 生图须回归。
+
+实际测试函数与文件路径维护在 `test/grsai_ac_traceability.json`，
+运行 `python test/grsai_traceability.py` 检查 PRD AC-ID 是否缺项及测试引用是否失效。
+下表列出主要执行证据；离线测试通过不等于 live 或生产灰度验收通过。
+
+| AC-ID | 主要测试函数 / 现场门 |
+| --- | --- |
+| 01 | `TestParseGrsaiDeliveryRequestBuildsIndependentAsyncBody`、`TestGrsaiNativeClientGenerateAsyncUsesPreparedBody`。 |
+| 02 | `TestGrsaiGrayCandidateHandoffUsesBoundResultOnly`、`TestGrsaiDeliveryModesExposeOnlyLocalTask`。 |
+| 03 | `TestGrsaiResultPersistenceStoresAllImagesBeforeReturning`、`TestGrsaiV2TerminalBillingFailureRollsBackStatus`。 |
+| 04 | `TestGrsaiDeliveryModesExposeOnlyLocalTask`、`TestGrsaiDeliveryFailedStreamNeverReportsSuccess`。 |
+| 05 | `TestGrsaiTaskServiceCreatesLocalTaskBeforeAsyncSubmission`、`TestGrsaiDeliveryModesExposeOnlyLocalTask`。 |
+| 06 | `TestGrsaiGrayCandidateHandoffUsesBoundResultOnly`、`TestGrsaiTaskRuntimeBoundResultPersistsBeforeSuccess`。 |
+| 07 | `TestGrsaiTaskRuntimeExhaustedStorageRetriesRetainsHoldForReview`、`TestGrsaiResultPersistenceDoesNotReturnPartialSuccess`。 |
+| 08 | `TestGrsaiTaskRuntimeNeverResubmitsUnboundClaim`、`TestGrsaiBalanceHoldCapturesOrReleasesOnce`。 |
+| 09 | `TestGrsaiDeliveryResultIsScopedToCreatingAPIKey`、`TestGrsaiDeliveryTasksListOnlyIncludesCreatingKey`。 |
+| 10 | `TestImageStorageS3ReturnsPublicURLWithoutExpiry`、`TestImageStorageS3PresignedExpiryMatchesURL`。 |
+| 11 | `TestGrsaiTaskViewOmitsPrivateFieldsAndReportsLinkExpiry`、`TestGrsaiTaskViewPublicLinkHasNoExpiry`。 |
+| 12 | `TestGrsaiBalanceHoldCapturesOrReleasesOnce`、`TestGrsaiV2ClaimIsSingleWinnerAndDoesNotRetrySubmission`。 |
+| 13 | `grsai_live_contract.py --self-test` 已离线通过；真实 Async `/result` 仍待 live 验证。 |
+| 14 | `TestGrsaiV2WaitingAndRunningLimitsPersistAcrossWorkers`、`TestGrsaiV2WaitingLimitIsAtomicAcrossInstances`。 |
+| 15 | `TestGrsaiGrayCandidateHandoffUsesBoundResultOnly` 已验证同库接手；真实双版本切流/回滚仍待灰度演练。 |
+
+live probe 默认禁用且不进入 CI，显式运行时验证目标上游 Async POST
+返回可查询 ID，随后 `/result` 能到达终态；脱敏输出，不保存真实密钥、
+原始响应、图片 URL。先前 JSON/Stream 的 404 只作为实测背景，不再
+充当可靠恢复路径。上线前做真实上游和真实 S3 端到端验收。
+
+### 6.1 灰度兼容与回滚门
+
+发布分两次：第一版只做追加式数据库迁移并部署能识别 v2 任务的兼容 Worker，
+但保持新生成入口关闭，完成 0% 候选验证后晋升。此时旧版槽位退出也不影响
+旧任务，因为兼容版保留旧恢复运行时。第二版才开放 v2 新任务的创建；此时
+稳定槽位必须是已晋升的兼容版，具备 v2 Worker，才允许候选槽位开始灰度。
+两槽位使用同一数据库、对象存储及恢复配置；旧版代码在兼容阶段不能看到
+新任务，因为尚未创建，兼容版在功能阶段能接手候选创建的 v2 任务。
+
+流量切换只影响新 HTTP 请求，不搬迁已有 JSON/SSE 连接。正在等待的任务由
+数据库领取，已绑定上游 ID 的任务只 GET 恢复；旧请求继续由所在进程处理，
+进程停止后其连接可能中断，但任务必须留存，并可用同一 API Key 从任务列表
+找回。领取租约与围栏防止两槽位同时提交或重复结算；等待/运行限额也跨槽位
+统计。旧任务继续走旧状态与结算流程，新任务走 v2 流程，不交叉抢占。
+
+回滚第二版时，新请求切回兼容版；兼容版 Worker 必须继续完成已经创建的 v2
+任务，不能回退到不认识 v2 的原始旧版。候选异常时先按 `AGENTS.md` 切回
+稳定槽位并保留候选现场；若稳定槽位 v2 Worker 未启用或不健康，回滚不算
+完成，须停止继续放量并报告未完成任务风险，不得关闭唯一能处理 v2 的 Worker。
+在 0% 候选、逐步放量、100% 观察、回滚及晋升各阶段，验证 Nginx、健康、
+任务状态、冻结余额、重复 POST/结算、S3 结果和最近错误日志。脚本只能用
+`gray-status.sh`、`gray-deploy.sh`、`gray-set-traffic.sh`、`gray-promote.sh`
+及仓库 `AGENTS.md` 允许的操作；不得初始化旧灰度环境或销毁槽位。
+
+生产操作只能按仓库 `AGENTS.md` 的灰度脚本和不可变镜像执行，异常切回稳定槽位。
+
+## 7. 历史文档边界
+
+2026-09-18 原生生图设计描述已实现第一阶段，不反写其历史契约。
+2026-09-21 交付设计和实施计划以旧上游 Stream 为前提，不再是实施依据。
+本 PRD 与设计经书面评审后，再写新的任务计划；上述计划追溯表在实施阶段
+以真实测试文件和执行结果替换“计划测试”描述。
