@@ -42,6 +42,22 @@ func ProvideGrsaiSettlementRepository(db *sql.DB) service.GrsaiSettlementReposit
 	return NewGrsaiSettlementRepository(db)
 }
 
+func ProvideGrsaiV2TaskRepository(db *sql.DB, encryptor service.SecretEncryptor) service.GrsaiV2TaskRepository {
+	return NewGrsaiV2TaskRepository(db, encryptor)
+}
+
+func ProvideGrsaiTaskPayloadRepository(db *sql.DB, encryptor service.SecretEncryptor) service.GrsaiTaskPayloadRepository {
+	return NewGrsaiTaskPayloadRepository(db, encryptor)
+}
+
+func ProvideGrsaiBalanceHoldRepository(billing service.UsageBillingRepository) service.GrsaiBalanceHoldRepository {
+	holdRepository, ok := billing.(service.GrsaiBalanceHoldRepository)
+	if !ok {
+		panic("usage billing repository does not support balance holds")
+	}
+	return holdRepository
+}
+
 func ProvideGrsaiUsageBillingRepository(billing service.UsageBillingRepository) service.UsageBillingTransactionalRepository {
 	transactional, ok := billing.(service.UsageBillingTransactionalRepository)
 	if !ok {
@@ -95,6 +111,9 @@ var ProviderSet = wire.NewSet(
 	NewUsageBillingRepository,
 	ProvideGrsaiUsageBillingRepository,
 	ProvideGrsaiSettlementRepository,
+	ProvideGrsaiV2TaskRepository,
+	ProvideGrsaiTaskPayloadRepository,
+	ProvideGrsaiBalanceHoldRepository,
 	NewBatchImageRepository,
 	NewIdempotencyRepository,
 	NewUsageCleanupRepository,

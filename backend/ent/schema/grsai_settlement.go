@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"encoding/json"
 	"time"
 
 	"entgo.io/ent"
@@ -41,6 +42,17 @@ func (GrsaiSettlement) Fields() []ent.Field {
 		field.String("upstream_task_id").MaxLen(255).Optional().Nillable(),
 		field.String("upstream_status").MaxLen(32).Default("not_submitted"),
 		field.String("internal_status").MaxLen(32).Default("pending_upstream"),
+		field.String("local_task_id").MaxLen(64).Optional().Nillable(),
+		field.String("delivery_mode").MaxLen(16).Default("json"),
+		field.String("public_status").MaxLen(32).Default("queued"),
+		field.Int("progress").Default(0),
+		field.JSON("result_json", json.RawMessage{}).Optional().
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+		field.Time("link_expires_at").Optional().Nillable().SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
+		field.JSON("image_object_metadata", json.RawMessage{}).Optional().
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+		field.Int("task_version").Default(1),
+		field.Int("submission_attempt").Default(0),
 		field.Int("retry_count").Default(0),
 		field.Int("settlement_retry_count").Default(0),
 		field.Int64("claim_version").Default(0),
@@ -65,5 +77,7 @@ func (GrsaiSettlement) Indexes() []ent.Index {
 		index.Fields("internal_status", "next_attempt_at").
 			Annotations(entsql.IndexWhere("internal_status IN ('pending_upstream', 'pending_settlement', 'processing')")),
 		index.Fields("user_id", "created_at"),
+		index.Fields("local_task_id").Unique().Annotations(entsql.IndexWhere("local_task_id IS NOT NULL AND local_task_id <> ''")),
+		index.Fields("user_id", "api_key_id", "created_at"),
 	}
 }

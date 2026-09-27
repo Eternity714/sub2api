@@ -302,7 +302,10 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	grsaiSettlementRepository := repository.ProvideGrsaiSettlementRepository(db)
 	usageBillingTransactionalRepository := repository.ProvideGrsaiUsageBillingRepository(usageBillingRepository)
 	grsaiSettlementService := service.ProvideGrsaiSettlementService(grsaiSettlementRepository, usageBillingTransactionalRepository, modelPricingResolver, usageLogRepository, apiKeyAuthCacheInvalidator)
-	grsaiGatewayHandler := handler.ProvideGrsaiGatewayHandler(gatewayService, concurrencyService, billingCacheService, grsaiNativeClient, grsaiSettlementService, contentModerationService, coordinator)
+	grsaiV2TaskRepository := repository.ProvideGrsaiV2TaskRepository(db, secretEncryptor)
+	grsaiBalanceHoldRepository := repository.ProvideGrsaiBalanceHoldRepository(usageBillingRepository)
+	grsaiTaskService := service.ProvideGrsaiTaskService(grsaiV2TaskRepository, grsaiBalanceHoldRepository, modelPricingResolver, imageStorageSettingService, configConfig)
+	grsaiGatewayHandler := handler.ProvideGrsaiGatewayHandler(gatewayService, concurrencyService, billingCacheService, grsaiNativeClient, grsaiSettlementService, grsaiTaskService, contentModerationService, coordinator)
 	handlerSettingHandler := handler.ProvideSettingHandler(settingService, buildInfo, notificationEmailService)
 	totpHandler := handler.NewTotpHandler(totpService)
 	passkeyRepository := repository.NewPasskeyRepository(db)
@@ -353,13 +356,16 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	subscriptionExpiryService := service.ProvideSubscriptionExpiryService(userSubscriptionRepository, settingRepository, notificationEmailService, leaderLockCache, db)
 	batchImageWorkerRuntime := service.ProvideBatchImageWorkerRuntime(batchImageRepository, accountRepository, batchImageQueue, usageBillingRepository, usageLogRepository, batchImageModelPricingResolver, apiKeyAuthCacheInvalidator, configConfig)
 	grsaiSettlementRecoveryRuntime := service.ProvideGrsaiSettlementRecoveryRuntime(grsaiSettlementRepository, accountRepository, grsaiNativeClient, grsaiSettlementService, configConfig)
+	grsaiTaskPayloadRepository := repository.ProvideGrsaiTaskPayloadRepository(db, secretEncryptor)
+	grsaiTaskUpstream := service.ProvideGrsaiTaskUpstream()
+	grsaiTaskRuntime := service.ProvideGrsaiTaskRuntime(grsaiV2TaskRepository, grsaiTaskPayloadRepository, accountRepository, grsaiTaskUpstream, imageStorageSettingService, grsaiBalanceHoldRepository, usageLogRepository, configConfig)
 	scheduledTestRunnerService := service.ProvideScheduledTestRunnerService(scheduledTestPlanRepository, scheduledTestService, accountTestService, rateLimitService, configConfig)
 	paymentOrderExpiryService := service.ProvidePaymentOrderExpiryService(paymentService, leaderLockCache, db)
 	channelMonitorQuotaFetcher := service.NewChannelMonitorQuotaFetcher(accountUsageService, cnProviderQuotaService, cnProviderBalanceService, accountRepository, configConfig)
 	channelMonitorRunner := service.ProvideChannelMonitorRunner(channelMonitorService, settingService, channelMonitorQuotaFetcher)
 	channelMonitorV2Aggregator := service.ProvideChannelMonitorV2Aggregator(channelMonitorV2Repository, db, settingService)
 	userPlatformQuotaUsageFlusher := service.ProvideUserPlatformQuotaUsageFlusher(configConfig, billingCache, serviceUserPlatformQuotaRepository, timingWheelService)
-	v := provideCleanup(client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, opsService, opsIngressRejectAggregator, apiKeyService, authCacheInvalidationWorker, schedulerSnapshotService, tokenRefreshService, accountExpiryService, cnProviderBalanceCheckService, openAICodexVersionSyncService, claudeCodeVersionSyncService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, batchImageCleanupService, batchImageWorkerRuntime, grsaiSettlementRecoveryRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, subscriptionService, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, grokOAuthService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, channelMonitorV2Aggregator, userPlatformQuotaUsageFlusher, upstreamBillingProbeService, ollamaCloudUsageService, auditLogService, openAIQuotaAutoResetService, promptService, pluginManager)
+	v := provideCleanup(client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, opsService, opsIngressRejectAggregator, apiKeyService, authCacheInvalidationWorker, schedulerSnapshotService, tokenRefreshService, accountExpiryService, cnProviderBalanceCheckService, openAICodexVersionSyncService, claudeCodeVersionSyncService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, batchImageCleanupService, batchImageWorkerRuntime, grsaiSettlementRecoveryRuntime, grsaiTaskRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, subscriptionService, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, grokOAuthService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, channelMonitorV2Aggregator, userPlatformQuotaUsageFlusher, upstreamBillingProbeService, ollamaCloudUsageService, auditLogService, openAIQuotaAutoResetService, promptService, pluginManager)
 	application := &Application{
 		Server:        httpServer,
 		PromptAudit:   promptService,
@@ -422,6 +428,7 @@ func provideCleanup(
 	batchImageCleanup *service.BatchImageCleanupService,
 	batchImageWorker *service.BatchImageWorkerRuntime,
 	grsaiSettlementRecovery *service.GrsaiSettlementRecoveryRuntime,
+	grsaiTaskRuntime *service.GrsaiTaskRuntime,
 	pricing *service.PricingService,
 	emailQueue *service.EmailQueueService,
 	billingCache *service.BillingCacheService,
@@ -574,6 +581,12 @@ func provideCleanup(
 			{"GrsaiSettlementRecoveryRuntime", func() error {
 				if grsaiSettlementRecovery != nil {
 					grsaiSettlementRecovery.Stop()
+				}
+				return nil
+			}},
+			{"GrsaiTaskRuntime", func() error {
+				if grsaiTaskRuntime != nil {
+					grsaiTaskRuntime.Stop()
 				}
 				return nil
 			}},

@@ -68,6 +68,36 @@ func TestGrsaiNativeClientGenerateAddsOnlyDefaultReplyType(t *testing.T) {
 	require.Equal(t, "task-default", result.TaskID)
 }
 
+func TestGrsaiNativeClientGenerateAsyncUsesPreparedBody(t *testing.T) {
+	for _, mode := range []string{"json", "stream", "async"} {
+		t.Run(mode, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, http.MethodPost, r.Method)
+				require.Equal(t, "/v1/api/generate", r.URL.Path)
+				require.Equal(t, "application/json", r.Header.Get("Accept"))
+				require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				require.JSONEq(t, `{"model":"gpt-image-2","replyType":"async"}`, string(body))
+				_, _ = io.WriteString(w, `{"id":"upstream-task","status":"running"}`)
+			}))
+			defer server.Close()
+			request, err := ParseGrsaiDeliveryRequest([]byte(`{"model":"gpt-image-2","replyType":"` + mode + `"}`))
+			require.NoError(t, err)
+			result, err := NewGrsaiAsyncNativeClient(server.Client()).GenerateAsync(context.Background(), grsaiTestAccount(server.URL, "key"), request.UpstreamBody)
+			require.NoError(t, err)
+			require.Equal(t, "upstream-task", result.TaskID)
+			require.Equal(t, GrsaiUpstreamStatusRunning, result.Status)
+		})
+	}
+}
+
+func TestGrsaiNativeClientGenerateAsyncRejectsNonAsyncBody(t *testing.T) {
+	result, err := NewGrsaiAsyncNativeClient(nil).GenerateAsync(context.Background(), grsaiTestAccount("https://api.grsai.example", "key"), []byte(`{"replyType":"json"}`))
+	require.Nil(t, result)
+	require.ErrorIs(t, err, ErrGrsaiInvalidRequest)
+}
+
 func TestGrsaiNativeClientGenerateRejectsProtocolBoundaryViolations(t *testing.T) {
 	const secret = "sk-this-must-never-appear-in-errors"
 	const prompt = "private prompt must never appear in errors"
@@ -209,6 +239,16 @@ func TestGrsaiNativeClientPreservesNestedLegacyResponseFields(t *testing.T) {
 	require.Equal(t, "output_moderation", result.ErrorCode)
 	require.Equal(t, "blocked", result.ErrorMessage)
 	require.Equal(t, []byte(body), result.RawBody)
+}
+
+func TestGrsaiNativeClientParsesResultImageURLs(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, `{"id":"task-images","status":"succeeded","results":[{"url":"https://images.example.test/a.png"},{"url":"https://images.example.test/b.png"}]}`)
+	}))
+	defer server.Close()
+	result, err := NewGrsaiNativeClient(server.Client()).Result(context.Background(), grsaiTestAccount(server.URL, "key"), "task-images")
+	require.NoError(t, err)
+	require.Equal(t, []string{"https://images.example.test/a.png", "https://images.example.test/b.png"}, result.ImageURLs)
 }
 
 func TestGrsaiNativeClientReturnsRawBodyWithMalformedResponseError(t *testing.T) {
