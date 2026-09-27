@@ -46,12 +46,12 @@ func (u *ImageResultUploader) PersistGrsaiImages(ctx context.Context, localTaskI
 		}
 		data, contentType, err := u.fetchImageBytes(ctx, map[string]json.RawMessage{"url": urlJSON})
 		if err != nil {
-			return nil, fmt.Errorf("grsai image %d download failed", index)
+			return nil, fmt.Errorf("grsai image %d download failed: %w", index, err)
 		}
 		key := u.buildKey(localTaskID, index, contentType)
 		metadata, err := storage.SaveWithMetadata(ctx, key, contentType, data)
 		if err != nil {
-			return nil, fmt.Errorf("grsai image %d upload failed", index)
+			return nil, fmt.Errorf("grsai image %d upload failed: %w", index, err)
 		}
 		if metadata.URL == "" || metadata.ObjectKey != key || metadata.ContentType == "" {
 			return nil, fmt.Errorf("grsai image %d storage metadata is incomplete", index)
