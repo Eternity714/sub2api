@@ -16,6 +16,7 @@ type usageBillingRepository struct {
 }
 
 var _ service.UsageBillingTransactionalRepository = (*usageBillingRepository)(nil)
+var _ service.GrsaiBalanceHoldRepository = (*usageBillingRepository)(nil)
 
 func NewUsageBillingRepository(_ *dbent.Client, sqlDB *sql.DB) service.UsageBillingRepository {
 	return &usageBillingRepository{db: sqlDB}
@@ -132,6 +133,129 @@ func (r *usageBillingRepository) claimUsageBillingRequest(ctx context.Context, t
 		return false, err
 	}
 	return true, nil
+}
+
+func (r *usageBillingRepository) ReserveGrsaiBalance(ctx context.Context, tx *sql.Tx, record *service.GrsaiSettlement) error {
+	amount, err := service.GrsaiTaskHoldAmount(record)
+	if err != nil {
+		return err
+	}
+	if tx == nil {
+		return service.ErrGrsaiSettlementInvalidInput
+	}
+	result, err := tx.ExecContext(ctx, `INSERT INTO grsai_balance_holds (local_task_id, user_id, api_key_id, amount, status)
+VALUES ($1, $2, $3, $4, 'reserved') ON CONFLICT (local_task_id) DO NOTHING`, *record.LocalTaskID, record.UserID, record.APIKeyID, amount)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return verifyExistingGrsaiHold(ctx, tx, record, amount, "reserved")
+	}
+	if amount == 0 {
+		return nil
+	}
+	result, err = tx.ExecContext(ctx, `UPDATE users SET balance = balance - $1,
+frozen_balance = COALESCE(frozen_balance, 0) + $1, updated_at = NOW()
+WHERE id = $2 AND deleted_at IS NULL AND balance >= $1`, amount, record.UserID)
+	if err != nil {
+		return err
+	}
+	affected, err = result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return service.ErrGrsaiInsufficientBalance
+	}
+	return nil
+}
+
+func (r *usageBillingRepository) CaptureGrsaiBalanceTx(ctx context.Context, tx *sql.Tx, record *service.GrsaiSettlement) error {
+	return r.transitionGrsaiBalanceHold(ctx, tx, record, "captured")
+}
+
+func (r *usageBillingRepository) ReleaseGrsaiBalanceTx(ctx context.Context, tx *sql.Tx, record *service.GrsaiSettlement) error {
+	return r.transitionGrsaiBalanceHold(ctx, tx, record, "released")
+}
+
+func verifyExistingGrsaiHold(ctx context.Context, tx *sql.Tx, record *service.GrsaiSettlement, amount float64, expected string) error {
+	var userID, apiKeyID int64
+	var heldAmount float64
+	var status string
+	err := tx.QueryRowContext(ctx, `SELECT user_id, api_key_id, amount, status FROM grsai_balance_holds
+WHERE local_task_id = $1 FOR UPDATE`, *record.LocalTaskID).Scan(&userID, &apiKeyID, &heldAmount, &status)
+	if err != nil {
+		return err
+	}
+	if userID != record.UserID || apiKeyID != record.APIKeyID || heldAmount != amount || status != expected {
+		return service.ErrGrsaiSettlementInvalidState
+	}
+	return nil
+}
+
+func (r *usageBillingRepository) transitionGrsaiBalanceHold(ctx context.Context, tx *sql.Tx, record *service.GrsaiSettlement, target string) error {
+	amount, err := service.GrsaiTaskHoldAmount(record)
+	if err != nil {
+		return err
+	}
+	if tx == nil {
+		return service.ErrGrsaiSettlementInvalidInput
+	}
+	var userID, apiKeyID int64
+	var heldAmount float64
+	var status string
+	err = tx.QueryRowContext(ctx, `SELECT user_id, api_key_id, amount, status FROM grsai_balance_holds
+WHERE local_task_id = $1 FOR UPDATE`, *record.LocalTaskID).Scan(&userID, &apiKeyID, &heldAmount, &status)
+	if err != nil {
+		return err
+	}
+	if userID != record.UserID || apiKeyID != record.APIKeyID || heldAmount != amount {
+		return service.ErrGrsaiSettlementInvalidState
+	}
+	if status == target {
+		return nil
+	}
+	if status != "reserved" {
+		return service.ErrGrsaiSettlementInvalidState
+	}
+	if target == "captured" {
+		cmd, err := service.GrsaiTaskUsageCommand(record)
+		if err != nil {
+			return err
+		}
+		result, err := r.ApplyTx(ctx, tx, cmd)
+		if err != nil {
+			return err
+		}
+		if !result.Applied {
+			return service.ErrGrsaiSettlementInvalidState
+		}
+	}
+	if amount > 0 {
+		query := `UPDATE users SET frozen_balance = COALESCE(frozen_balance, 0) - $1, updated_at = NOW()
+WHERE id = $2 AND deleted_at IS NULL AND COALESCE(frozen_balance, 0) >= $1`
+		if target == "released" {
+			query = `UPDATE users SET balance = balance + $1, frozen_balance = COALESCE(frozen_balance, 0) - $1,
+updated_at = NOW() WHERE id = $2 AND deleted_at IS NULL AND COALESCE(frozen_balance, 0) >= $1`
+		}
+		result, err := tx.ExecContext(ctx, query, amount, record.UserID)
+		if err != nil {
+			return err
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if affected == 0 {
+			return service.ErrGrsaiSettlementInvalidState
+		}
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE grsai_balance_holds SET status = $2, updated_at = NOW() WHERE local_task_id = $1`, *record.LocalTaskID, target)
+	return err
 }
 
 func (r *usageBillingRepository) ReserveBatchImageBalance(ctx context.Context, cmd *service.BatchImageBalanceHoldCommand) (*service.BatchImageBalanceHoldResult, error) {

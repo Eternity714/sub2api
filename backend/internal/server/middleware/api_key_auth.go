@@ -337,6 +337,9 @@ func isAsyncImageTaskRead(method, path string) bool {
 	if method != http.MethodGet {
 		return false
 	}
+	if path == "/v1/api/result" || path == "/v1/api/tasks" {
+		return true
+	}
 	return strings.HasPrefix(path, "/v1/images/tasks/") || strings.HasPrefix(path, "/images/tasks/")
 }
 

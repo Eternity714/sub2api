@@ -24,6 +24,7 @@ type GrsaiGatewayHandler struct {
 	billingCacheService      *service.BillingCacheService
 	nativeClient             service.GrsaiNativeClient
 	settlementService        *service.GrsaiSettlementService
+	taskService              *service.GrsaiTaskService
 	contentModerationService *service.ContentModerationService
 	securityAuditCoordinator *securityaudit.Coordinator
 	concurrencyHelper        *ConcurrencyHelper
@@ -84,12 +85,25 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Request body is empty")
 		return
 	}
-	preparedBody, err := service.PrepareGrsaiGenerateBody(body)
-	if err != nil {
-		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", err.Error())
-		return
+	durable := h.taskService != nil && h.taskService.Enabled
+	var preparedBody []byte
+	var model, imageSize string
+	var imageCount int
+	if durable {
+		request, parseErr := service.ParseGrsaiDeliveryRequest(body)
+		if parseErr != nil {
+			h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", parseErr.Error())
+			return
+		}
+		preparedBody, model, imageCount, imageSize = request.OriginalBody, request.Model, request.ImageCount, request.ImageSize
+	} else {
+		preparedBody, err = service.PrepareGrsaiGenerateBody(body)
+		if err != nil {
+			h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", err.Error())
+			return
+		}
+		model, imageCount, imageSize = parseGrsaiGenerateRequest(preparedBody)
 	}
-	model, imageCount, imageSize := parseGrsaiGenerateRequest(preparedBody)
 	if model == "" {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "model is required")
 		return
@@ -157,6 +171,17 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 	}
 
 	groupRate := h.gatewayService.ResolveUserGroupRateMultiplier(c.Request.Context(), apiKey.UserID, apiKey.Group.ID, apiKey.Group.RateMultiplier)
+	if durable {
+		task, createErr := h.taskService.Create(c.Request.Context(), service.GrsaiTaskCreateInput{
+			Account: account, APIKey: apiKey, Body: body, EffectiveGroupMultiplier: &groupRate,
+		})
+		if createErr != nil {
+			h.taskCreateError(c, createErr)
+			return
+		}
+		h.deliverTask(c, task)
+		return
+	}
 	settlement, err := h.settlementService.Prepare(c.Request.Context(), service.GrsaiPrepareInput{
 		Account: account, APIKey: apiKey, Model: model, ImageCount: imageCount, ImageSize: imageSize, EffectiveGroupMultiplier: &groupRate,
 	})

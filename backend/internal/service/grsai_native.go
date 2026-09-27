@@ -41,6 +41,7 @@ type GrsaiUpstreamResult struct {
 	RawBody      []byte
 	TaskID       string
 	Status       string
+	ImageURLs    []string
 	ErrorCode    string
 	ErrorMessage string
 }
@@ -68,6 +69,10 @@ type GrsaiNativeClient interface {
 	Result(ctx context.Context, account *Account, taskID string) (*GrsaiUpstreamResult, error)
 }
 
+type GrsaiAsyncNativeClient interface {
+	GenerateAsync(ctx context.Context, account *Account, body []byte) (*GrsaiUpstreamResult, error)
+}
+
 // GrsaiNativeHTTPClient implements GrsaiNativeClient over the native GRS.AI
 // HTTP protocol. It is deliberately independent from OpenAI-compatible
 // transports.
@@ -76,6 +81,10 @@ type GrsaiNativeHTTPClient struct {
 }
 
 func NewGrsaiNativeClient(client *http.Client) GrsaiNativeClient {
+	return NewGrsaiAsyncNativeClient(client)
+}
+
+func NewGrsaiAsyncNativeClient(client *http.Client) *GrsaiNativeHTTPClient {
 	return &GrsaiNativeHTTPClient{client: configureGrsaiHTTPClient(client)}
 }
 
@@ -114,6 +123,25 @@ func (c *GrsaiNativeHTTPClient) Generate(ctx context.Context, account *Account, 
 		return nil, err
 	}
 	return c.do(ctx, "generate", http.MethodPost, targetURL, apiKey, requestBody, "")
+}
+
+func (c *GrsaiNativeHTTPClient) GenerateAsync(ctx context.Context, account *Account, body []byte) (*GrsaiUpstreamResult, error) {
+	baseURL, apiKey, err := grsaiAccountCredentials(account)
+	if err != nil {
+		return nil, err
+	}
+	request, err := ParseGrsaiDeliveryRequest(body)
+	if err != nil {
+		return nil, err
+	}
+	if request.Mode != GrsaiDeliveryAsync {
+		return nil, fmt.Errorf("%w: upstream replyType must be async", ErrGrsaiInvalidRequest)
+	}
+	targetURL, err := buildGrsaiEndpointURL(baseURL, grsaiGeneratePath)
+	if err != nil {
+		return nil, err
+	}
+	return c.do(ctx, "generate", http.MethodPost, targetURL, apiKey, request.UpstreamBody, "")
 }
 
 // PrepareGrsaiGenerateBody validates the local protocol controls and fills the
@@ -365,6 +393,21 @@ func parseGrsaiUpstreamResult(httpStatus int, rawBody []byte, apiKey string) (*G
 	data := rawJSONObject(root["data"])
 	result.TaskID = firstRawScalar(root, data, "id", "taskId", "task_id")
 	result.Status = normalizeGrsaiStatus(firstRawScalar(root, data, "status", "state"))
+	for _, object := range []map[string]json.RawMessage{root, data} {
+		var images []struct {
+			URL string `json:"url"`
+		}
+		if json.Unmarshal(object["results"], &images) == nil {
+			for _, image := range images {
+				if image.URL != "" {
+					result.ImageURLs = append(result.ImageURLs, image.URL)
+				}
+			}
+			if len(result.ImageURLs) > 0 {
+				break
+			}
+		}
+	}
 	result.ErrorCode, result.ErrorMessage = parseGrsaiError(root, data, result.Status, httpStatus, apiKey)
 
 	if httpStatus >= http.StatusOK && httpStatus < http.StatusMultipleChoices && result.Status == "" {
@@ -483,3 +526,4 @@ func normalizeGrsaiStatus(status string) string {
 }
 
 var _ GrsaiNativeClient = (*GrsaiNativeHTTPClient)(nil)
+var _ GrsaiAsyncNativeClient = (*GrsaiNativeHTTPClient)(nil)
