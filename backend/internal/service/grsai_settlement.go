@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -33,6 +34,7 @@ var (
 	ErrGrsaiSettlementInvalidState   = errors.New("invalid grsai settlement state")
 	ErrGrsaiSettlementClaimLost      = errors.New("grsai settlement claim lost")
 	ErrGrsaiSettlementPricingMissing = errors.New("grsai requires explicit flat image or per-request model pricing")
+	ErrGrsaiTaskWaitingLimit         = errors.New("grsai waiting task limit reached")
 )
 
 // These contracts live in service so the SQL repository can implement them
@@ -54,6 +56,21 @@ type CreateGrsaiSettlementParams struct {
 	UpstreamTaskID        *string
 	UpstreamStatus        string
 	NextAttemptAt         time.Time
+	LocalTaskID           string
+	DeliveryMode          string
+	PublicStatus          string
+	Progress              int
+	ResultJSON            []byte
+	LinkExpiresAt         *time.Time
+	ImageObjectMetadata   []byte
+	TaskVersion           int
+}
+
+type CreateV2GrsaiTaskParams struct {
+	CreateGrsaiSettlementParams
+	PayloadExpiresAt time.Time
+	UpstreamPayload  []byte
+	MaxWaiting       int
 }
 
 type GrsaiSettlement struct {
@@ -74,6 +91,15 @@ type GrsaiSettlement struct {
 	UpstreamTaskID        *string
 	UpstreamStatus        string
 	InternalStatus        string
+	LocalTaskID           *string
+	DeliveryMode          string
+	PublicStatus          string
+	Progress              int
+	ResultJSON            []byte
+	LinkExpiresAt         *time.Time
+	ImageObjectMetadata   []byte
+	TaskVersion           int
+	SubmissionAttempt     int
 	// RetryCount records worker claims, while SettlementRetryCount only records
 	// failed billing attempts. They must remain independent: a long-running
 	// upstream task can be polled many times before its first settlement retry.
@@ -134,6 +160,30 @@ type GrsaiSettlementRepository interface {
 	Settle(context.Context, int64, int64, float64, GrsaiSettlementTxFunc) (bool, error)
 	CloseNoCharge(context.Context, int64, int64, string) error
 	MarkManualReview(context.Context, int64, int64, string) error
+}
+
+type GrsaiV2TaskRepository interface {
+	CreateV2GrsaiTask(context.Context, CreateV2GrsaiTaskParams, GrsaiSettlementTxFunc) (*GrsaiSettlement, error)
+	ClaimDueV2(context.Context, time.Time, int, time.Time, int) ([]*GrsaiSettlement, error)
+	BindV2UpstreamTask(context.Context, int64, int64, string) (bool, error)
+	UpdateV2Progress(context.Context, int64, int64, string, int, time.Time) (bool, error)
+	DeferV2Failure(context.Context, int64, int64, time.Time) (bool, error)
+	MarkV2ManualReview(context.Context, int64, int64, string) (bool, error)
+	CompleteV2(context.Context, int64, int64, []byte, []byte, *time.Time, float64, GrsaiSettlementTxFunc) (bool, error)
+	FailV2(context.Context, int64, int64, string, string, GrsaiSettlementTxFunc) (bool, error)
+	GetOwnedV2(context.Context, int64, int64, string) (*GrsaiSettlement, error)
+	ListOwnedV2(context.Context, int64, int64, int, int) ([]*GrsaiSettlement, error)
+}
+
+type GrsaiTaskPayloadRepository interface {
+	PutEncrypted(context.Context, string, []byte, time.Time) error
+	GetDecrypted(context.Context, string, int64) ([]byte, error)
+	DeleteByTaskID(context.Context, string) error
+	DeleteExpired(context.Context, time.Time) error
+}
+
+func NewGrsaiLocalTaskID() string {
+	return "grsai_" + uuid.NewString()
 }
 
 // UsageBillingTransactionalRepository is an optional extension implemented by
