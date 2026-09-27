@@ -1,5 +1,10 @@
 # GRS.AI 三种下游交付方式 Implementation Plan
 
+> **已失效，禁止执行。** 2026-09-24 起以
+> `../specs/2026-09-24-grsai-durable-delivery-prd.md` 和
+> `../specs/2026-09-24-grsai-durable-delivery-design.md` 为准；本计划的上游
+> Stream、逐帧透传、公开上游 ID 与无 ID 人工核查仅为历史参考。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (- [ ]) syntax for tracking.
 
 **Goal:** 为 GRS.AI 原生图片接口提供 json、stream、async 三种下游交付方式，以及可恢复任务查询、额度冻结和成功后一次结算。
@@ -702,4 +707,3 @@ Plan complete and saved to docs/superpowers/plans/2026-09-21-grsai-delivery-mode
 2. **Inline Execution** — execute tasks in this session using executing-plans, in batches with checkpoints.
 
 Which approach?
-

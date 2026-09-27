@@ -77,6 +77,7 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		&service.BatchImageCleanupService{},
 		nil, // batchImageWorker
 		nil, // grsaiSettlementRecovery
+		nil, // grsaiTaskRuntime
 		pricingSvc,
 		emailQueueSvc,
 		billingCacheSvc,
