@@ -20,6 +20,10 @@ type GrsaiTaskImagePersister interface {
 	PersistGrsaiImages(context.Context, string, *GrsaiUpstreamResult) (*GrsaiStoredResult, error)
 }
 
+type GrsaiTaskVideoPersister interface {
+	PersistGrsaiVideo(context.Context, string, *GrsaiUpstreamResult) (*GrsaiStoredResult, error)
+}
+
 type GrsaiTaskRuntimeOptions struct {
 	Enabled           bool
 	ScanInterval      time.Duration
@@ -34,6 +38,7 @@ type GrsaiTaskRuntime struct {
 	accounts  GrsaiSettlementAccountReader
 	upstream  GrsaiTaskUpstream
 	images    GrsaiTaskImagePersister
+	videos    GrsaiTaskVideoPersister
 	balance   GrsaiBalanceHoldRepository
 	usageLogs UsageLogRepository
 	opts      GrsaiTaskRuntimeOptions
@@ -41,6 +46,11 @@ type GrsaiTaskRuntime struct {
 	mu        sync.Mutex
 	cancel    context.CancelFunc
 	done      chan struct{}
+}
+
+func (r *GrsaiTaskRuntime) WithVideos(p GrsaiTaskVideoPersister) *GrsaiTaskRuntime {
+	r.videos = p
+	return r
 }
 
 func (r *GrsaiTaskRuntime) WithUsageLogs(repo UsageLogRepository) *GrsaiTaskRuntime {
@@ -190,12 +200,27 @@ func (r *GrsaiTaskRuntime) processClaim(ctx context.Context, claim *GrsaiSettlem
 	}
 	switch result.Status {
 	case GrsaiUpstreamStatusSucceeded:
-		stored, err := r.images.PersistGrsaiImages(ctx, *claim.LocalTaskID, result)
+		var stored *GrsaiStoredResult
+		var err error
+		switch claim.MediaKind {
+		case "video":
+			if r.videos == nil {
+				return r.manualReview(ctx, claim, "video_storage_unavailable")
+			}
+			stored, err = r.videos.PersistGrsaiVideo(ctx, *claim.LocalTaskID, result)
+		case "", "image":
+			stored, err = r.images.PersistGrsaiImages(ctx, *claim.LocalTaskID, result)
+		default:
+			return r.manualReview(ctx, claim, "unsupported_media_kind")
+		}
 		if err != nil {
 			if retryErr := r.deferFailure(ctx, claim, "result_persistence_failed"); retryErr != nil {
 				return retryErr
 			}
-			return err
+			return errors.New("grsai result persistence failed")
+		}
+		if stored == nil || (claim.MediaKind == "video" && stored.ResultCount <= 0) {
+			return r.deferFailure(ctx, claim, "empty_stored_result")
 		}
 		amount, err := GrsaiTaskHoldAmount(claim)
 		if err != nil {
@@ -235,9 +260,6 @@ func (r *GrsaiTaskRuntime) recordUsage(claim *GrsaiSettlement, amount float64, r
 		baseCost = claim.BaseUnitPrice * float64(claim.VideoDurationSeconds)
 		imageCount = 0
 		videoCount = resultCount
-		if videoCount <= 0 {
-			videoCount = 1
-		}
 		videoDuration = &claim.VideoDurationSeconds
 		videoResolution = &claim.VideoResolution
 	}
@@ -253,6 +275,10 @@ func (r *GrsaiTaskRuntime) recordUsage(claim *GrsaiSettlement, amount float64, r
 		AccountRateMultiplier: &claim.AccountRateMultiplier,
 		BillingType:           BillingTypeBalance, RequestType: requestType, BillingMode: &mode,
 		InboundEndpoint: &endpoint, UpstreamEndpoint: &endpoint, CreatedAt: r.now()}
+	if claim.MediaKind == "video" {
+		usage.ImageSize = nil
+		usage.ImageOutputCost = 0
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	writeUsageLogBestEffort(ctx, r.usageLogs, usage, "service.grsai_task_runtime")

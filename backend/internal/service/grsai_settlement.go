@@ -591,6 +591,10 @@ func grsaiBillingCommand(record *GrsaiSettlement) (*UsageBillingCommand, error) 
 		UserID: record.UserID, AccountID: record.AccountID, AccountType: AccountTypeAPIKey, Model: record.Model,
 		BillingType: BillingTypeBalance, ImageCount: record.RequestedImageCount, MediaType: "image",
 		BalanceCost: amount, APIKeyQuotaCost: amount, APIKeyRateLimitCost: amount, AccountQuotaCost: accountCost}
+	if record.MediaKind == "video" {
+		cmd.MediaType = "video"
+		cmd.ImageCount = 0
+	}
 	cmd.Normalize()
 	return cmd, nil
 }
@@ -618,6 +622,10 @@ func (s *GrsaiSettlementService) recordUsage(ctx context.Context, record *GrsaiS
 		RateMultiplier: record.GroupRateMultiplier, AccountRateMultiplier: &record.AccountRateMultiplier,
 		BillingType: BillingTypeBalance, RequestType: RequestTypeSync, BillingMode: &mode,
 		InboundEndpoint: &endpoint, UpstreamEndpoint: &endpoint, CreatedAt: time.Now()}
+	if record.MediaKind == "video" {
+		usage.ImageSize = nil
+		usage.ImageOutputCost = 0
+	}
 	writeUsageLogBestEffort(ctx, s.UsageLogRepo, usage, "service.grsai_settlement")
 }
 
