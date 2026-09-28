@@ -176,6 +176,3 @@ class GrsaiSub2APIVideoTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-
