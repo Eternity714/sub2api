@@ -233,6 +233,55 @@ func (_u *GrsaiSettlementUpdate) AddRequestedImageCount(v int) *GrsaiSettlementU
 	return _u
 }
 
+// SetMediaKind sets the "media_kind" field.
+func (_u *GrsaiSettlementUpdate) SetMediaKind(v string) *GrsaiSettlementUpdate {
+	_u.mutation.SetMediaKind(v)
+	return _u
+}
+
+// SetNillableMediaKind sets the "media_kind" field if the given value is not nil.
+func (_u *GrsaiSettlementUpdate) SetNillableMediaKind(v *string) *GrsaiSettlementUpdate {
+	if v != nil {
+		_u.SetMediaKind(*v)
+	}
+	return _u
+}
+
+// SetVideoDurationSeconds sets the "video_duration_seconds" field.
+func (_u *GrsaiSettlementUpdate) SetVideoDurationSeconds(v int) *GrsaiSettlementUpdate {
+	_u.mutation.ResetVideoDurationSeconds()
+	_u.mutation.SetVideoDurationSeconds(v)
+	return _u
+}
+
+// SetNillableVideoDurationSeconds sets the "video_duration_seconds" field if the given value is not nil.
+func (_u *GrsaiSettlementUpdate) SetNillableVideoDurationSeconds(v *int) *GrsaiSettlementUpdate {
+	if v != nil {
+		_u.SetVideoDurationSeconds(*v)
+	}
+	return _u
+}
+
+// AddVideoDurationSeconds adds value to the "video_duration_seconds" field.
+func (_u *GrsaiSettlementUpdate) AddVideoDurationSeconds(v int) *GrsaiSettlementUpdate {
+	_u.mutation.AddVideoDurationSeconds(v)
+	return _u
+}
+
+// SetVideoResolution sets the "video_resolution" field.
+func (_u *GrsaiSettlementUpdate) SetVideoResolution(v string) *GrsaiSettlementUpdate {
+	_u.mutation.SetVideoResolution(v)
+	return _u
+}
+
+// SetNillableVideoResolution sets the "video_resolution" field if the given value is not nil.
+func (_u *GrsaiSettlementUpdate) SetNillableVideoResolution(v *string) *GrsaiSettlementUpdate {
+	if v != nil {
+		_u.SetVideoResolution(*v)
+	}
+	return _u
+}
+
 // SetCurrency sets the "currency" field.
 func (_u *GrsaiSettlementUpdate) SetCurrency(v string) *GrsaiSettlementUpdate {
 	_u.mutation.SetCurrency(v)
@@ -720,6 +769,16 @@ func (_u *GrsaiSettlementUpdate) check() error {
 			return &ValidationError{Name: "model", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.model": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.MediaKind(); ok {
+		if err := grsaisettlement.MediaKindValidator(v); err != nil {
+			return &ValidationError{Name: "media_kind", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.media_kind": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.VideoResolution(); ok {
+		if err := grsaisettlement.VideoResolutionValidator(v); err != nil {
+			return &ValidationError{Name: "video_resolution", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.video_resolution": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Currency(); ok {
 		if err := grsaisettlement.CurrencyValidator(v); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.currency": %w`, err)}
@@ -831,6 +890,18 @@ func (_u *GrsaiSettlementUpdate) sqlSave(ctx context.Context) (_node int, err er
 	}
 	if value, ok := _u.mutation.AddedRequestedImageCount(); ok {
 		_spec.AddField(grsaisettlement.FieldRequestedImageCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.MediaKind(); ok {
+		_spec.SetField(grsaisettlement.FieldMediaKind, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.VideoDurationSeconds(); ok {
+		_spec.SetField(grsaisettlement.FieldVideoDurationSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedVideoDurationSeconds(); ok {
+		_spec.AddField(grsaisettlement.FieldVideoDurationSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.VideoResolution(); ok {
+		_spec.SetField(grsaisettlement.FieldVideoResolution, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Currency(); ok {
 		_spec.SetField(grsaisettlement.FieldCurrency, field.TypeString, value)
@@ -1188,6 +1259,55 @@ func (_u *GrsaiSettlementUpdateOne) SetNillableRequestedImageCount(v *int) *Grsa
 // AddRequestedImageCount adds value to the "requested_image_count" field.
 func (_u *GrsaiSettlementUpdateOne) AddRequestedImageCount(v int) *GrsaiSettlementUpdateOne {
 	_u.mutation.AddRequestedImageCount(v)
+	return _u
+}
+
+// SetMediaKind sets the "media_kind" field.
+func (_u *GrsaiSettlementUpdateOne) SetMediaKind(v string) *GrsaiSettlementUpdateOne {
+	_u.mutation.SetMediaKind(v)
+	return _u
+}
+
+// SetNillableMediaKind sets the "media_kind" field if the given value is not nil.
+func (_u *GrsaiSettlementUpdateOne) SetNillableMediaKind(v *string) *GrsaiSettlementUpdateOne {
+	if v != nil {
+		_u.SetMediaKind(*v)
+	}
+	return _u
+}
+
+// SetVideoDurationSeconds sets the "video_duration_seconds" field.
+func (_u *GrsaiSettlementUpdateOne) SetVideoDurationSeconds(v int) *GrsaiSettlementUpdateOne {
+	_u.mutation.ResetVideoDurationSeconds()
+	_u.mutation.SetVideoDurationSeconds(v)
+	return _u
+}
+
+// SetNillableVideoDurationSeconds sets the "video_duration_seconds" field if the given value is not nil.
+func (_u *GrsaiSettlementUpdateOne) SetNillableVideoDurationSeconds(v *int) *GrsaiSettlementUpdateOne {
+	if v != nil {
+		_u.SetVideoDurationSeconds(*v)
+	}
+	return _u
+}
+
+// AddVideoDurationSeconds adds value to the "video_duration_seconds" field.
+func (_u *GrsaiSettlementUpdateOne) AddVideoDurationSeconds(v int) *GrsaiSettlementUpdateOne {
+	_u.mutation.AddVideoDurationSeconds(v)
+	return _u
+}
+
+// SetVideoResolution sets the "video_resolution" field.
+func (_u *GrsaiSettlementUpdateOne) SetVideoResolution(v string) *GrsaiSettlementUpdateOne {
+	_u.mutation.SetVideoResolution(v)
+	return _u
+}
+
+// SetNillableVideoResolution sets the "video_resolution" field if the given value is not nil.
+func (_u *GrsaiSettlementUpdateOne) SetNillableVideoResolution(v *string) *GrsaiSettlementUpdateOne {
+	if v != nil {
+		_u.SetVideoResolution(*v)
+	}
 	return _u
 }
 
@@ -1691,6 +1811,16 @@ func (_u *GrsaiSettlementUpdateOne) check() error {
 			return &ValidationError{Name: "model", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.model": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.MediaKind(); ok {
+		if err := grsaisettlement.MediaKindValidator(v); err != nil {
+			return &ValidationError{Name: "media_kind", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.media_kind": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.VideoResolution(); ok {
+		if err := grsaisettlement.VideoResolutionValidator(v); err != nil {
+			return &ValidationError{Name: "video_resolution", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.video_resolution": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Currency(); ok {
 		if err := grsaisettlement.CurrencyValidator(v); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.currency": %w`, err)}
@@ -1819,6 +1949,18 @@ func (_u *GrsaiSettlementUpdateOne) sqlSave(ctx context.Context) (_node *GrsaiSe
 	}
 	if value, ok := _u.mutation.AddedRequestedImageCount(); ok {
 		_spec.AddField(grsaisettlement.FieldRequestedImageCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.MediaKind(); ok {
+		_spec.SetField(grsaisettlement.FieldMediaKind, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.VideoDurationSeconds(); ok {
+		_spec.SetField(grsaisettlement.FieldVideoDurationSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedVideoDurationSeconds(); ok {
+		_spec.AddField(grsaisettlement.FieldVideoDurationSeconds, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.VideoResolution(); ok {
+		_spec.SetField(grsaisettlement.FieldVideoResolution, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Currency(); ok {
 		_spec.SetField(grsaisettlement.FieldCurrency, field.TypeString, value)

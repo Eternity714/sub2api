@@ -104,6 +104,21 @@ func RequestedImageCount(v int) predicate.GrsaiSettlement {
 	return predicate.GrsaiSettlement(sql.FieldEQ(FieldRequestedImageCount, v))
 }
 
+// MediaKind applies equality check predicate on the "media_kind" field. It's identical to MediaKindEQ.
+func MediaKind(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldEQ(FieldMediaKind, v))
+}
+
+// VideoDurationSeconds applies equality check predicate on the "video_duration_seconds" field. It's identical to VideoDurationSecondsEQ.
+func VideoDurationSeconds(v int) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldEQ(FieldVideoDurationSeconds, v))
+}
+
+// VideoResolution applies equality check predicate on the "video_resolution" field. It's identical to VideoResolutionEQ.
+func VideoResolution(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldEQ(FieldVideoResolution, v))
+}
+
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
 func Currency(v string) predicate.GrsaiSettlement {
 	return predicate.GrsaiSettlement(sql.FieldEQ(FieldCurrency, v))
@@ -647,6 +662,176 @@ func RequestedImageCountLT(v int) predicate.GrsaiSettlement {
 // RequestedImageCountLTE applies the LTE predicate on the "requested_image_count" field.
 func RequestedImageCountLTE(v int) predicate.GrsaiSettlement {
 	return predicate.GrsaiSettlement(sql.FieldLTE(FieldRequestedImageCount, v))
+}
+
+// MediaKindEQ applies the EQ predicate on the "media_kind" field.
+func MediaKindEQ(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldEQ(FieldMediaKind, v))
+}
+
+// MediaKindNEQ applies the NEQ predicate on the "media_kind" field.
+func MediaKindNEQ(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldNEQ(FieldMediaKind, v))
+}
+
+// MediaKindIn applies the In predicate on the "media_kind" field.
+func MediaKindIn(vs ...string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldIn(FieldMediaKind, vs...))
+}
+
+// MediaKindNotIn applies the NotIn predicate on the "media_kind" field.
+func MediaKindNotIn(vs ...string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldNotIn(FieldMediaKind, vs...))
+}
+
+// MediaKindGT applies the GT predicate on the "media_kind" field.
+func MediaKindGT(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldGT(FieldMediaKind, v))
+}
+
+// MediaKindGTE applies the GTE predicate on the "media_kind" field.
+func MediaKindGTE(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldGTE(FieldMediaKind, v))
+}
+
+// MediaKindLT applies the LT predicate on the "media_kind" field.
+func MediaKindLT(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldLT(FieldMediaKind, v))
+}
+
+// MediaKindLTE applies the LTE predicate on the "media_kind" field.
+func MediaKindLTE(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldLTE(FieldMediaKind, v))
+}
+
+// MediaKindContains applies the Contains predicate on the "media_kind" field.
+func MediaKindContains(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldContains(FieldMediaKind, v))
+}
+
+// MediaKindHasPrefix applies the HasPrefix predicate on the "media_kind" field.
+func MediaKindHasPrefix(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldHasPrefix(FieldMediaKind, v))
+}
+
+// MediaKindHasSuffix applies the HasSuffix predicate on the "media_kind" field.
+func MediaKindHasSuffix(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldHasSuffix(FieldMediaKind, v))
+}
+
+// MediaKindEqualFold applies the EqualFold predicate on the "media_kind" field.
+func MediaKindEqualFold(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldEqualFold(FieldMediaKind, v))
+}
+
+// MediaKindContainsFold applies the ContainsFold predicate on the "media_kind" field.
+func MediaKindContainsFold(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldContainsFold(FieldMediaKind, v))
+}
+
+// VideoDurationSecondsEQ applies the EQ predicate on the "video_duration_seconds" field.
+func VideoDurationSecondsEQ(v int) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldEQ(FieldVideoDurationSeconds, v))
+}
+
+// VideoDurationSecondsNEQ applies the NEQ predicate on the "video_duration_seconds" field.
+func VideoDurationSecondsNEQ(v int) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldNEQ(FieldVideoDurationSeconds, v))
+}
+
+// VideoDurationSecondsIn applies the In predicate on the "video_duration_seconds" field.
+func VideoDurationSecondsIn(vs ...int) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldIn(FieldVideoDurationSeconds, vs...))
+}
+
+// VideoDurationSecondsNotIn applies the NotIn predicate on the "video_duration_seconds" field.
+func VideoDurationSecondsNotIn(vs ...int) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldNotIn(FieldVideoDurationSeconds, vs...))
+}
+
+// VideoDurationSecondsGT applies the GT predicate on the "video_duration_seconds" field.
+func VideoDurationSecondsGT(v int) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldGT(FieldVideoDurationSeconds, v))
+}
+
+// VideoDurationSecondsGTE applies the GTE predicate on the "video_duration_seconds" field.
+func VideoDurationSecondsGTE(v int) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldGTE(FieldVideoDurationSeconds, v))
+}
+
+// VideoDurationSecondsLT applies the LT predicate on the "video_duration_seconds" field.
+func VideoDurationSecondsLT(v int) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldLT(FieldVideoDurationSeconds, v))
+}
+
+// VideoDurationSecondsLTE applies the LTE predicate on the "video_duration_seconds" field.
+func VideoDurationSecondsLTE(v int) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldLTE(FieldVideoDurationSeconds, v))
+}
+
+// VideoResolutionEQ applies the EQ predicate on the "video_resolution" field.
+func VideoResolutionEQ(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldEQ(FieldVideoResolution, v))
+}
+
+// VideoResolutionNEQ applies the NEQ predicate on the "video_resolution" field.
+func VideoResolutionNEQ(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldNEQ(FieldVideoResolution, v))
+}
+
+// VideoResolutionIn applies the In predicate on the "video_resolution" field.
+func VideoResolutionIn(vs ...string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldIn(FieldVideoResolution, vs...))
+}
+
+// VideoResolutionNotIn applies the NotIn predicate on the "video_resolution" field.
+func VideoResolutionNotIn(vs ...string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldNotIn(FieldVideoResolution, vs...))
+}
+
+// VideoResolutionGT applies the GT predicate on the "video_resolution" field.
+func VideoResolutionGT(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldGT(FieldVideoResolution, v))
+}
+
+// VideoResolutionGTE applies the GTE predicate on the "video_resolution" field.
+func VideoResolutionGTE(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldGTE(FieldVideoResolution, v))
+}
+
+// VideoResolutionLT applies the LT predicate on the "video_resolution" field.
+func VideoResolutionLT(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldLT(FieldVideoResolution, v))
+}
+
+// VideoResolutionLTE applies the LTE predicate on the "video_resolution" field.
+func VideoResolutionLTE(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldLTE(FieldVideoResolution, v))
+}
+
+// VideoResolutionContains applies the Contains predicate on the "video_resolution" field.
+func VideoResolutionContains(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldContains(FieldVideoResolution, v))
+}
+
+// VideoResolutionHasPrefix applies the HasPrefix predicate on the "video_resolution" field.
+func VideoResolutionHasPrefix(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldHasPrefix(FieldVideoResolution, v))
+}
+
+// VideoResolutionHasSuffix applies the HasSuffix predicate on the "video_resolution" field.
+func VideoResolutionHasSuffix(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldHasSuffix(FieldVideoResolution, v))
+}
+
+// VideoResolutionEqualFold applies the EqualFold predicate on the "video_resolution" field.
+func VideoResolutionEqualFold(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldEqualFold(FieldVideoResolution, v))
+}
+
+// VideoResolutionContainsFold applies the ContainsFold predicate on the "video_resolution" field.
+func VideoResolutionContainsFold(v string) predicate.GrsaiSettlement {
+	return predicate.GrsaiSettlement(sql.FieldContainsFold(FieldVideoResolution, v))
 }
 
 // CurrencyEQ applies the EQ predicate on the "currency" field.

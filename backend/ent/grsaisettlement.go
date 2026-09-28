@@ -39,6 +39,12 @@ type GrsaiSettlement struct {
 	BillableUnitPrice float64 `json:"billable_unit_price,omitempty"`
 	// RequestedImageCount holds the value of the "requested_image_count" field.
 	RequestedImageCount int `json:"requested_image_count,omitempty"`
+	// MediaKind holds the value of the "media_kind" field.
+	MediaKind string `json:"media_kind,omitempty"`
+	// VideoDurationSeconds holds the value of the "video_duration_seconds" field.
+	VideoDurationSeconds int `json:"video_duration_seconds,omitempty"`
+	// VideoResolution holds the value of the "video_resolution" field.
+	VideoResolution string `json:"video_resolution,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency string `json:"currency,omitempty"`
 	// BillingIdempotencyKey holds the value of the "billing_idempotency_key" field.
@@ -103,9 +109,9 @@ func (*GrsaiSettlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case grsaisettlement.FieldBaseUnitPrice, grsaisettlement.FieldGroupRateMultiplier, grsaisettlement.FieldAccountRateMultiplier, grsaisettlement.FieldBillableUnitPrice, grsaisettlement.FieldSettledAmount:
 			values[i] = new(sql.NullFloat64)
-		case grsaisettlement.FieldID, grsaisettlement.FieldAccountID, grsaisettlement.FieldGroupID, grsaisettlement.FieldUserID, grsaisettlement.FieldAPIKeyID, grsaisettlement.FieldRequestedImageCount, grsaisettlement.FieldProgress, grsaisettlement.FieldTaskVersion, grsaisettlement.FieldSubmissionAttempt, grsaisettlement.FieldRetryCount, grsaisettlement.FieldSettlementRetryCount, grsaisettlement.FieldClaimVersion:
+		case grsaisettlement.FieldID, grsaisettlement.FieldAccountID, grsaisettlement.FieldGroupID, grsaisettlement.FieldUserID, grsaisettlement.FieldAPIKeyID, grsaisettlement.FieldRequestedImageCount, grsaisettlement.FieldVideoDurationSeconds, grsaisettlement.FieldProgress, grsaisettlement.FieldTaskVersion, grsaisettlement.FieldSubmissionAttempt, grsaisettlement.FieldRetryCount, grsaisettlement.FieldSettlementRetryCount, grsaisettlement.FieldClaimVersion:
 			values[i] = new(sql.NullInt64)
-		case grsaisettlement.FieldModel, grsaisettlement.FieldCurrency, grsaisettlement.FieldBillingIdempotencyKey, grsaisettlement.FieldUpstreamTaskID, grsaisettlement.FieldUpstreamStatus, grsaisettlement.FieldInternalStatus, grsaisettlement.FieldLocalTaskID, grsaisettlement.FieldDeliveryMode, grsaisettlement.FieldPublicStatus, grsaisettlement.FieldLastErrorSummary:
+		case grsaisettlement.FieldModel, grsaisettlement.FieldMediaKind, grsaisettlement.FieldVideoResolution, grsaisettlement.FieldCurrency, grsaisettlement.FieldBillingIdempotencyKey, grsaisettlement.FieldUpstreamTaskID, grsaisettlement.FieldUpstreamStatus, grsaisettlement.FieldInternalStatus, grsaisettlement.FieldLocalTaskID, grsaisettlement.FieldDeliveryMode, grsaisettlement.FieldPublicStatus, grsaisettlement.FieldLastErrorSummary:
 			values[i] = new(sql.NullString)
 		case grsaisettlement.FieldLinkExpiresAt, grsaisettlement.FieldNextAttemptAt, grsaisettlement.FieldCreatedAt, grsaisettlement.FieldUpdatedAt, grsaisettlement.FieldUpstreamBoundAt, grsaisettlement.FieldResultUpdatedAt, grsaisettlement.FieldSettledAt, grsaisettlement.FieldClosedAt:
 			values[i] = new(sql.NullTime)
@@ -189,6 +195,24 @@ func (_m *GrsaiSettlement) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field requested_image_count", values[i])
 			} else if value.Valid {
 				_m.RequestedImageCount = int(value.Int64)
+			}
+		case grsaisettlement.FieldMediaKind:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field media_kind", values[i])
+			} else if value.Valid {
+				_m.MediaKind = value.String
+			}
+		case grsaisettlement.FieldVideoDurationSeconds:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field video_duration_seconds", values[i])
+			} else if value.Valid {
+				_m.VideoDurationSeconds = int(value.Int64)
+			}
+		case grsaisettlement.FieldVideoResolution:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field video_resolution", values[i])
+			} else if value.Valid {
+				_m.VideoResolution = value.String
 			}
 		case grsaisettlement.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -424,6 +448,15 @@ func (_m *GrsaiSettlement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("requested_image_count=")
 	builder.WriteString(fmt.Sprintf("%v", _m.RequestedImageCount))
+	builder.WriteString(", ")
+	builder.WriteString("media_kind=")
+	builder.WriteString(_m.MediaKind)
+	builder.WriteString(", ")
+	builder.WriteString("video_duration_seconds=")
+	builder.WriteString(fmt.Sprintf("%v", _m.VideoDurationSeconds))
+	builder.WriteString(", ")
+	builder.WriteString("video_resolution=")
+	builder.WriteString(_m.VideoResolution)
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(_m.Currency)

@@ -83,6 +83,48 @@ func (_c *GrsaiSettlementCreate) SetRequestedImageCount(v int) *GrsaiSettlementC
 	return _c
 }
 
+// SetMediaKind sets the "media_kind" field.
+func (_c *GrsaiSettlementCreate) SetMediaKind(v string) *GrsaiSettlementCreate {
+	_c.mutation.SetMediaKind(v)
+	return _c
+}
+
+// SetNillableMediaKind sets the "media_kind" field if the given value is not nil.
+func (_c *GrsaiSettlementCreate) SetNillableMediaKind(v *string) *GrsaiSettlementCreate {
+	if v != nil {
+		_c.SetMediaKind(*v)
+	}
+	return _c
+}
+
+// SetVideoDurationSeconds sets the "video_duration_seconds" field.
+func (_c *GrsaiSettlementCreate) SetVideoDurationSeconds(v int) *GrsaiSettlementCreate {
+	_c.mutation.SetVideoDurationSeconds(v)
+	return _c
+}
+
+// SetNillableVideoDurationSeconds sets the "video_duration_seconds" field if the given value is not nil.
+func (_c *GrsaiSettlementCreate) SetNillableVideoDurationSeconds(v *int) *GrsaiSettlementCreate {
+	if v != nil {
+		_c.SetVideoDurationSeconds(*v)
+	}
+	return _c
+}
+
+// SetVideoResolution sets the "video_resolution" field.
+func (_c *GrsaiSettlementCreate) SetVideoResolution(v string) *GrsaiSettlementCreate {
+	_c.mutation.SetVideoResolution(v)
+	return _c
+}
+
+// SetNillableVideoResolution sets the "video_resolution" field if the given value is not nil.
+func (_c *GrsaiSettlementCreate) SetNillableVideoResolution(v *string) *GrsaiSettlementCreate {
+	if v != nil {
+		_c.SetVideoResolution(*v)
+	}
+	return _c
+}
+
 // SetCurrency sets the "currency" field.
 func (_c *GrsaiSettlementCreate) SetCurrency(v string) *GrsaiSettlementCreate {
 	_c.mutation.SetCurrency(v)
@@ -450,6 +492,18 @@ func (_c *GrsaiSettlementCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *GrsaiSettlementCreate) defaults() {
+	if _, ok := _c.mutation.MediaKind(); !ok {
+		v := grsaisettlement.DefaultMediaKind
+		_c.mutation.SetMediaKind(v)
+	}
+	if _, ok := _c.mutation.VideoDurationSeconds(); !ok {
+		v := grsaisettlement.DefaultVideoDurationSeconds
+		_c.mutation.SetVideoDurationSeconds(v)
+	}
+	if _, ok := _c.mutation.VideoResolution(); !ok {
+		v := grsaisettlement.DefaultVideoResolution
+		_c.mutation.SetVideoResolution(v)
+	}
 	if _, ok := _c.mutation.Currency(); !ok {
 		v := grsaisettlement.DefaultCurrency
 		_c.mutation.SetCurrency(v)
@@ -540,6 +594,25 @@ func (_c *GrsaiSettlementCreate) check() error {
 	}
 	if _, ok := _c.mutation.RequestedImageCount(); !ok {
 		return &ValidationError{Name: "requested_image_count", err: errors.New(`ent: missing required field "GrsaiSettlement.requested_image_count"`)}
+	}
+	if _, ok := _c.mutation.MediaKind(); !ok {
+		return &ValidationError{Name: "media_kind", err: errors.New(`ent: missing required field "GrsaiSettlement.media_kind"`)}
+	}
+	if v, ok := _c.mutation.MediaKind(); ok {
+		if err := grsaisettlement.MediaKindValidator(v); err != nil {
+			return &ValidationError{Name: "media_kind", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.media_kind": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.VideoDurationSeconds(); !ok {
+		return &ValidationError{Name: "video_duration_seconds", err: errors.New(`ent: missing required field "GrsaiSettlement.video_duration_seconds"`)}
+	}
+	if _, ok := _c.mutation.VideoResolution(); !ok {
+		return &ValidationError{Name: "video_resolution", err: errors.New(`ent: missing required field "GrsaiSettlement.video_resolution"`)}
+	}
+	if v, ok := _c.mutation.VideoResolution(); ok {
+		if err := grsaisettlement.VideoResolutionValidator(v); err != nil {
+			return &ValidationError{Name: "video_resolution", err: fmt.Errorf(`ent: validator failed for field "GrsaiSettlement.video_resolution": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`ent: missing required field "GrsaiSettlement.currency"`)}
@@ -697,6 +770,18 @@ func (_c *GrsaiSettlementCreate) createSpec() (*GrsaiSettlement, *sqlgraph.Creat
 	if value, ok := _c.mutation.RequestedImageCount(); ok {
 		_spec.SetField(grsaisettlement.FieldRequestedImageCount, field.TypeInt, value)
 		_node.RequestedImageCount = value
+	}
+	if value, ok := _c.mutation.MediaKind(); ok {
+		_spec.SetField(grsaisettlement.FieldMediaKind, field.TypeString, value)
+		_node.MediaKind = value
+	}
+	if value, ok := _c.mutation.VideoDurationSeconds(); ok {
+		_spec.SetField(grsaisettlement.FieldVideoDurationSeconds, field.TypeInt, value)
+		_node.VideoDurationSeconds = value
+	}
+	if value, ok := _c.mutation.VideoResolution(); ok {
+		_spec.SetField(grsaisettlement.FieldVideoResolution, field.TypeString, value)
+		_node.VideoResolution = value
 	}
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(grsaisettlement.FieldCurrency, field.TypeString, value)
@@ -1025,6 +1110,48 @@ func (u *GrsaiSettlementUpsert) UpdateRequestedImageCount() *GrsaiSettlementUpse
 // AddRequestedImageCount adds v to the "requested_image_count" field.
 func (u *GrsaiSettlementUpsert) AddRequestedImageCount(v int) *GrsaiSettlementUpsert {
 	u.Add(grsaisettlement.FieldRequestedImageCount, v)
+	return u
+}
+
+// SetMediaKind sets the "media_kind" field.
+func (u *GrsaiSettlementUpsert) SetMediaKind(v string) *GrsaiSettlementUpsert {
+	u.Set(grsaisettlement.FieldMediaKind, v)
+	return u
+}
+
+// UpdateMediaKind sets the "media_kind" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsert) UpdateMediaKind() *GrsaiSettlementUpsert {
+	u.SetExcluded(grsaisettlement.FieldMediaKind)
+	return u
+}
+
+// SetVideoDurationSeconds sets the "video_duration_seconds" field.
+func (u *GrsaiSettlementUpsert) SetVideoDurationSeconds(v int) *GrsaiSettlementUpsert {
+	u.Set(grsaisettlement.FieldVideoDurationSeconds, v)
+	return u
+}
+
+// UpdateVideoDurationSeconds sets the "video_duration_seconds" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsert) UpdateVideoDurationSeconds() *GrsaiSettlementUpsert {
+	u.SetExcluded(grsaisettlement.FieldVideoDurationSeconds)
+	return u
+}
+
+// AddVideoDurationSeconds adds v to the "video_duration_seconds" field.
+func (u *GrsaiSettlementUpsert) AddVideoDurationSeconds(v int) *GrsaiSettlementUpsert {
+	u.Add(grsaisettlement.FieldVideoDurationSeconds, v)
+	return u
+}
+
+// SetVideoResolution sets the "video_resolution" field.
+func (u *GrsaiSettlementUpsert) SetVideoResolution(v string) *GrsaiSettlementUpsert {
+	u.Set(grsaisettlement.FieldVideoResolution, v)
+	return u
+}
+
+// UpdateVideoResolution sets the "video_resolution" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsert) UpdateVideoResolution() *GrsaiSettlementUpsert {
+	u.SetExcluded(grsaisettlement.FieldVideoResolution)
 	return u
 }
 
@@ -1672,6 +1799,55 @@ func (u *GrsaiSettlementUpsertOne) AddRequestedImageCount(v int) *GrsaiSettlemen
 func (u *GrsaiSettlementUpsertOne) UpdateRequestedImageCount() *GrsaiSettlementUpsertOne {
 	return u.Update(func(s *GrsaiSettlementUpsert) {
 		s.UpdateRequestedImageCount()
+	})
+}
+
+// SetMediaKind sets the "media_kind" field.
+func (u *GrsaiSettlementUpsertOne) SetMediaKind(v string) *GrsaiSettlementUpsertOne {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.SetMediaKind(v)
+	})
+}
+
+// UpdateMediaKind sets the "media_kind" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsertOne) UpdateMediaKind() *GrsaiSettlementUpsertOne {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.UpdateMediaKind()
+	})
+}
+
+// SetVideoDurationSeconds sets the "video_duration_seconds" field.
+func (u *GrsaiSettlementUpsertOne) SetVideoDurationSeconds(v int) *GrsaiSettlementUpsertOne {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.SetVideoDurationSeconds(v)
+	})
+}
+
+// AddVideoDurationSeconds adds v to the "video_duration_seconds" field.
+func (u *GrsaiSettlementUpsertOne) AddVideoDurationSeconds(v int) *GrsaiSettlementUpsertOne {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.AddVideoDurationSeconds(v)
+	})
+}
+
+// UpdateVideoDurationSeconds sets the "video_duration_seconds" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsertOne) UpdateVideoDurationSeconds() *GrsaiSettlementUpsertOne {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.UpdateVideoDurationSeconds()
+	})
+}
+
+// SetVideoResolution sets the "video_resolution" field.
+func (u *GrsaiSettlementUpsertOne) SetVideoResolution(v string) *GrsaiSettlementUpsertOne {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.SetVideoResolution(v)
+	})
+}
+
+// UpdateVideoResolution sets the "video_resolution" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsertOne) UpdateVideoResolution() *GrsaiSettlementUpsertOne {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.UpdateVideoResolution()
 	})
 }
 
@@ -2551,6 +2727,55 @@ func (u *GrsaiSettlementUpsertBulk) AddRequestedImageCount(v int) *GrsaiSettleme
 func (u *GrsaiSettlementUpsertBulk) UpdateRequestedImageCount() *GrsaiSettlementUpsertBulk {
 	return u.Update(func(s *GrsaiSettlementUpsert) {
 		s.UpdateRequestedImageCount()
+	})
+}
+
+// SetMediaKind sets the "media_kind" field.
+func (u *GrsaiSettlementUpsertBulk) SetMediaKind(v string) *GrsaiSettlementUpsertBulk {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.SetMediaKind(v)
+	})
+}
+
+// UpdateMediaKind sets the "media_kind" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsertBulk) UpdateMediaKind() *GrsaiSettlementUpsertBulk {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.UpdateMediaKind()
+	})
+}
+
+// SetVideoDurationSeconds sets the "video_duration_seconds" field.
+func (u *GrsaiSettlementUpsertBulk) SetVideoDurationSeconds(v int) *GrsaiSettlementUpsertBulk {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.SetVideoDurationSeconds(v)
+	})
+}
+
+// AddVideoDurationSeconds adds v to the "video_duration_seconds" field.
+func (u *GrsaiSettlementUpsertBulk) AddVideoDurationSeconds(v int) *GrsaiSettlementUpsertBulk {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.AddVideoDurationSeconds(v)
+	})
+}
+
+// UpdateVideoDurationSeconds sets the "video_duration_seconds" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsertBulk) UpdateVideoDurationSeconds() *GrsaiSettlementUpsertBulk {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.UpdateVideoDurationSeconds()
+	})
+}
+
+// SetVideoResolution sets the "video_resolution" field.
+func (u *GrsaiSettlementUpsertBulk) SetVideoResolution(v string) *GrsaiSettlementUpsertBulk {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.SetVideoResolution(v)
+	})
+}
+
+// UpdateVideoResolution sets the "video_resolution" field to the value that was provided on create.
+func (u *GrsaiSettlementUpsertBulk) UpdateVideoResolution() *GrsaiSettlementUpsertBulk {
+	return u.Update(func(s *GrsaiSettlementUpsert) {
+		s.UpdateVideoResolution()
 	})
 }
 
