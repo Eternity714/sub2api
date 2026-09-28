@@ -18,7 +18,7 @@
 - 使用现有分组→渠道定价优先级；仅明确配置来源的 `BillingModeVideo` 可进入视频路径，不能依据 `minimax-h3` 字符串推断媒体类型；禁止回落到 LiteLLM、Grok 专属视频价格或缺档位时的平价。
 - 视频要求整数秒 `duration > 0`，有档位时须显式精确命中 `resolution`；`minimax-h3` 为 480p/768p/1080p、1–15 秒，1080p 不超过 10 秒。其他视频模型只校验通用计费字段与其已配置档位。
 - `prompt`、`aspectRatio`、`images`、`audios`、`seed` 和未来非控制字段以 `json.RawMessage` 透传；本地控制字段和价格内部元数据不能透传。
-- 基础费用 = 解析出的每秒单价 × 请求时长；再取现有用户/分组有效倍率或 `resolveVideoRateMultiplier` 的视频独立倍率，乘账号倍率，依现有 DECIMAL 精度存快照、冻结和结算。后续改价不追溯。
+- 单视频费用 = API Key 所在分组解析出的模型渠道每秒单价 × 请求 `duration` × 现有用户/分组有效倍率或 `resolveVideoRateMultiplier` 的视频独立倍率 × 账号倍率；最终总额 = 每个成功视频 URL 的费用之和。创建时按一份单视频费用预冻结，结果到达后按实际 URL 数算差额；依现有 DECIMAL 精度保存价格快照和最终金额，后续改价不追溯。差额余额不足的处理规则见下方待确认事项。
 - 上游原始视频 URL、任务 ID、提示词与鉴权材料不得进入公开视图或错误日志；`results[]` 中多个图片或视频 URL 按顺序逐项转存，任一项失败都不公开部分结果；全部转存、结果入库、冻结捕获同一终态事务完成后才公开成功。
 - 保留图片 v1/v2 的原有 SQL、结果 JSON、S3 图片下载上限及结算路径；新字段仅追加且有兼容默认值。视频用 `task_version=3`，旧编译版本的 v2 worker 只领取 `task_version=2`。
 - 失败/违规释放冻结；有上游 ID 只轮询结果，无 ID 的不确定提交不重发；客户端断线不取消 worker。视频对象写入必须有界、可重试、幂等且防止内网地址访问。
@@ -36,7 +36,7 @@
 | 任务终态、用量和对外视图 | `backend/internal/service/grsai_task_runtime.go`、`grsai_task_view.go`、`backend/internal/handler/grsai_delivery_handler.go` |
 | 分组开关文字 | `frontend/src/i18n/locales/zh/admin/overview.ts`、`frontend/src/i18n/locales/en/admin/overview.ts`；`GroupsView.vue` 仅当既有键无法在 GRS.AI 范围内显示时调整 |
 
-> `image_object_metadata` 列与旧图片调用方保持原名；视频对象元数据可按 `media_kind` 写入同列、在新 Go 领域对象中以中性名称表示。不要为了改名破坏旧 Ent 代码。`requested_image_count` 在视频行仍填 1 以满足旧 `NOT NULL` 约束，仅是内部兼容占位；视频金额严格乘 `video_duration_seconds`，视频用量的 `image_count` 不得记为 1。
+> `image_object_metadata` 列与旧图片调用方保持原名；视频对象元数据可按 `media_kind` 写入同列、在新 Go 领域对象中以中性名称表示。不要为了改名破坏旧 Ent 代码。`requested_image_count` 在视频行仍填 1 以满足旧 `NOT NULL` 约束，仅是内部兼容占位；视频最终金额按实际 `results[]` 数量 × 单视频费用，视频用量的 `image_count` 不得记为 1。
 
 ## 依赖和交付顺序
 
@@ -104,10 +104,11 @@ ALTER TABLE grsai_settlements
 - Modify: `backend/internal/service/grsai_balance_hold.go`、`grsai_balance_hold_test.go`、`grsai_task_service.go`、`grsai_task_service_test.go`、`backend/internal/repository/usage_billing_repo.go`、`grsai_gray_compatibility_test.go`
 
 **Interfaces:**
-- `GrsaiTaskHoldAmount(*GrsaiSettlement) (float64,error)`：图片 multiplier=`RequestedImageCount`，视频 multiplier=`VideoDurationSeconds`，取行内 `BillableUnitPrice`；复用同一 `local_task_id` 的 hold/capture/release 与 `GrsaiTaskUsageCommand`。
-- 视频 `BaseUnitPrice` 和 `BillableUnitPrice` 都表示“每秒价”；`grsai_balance_holds.amount` / `settled_amount` 表示总金额（保存 DECIMAL(20,8/10) 当前舍入边界）。
+- `GrsaiTaskHoldAmount(*GrsaiSettlement) (float64,error)` 用于提交前冻结：图片 multiplier=`RequestedImageCount`，视频按 `VideoDurationSeconds` 冻结一份单视频费用，取行内 `BillableUnitPrice`；同一 `local_task_id` 的 hold/capture/release 保持幂等。
+- 视频 `BaseUnitPrice` 和 `BillableUnitPrice` 都表示“每秒价”；`grsai_balance_holds.amount` 是预冻结金额，视频 `settled_amount` 是实际 URL 数 × 单视频费用。捕获不可再要求最终金额必然等于创建时的 hold；同一终态事务中补足差额并完成结算，余额不足分支在需求确认后确定。
+- 结果数量与最终金额须来自同一次已验证、保序的持久化结果；在事务内记录实际视频数、最终金额并更新 API Key quota 与速率用量，重试不得再次补差额或重复记账。
 
-- [ ] **Step 1: 写失败测试。** 768p×5 秒×分组视频倍率 1.5×账号倍率 1.2 = 1.26；图 2 张×0.25 = 0.50；价格变更后旧任务仍按快照。覆盖显式零价、无价格拒绝、冻结不足、失败释放、成功捕获一次、重复 Complete 和并发 claim 只一次、用户余额与 API Key quota 一致。
+- [ ] **Step 1: 写失败测试。** 768p×5 秒×分组视频倍率 1.5×账号倍率 1.2 = 每 URL 1.26；返回 3 个 URL 则预冻结 1.26、最终 3.78、差额 2.52；图 2 张×0.25 = 0.50；价格变更后旧任务仍按快照。覆盖显式零价、无价格拒绝、创建时余额不足、差额余额不足（按确认后的规则）、失败释放、成功捕获一次、重复 Complete 和并发 claim 只一次、用户余额与 API Key quota/用量一致。
 
 ```go
 func TestGrsaiVideoHoldUsesDuration(t *testing.T) {
@@ -121,8 +122,8 @@ func TestGrsaiVideoHoldUsesDuration(t *testing.T) {
 ```
 
 - [ ] **Step 2: 红灯。** `go test ./internal/service -run 'TestGrsai(VideoHold|BalanceHold|TaskService)' -count=1`，预期视频金额错误。
-- [ ] **Step 3: 按媒体快照计算金额。** 校验 `TaskVersion` / `MediaKind` 配对，价格与倍率必须有限且非负。创建事务中先写 v3 行和加密载荷、冻结总金额，再提交；冻结失败整事务回滚。捕获和成功终态仍通过 `CompleteV2(..., CaptureGrsaiBalanceTx)` 在一个事务内完成；释放和失败终态仍通过 `FailV2(..., ReleaseGrsaiBalanceTx)` 一起提交。旧任务不因新字段默认值而改变倍数。
-- [ ] **Step 4: 复测并提交。** `go test ./internal/service -run 'TestGrsai(Task|Balance|Settlement)' -count=1`，`CI=1 go test -tags integration ./internal/repository -run 'TestGrsai' -count=1`；预期余额、hold 状态与终态一致。提交：`git add` 本任务所改文件，`git commit -m "feat: 按视频时长冻结并幂等结算"`。
+- [ ] **Step 3: 按媒体快照计算金额。** 校验 `TaskVersion` / `MediaKind` 配对，价格与倍率必须有限且非负。创建事务中写 v3 行和加密载荷、预冻结一份单视频费用，冻结失败整事务回滚。结果到达后从已验证结果的 URL 数计算最终金额；扩展 `CompleteV2` 的事务回调，使其在同一事务中补足差额、捕获冻结、写入最终数量/金额及 API Key quota，最后公开成功。差额不足时严格按已确认规则处理，不能公开结果或留半笔账。失败释放仍通过 `FailV2(..., ReleaseGrsaiBalanceTx)` 原子执行；旧任务不因新字段默认值而改变倍数。
+- [ ] **Step 4: 复测并提交。** `go test ./internal/service -run 'TestGrsai(Task|Balance|Settlement)' -count=1`，`CI=1 go test -tags integration ./internal/repository -run 'TestGrsai' -count=1`；预期余额、hold、最终金额、quota 与终态一致。提交：`git add` 本任务所改文件，`git commit -m "feat: 按视频结果数量幂等结算"`。
 
 ### Task 4: 上游 MP4 结果与有界流式 S3 保存
 
@@ -147,7 +148,7 @@ func TestGrsaiVideoResultIsLocalMP4Only(t *testing.T) {
 ```
 
 - [ ] **Step 2: 红灯。** `go test ./internal/service ./internal/repository -run 'TestGrsai(VideoResult|VideoDownload|VideoPersistence|VideoStorage)' -count=1`；预期新媒体存储接口或校验测试失败。
-- [ ] **Step 3: 实现受约束下载。** URL 仅 HTTPS（本地 `httptest` 用注入 transport 验证），按规格中待确认的媒体来源域名规则校验 host；DNS 解析和每次重定向都拒绝 loopback、私网、link-local、非全局单播，拨号地址与验证 IP 一致以防重绑定。要求 2xx、`video/mp4`（或经固定 MP4 签名确认的 `application/octet-stream`）、正长度，按 `io.LimitReader(max+1)` 验证实际字节数。采用独立配置视频超时与大小上限，例如 5 分钟和 512 MiB，默认值、配置验证与生产值一起测试；不使用图片 32 MiB 路径。
+- [ ] **Step 3: 实现受约束下载。** 接受经验证的公共 HTTPS 地址，不设置固定媒体域名白名单（本地 `httptest` 用注入 transport 验证）；DNS 解析和每次重定向都拒绝 loopback、私网、link-local、非全局单播，拨号地址与验证 IP 一致以防重绑定。要求 2xx、`video/mp4`（或经固定 MP4 签名确认的 `application/octet-stream`）、正长度，按 `io.LimitReader(max+1)` 验证实际字节数。采用独立配置视频超时与大小上限，例如 5 分钟和 512 MiB，默认值、配置验证与生产值一起测试；不使用图片 32 MiB 路径。
 - [ ] **Step 4: 从 HTTP 响应流写有界临时文件，再调用 S3 PutObject。** 使用 `os.CreateTemp`，限制磁盘占用与目录、`defer os.Remove`，用文件大小设 `ContentLength`、`ContentType:video/mp4`，避免整片视频驻留内存；沿用 `S3ImageStorage.SaveWithMetadata` 的 public/presign 行为提取链接元数据，不重新发明链接。未知长度也按实际写入量验证。每个索引固定对象 key 覆盖失败重试；全部 `PutObject` 和签名成功才返回结果 URL；存储配置变化导致的签名期限仍与图片契约一致。
 - [ ] **Step 5: 复测并提交。** `go test ./internal/service ./internal/repository -run 'Test(Grsai|ImageStorage)' -count=1`；预期旧图片数据 URL/base64/下载行为不变。提交：`git add` 本任务所改文件，`git commit -m "feat: 安全转存 GRS.AI 视频至 S3"`。
 
@@ -159,9 +160,9 @@ func TestGrsaiVideoResultIsLocalMP4Only(t *testing.T) {
 
 **Interfaces:**
 - `GrsaiTaskRuntime` 在已持久化行中用 `MediaKind` 分派：`image` 继续 `PersistGrsaiImages`，`video` 调 `PersistGrsaiVideo`；单一 `CompleteV2` 事务处理两类任务。不能用模型名或上游 URL 扩展名猜类别。
-- 视频 `UsageLog` 写 `BillingModeVideo`、`VideoCount=len(已转存视频结果)`、`VideoResolution`、`VideoDurationSeconds`、按请求时长计算一次的基础金额和实际账单；图片既有字段、request type、API Key 归属保留。
+- 视频 `UsageLog` 写 `BillingModeVideo`、`VideoCount=len(已转存视频结果)`、`VideoResolution`、`VideoDurationSeconds`、每 URL 的基础金额 × 实际数量及相应实付总额；与 `settled_amount` 和 API Key quota 一致。图片既有字段、request type、API Key 归属保留。
 
-- [ ] **Step 1: 写 worker 红灯测试。** 多个视频全部成功 → S3 → 入库/捕获 → `succeeded`；任一转存失败不得公开部分成功；每种交付模式只公开本地 ID/URL；上游失败释放，轮询异常、MP4 失败、数据库提交失败按原有限次退避到 `manual_review`；上游 ID 绑定后重启只 GET，不重复 POST；重复/并发 RunOnce 只有一笔结算。图片 v2 同跑仍走图片 persister。
+- [ ] **Step 1: 写 worker 红灯测试。** 多个视频全部成功 → S3 → 差额补取/总额入库/捕获 → `succeeded`；任一转存失败不得公开部分成功；每种交付模式只公开本地 ID/URL；上游失败释放，轮询异常、MP4 失败、数据库提交失败按原有限次退避到 `manual_review`；上游 ID 绑定后重启只 GET，不重复 POST；重复/并发 RunOnce 只有一笔结算。图片 v2 同跑仍走图片 persister。
 
 ```go
 switch claim.MediaKind {
@@ -188,7 +189,7 @@ default:
 - `POST /v1/api/generate` 和 `GET /v1/api/result?id=...` / `GET /v1/api/tasks` 均保持原路由、原 API Key 鉴权；只复用 `allow_image_generation` 布尔配置。
 - GRS.AI 分组中文显示“允许图片/视频生成”，英文显示“Allow image/video generation”；图片专属倍率和 Grok 定价说明不误改。
 
-- [ ] **Step 1: 写端到端 handler 红灯测试。** 用假 GRS.AI Async HTTP 和假 S3 验证 480p×1 秒、返回多个视频 URL 的 `json/stream/async`；所有 `results[].url` 保序且只指向本地 MP4，旧图片多 URL 一并回归；Key B 查询详情/列表均 404 或不可见；组开关 false 提交前拒绝、true 允许；缺档/缺时长无上游 POST、无 hold；原图 JSON/Stream/Async 和历史 owner 查询回归。
+- [ ] **Step 1: 写端到端 handler 红灯测试。** 用假 GRS.AI Async HTTP 和假 S3 验证 480p×1 秒、返回多个视频 URL 的 `json/stream/async` 及按实际结果数结算；所有 `results[].url` 保序且只指向本地 MP4，旧图片多 URL 一并回归；Key B 查询详情/列表均 404 或不可见；组开关 false 提交前拒绝、true 允许；缺档/缺时长无上游 POST、无 hold；原图 JSON/Stream/Async 和历史 owner 查询回归。
 - [ ] **Step 2: 红灯。** `go test ./internal/handler ./internal/server/routes -run 'TestGrsai' -count=1`；预期新视频断言失败。
 - [ ] **Step 3: 只补缺失契约与文案。** 将 `imagePricingI18nKey(platform,"allowImageGeneration")` 的 GRS.AI 专属显示键改为图片/视频；其他平台继续使用图片文案。同步检查并更新 GRS.AI 独立倍率区域的标题和说明，明确视频使用现有视频独立倍率或有效分组倍率。保持字段 `allow_image_generation`、Grok `video_model_prices` 和前端模型分类不变。
 - [ ] **Step 4: 全量离线验证。** `go test ./internal/service ./internal/repository ./internal/handler ./internal/server/routes ./internal/config ./cmd/server -count=1`；`go vet ./internal/service ./internal/repository ./internal/handler ./internal/server/routes`；`CI=1 go test -tags integration ./internal/repository -run 'TestGrsai' -count=1`；`pnpm test:run`、`pnpm build`。`test/grsai_live_contract.py --self-test` 无网络无密钥；`python test/grsai_video_traceability.py` 检查 `GRSAI-VIDEO-01..08` 每条至少关联一个实际测试且无未知 ID；每条验收均有失败和成功证据。
@@ -205,6 +206,10 @@ default:
 - [ ] **Step 3: 功能版到 0% 候选。** `gray-deploy.sh <候选槽位> sha-<功能提交>`；直连/定向候选但不扩大公网投入流量，以显式授权的有效 API Key 提交一个 `minimax-h3`、480p、1 秒、`replyType=async`；轮询本地 ID，检查只有本地 MP4、可访问链接、一个捕获 hold 和符合当前渠道单价/倍率的一条用量。检查另一 Key 查询被隔离、图片功能、Nginx、日志、健康状态。
 - [ ] **Step 4: 回滚与逐步切流。** 有任一不健康/5xx/超时/鉴权/账务异常，先用 `gray-set-traffic.sh 0` 切回稳定，保留候选与现场，报告并等待进一步指示；兼容稳定槽位继续恢复 v3。通过后才逐步提高比例，每次查状态、错误日志、重复 POST/扣费、S3 链接和冻结滞留。
 - [ ] **Step 5: 100% 后观察、晋升、核对。** 经观察期后 `gray-promote.sh`，随后 `gray-status.sh` 核对稳定/候选标记、不可变镜像和健康；不启动旧容器、不执行 bootstrap、compose down、删卷或数据库恢复。
+
+## 待确认的余额边界
+
+- 上游结果数量在提交前未知；创建时只预冻结一份单视频费用。实际返回多个视频 URL 后，如可用余额不足以补足差额，须明确任务状态、链接可见性、余额恢复后的处理方式。现有 `CaptureGrsaiBalanceTx` 要求冻结额与计算额相等，因此本规则确定后再最终固定事务接口和测试期望。
 
 ## 自检和验收映射
 
