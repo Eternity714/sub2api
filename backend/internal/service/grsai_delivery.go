@@ -109,7 +109,7 @@ func ParseGrsaiDeliveryRequest(body []byte) (*GrsaiDeliveryRequest, error) {
 			videoFieldsError = fmt.Errorf("%w: resolution must be a non-empty string", ErrGrsaiInvalidRequest)
 		}
 	}
-	for _, key := range []string{"n", "numImages", "num_images", "imageCount", "image_count"} {
+	for _, key := range []string{"n", "numImages", "num_images", "imageCount", "image_count", "requested_image_count"} {
 		delete(fields, key)
 	}
 	fields["replyType"] = json.RawMessage(`"async"`)

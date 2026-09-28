@@ -17,8 +17,8 @@ export const supportsImageGenerationPlatform = (platform: string): boolean =>
 export const supportsVideoPricingPlatform = (platform: string): boolean =>
   platform === "grok";
 
-export const imagePricingI18nKey = (_platform: string, key: string): string =>
-  `admin.groups.imagePricing.${key}`;
+export const imagePricingI18nKey = (platform: string, key: string): string =>
+  `admin.groups.imagePricing.${platform === "grsai" && key === "allowImageGeneration" ? "allowGrsaiMediaGeneration" : key}`;
 
 export const videoPricingI18nKey = (key: string): string =>
   `admin.groups.videoPricing.${key}`;
