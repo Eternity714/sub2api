@@ -27826,6 +27826,10 @@ type GrsaiSettlementMutation struct {
 	addbillable_unit_price      *float64
 	requested_image_count       *int
 	addrequested_image_count    *int
+	media_kind                  *string
+	video_duration_seconds      *int
+	addvideo_duration_seconds   *int
+	video_resolution            *string
 	currency                    *string
 	billing_idempotency_key     *string
 	upstream_task_id            *string
@@ -28503,6 +28507,134 @@ func (m *GrsaiSettlementMutation) AddedRequestedImageCount() (r int, exists bool
 func (m *GrsaiSettlementMutation) ResetRequestedImageCount() {
 	m.requested_image_count = nil
 	m.addrequested_image_count = nil
+}
+
+// SetMediaKind sets the "media_kind" field.
+func (m *GrsaiSettlementMutation) SetMediaKind(s string) {
+	m.media_kind = &s
+}
+
+// MediaKind returns the value of the "media_kind" field in the mutation.
+func (m *GrsaiSettlementMutation) MediaKind() (r string, exists bool) {
+	v := m.media_kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMediaKind returns the old "media_kind" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldMediaKind(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMediaKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMediaKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMediaKind: %w", err)
+	}
+	return oldValue.MediaKind, nil
+}
+
+// ResetMediaKind resets all changes to the "media_kind" field.
+func (m *GrsaiSettlementMutation) ResetMediaKind() {
+	m.media_kind = nil
+}
+
+// SetVideoDurationSeconds sets the "video_duration_seconds" field.
+func (m *GrsaiSettlementMutation) SetVideoDurationSeconds(i int) {
+	m.video_duration_seconds = &i
+	m.addvideo_duration_seconds = nil
+}
+
+// VideoDurationSeconds returns the value of the "video_duration_seconds" field in the mutation.
+func (m *GrsaiSettlementMutation) VideoDurationSeconds() (r int, exists bool) {
+	v := m.video_duration_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVideoDurationSeconds returns the old "video_duration_seconds" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldVideoDurationSeconds(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVideoDurationSeconds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVideoDurationSeconds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVideoDurationSeconds: %w", err)
+	}
+	return oldValue.VideoDurationSeconds, nil
+}
+
+// AddVideoDurationSeconds adds i to the "video_duration_seconds" field.
+func (m *GrsaiSettlementMutation) AddVideoDurationSeconds(i int) {
+	if m.addvideo_duration_seconds != nil {
+		*m.addvideo_duration_seconds += i
+	} else {
+		m.addvideo_duration_seconds = &i
+	}
+}
+
+// AddedVideoDurationSeconds returns the value that was added to the "video_duration_seconds" field in this mutation.
+func (m *GrsaiSettlementMutation) AddedVideoDurationSeconds() (r int, exists bool) {
+	v := m.addvideo_duration_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetVideoDurationSeconds resets all changes to the "video_duration_seconds" field.
+func (m *GrsaiSettlementMutation) ResetVideoDurationSeconds() {
+	m.video_duration_seconds = nil
+	m.addvideo_duration_seconds = nil
+}
+
+// SetVideoResolution sets the "video_resolution" field.
+func (m *GrsaiSettlementMutation) SetVideoResolution(s string) {
+	m.video_resolution = &s
+}
+
+// VideoResolution returns the value of the "video_resolution" field in the mutation.
+func (m *GrsaiSettlementMutation) VideoResolution() (r string, exists bool) {
+	v := m.video_resolution
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVideoResolution returns the old "video_resolution" field's value of the GrsaiSettlement entity.
+// If the GrsaiSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrsaiSettlementMutation) OldVideoResolution(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVideoResolution is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVideoResolution requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVideoResolution: %w", err)
+	}
+	return oldValue.VideoResolution, nil
+}
+
+// ResetVideoResolution resets all changes to the "video_resolution" field.
+func (m *GrsaiSettlementMutation) ResetVideoResolution() {
+	m.video_resolution = nil
 }
 
 // SetCurrency sets the "currency" field.
@@ -29791,7 +29923,7 @@ func (m *GrsaiSettlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GrsaiSettlementMutation) Fields() []string {
-	fields := make([]string, 0, 36)
+	fields := make([]string, 0, 39)
 	if m.account_id != nil {
 		fields = append(fields, grsaisettlement.FieldAccountID)
 	}
@@ -29821,6 +29953,15 @@ func (m *GrsaiSettlementMutation) Fields() []string {
 	}
 	if m.requested_image_count != nil {
 		fields = append(fields, grsaisettlement.FieldRequestedImageCount)
+	}
+	if m.media_kind != nil {
+		fields = append(fields, grsaisettlement.FieldMediaKind)
+	}
+	if m.video_duration_seconds != nil {
+		fields = append(fields, grsaisettlement.FieldVideoDurationSeconds)
+	}
+	if m.video_resolution != nil {
+		fields = append(fields, grsaisettlement.FieldVideoResolution)
 	}
 	if m.currency != nil {
 		fields = append(fields, grsaisettlement.FieldCurrency)
@@ -29928,6 +30069,12 @@ func (m *GrsaiSettlementMutation) Field(name string) (ent.Value, bool) {
 		return m.BillableUnitPrice()
 	case grsaisettlement.FieldRequestedImageCount:
 		return m.RequestedImageCount()
+	case grsaisettlement.FieldMediaKind:
+		return m.MediaKind()
+	case grsaisettlement.FieldVideoDurationSeconds:
+		return m.VideoDurationSeconds()
+	case grsaisettlement.FieldVideoResolution:
+		return m.VideoResolution()
 	case grsaisettlement.FieldCurrency:
 		return m.Currency()
 	case grsaisettlement.FieldBillingIdempotencyKey:
@@ -30009,6 +30156,12 @@ func (m *GrsaiSettlementMutation) OldField(ctx context.Context, name string) (en
 		return m.OldBillableUnitPrice(ctx)
 	case grsaisettlement.FieldRequestedImageCount:
 		return m.OldRequestedImageCount(ctx)
+	case grsaisettlement.FieldMediaKind:
+		return m.OldMediaKind(ctx)
+	case grsaisettlement.FieldVideoDurationSeconds:
+		return m.OldVideoDurationSeconds(ctx)
+	case grsaisettlement.FieldVideoResolution:
+		return m.OldVideoResolution(ctx)
 	case grsaisettlement.FieldCurrency:
 		return m.OldCurrency(ctx)
 	case grsaisettlement.FieldBillingIdempotencyKey:
@@ -30139,6 +30292,27 @@ func (m *GrsaiSettlementMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRequestedImageCount(v)
+		return nil
+	case grsaisettlement.FieldMediaKind:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMediaKind(v)
+		return nil
+	case grsaisettlement.FieldVideoDurationSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVideoDurationSeconds(v)
+		return nil
+	case grsaisettlement.FieldVideoResolution:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVideoResolution(v)
 		return nil
 	case grsaisettlement.FieldCurrency:
 		v, ok := value.(string)
@@ -30357,6 +30531,9 @@ func (m *GrsaiSettlementMutation) AddedFields() []string {
 	if m.addrequested_image_count != nil {
 		fields = append(fields, grsaisettlement.FieldRequestedImageCount)
 	}
+	if m.addvideo_duration_seconds != nil {
+		fields = append(fields, grsaisettlement.FieldVideoDurationSeconds)
+	}
 	if m.addprogress != nil {
 		fields = append(fields, grsaisettlement.FieldProgress)
 	}
@@ -30404,6 +30581,8 @@ func (m *GrsaiSettlementMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedBillableUnitPrice()
 	case grsaisettlement.FieldRequestedImageCount:
 		return m.AddedRequestedImageCount()
+	case grsaisettlement.FieldVideoDurationSeconds:
+		return m.AddedVideoDurationSeconds()
 	case grsaisettlement.FieldProgress:
 		return m.AddedProgress()
 	case grsaisettlement.FieldTaskVersion:
@@ -30489,6 +30668,13 @@ func (m *GrsaiSettlementMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddRequestedImageCount(v)
+		return nil
+	case grsaisettlement.FieldVideoDurationSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddVideoDurationSeconds(v)
 		return nil
 	case grsaisettlement.FieldProgress:
 		v, ok := value.(int)
@@ -30664,6 +30850,15 @@ func (m *GrsaiSettlementMutation) ResetField(name string) error {
 		return nil
 	case grsaisettlement.FieldRequestedImageCount:
 		m.ResetRequestedImageCount()
+		return nil
+	case grsaisettlement.FieldMediaKind:
+		m.ResetMediaKind()
+		return nil
+	case grsaisettlement.FieldVideoDurationSeconds:
+		m.ResetVideoDurationSeconds()
+		return nil
+	case grsaisettlement.FieldVideoResolution:
+		m.ResetVideoResolution()
 		return nil
 	case grsaisettlement.FieldCurrency:
 		m.ResetCurrency()
