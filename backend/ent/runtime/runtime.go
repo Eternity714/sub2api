@@ -1230,82 +1230,98 @@ func init() {
 	grsaisettlementDescModel := grsaisettlementFields[4].Descriptor()
 	// grsaisettlement.ModelValidator is a validator for the "model" field. It is called by the builders before save.
 	grsaisettlement.ModelValidator = grsaisettlementDescModel.Validators[0].(func(string) error)
+	// grsaisettlementDescMediaKind is the schema descriptor for media_kind field.
+	grsaisettlementDescMediaKind := grsaisettlementFields[10].Descriptor()
+	// grsaisettlement.DefaultMediaKind holds the default value on creation for the media_kind field.
+	grsaisettlement.DefaultMediaKind = grsaisettlementDescMediaKind.Default.(string)
+	// grsaisettlement.MediaKindValidator is a validator for the "media_kind" field. It is called by the builders before save.
+	grsaisettlement.MediaKindValidator = grsaisettlementDescMediaKind.Validators[0].(func(string) error)
+	// grsaisettlementDescVideoDurationSeconds is the schema descriptor for video_duration_seconds field.
+	grsaisettlementDescVideoDurationSeconds := grsaisettlementFields[11].Descriptor()
+	// grsaisettlement.DefaultVideoDurationSeconds holds the default value on creation for the video_duration_seconds field.
+	grsaisettlement.DefaultVideoDurationSeconds = grsaisettlementDescVideoDurationSeconds.Default.(int)
+	// grsaisettlementDescVideoResolution is the schema descriptor for video_resolution field.
+	grsaisettlementDescVideoResolution := grsaisettlementFields[12].Descriptor()
+	// grsaisettlement.DefaultVideoResolution holds the default value on creation for the video_resolution field.
+	grsaisettlement.DefaultVideoResolution = grsaisettlementDescVideoResolution.Default.(string)
+	// grsaisettlement.VideoResolutionValidator is a validator for the "video_resolution" field. It is called by the builders before save.
+	grsaisettlement.VideoResolutionValidator = grsaisettlementDescVideoResolution.Validators[0].(func(string) error)
 	// grsaisettlementDescCurrency is the schema descriptor for currency field.
-	grsaisettlementDescCurrency := grsaisettlementFields[10].Descriptor()
+	grsaisettlementDescCurrency := grsaisettlementFields[13].Descriptor()
 	// grsaisettlement.DefaultCurrency holds the default value on creation for the currency field.
 	grsaisettlement.DefaultCurrency = grsaisettlementDescCurrency.Default.(string)
 	// grsaisettlement.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	grsaisettlement.CurrencyValidator = grsaisettlementDescCurrency.Validators[0].(func(string) error)
 	// grsaisettlementDescBillingIdempotencyKey is the schema descriptor for billing_idempotency_key field.
-	grsaisettlementDescBillingIdempotencyKey := grsaisettlementFields[11].Descriptor()
+	grsaisettlementDescBillingIdempotencyKey := grsaisettlementFields[14].Descriptor()
 	// grsaisettlement.BillingIdempotencyKeyValidator is a validator for the "billing_idempotency_key" field. It is called by the builders before save.
 	grsaisettlement.BillingIdempotencyKeyValidator = grsaisettlementDescBillingIdempotencyKey.Validators[0].(func(string) error)
 	// grsaisettlementDescUpstreamTaskID is the schema descriptor for upstream_task_id field.
-	grsaisettlementDescUpstreamTaskID := grsaisettlementFields[12].Descriptor()
+	grsaisettlementDescUpstreamTaskID := grsaisettlementFields[15].Descriptor()
 	// grsaisettlement.UpstreamTaskIDValidator is a validator for the "upstream_task_id" field. It is called by the builders before save.
 	grsaisettlement.UpstreamTaskIDValidator = grsaisettlementDescUpstreamTaskID.Validators[0].(func(string) error)
 	// grsaisettlementDescUpstreamStatus is the schema descriptor for upstream_status field.
-	grsaisettlementDescUpstreamStatus := grsaisettlementFields[13].Descriptor()
+	grsaisettlementDescUpstreamStatus := grsaisettlementFields[16].Descriptor()
 	// grsaisettlement.DefaultUpstreamStatus holds the default value on creation for the upstream_status field.
 	grsaisettlement.DefaultUpstreamStatus = grsaisettlementDescUpstreamStatus.Default.(string)
 	// grsaisettlement.UpstreamStatusValidator is a validator for the "upstream_status" field. It is called by the builders before save.
 	grsaisettlement.UpstreamStatusValidator = grsaisettlementDescUpstreamStatus.Validators[0].(func(string) error)
 	// grsaisettlementDescInternalStatus is the schema descriptor for internal_status field.
-	grsaisettlementDescInternalStatus := grsaisettlementFields[14].Descriptor()
+	grsaisettlementDescInternalStatus := grsaisettlementFields[17].Descriptor()
 	// grsaisettlement.DefaultInternalStatus holds the default value on creation for the internal_status field.
 	grsaisettlement.DefaultInternalStatus = grsaisettlementDescInternalStatus.Default.(string)
 	// grsaisettlement.InternalStatusValidator is a validator for the "internal_status" field. It is called by the builders before save.
 	grsaisettlement.InternalStatusValidator = grsaisettlementDescInternalStatus.Validators[0].(func(string) error)
 	// grsaisettlementDescLocalTaskID is the schema descriptor for local_task_id field.
-	grsaisettlementDescLocalTaskID := grsaisettlementFields[15].Descriptor()
+	grsaisettlementDescLocalTaskID := grsaisettlementFields[18].Descriptor()
 	// grsaisettlement.LocalTaskIDValidator is a validator for the "local_task_id" field. It is called by the builders before save.
 	grsaisettlement.LocalTaskIDValidator = grsaisettlementDescLocalTaskID.Validators[0].(func(string) error)
 	// grsaisettlementDescDeliveryMode is the schema descriptor for delivery_mode field.
-	grsaisettlementDescDeliveryMode := grsaisettlementFields[16].Descriptor()
+	grsaisettlementDescDeliveryMode := grsaisettlementFields[19].Descriptor()
 	// grsaisettlement.DefaultDeliveryMode holds the default value on creation for the delivery_mode field.
 	grsaisettlement.DefaultDeliveryMode = grsaisettlementDescDeliveryMode.Default.(string)
 	// grsaisettlement.DeliveryModeValidator is a validator for the "delivery_mode" field. It is called by the builders before save.
 	grsaisettlement.DeliveryModeValidator = grsaisettlementDescDeliveryMode.Validators[0].(func(string) error)
 	// grsaisettlementDescPublicStatus is the schema descriptor for public_status field.
-	grsaisettlementDescPublicStatus := grsaisettlementFields[17].Descriptor()
+	grsaisettlementDescPublicStatus := grsaisettlementFields[20].Descriptor()
 	// grsaisettlement.DefaultPublicStatus holds the default value on creation for the public_status field.
 	grsaisettlement.DefaultPublicStatus = grsaisettlementDescPublicStatus.Default.(string)
 	// grsaisettlement.PublicStatusValidator is a validator for the "public_status" field. It is called by the builders before save.
 	grsaisettlement.PublicStatusValidator = grsaisettlementDescPublicStatus.Validators[0].(func(string) error)
 	// grsaisettlementDescProgress is the schema descriptor for progress field.
-	grsaisettlementDescProgress := grsaisettlementFields[18].Descriptor()
+	grsaisettlementDescProgress := grsaisettlementFields[21].Descriptor()
 	// grsaisettlement.DefaultProgress holds the default value on creation for the progress field.
 	grsaisettlement.DefaultProgress = grsaisettlementDescProgress.Default.(int)
 	// grsaisettlementDescTaskVersion is the schema descriptor for task_version field.
-	grsaisettlementDescTaskVersion := grsaisettlementFields[22].Descriptor()
+	grsaisettlementDescTaskVersion := grsaisettlementFields[25].Descriptor()
 	// grsaisettlement.DefaultTaskVersion holds the default value on creation for the task_version field.
 	grsaisettlement.DefaultTaskVersion = grsaisettlementDescTaskVersion.Default.(int)
 	// grsaisettlementDescSubmissionAttempt is the schema descriptor for submission_attempt field.
-	grsaisettlementDescSubmissionAttempt := grsaisettlementFields[23].Descriptor()
+	grsaisettlementDescSubmissionAttempt := grsaisettlementFields[26].Descriptor()
 	// grsaisettlement.DefaultSubmissionAttempt holds the default value on creation for the submission_attempt field.
 	grsaisettlement.DefaultSubmissionAttempt = grsaisettlementDescSubmissionAttempt.Default.(int)
 	// grsaisettlementDescRetryCount is the schema descriptor for retry_count field.
-	grsaisettlementDescRetryCount := grsaisettlementFields[24].Descriptor()
+	grsaisettlementDescRetryCount := grsaisettlementFields[27].Descriptor()
 	// grsaisettlement.DefaultRetryCount holds the default value on creation for the retry_count field.
 	grsaisettlement.DefaultRetryCount = grsaisettlementDescRetryCount.Default.(int)
 	// grsaisettlementDescSettlementRetryCount is the schema descriptor for settlement_retry_count field.
-	grsaisettlementDescSettlementRetryCount := grsaisettlementFields[25].Descriptor()
+	grsaisettlementDescSettlementRetryCount := grsaisettlementFields[28].Descriptor()
 	// grsaisettlement.DefaultSettlementRetryCount holds the default value on creation for the settlement_retry_count field.
 	grsaisettlement.DefaultSettlementRetryCount = grsaisettlementDescSettlementRetryCount.Default.(int)
 	// grsaisettlementDescClaimVersion is the schema descriptor for claim_version field.
-	grsaisettlementDescClaimVersion := grsaisettlementFields[26].Descriptor()
+	grsaisettlementDescClaimVersion := grsaisettlementFields[29].Descriptor()
 	// grsaisettlement.DefaultClaimVersion holds the default value on creation for the claim_version field.
 	grsaisettlement.DefaultClaimVersion = grsaisettlementDescClaimVersion.Default.(int64)
 	// grsaisettlementDescLastErrorSummary is the schema descriptor for last_error_summary field.
-	grsaisettlementDescLastErrorSummary := grsaisettlementFields[28].Descriptor()
+	grsaisettlementDescLastErrorSummary := grsaisettlementFields[31].Descriptor()
 	// grsaisettlement.LastErrorSummaryValidator is a validator for the "last_error_summary" field. It is called by the builders before save.
 	grsaisettlement.LastErrorSummaryValidator = grsaisettlementDescLastErrorSummary.Validators[0].(func(string) error)
 	// grsaisettlementDescCreatedAt is the schema descriptor for created_at field.
-	grsaisettlementDescCreatedAt := grsaisettlementFields[30].Descriptor()
+	grsaisettlementDescCreatedAt := grsaisettlementFields[33].Descriptor()
 	// grsaisettlement.DefaultCreatedAt holds the default value on creation for the created_at field.
 	grsaisettlement.DefaultCreatedAt = grsaisettlementDescCreatedAt.Default.(func() time.Time)
 	// grsaisettlementDescUpdatedAt is the schema descriptor for updated_at field.
-	grsaisettlementDescUpdatedAt := grsaisettlementFields[31].Descriptor()
+	grsaisettlementDescUpdatedAt := grsaisettlementFields[34].Descriptor()
 	// grsaisettlement.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	grsaisettlement.DefaultUpdatedAt = grsaisettlementDescUpdatedAt.Default.(func() time.Time)
 	// grsaisettlement.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
