@@ -159,6 +159,10 @@ func (p *grsaiPriceStub) GrsaiUnitPrice(context.Context, string, *Group) (float6
 	return p.price, nil
 }
 
+func (p *grsaiPriceStub) ResolveGrsaiTaskPrice(_ context.Context, _ string, _ *Group, _ string) (GrsaiTaskPrice, error) {
+	return GrsaiTaskPrice{Mode: BillingModeImage, UnitPrice: p.price}, nil
+}
+
 type grsaiUsageSpy struct {
 	UsageLogRepository
 	logs []*UsageLog

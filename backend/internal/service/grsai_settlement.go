@@ -64,6 +64,9 @@ type CreateGrsaiSettlementParams struct {
 	LinkExpiresAt         *time.Time
 	ImageObjectMetadata   []byte
 	TaskVersion           int
+	MediaKind             string
+	VideoDurationSeconds  int
+	VideoResolution       string
 }
 
 type CreateV2GrsaiTaskParams struct {
@@ -99,6 +102,9 @@ type GrsaiSettlement struct {
 	LinkExpiresAt         *time.Time
 	ImageObjectMetadata   []byte
 	TaskVersion           int
+	MediaKind             string
+	VideoDurationSeconds  int
+	VideoResolution       string
 	SubmissionAttempt     int
 	// RetryCount records worker claims, while SettlementRetryCount only records
 	// failed billing attempts. They must remain independent: a long-running
@@ -194,6 +200,7 @@ type UsageBillingTransactionalRepository interface {
 
 type GrsaiPricingResolver interface {
 	GrsaiUnitPrice(context.Context, string, *Group) (float64, error)
+	ResolveGrsaiTaskPrice(context.Context, string, *Group, string) (GrsaiTaskPrice, error)
 }
 
 type GrsaiModelPricingResolver struct{ Resolver *ModelPricingResolver }
@@ -216,6 +223,50 @@ func (r *GrsaiModelPricingResolver) GrsaiUnitPrice(ctx context.Context, model st
 		return 0, ErrGrsaiSettlementPricingMissing
 	}
 	return resolved.DefaultPerRequestPrice, nil
+}
+
+func (r *GrsaiModelPricingResolver) ResolveGrsaiTaskPrice(ctx context.Context, model string, group *Group, resolution string) (GrsaiTaskPrice, error) {
+	if r == nil || r.Resolver == nil || group == nil {
+		return GrsaiTaskPrice{}, ErrGrsaiSettlementPricingMissing
+	}
+	// A resolver without a fallback service is used in tests; a missing group/channel
+	// configuration still must fail rather than trying to resolve a fallback price.
+	if r.Resolver.billingService == nil && matchGroupModelPricing(group, model) == nil && r.Resolver.channelService == nil {
+		return GrsaiTaskPrice{}, ErrGrsaiSettlementPricingMissing
+	}
+	resolved := r.Resolver.Resolve(ctx, PricingInput{Model: model, GroupID: &group.ID, Group: group})
+	if resolved == nil || (resolved.Source != PricingSourceGroup && resolved.Source != PricingSourceChannel) || resolved.channelPricing == nil {
+		return GrsaiTaskPrice{}, ErrGrsaiSettlementPricingMissing
+	}
+	if resolved.Mode == BillingModeImage || resolved.Mode == BillingModePerRequest {
+		if len(resolved.RequestTiers) > 0 || resolved.channelPricing.PerRequestPrice == nil || !grsaiFiniteNonNegative(resolved.DefaultPerRequestPrice) {
+			return GrsaiTaskPrice{}, ErrGrsaiSettlementPricingMissing
+		}
+		return GrsaiTaskPrice{Mode: resolved.Mode, UnitPrice: resolved.DefaultPerRequestPrice}, nil
+	}
+	if resolved.Mode != BillingModeVideo {
+		return GrsaiTaskPrice{}, ErrGrsaiSettlementPricingMissing
+	}
+	if len(resolved.channelPricing.Intervals) > 0 {
+		var matched *float64
+		for _, tier := range resolved.channelPricing.Intervals {
+			if tier.TierLabel != resolution {
+				continue
+			}
+			if matched != nil || tier.PerRequestPrice == nil {
+				return GrsaiTaskPrice{}, ErrGrsaiSettlementPricingMissing
+			}
+			matched = tier.PerRequestPrice
+		}
+		if matched == nil || !grsaiFiniteNonNegative(*matched) {
+			return GrsaiTaskPrice{}, ErrGrsaiSettlementPricingMissing
+		}
+		return GrsaiTaskPrice{Mode: BillingModeVideo, UnitPrice: *matched, Resolution: resolution}, nil
+	}
+	if resolved.channelPricing.PerRequestPrice == nil || !grsaiFiniteNonNegative(*resolved.channelPricing.PerRequestPrice) {
+		return GrsaiTaskPrice{}, ErrGrsaiSettlementPricingMissing
+	}
+	return GrsaiTaskPrice{Mode: BillingModeVideo, UnitPrice: *resolved.channelPricing.PerRequestPrice, Resolution: resolution}, nil
 }
 
 type GrsaiSettlementService struct {

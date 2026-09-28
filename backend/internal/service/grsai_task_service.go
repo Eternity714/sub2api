@@ -50,15 +50,31 @@ func (s *GrsaiTaskService) Create(ctx context.Context, input GrsaiTaskCreateInpu
 		input.APIKey.GroupID == nil || *input.APIKey.GroupID != group.ID || request.Model == "" {
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
-	base, err := s.Pricing.GrsaiUnitPrice(ctx, request.Model, group)
+	price, err := s.Pricing.ResolveGrsaiTaskPrice(ctx, request.Model, group, request.Resolution)
 	if err != nil {
 		return nil, err
 	}
+	if price.Mode != BillingModeVideo && price.Mode != BillingModeImage && price.Mode != BillingModePerRequest {
+		return nil, ErrGrsaiSettlementPricingMissing
+	}
+	if price.Mode == BillingModeVideo {
+		if request.VideoFieldsError != nil {
+			return nil, request.VideoFieldsError
+		}
+		if err := ValidateGrsaiVideoRequest(request.Model, request.Resolution, request.DurationSeconds); err != nil {
+			return nil, err
+		}
+	}
+	base := price.UnitPrice
 	groupRate := group.RateMultiplier
 	if input.EffectiveGroupMultiplier != nil {
 		groupRate = *input.EffectiveGroupMultiplier
 	}
-	groupRate = resolveImageRateMultiplier(input.APIKey, groupRate)
+	if price.Mode == BillingModeVideo {
+		groupRate = resolveVideoRateMultiplier(input.APIKey, groupRate)
+	} else {
+		groupRate = resolveImageRateMultiplier(input.APIKey, groupRate)
+	}
 	accountRate := input.Account.BillingRateMultiplier()
 	if !grsaiFiniteNonNegative(base) || !grsaiFiniteNonNegative(groupRate) || !grsaiFiniteNonNegative(accountRate) {
 		return nil, ErrGrsaiSettlementPricingMissing
@@ -74,13 +90,20 @@ func (s *GrsaiTaskService) Create(ctx context.Context, input GrsaiTaskCreateInpu
 	if ttl <= 0 {
 		ttl = 24 * time.Hour
 	}
+	mediaKind, taskVersion, requestedImageCount := "image", 2, request.ImageCount
+	videoDuration, videoResolution := 0, ""
+	if price.Mode == BillingModeVideo {
+		mediaKind, taskVersion, requestedImageCount = "video", 3, 1
+		videoDuration, videoResolution = request.DurationSeconds, price.Resolution
+	}
 	now := time.Now().UTC()
 	return s.Repo.CreateV2GrsaiTask(ctx, CreateV2GrsaiTaskParams{
 		CreateGrsaiSettlementParams: CreateGrsaiSettlementParams{
 			AccountID: input.Account.ID, GroupID: group.ID, UserID: input.APIKey.UserID, APIKeyID: input.APIKey.ID,
 			Model: strings.TrimSpace(request.Model), BaseUnitPrice: base, GroupRateMultiplier: groupRate,
 			AccountRateMultiplier: accountRate, BillableUnitPrice: billable,
-			RequestedImageCount: request.ImageCount, ImageSize: request.ImageSize, Currency: "USD",
+			RequestedImageCount: requestedImageCount, ImageSize: request.ImageSize, Currency: "USD",
+			MediaKind: mediaKind, TaskVersion: taskVersion, VideoDurationSeconds: videoDuration, VideoResolution: videoResolution,
 			LocalTaskID: NewGrsaiLocalTaskID(), DeliveryMode: string(request.Mode), NextAttemptAt: now,
 		},
 		PayloadExpiresAt: now.Add(ttl), UpstreamPayload: request.UpstreamBody, MaxWaiting: s.MaxWaiting,
