@@ -19,7 +19,7 @@ func TestGrsaiVideoDownloadAcceptsMP4OctetStream(t *testing.T) {
 	d := NewGrsaiVideoDownloader(c, 512<<20, "")
 	body, size, e := d.Download(context.Background(), "https://example.com/video")
 	require.NoError(t, e)
-	defer body.Close()
+	t.Cleanup(func() { require.NoError(t, body.Close()) })
 	require.Equal(t, int64(19), size)
 }
 func TestGrsaiVideoDownloadRejectsUnsafeURL(t *testing.T) {

@@ -104,7 +104,7 @@ func (d *grsaiVideoDownloader) Download(ctx context.Context, raw string) (io.Rea
 	if err != nil {
 		return nil, 0, fmt.Errorf("download video: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, 0, fmt.Errorf("download video: status %d", resp.StatusCode)
 	}
@@ -116,7 +116,7 @@ func (d *grsaiVideoDownloader) Download(ctx context.Context, raw string) (io.Rea
 		return nil, 0, err
 	}
 	name := f.Name()
-	cleanup := func() { f.Close(); os.Remove(name) }
+	cleanup := func() { _ = f.Close(); _ = os.Remove(name) }
 	n, err := io.Copy(f, io.LimitReader(resp.Body, d.maxBytes+1))
 	if err != nil {
 		cleanup()
