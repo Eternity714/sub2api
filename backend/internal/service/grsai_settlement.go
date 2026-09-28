@@ -601,19 +601,20 @@ func (s *GrsaiSettlementService) recordUsage(ctx context.Context, record *GrsaiS
 	}
 	mode, endpoint := string(BillingModeImage), "/v1/api/generate"
 	baseCost := record.BaseUnitPrice * float64(record.RequestedImageCount)
+	imageCount, videoCount := record.RequestedImageCount, 0
+	var videoDuration *int
+	var videoResolution *string
 	if record.MediaKind == "video" {
 		mode = string(BillingModeVideo)
 		baseCost = record.BaseUnitPrice * float64(record.VideoDurationSeconds)
+		imageCount = 0
+		videoCount = 1
+		videoDuration = &record.VideoDurationSeconds
+		videoResolution = &record.VideoResolution
 	}
 	usage := &UsageLog{UserID: record.UserID, APIKeyID: record.APIKeyID, AccountID: record.AccountID,
 		GroupID: &record.GroupID, RequestID: cmd.RequestID, Model: record.Model, RequestedModel: record.Model,
-		ImageCount: record.RequestedImageCount, VideoCount: 0, VideoDurationSeconds: func() *int {
-			if record.MediaKind == "video" {
-				v := record.VideoDurationSeconds
-				return &v
-			}
-			return nil
-		}(), ImageSize: &record.ImageSize, ImageOutputCost: baseCost, TotalCost: baseCost, ActualCost: cmd.BalanceCost,
+		ImageCount: imageCount, VideoCount: videoCount, VideoDurationSeconds: videoDuration, VideoResolution: videoResolution, ImageSize: &record.ImageSize, ImageOutputCost: baseCost, TotalCost: baseCost, ActualCost: cmd.BalanceCost,
 		RateMultiplier: record.GroupRateMultiplier, AccountRateMultiplier: &record.AccountRateMultiplier,
 		BillingType: BillingTypeBalance, RequestType: RequestTypeSync, BillingMode: &mode,
 		InboundEndpoint: &endpoint, UpstreamEndpoint: &endpoint, CreatedAt: time.Now()}
