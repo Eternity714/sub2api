@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"strconv"
 	"strings"
@@ -53,6 +54,20 @@ func NewS3ImageStorage(ctx context.Context, cfg *config.ImageStorageConfig) (*S3
 	}, nil
 }
 
+func (s *S3ImageStorage) SaveVideoReader(ctx context.Context, key string, body io.Reader, size int64) (service.ImageStorageSaveMetadata, error) {
+	if body == nil || size <= 0 {
+		return service.ImageStorageSaveMetadata{}, fmt.Errorf("invalid video reader")
+	}
+	contentType := "video/mp4"
+	finish := servertiming.ObserveDependency(ctx, "s3")
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{Bucket: &s.bucket, Key: &key, Body: body, ContentType: &contentType, ContentLength: &size})
+	finish()
+	if err != nil {
+		return service.ImageStorageSaveMetadata{}, fmt.Errorf("S3 PutObject: %w", err)
+	}
+	return s.objectMetadata(ctx, key, contentType)
+}
+
 // Save 上传图片字节，返回可访问 URL：配了 public_base_url 则返回公开直链，否则返回 presigned 临时链接。
 func (s *S3ImageStorage) Save(ctx context.Context, key, contentType string, data []byte) (string, error) {
 	metadata, err := s.SaveWithMetadata(ctx, key, contentType, data)
@@ -71,6 +86,10 @@ func (s *S3ImageStorage) SaveWithMetadata(ctx context.Context, key, contentType 
 	if err != nil {
 		return service.ImageStorageSaveMetadata{}, fmt.Errorf("S3 PutObject: %w", err)
 	}
+	return s.objectMetadata(ctx, key, contentType)
+}
+
+func (s *S3ImageStorage) objectMetadata(ctx context.Context, key, contentType string) (service.ImageStorageSaveMetadata, error) {
 	metadata := service.ImageStorageSaveMetadata{ObjectKey: key, ContentType: contentType}
 
 	if s.publicBaseURL != "" {
