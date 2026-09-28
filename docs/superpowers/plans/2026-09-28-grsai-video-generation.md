@@ -18,7 +18,7 @@
 - 使用现有分组→渠道定价优先级；仅明确配置来源的 `BillingModeVideo` 可进入视频路径，不能依据 `minimax-h3` 字符串推断媒体类型；禁止回落到 LiteLLM、Grok 专属视频价格或缺档位时的平价。
 - 视频要求整数秒 `duration > 0`，有档位时须显式精确命中 `resolution`；`minimax-h3` 为 480p/768p/1080p、1–15 秒，1080p 不超过 10 秒。其他视频模型只校验通用计费字段与其已配置档位。
 - `prompt`、`aspectRatio`、`images`、`audios`、`seed` 和未来非控制字段以 `json.RawMessage` 透传；本地控制字段和价格内部元数据不能透传。
-- 单视频费用 = API Key 所在分组解析出的模型渠道每秒单价 × 请求 `duration` × 现有用户/分组有效倍率或 `resolveVideoRateMultiplier` 的视频独立倍率 × 账号倍率；最终总额 = 每个成功视频 URL 的费用之和。创建时按一份单视频费用预冻结，结果到达后按实际 URL 数算差额；依现有 DECIMAL 精度保存价格快照和最终金额，后续改价不追溯。差额余额不足的处理规则见下方待确认事项。
+- 单视频费用 = API Key 所在分组解析出的模型渠道每秒单价 × 请求 `duration` × 现有用户/分组有效倍率或 `resolveVideoRateMultiplier` 的视频独立倍率 × 账号倍率；最终总额 = 每个成功视频 URL 的费用之和。当前 `minimax-h3` 文档所列请求参数未显示输出数量字段，示例为一个 URL，创建时按一份单视频费用预冻结；实际结果超过一份时按 URL 数算差额，依现有 DECIMAL 精度保存价格快照和最终金额，后续改价不追溯。
 - 上游原始视频 URL、任务 ID、提示词与鉴权材料不得进入公开视图或错误日志；`results[]` 中多个图片或视频 URL 按顺序逐项转存，任一项失败都不公开部分结果；全部转存、结果入库、冻结捕获同一终态事务完成后才公开成功。
 - 保留图片 v1/v2 的原有 SQL、结果 JSON、S3 图片下载上限及结算路径；新字段仅追加且有兼容默认值。视频用 `task_version=3`，旧编译版本的 v2 worker 只领取 `task_version=2`。
 - 失败/违规释放冻结；有上游 ID 只轮询结果，无 ID 的不确定提交不重发；客户端断线不取消 worker。视频对象写入必须有界、可重试、幂等且防止内网地址访问。
@@ -105,10 +105,10 @@ ALTER TABLE grsai_settlements
 
 **Interfaces:**
 - `GrsaiTaskHoldAmount(*GrsaiSettlement) (float64,error)` 用于提交前冻结：图片 multiplier=`RequestedImageCount`，视频按 `VideoDurationSeconds` 冻结一份单视频费用，取行内 `BillableUnitPrice`；同一 `local_task_id` 的 hold/capture/release 保持幂等。
-- 视频 `BaseUnitPrice` 和 `BillableUnitPrice` 都表示“每秒价”；`grsai_balance_holds.amount` 是预冻结金额，视频 `settled_amount` 是实际 URL 数 × 单视频费用。捕获不可再要求最终金额必然等于创建时的 hold；同一终态事务中补足差额并完成结算，余额不足分支在需求确认后确定。
+- 视频 `BaseUnitPrice` 和 `BillableUnitPrice` 都表示“每秒价”；`grsai_balance_holds.amount` 是预冻结金额，视频 `settled_amount` 是实际 URL 数 × 单视频费用。捕获不可再要求最终金额必然等于创建时的 hold；同一终态事务中补足差额并完成结算。若差额不足，事务回滚并按现有有限重试/人工核查处理，原冻结继续待核查，结果不可见。
 - 结果数量与最终金额须来自同一次已验证、保序的持久化结果；在事务内记录实际视频数、最终金额并更新 API Key quota 与速率用量，重试不得再次补差额或重复记账。
 
-- [ ] **Step 1: 写失败测试。** 768p×5 秒×分组视频倍率 1.5×账号倍率 1.2 = 每 URL 1.26；返回 3 个 URL 则预冻结 1.26、最终 3.78、差额 2.52；图 2 张×0.25 = 0.50；价格变更后旧任务仍按快照。覆盖显式零价、无价格拒绝、创建时余额不足、差额余额不足（按确认后的规则）、失败释放、成功捕获一次、重复 Complete 和并发 claim 只一次、用户余额与 API Key quota/用量一致。
+- [ ] **Step 1: 写失败测试。** 768p×5 秒×分组视频倍率 1.5×账号倍率 1.2 = 每 URL 1.26；返回 3 个 URL 则预冻结 1.26、最终 3.78、差额 2.52；图 2 张×0.25 = 0.50；价格变更后旧任务仍按快照。覆盖显式零价、无价格拒绝、创建时余额不足、差额余额不足后有限重试并进入人工核查，保留冻结且不公开 URL、失败释放、成功捕获一次、重复 Complete 和并发 claim 只一次、用户余额与 API Key quota/用量一致。
 
 ```go
 func TestGrsaiVideoHoldUsesDuration(t *testing.T) {
@@ -122,7 +122,7 @@ func TestGrsaiVideoHoldUsesDuration(t *testing.T) {
 ```
 
 - [ ] **Step 2: 红灯。** `go test ./internal/service -run 'TestGrsai(VideoHold|BalanceHold|TaskService)' -count=1`，预期视频金额错误。
-- [ ] **Step 3: 按媒体快照计算金额。** 校验 `TaskVersion` / `MediaKind` 配对，价格与倍率必须有限且非负。创建事务中写 v3 行和加密载荷、预冻结一份单视频费用，冻结失败整事务回滚。结果到达后从已验证结果的 URL 数计算最终金额；扩展 `CompleteV2` 的事务回调，使其在同一事务中补足差额、捕获冻结、写入最终数量/金额及 API Key quota，最后公开成功。差额不足时严格按已确认规则处理，不能公开结果或留半笔账。失败释放仍通过 `FailV2(..., ReleaseGrsaiBalanceTx)` 原子执行；旧任务不因新字段默认值而改变倍数。
+- [ ] **Step 3: 按媒体快照计算金额。** 校验 `TaskVersion` / `MediaKind` 配对，价格与倍率必须有限且非负。创建事务中写 v3 行和加密载荷、预冻结一份单视频费用，冻结失败整事务回滚。结果到达后从已验证结果的 URL 数计算最终金额；扩展 `CompleteV2` 的事务回调，使其在同一事务中补足差额、捕获冻结、写入最终数量/金额及 API Key quota，最后公开成功。差额不足时整笔结算回滚，按现有有限重试和人工核查路径处理，保持冻结与结果不可见，不能留半笔账或自动透支。失败释放仍通过 `FailV2(..., ReleaseGrsaiBalanceTx)` 原子执行；旧任务不因新字段默认值而改变倍数。
 - [ ] **Step 4: 复测并提交。** `go test ./internal/service -run 'TestGrsai(Task|Balance|Settlement)' -count=1`，`CI=1 go test -tags integration ./internal/repository -run 'TestGrsai' -count=1`；预期余额、hold、最终金额、quota 与终态一致。提交：`git add` 本任务所改文件，`git commit -m "feat: 按视频结果数量幂等结算"`。
 
 ### Task 4: 上游 MP4 结果与有界流式 S3 保存
@@ -207,9 +207,9 @@ default:
 - [ ] **Step 4: 回滚与逐步切流。** 有任一不健康/5xx/超时/鉴权/账务异常，先用 `gray-set-traffic.sh 0` 切回稳定，保留候选与现场，报告并等待进一步指示；兼容稳定槽位继续恢复 v3。通过后才逐步提高比例，每次查状态、错误日志、重复 POST/扣费、S3 链接和冻结滞留。
 - [ ] **Step 5: 100% 后观察、晋升、核对。** 经观察期后 `gray-promote.sh`，随后 `gray-status.sh` 核对稳定/候选标记、不可变镜像和健康；不启动旧容器、不执行 bootstrap、compose down、删卷或数据库恢复。
 
-## 待确认的余额边界
+## 输出数量假设与余额边界
 
-- 上游结果数量在提交前未知；创建时只预冻结一份单视频费用。实际返回多个视频 URL 后，如可用余额不足以补足差额，须明确任务状态、链接可见性、余额恢复后的处理方式。现有 `CaptureGrsaiBalanceTx` 要求冻结额与计算额相等，因此本规则确定后再最终固定事务接口和测试期望。
+- `minimax-h3` 文档所列请求参数未显示输出数量字段，成功示例只有一个 URL；按一个视频预冻结是当前预期，不能据此丢弃上游 `results[]` 中的额外 URL。若返回多个且余额不足以补差额，沿用现有有限重试至 `manual_review`，保留原冻结、隐藏所有结果，由人工核查，不因充值自动交付。现有 `CaptureGrsaiBalanceTx` 要求冻结额与计算额相等，实施时需扩展差额结算但保持图片路径不变。
 
 ## 自检和验收映射
 
