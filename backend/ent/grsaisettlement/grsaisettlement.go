@@ -33,6 +33,12 @@ const (
 	FieldBillableUnitPrice = "billable_unit_price"
 	// FieldRequestedImageCount holds the string denoting the requested_image_count field in the database.
 	FieldRequestedImageCount = "requested_image_count"
+	// FieldMediaKind holds the string denoting the media_kind field in the database.
+	FieldMediaKind = "media_kind"
+	// FieldVideoDurationSeconds holds the string denoting the video_duration_seconds field in the database.
+	FieldVideoDurationSeconds = "video_duration_seconds"
+	// FieldVideoResolution holds the string denoting the video_resolution field in the database.
+	FieldVideoResolution = "video_resolution"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
 	// FieldBillingIdempotencyKey holds the string denoting the billing_idempotency_key field in the database.
@@ -102,6 +108,9 @@ var Columns = []string{
 	FieldAccountRateMultiplier,
 	FieldBillableUnitPrice,
 	FieldRequestedImageCount,
+	FieldMediaKind,
+	FieldVideoDurationSeconds,
+	FieldVideoResolution,
 	FieldCurrency,
 	FieldBillingIdempotencyKey,
 	FieldUpstreamTaskID,
@@ -143,6 +152,16 @@ func ValidColumn(column string) bool {
 var (
 	// ModelValidator is a validator for the "model" field. It is called by the builders before save.
 	ModelValidator func(string) error
+	// DefaultMediaKind holds the default value on creation for the "media_kind" field.
+	DefaultMediaKind string
+	// MediaKindValidator is a validator for the "media_kind" field. It is called by the builders before save.
+	MediaKindValidator func(string) error
+	// DefaultVideoDurationSeconds holds the default value on creation for the "video_duration_seconds" field.
+	DefaultVideoDurationSeconds int
+	// DefaultVideoResolution holds the default value on creation for the "video_resolution" field.
+	DefaultVideoResolution string
+	// VideoResolutionValidator is a validator for the "video_resolution" field. It is called by the builders before save.
+	VideoResolutionValidator func(string) error
 	// DefaultCurrency holds the default value on creation for the "currency" field.
 	DefaultCurrency string
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
@@ -247,6 +266,21 @@ func ByBillableUnitPrice(opts ...sql.OrderTermOption) OrderOption {
 // ByRequestedImageCount orders the results by the requested_image_count field.
 func ByRequestedImageCount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRequestedImageCount, opts...).ToFunc()
+}
+
+// ByMediaKind orders the results by the media_kind field.
+func ByMediaKind(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMediaKind, opts...).ToFunc()
+}
+
+// ByVideoDurationSeconds orders the results by the video_duration_seconds field.
+func ByVideoDurationSeconds(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVideoDurationSeconds, opts...).ToFunc()
+}
+
+// ByVideoResolution orders the results by the video_resolution field.
+func ByVideoResolution(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVideoResolution, opts...).ToFunc()
 }
 
 // ByCurrency orders the results by the currency field.

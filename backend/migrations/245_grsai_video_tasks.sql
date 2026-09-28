@@ -1,0 +1,4 @@
+ALTER TABLE grsai_settlements
+    ADD COLUMN IF NOT EXISTS media_kind VARCHAR(16) NOT NULL DEFAULT 'image',
+    ADD COLUMN IF NOT EXISTS video_duration_seconds INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS video_resolution VARCHAR(32) NOT NULL DEFAULT '';
