@@ -31,7 +31,7 @@ func TestGrsaiTaskServiceCreatesLocalTaskBeforeAsyncSubmission(t *testing.T) {
 			record, err := svc.Create(context.Background(), GrsaiTaskCreateInput{
 				Account: &Account{ID: 3, Platform: PlatformGrsai, Type: AccountTypeAPIKey},
 				APIKey:  &APIKey{ID: 4, UserID: 1, GroupID: &group.ID, Group: group},
-				Body:    []byte(`{"model":"image","n":2,"replyType":"` + mode + `"}`),
+				Body:    []byte(`{"model":"image","replyType":"` + mode + `"}`),
 			})
 			require.NoError(t, err)
 			require.Equal(t, 1, repo.called)
@@ -71,7 +71,7 @@ func TestGrsaiTaskServiceVideoPricingAndRejectBeforeCreate(t *testing.T) {
 	_, err := svc.Create(context.Background(), input)
 	require.NoError(t, err)
 	require.Equal(t, 1, repo.called)
-	require.InDelta(t, .252, repo.params.BillableUnitPrice, 1e-10)
+	require.InDelta(t, 1.26, repo.params.BillableUnitPrice, 1e-10)
 	require.Equal(t, 5, repo.params.VideoDurationSeconds)
 	require.Equal(t, "768p", repo.params.VideoResolution)
 	require.Equal(t, "video", repo.params.MediaKind)

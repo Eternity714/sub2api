@@ -11,6 +11,7 @@ import (
 
 type GrsaiStoredResult struct {
 	ResultJSON     []byte
+	ResultCount    int
 	ObjectMetadata []byte
 	LinkExpiresAt  *time.Time
 }
@@ -73,5 +74,5 @@ func (u *ImageResultUploader) PersistGrsaiImages(ctx context.Context, localTaskI
 	if err != nil {
 		return nil, err
 	}
-	return &GrsaiStoredResult{ResultJSON: resultJSON, ObjectMetadata: objectJSON, LinkExpiresAt: earliest}, nil
+	return &GrsaiStoredResult{ResultJSON: resultJSON, ResultCount: len(images), ObjectMetadata: objectJSON, LinkExpiresAt: earliest}, nil
 }
