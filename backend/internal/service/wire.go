@@ -71,6 +71,18 @@ func (r grsaiTaskImageResolver) PersistGrsaiImages(ctx context.Context, id strin
 	return uploader.PersistGrsaiImages(ctx, id, result)
 }
 
+func (r grsaiTaskImageResolver) PersistGrsaiVideo(ctx context.Context, id string, result *GrsaiUpstreamResult) (*GrsaiStoredResult, error) {
+	uploader, enabled := r.resolve()
+	if !enabled || uploader == nil {
+		return nil, ErrImageTaskUnavailable
+	}
+	storage, ok := uploader.storage.(VideoStorageWithMetadata)
+	if !ok {
+		return nil, ErrImageTaskUnavailable
+	}
+	return NewGrsaiVideoPersister(NewGrsaiVideoDownloader(nil, 0, ""), storage).PersistGrsaiVideo(ctx, id, result)
+}
+
 func ProvideGrsaiTaskService(repo GrsaiV2TaskRepository, balance GrsaiBalanceHoldRepository,
 	pricing *ModelPricingResolver, storage *ImageStorageSettingService, cfg *config.Config) *GrsaiTaskService {
 	resolve := storage.Resolver()
@@ -89,6 +101,7 @@ func ProvideGrsaiTaskRuntime(repo GrsaiV2TaskRepository, payloads GrsaiTaskPaylo
 			BatchLimit:   cfg.GrsaiDelivery.BatchLimit, MaxRunning: cfg.GrsaiDelivery.MaxRunning,
 			FailureRetryLimit: cfg.GrsaiDelivery.FailureRetryLimit,
 		})
+	runtime.WithVideos(grsaiTaskImageResolver{resolve: storage.Resolver()})
 	runtime.WithUsageLogs(usageLogRepo)
 	runtime.Start()
 	return runtime
