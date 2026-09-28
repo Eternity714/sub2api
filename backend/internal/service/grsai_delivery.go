@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -17,12 +18,15 @@ const (
 )
 
 type GrsaiDeliveryRequest struct {
-	Mode         GrsaiDeliveryMode
-	OriginalBody []byte
-	UpstreamBody []byte
-	Model        string
-	ImageCount   int
-	ImageSize    string
+	Mode             GrsaiDeliveryMode
+	OriginalBody     []byte
+	UpstreamBody     []byte
+	Model            string
+	ImageCount       int
+	ImageSize        string
+	DurationSeconds  int
+	Resolution       string
+	VideoFieldsError error
 }
 
 func ParseGrsaiDeliveryRequest(body []byte) (*GrsaiDeliveryRequest, error) {
@@ -32,6 +36,7 @@ func ParseGrsaiDeliveryRequest(body []byte) (*GrsaiDeliveryRequest, error) {
 		return nil, fmt.Errorf("%w: body must be a JSON object", ErrGrsaiInvalidRequest)
 	}
 	fields := make(map[string]json.RawMessage)
+	var videoFieldsError error
 	for decoder.More() {
 		keyToken, err := decoder.Token()
 		if err != nil {
@@ -49,6 +54,11 @@ func ParseGrsaiDeliveryRequest(body []byte) (*GrsaiDeliveryRequest, error) {
 		var value json.RawMessage
 		if err := decoder.Decode(&value); err != nil {
 			return nil, fmt.Errorf("%w: body must be valid JSON", ErrGrsaiInvalidRequest)
+		}
+		if key == "duration" || key == "resolution" {
+			if _, duplicate := fields[key]; duplicate {
+				videoFieldsError = fmt.Errorf("%w: duplicate video billing field", ErrGrsaiInvalidRequest)
+			}
 		}
 		fields[key] = value
 	}
@@ -87,6 +97,21 @@ func ParseGrsaiDeliveryRequest(body []byte) (*GrsaiDeliveryRequest, error) {
 			break
 		}
 	}
+	duration := 0
+	if raw, exists := fields["duration"]; exists {
+		parsed, parseErr := strconv.ParseInt(string(raw), 10, 0)
+		if parseErr != nil || parsed <= 0 {
+			videoFieldsError = fmt.Errorf("%w: duration must be a positive integer", ErrGrsaiInvalidRequest)
+		} else {
+			duration = int(parsed)
+		}
+	}
+	var resolution string
+	if raw, exists := fields["resolution"]; exists {
+		if err := json.Unmarshal(raw, &resolution); err != nil || strings.TrimSpace(resolution) == "" {
+			videoFieldsError = fmt.Errorf("%w: resolution must be a non-empty string", ErrGrsaiInvalidRequest)
+		}
+	}
 	var imageSize string
 	_ = json.Unmarshal(fields["imageSize"], &imageSize)
 	fields["replyType"] = json.RawMessage(`"async"`)
@@ -95,11 +120,14 @@ func ParseGrsaiDeliveryRequest(body []byte) (*GrsaiDeliveryRequest, error) {
 		return nil, fmt.Errorf("%w: body must be valid JSON", ErrGrsaiInvalidRequest)
 	}
 	return &GrsaiDeliveryRequest{
-		Mode:         mode,
-		OriginalBody: bytes.Clone(body),
-		UpstreamBody: upstreamBody,
-		Model:        strings.TrimSpace(model),
-		ImageCount:   imageCount,
-		ImageSize:    NormalizeImageBillingTierOrDefault(imageSize),
+		Mode:             mode,
+		OriginalBody:     bytes.Clone(body),
+		UpstreamBody:     upstreamBody,
+		Model:            strings.TrimSpace(model),
+		ImageCount:       imageCount,
+		ImageSize:        NormalizeImageBillingTierOrDefault(imageSize),
+		DurationSeconds:  duration,
+		Resolution:       resolution,
+		VideoFieldsError: videoFieldsError,
 	}, nil
 }
