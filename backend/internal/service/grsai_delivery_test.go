@@ -67,3 +67,24 @@ func TestParseGrsaiDeliveryRequestSnapshotsBillingInputs(t *testing.T) {
 	require.Equal(t, 1, defaults.ImageCount)
 	require.Equal(t, ImageBillingSize2K, defaults.ImageSize)
 }
+
+func TestParseGrsaiVideoRequestStrictBillingAndPassthrough(t *testing.T) {
+	req, err := ParseGrsaiDeliveryRequest([]byte(`{"model":"minimax-h3","duration":5,"resolution":"768p","images":["https://example.com/ref.png"],"audios":[{"url":"x"}],"seed":9007199254740993,"future":{"nested":true},"replyType":"stream"}`))
+	require.NoError(t, err)
+	require.Equal(t, 5, req.DurationSeconds)
+	require.Equal(t, "768p", req.Resolution)
+	var body map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(req.UpstreamBody, &body))
+	require.JSONEq(t, `9007199254740993`, string(body["seed"]))
+	require.JSONEq(t, `{"nested":true}`, string(body["future"]))
+	require.JSONEq(t, `[{"url":"x"}]`, string(body["audios"]))
+	require.JSONEq(t, `"async"`, string(body["replyType"]))
+	for _, raw := range []string{`5.0`, `"5"`, `-1`, `0`, `9223372036854775808`, `null`, `true`} {
+		req, err := ParseGrsaiDeliveryRequest([]byte(`{"model":"minimax-h3","duration":` + raw + `}`))
+		require.NoError(t, err)
+		require.ErrorIs(t, req.VideoFieldsError, ErrGrsaiInvalidRequest)
+	}
+	req, err = ParseGrsaiDeliveryRequest([]byte(`{"model":"minimax-h3","resolution":1}`))
+	require.NoError(t, err)
+	require.ErrorIs(t, req.VideoFieldsError, ErrGrsaiInvalidRequest)
+}
