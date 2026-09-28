@@ -82,7 +82,11 @@ func (s *GrsaiTaskService) Create(ctx context.Context, input GrsaiTaskCreateInpu
 	base, _ = decimal.NewFromFloat(base).Round(10).Float64()
 	groupRate, _ = decimal.NewFromFloat(groupRate).Round(4).Float64()
 	accountRate, _ = decimal.NewFromFloat(accountRate).Round(4).Float64()
-	billable, _ := decimal.NewFromFloat(base).Mul(decimal.NewFromFloat(groupRate)).Mul(decimal.NewFromFloat(accountRate)).Round(10).Float64()
+	billableDecimal := decimal.NewFromFloat(base).Mul(decimal.NewFromFloat(groupRate)).Mul(decimal.NewFromFloat(accountRate))
+	if price.Mode == BillingModeVideo {
+		billableDecimal = billableDecimal.Mul(decimal.NewFromInt(int64(request.DurationSeconds)))
+	}
+	billable, _ := billableDecimal.Round(10).Float64()
 	if !grsaiFiniteNonNegative(billable) {
 		return nil, ErrGrsaiSettlementPricingMissing
 	}

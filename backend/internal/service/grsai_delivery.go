@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 )
 
@@ -89,31 +88,30 @@ func ParseGrsaiDeliveryRequest(body []byte) (*GrsaiDeliveryRequest, error) {
 	}
 	var model string
 	_ = json.Unmarshal(fields["model"], &model)
+	// GRS.AI /v1/api/generate does not expose an image quantity parameter.
+	// Each request is one upstream generation task.
 	imageCount := 1
-	for _, key := range []string{"n", "numImages", "num_images", "imageCount", "image_count"} {
-		var count int
-		if raw, exists := fields[key]; exists && json.Unmarshal(raw, &count) == nil && count > 0 {
-			imageCount = count
-			break
-		}
-	}
+	var imageSize string
+	_ = json.Unmarshal(fields["imageSize"], &imageSize)
 	duration := 0
 	if raw, exists := fields["duration"]; exists {
-		parsed, parseErr := strconv.ParseInt(string(raw), 10, 0)
-		if parseErr != nil || parsed <= 0 {
+		if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+			videoFieldsError = fmt.Errorf("%w: duration must be an integer", ErrGrsaiInvalidRequest)
+		} else if err := json.Unmarshal(raw, &duration); err != nil || duration <= 0 {
 			videoFieldsError = fmt.Errorf("%w: duration must be a positive integer", ErrGrsaiInvalidRequest)
-		} else {
-			duration = int(parsed)
 		}
 	}
-	var resolution string
+	resolution := ""
 	if raw, exists := fields["resolution"]; exists {
-		if err := json.Unmarshal(raw, &resolution); err != nil || strings.TrimSpace(resolution) == "" {
+		if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+			videoFieldsError = fmt.Errorf("%w: resolution must be a string", ErrGrsaiInvalidRequest)
+		} else if err := json.Unmarshal(raw, &resolution); err != nil || strings.TrimSpace(resolution) == "" {
 			videoFieldsError = fmt.Errorf("%w: resolution must be a non-empty string", ErrGrsaiInvalidRequest)
 		}
 	}
-	var imageSize string
-	_ = json.Unmarshal(fields["imageSize"], &imageSize)
+	for _, key := range []string{"n", "numImages", "num_images", "imageCount", "image_count"} {
+		delete(fields, key)
+	}
 	fields["replyType"] = json.RawMessage(`"async"`)
 	upstreamBody, err := json.Marshal(fields)
 	if err != nil {

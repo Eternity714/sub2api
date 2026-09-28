@@ -21,7 +21,11 @@ func GrsaiTaskHoldAmount(record *GrsaiSettlement) (float64, error) {
 		record.RequestedImageCount <= 0 || !grsaiFiniteNonNegative(record.BillableUnitPrice) {
 		return 0, ErrGrsaiSettlementInvalidInput
 	}
-	amount, _ := decimal.NewFromFloat(record.BillableUnitPrice).Mul(decimal.NewFromInt(int64(record.RequestedImageCount))).Round(8).Float64()
+	amountDecimal := decimal.NewFromFloat(record.BillableUnitPrice)
+	if record.MediaKind != "video" {
+		amountDecimal = amountDecimal.Mul(decimal.NewFromInt(int64(record.RequestedImageCount)))
+	}
+	amount, _ := amountDecimal.Round(8).Float64()
 	if !grsaiFiniteNonNegative(amount) {
 		return 0, ErrGrsaiSettlementInvalidInput
 	}

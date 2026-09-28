@@ -212,7 +212,7 @@ func (r *GrsaiTaskRuntime) processClaim(ctx context.Context, claim *GrsaiSettlem
 		if !completed {
 			return ErrGrsaiSettlementClaimLost
 		}
-		r.recordUsage(claim, amount)
+		r.recordUsage(claim, amount, stored.ResultCount)
 		return nil
 	case GrsaiUpstreamStatusFailed, GrsaiUpstreamStatusViolation:
 		return r.fail(ctx, claim, "upstream_failed")
@@ -221,19 +221,33 @@ func (r *GrsaiTaskRuntime) processClaim(ctx context.Context, claim *GrsaiSettlem
 	}
 }
 
-func (r *GrsaiTaskRuntime) recordUsage(claim *GrsaiSettlement, amount float64) {
+func (r *GrsaiTaskRuntime) recordUsage(claim *GrsaiSettlement, amount float64, resultCount int) {
 	if r.usageLogs == nil || claim == nil || claim.LocalTaskID == nil {
 		return
 	}
 	mode, endpoint := string(BillingModeImage), "/v1/api/generate"
 	baseCost := claim.BaseUnitPrice * float64(claim.RequestedImageCount)
+	imageCount, videoCount := claim.RequestedImageCount, 0
+	var videoDuration *int
+	var videoResolution *string
+	if claim.MediaKind == "video" {
+		mode = string(BillingModeVideo)
+		baseCost = claim.BaseUnitPrice * float64(claim.VideoDurationSeconds)
+		imageCount = 0
+		videoCount = resultCount
+		if videoCount <= 0 {
+			videoCount = 1
+		}
+		videoDuration = &claim.VideoDurationSeconds
+		videoResolution = &claim.VideoResolution
+	}
 	requestType := RequestTypeSync
 	if claim.DeliveryMode == string(GrsaiDeliveryStream) {
 		requestType = RequestTypeStream
 	}
 	usage := &UsageLog{UserID: claim.UserID, APIKeyID: claim.APIKeyID, AccountID: claim.AccountID,
 		GroupID: &claim.GroupID, RequestID: "grsai_task:" + *claim.LocalTaskID,
-		Model: claim.Model, RequestedModel: claim.Model, ImageCount: claim.RequestedImageCount,
+		Model: claim.Model, RequestedModel: claim.Model, ImageCount: imageCount, VideoCount: videoCount, VideoDurationSeconds: videoDuration, VideoResolution: videoResolution,
 		ImageSize: &claim.ImageSize, ImageOutputCost: baseCost, TotalCost: baseCost,
 		ActualCost: amount, RateMultiplier: claim.GroupRateMultiplier,
 		AccountRateMultiplier: &claim.AccountRateMultiplier,
