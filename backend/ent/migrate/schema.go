@@ -1029,6 +1029,9 @@ var (
 		{Name: "account_rate_multiplier", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
 		{Name: "billable_unit_price", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
 		{Name: "requested_image_count", Type: field.TypeInt},
+		{Name: "media_kind", Type: field.TypeString, Size: 16, Default: "image"},
+		{Name: "video_duration_seconds", Type: field.TypeInt, Default: 0},
+		{Name: "video_resolution", Type: field.TypeString, Size: 32, Default: ""},
 		{Name: "currency", Type: field.TypeString, Size: 16, Default: "USD"},
 		{Name: "billing_idempotency_key", Type: field.TypeString, Size: 128},
 		{Name: "upstream_task_id", Type: field.TypeString, Nullable: true, Size: 255},
@@ -1065,12 +1068,12 @@ var (
 			{
 				Name:    "grsaisettlement_billing_idempotency_key",
 				Unique:  true,
-				Columns: []*schema.Column{GrsaiSettlementsColumns[12]},
+				Columns: []*schema.Column{GrsaiSettlementsColumns[15]},
 			},
 			{
 				Name:    "grsaisettlement_account_id_upstream_task_id",
 				Unique:  true,
-				Columns: []*schema.Column{GrsaiSettlementsColumns[1], GrsaiSettlementsColumns[13]},
+				Columns: []*schema.Column{GrsaiSettlementsColumns[1], GrsaiSettlementsColumns[16]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "upstream_task_id IS NOT NULL AND upstream_task_id <> ''",
 				},
@@ -1078,7 +1081,7 @@ var (
 			{
 				Name:    "grsaisettlement_internal_status_next_attempt_at",
 				Unique:  false,
-				Columns: []*schema.Column{GrsaiSettlementsColumns[15], GrsaiSettlementsColumns[28]},
+				Columns: []*schema.Column{GrsaiSettlementsColumns[18], GrsaiSettlementsColumns[31]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "internal_status IN ('pending_upstream', 'pending_settlement', 'processing')",
 				},
@@ -1086,12 +1089,12 @@ var (
 			{
 				Name:    "grsaisettlement_user_id_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[31]},
+				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[34]},
 			},
 			{
 				Name:    "grsaisettlement_local_task_id",
 				Unique:  true,
-				Columns: []*schema.Column{GrsaiSettlementsColumns[16]},
+				Columns: []*schema.Column{GrsaiSettlementsColumns[19]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "local_task_id IS NOT NULL AND local_task_id <> ''",
 				},
@@ -1099,7 +1102,7 @@ var (
 			{
 				Name:    "grsaisettlement_user_id_api_key_id_created_at",
 				Unique:  false,
-				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[4], GrsaiSettlementsColumns[31]},
+				Columns: []*schema.Column{GrsaiSettlementsColumns[3], GrsaiSettlementsColumns[4], GrsaiSettlementsColumns[34]},
 			},
 		},
 	}
