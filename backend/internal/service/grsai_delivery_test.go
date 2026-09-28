@@ -59,7 +59,7 @@ func TestParseGrsaiDeliveryRequestSnapshotsBillingInputs(t *testing.T) {
 	request, err := ParseGrsaiDeliveryRequest([]byte(`{"model":"  gpt-image-2  ","numImages":2,"imageSize":"1K"}`))
 	require.NoError(t, err)
 	require.Equal(t, "gpt-image-2", request.Model)
-	require.Equal(t, 2, request.ImageCount)
+	require.Equal(t, 1, request.ImageCount)
 	require.Equal(t, ImageBillingSize1K, request.ImageSize)
 
 	defaults, err := ParseGrsaiDeliveryRequest([]byte(`{"model":"gpt-image-2","numImages":0}`))

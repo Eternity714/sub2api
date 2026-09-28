@@ -307,14 +307,8 @@ func parseGrsaiGenerateRequest(body []byte) (string, int, string) {
 		return "", 1, service.ImageBillingSize2K
 	}
 	model = strings.TrimSpace(model)
+	// GRS.AI generate creates one upstream task per request; quantity fields are unsupported.
 	imageCount := 1
-	for _, key := range []string{"n", "numImages", "num_images", "imageCount", "image_count"} {
-		var count int
-		if raw, exists := fields[key]; exists && json.Unmarshal(raw, &count) == nil && count > 0 {
-			imageCount = count
-			break
-		}
-	}
 	var rawImageSize string
 	_ = json.Unmarshal(fields["imageSize"], &rawImageSize)
 	return model, imageCount, service.NormalizeImageBillingTierOrDefault(rawImageSize)

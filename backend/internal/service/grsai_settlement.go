@@ -573,8 +573,17 @@ func grsaiBillingCommand(record *GrsaiSettlement) (*UsageBillingCommand, error) 
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
 	count := decimal.NewFromInt(int64(record.RequestedImageCount))
-	amount, _ := decimal.NewFromFloat(record.BillableUnitPrice).Mul(count).Float64()
-	accountCost, _ := decimal.NewFromFloat(record.BaseUnitPrice).Mul(count).Mul(decimal.NewFromFloat(record.AccountRateMultiplier)).Float64()
+	amountDecimal := decimal.NewFromFloat(record.BillableUnitPrice)
+	accountCostDecimal := decimal.NewFromFloat(record.BaseUnitPrice).Mul(decimal.NewFromFloat(record.AccountRateMultiplier))
+	if record.MediaKind != "video" {
+		amountDecimal = amountDecimal.Mul(count)
+		accountCostDecimal = accountCostDecimal.Mul(count)
+	} else {
+		duration := decimal.NewFromInt(int64(record.VideoDurationSeconds))
+		accountCostDecimal = accountCostDecimal.Mul(duration)
+	}
+	amount, _ := amountDecimal.Float64()
+	accountCost, _ := accountCostDecimal.Float64()
 	if !grsaiFiniteNonNegative(amount) || !grsaiFiniteNonNegative(accountCost) {
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
@@ -592,9 +601,19 @@ func (s *GrsaiSettlementService) recordUsage(ctx context.Context, record *GrsaiS
 	}
 	mode, endpoint := string(BillingModeImage), "/v1/api/generate"
 	baseCost := record.BaseUnitPrice * float64(record.RequestedImageCount)
+	if record.MediaKind == "video" {
+		mode = string(BillingModeVideo)
+		baseCost = record.BaseUnitPrice * float64(record.VideoDurationSeconds)
+	}
 	usage := &UsageLog{UserID: record.UserID, APIKeyID: record.APIKeyID, AccountID: record.AccountID,
 		GroupID: &record.GroupID, RequestID: cmd.RequestID, Model: record.Model, RequestedModel: record.Model,
-		ImageCount: record.RequestedImageCount, ImageSize: &record.ImageSize, ImageOutputCost: baseCost, TotalCost: baseCost, ActualCost: cmd.BalanceCost,
+		ImageCount: record.RequestedImageCount, VideoCount: 0, VideoDurationSeconds: func() *int {
+			if record.MediaKind == "video" {
+				v := record.VideoDurationSeconds
+				return &v
+			}
+			return nil
+		}(), ImageSize: &record.ImageSize, ImageOutputCost: baseCost, TotalCost: baseCost, ActualCost: cmd.BalanceCost,
 		RateMultiplier: record.GroupRateMultiplier, AccountRateMultiplier: &record.AccountRateMultiplier,
 		BillingType: BillingTypeBalance, RequestType: RequestTypeSync, BillingMode: &mode,
 		InboundEndpoint: &endpoint, UpstreamEndpoint: &endpoint, CreatedAt: time.Now()}
