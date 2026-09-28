@@ -19,7 +19,7 @@
 - 视频要求整数秒 `duration > 0`，有档位时须显式精确命中 `resolution`；`minimax-h3` 为 480p/768p/1080p、1–15 秒，1080p 不超过 10 秒。其他视频模型只校验通用计费字段与其已配置档位。
 - `prompt`、`aspectRatio`、`images`、`audios`、`seed` 和未来非控制字段以 `json.RawMessage` 透传；本地控制字段和价格内部元数据不能透传。
 - 基础费用 = 解析出的每秒单价 × 请求时长；再取现有用户/分组有效倍率或 `resolveVideoRateMultiplier` 的视频独立倍率，乘账号倍率，依现有 DECIMAL 精度存快照、冻结和结算。后续改价不追溯。
-- 上游原始视频 URL、任务 ID、提示词与鉴权材料不得进入公开视图或错误日志；只在 MP4 转存、结果入库、冻结捕获同一终态事务完成后公开成功。
+- 上游原始视频 URL、任务 ID、提示词与鉴权材料不得进入公开视图或错误日志；`results[]` 中多个图片或视频 URL 按顺序逐项转存，任一项失败都不公开部分结果；全部转存、结果入库、冻结捕获同一终态事务完成后才公开成功。
 - 保留图片 v1/v2 的原有 SQL、结果 JSON、S3 图片下载上限及结算路径；新字段仅追加且有兼容默认值。视频用 `task_version=3`，旧编译版本的 v2 worker 只领取 `task_version=2`。
 - 失败/违规释放冻结；有上游 ID 只轮询结果，无 ID 的不确定提交不重发；客户端断线不取消 worker。视频对象写入必须有界、可重试、幂等且防止内网地址访问。
 - 共享数据库发布：先确保**稳定槽位**具备处理 v3 的兼容 worker，再由候选槽位创建视频任务；不能仅凭候选 0% 就建立旧稳定槽位无法恢复的冻结任务。只用 `AGENTS.md` 指定灰度脚本及 `sha-<commit>` 镜像，不运行 bootstrap/down，不删卷、不恢复数据库。
@@ -131,24 +131,24 @@ func TestGrsaiVideoHoldUsesDuration(t *testing.T) {
 - Create: `backend/internal/service/grsai_video_download.go`、`grsai_video_download_test.go`、`grsai_video_persistence.go`、`grsai_video_persistence_test.go`
 
 **Interfaces:**
-- `GrsaiUpstreamResult` 新增 `VideoURLs []string`，图片 `ImageURLs` 路径与错误处理保持不变；已知视频结果仅接受上游契约中的 `results[].url`，通过 `media_kind` 解释 URL，避免不加校验地把图片当视频。
-- `VideoStorageWithMetadata.SaveVideoReader(ctx context.Context, key string, body io.Reader, size int64) (ImageStorageSaveMetadata,error)`：使用已有 S3 客户端与公开/presign 链接策略；`PersistGrsaiVideo(ctx, localTaskID, result)` 返回 `GrsaiStoredResult` 的 `{"results":[{"url":"<本地MP4>"}]}` 与对象元数据。
+- `GrsaiUpstreamResult` 新增 `VideoURLs []string`，图片原有多 `ImageURLs` 路径与错误处理保持不变；视频从上游 `results[].url` 逐项提取，保留顺序，并通过任务 `media_kind` 解释和验证每个对象，不根据 URL 扩展名推断任务类型。
+- `VideoStorageWithMetadata.SaveVideoReader(ctx context.Context, key string, body io.Reader, size int64) (ImageStorageSaveMetadata,error)`：使用已有 S3 客户端与公开/presign 链接策略；`PersistGrsaiVideo(ctx, localTaskID, result)` 遍历所有 `VideoURLs`，返回保序的 `{"results":[{"url":"<本地MP4-0>"},{"url":"<本地MP4-1>"}]}` 与逐对象元数据；过期时间取各 presigned 链接的最早值。
 
-- [ ] **Step 1: 写假上游和假 S3 红灯测试。** 解析成功、失败、空 URL、混合/重复结果；抓取 1 MiB+ 流并断言不会走 `fetchImageBytes`；无 S3 配置拒绝，下载、截断、超额、错误 MIME、重定向到 loopback/私网、上传和 presign 失败不得返回本地成功 URL。重试相同 `localTaskID` 得相同 `grsai/<id>/video-0.mp4` key。
+- [ ] **Step 1: 写假上游和假 S3 红灯测试。** 解析成功、失败、空 URL、两个及更多 URL、重复结果；断言结果保序、每个对象 key 唯一、任一项失败不公开部分结果；抓取 1 MiB+ 流并断言不会走 `fetchImageBytes`；无 S3 配置拒绝，下载、截断、超额、错误 MIME、重定向到 loopback/私网、上传和 presign 失败不得返回本地成功 URL。重试相同 `localTaskID` 时各索引得到同一个 `grsai/<id>/video-<index>.mp4` key。
 
 ```go
 func TestGrsaiVideoResultIsLocalMP4Only(t *testing.T) {
-    // fakeDownloader 提供 video/mp4 流，fakeStorage 记录对象 key、size 和 URL。
+    // fakeDownloader 提供两个 video/mp4 流，fakeStorage 记录各对象 key、size 和 URL。
     stored, err := persister.PersistGrsaiVideo(ctx, "grsai_test", upstream)
     require.NoError(t, err)
-    require.JSONEq(t, `{"results":[{"url":"https://media.example/grsai_test.mp4"}]}`, string(stored.ResultJSON))
+    require.JSONEq(t, `{"results":[{"url":"https://media.example/video-0.mp4"},{"url":"https://media.example/video-1.mp4"}]}`, string(stored.ResultJSON))
     require.NotContains(t, string(stored.ResultJSON), "upstream.example")
 }
 ```
 
 - [ ] **Step 2: 红灯。** `go test ./internal/service ./internal/repository -run 'TestGrsai(VideoResult|VideoDownload|VideoPersistence|VideoStorage)' -count=1`；预期新媒体存储接口或校验测试失败。
-- [ ] **Step 3: 实现受约束下载。** URL 仅 HTTPS（本地 `httptest` 用注入 transport 验证），按上游允许的媒体主机/域名策略校验 host；DNS 解析和每次重定向都拒绝 loopback、私网、link-local、非全局单播，拨号地址与验证 IP 一致以防重绑定。要求 2xx、`video/mp4`（或经固定 MP4 签名确认的 `application/octet-stream`）、正长度，按 `io.LimitReader(max+1)` 验证实际字节数。采用独立配置视频超时与大小上限，例如 5 分钟和 512 MiB，默认值、配置验证与生产值一起测试；不使用图片 32 MiB 路径。
-- [ ] **Step 4: 从 HTTP 响应流写有界临时文件，再调用 S3 PutObject。** 使用 `os.CreateTemp`，限制磁盘占用与目录、`defer os.Remove`，用文件大小设 `ContentLength`、`ContentType:video/mp4`，避免整片视频驻留内存；沿用 `S3ImageStorage.SaveWithMetadata` 的 public/presign 行为提取链接元数据，不重新发明链接。未知长度也按实际写入量验证。固定对象 key 覆盖失败重试，只有 `PutObject` 和签名成功才返回 URL；存储配置变化导致的签名期限仍与图片契约一致。
+- [ ] **Step 3: 实现受约束下载。** URL 仅 HTTPS（本地 `httptest` 用注入 transport 验证），按规格中待确认的媒体来源域名规则校验 host；DNS 解析和每次重定向都拒绝 loopback、私网、link-local、非全局单播，拨号地址与验证 IP 一致以防重绑定。要求 2xx、`video/mp4`（或经固定 MP4 签名确认的 `application/octet-stream`）、正长度，按 `io.LimitReader(max+1)` 验证实际字节数。采用独立配置视频超时与大小上限，例如 5 分钟和 512 MiB，默认值、配置验证与生产值一起测试；不使用图片 32 MiB 路径。
+- [ ] **Step 4: 从 HTTP 响应流写有界临时文件，再调用 S3 PutObject。** 使用 `os.CreateTemp`，限制磁盘占用与目录、`defer os.Remove`，用文件大小设 `ContentLength`、`ContentType:video/mp4`，避免整片视频驻留内存；沿用 `S3ImageStorage.SaveWithMetadata` 的 public/presign 行为提取链接元数据，不重新发明链接。未知长度也按实际写入量验证。每个索引固定对象 key 覆盖失败重试；全部 `PutObject` 和签名成功才返回结果 URL；存储配置变化导致的签名期限仍与图片契约一致。
 - [ ] **Step 5: 复测并提交。** `go test ./internal/service ./internal/repository -run 'Test(Grsai|ImageStorage)' -count=1`；预期旧图片数据 URL/base64/下载行为不变。提交：`git add` 本任务所改文件，`git commit -m "feat: 安全转存 GRS.AI 视频至 S3"`。
 
 ### Task 5: worker 分派、结果终态与视频用量
@@ -159,9 +159,9 @@ func TestGrsaiVideoResultIsLocalMP4Only(t *testing.T) {
 
 **Interfaces:**
 - `GrsaiTaskRuntime` 在已持久化行中用 `MediaKind` 分派：`image` 继续 `PersistGrsaiImages`，`video` 调 `PersistGrsaiVideo`；单一 `CompleteV2` 事务处理两类任务。不能用模型名或上游 URL 扩展名猜类别。
-- 视频 `UsageLog` 写 `BillingModeVideo`、`VideoCount=1`、`VideoResolution`、`VideoDurationSeconds`、按秒基础金额和实际账单；图片既有字段、request type、API Key 归属保留。
+- 视频 `UsageLog` 写 `BillingModeVideo`、`VideoCount=len(已转存视频结果)`、`VideoResolution`、`VideoDurationSeconds`、按请求时长计算一次的基础金额和实际账单；图片既有字段、request type、API Key 归属保留。
 
-- [ ] **Step 1: 写 worker 红灯测试。** 视频成功 → S3 → 入库/捕获 → `succeeded`；每种交付模式只公开本地 ID/URL；上游失败释放，轮询异常、MP4 失败、数据库提交失败按原有限次退避到 `manual_review`；上游 ID 绑定后重启只 GET，不重复 POST；重复/并发 RunOnce 只有一笔结算。图片 v2 同跑仍走图片 persister。
+- [ ] **Step 1: 写 worker 红灯测试。** 多个视频全部成功 → S3 → 入库/捕获 → `succeeded`；任一转存失败不得公开部分成功；每种交付模式只公开本地 ID/URL；上游失败释放，轮询异常、MP4 失败、数据库提交失败按原有限次退避到 `manual_review`；上游 ID 绑定后重启只 GET，不重复 POST；重复/并发 RunOnce 只有一笔结算。图片 v2 同跑仍走图片 persister。
 
 ```go
 switch claim.MediaKind {
@@ -183,11 +183,12 @@ default:
 **Files:**
 - Modify: `backend/internal/handler/grsai_gateway.go`、`grsai_delivery_handler.go`、`grsai_gateway_test.go`、`grsai_delivery_handler_test.go`、`backend/internal/server/routes/gateway_test.go`、`frontend/src/i18n/locales/zh/admin/overview.ts`、`frontend/src/i18n/locales/en/admin/overview.ts`、`test/grsai_live_contract.py`
 - Create: `frontend/src/views/admin/__tests__/GroupsView.spec.ts`、`test/grsai_video_traceability.py`
+
 **Interfaces:**
 - `POST /v1/api/generate` 和 `GET /v1/api/result?id=...` / `GET /v1/api/tasks` 均保持原路由、原 API Key 鉴权；只复用 `allow_image_generation` 布尔配置。
 - GRS.AI 分组中文显示“允许图片/视频生成”，英文显示“Allow image/video generation”；图片专属倍率和 Grok 定价说明不误改。
 
-- [ ] **Step 1: 写端到端 handler 红灯测试。** 用假 GRS.AI Async HTTP 和假 S3 验证 480p×1 秒的视频 `json/stream/async`；`results[0].url` 只指向本地 MP4，Key B 查询详情/列表均 404 或不可见；组开关 false 提交前拒绝、true 允许；缺档/缺时长无上游 POST、无 hold；原图 JSON/Stream/Async 和历史 owner 查询回归。
+- [ ] **Step 1: 写端到端 handler 红灯测试。** 用假 GRS.AI Async HTTP 和假 S3 验证 480p×1 秒、返回多个视频 URL 的 `json/stream/async`；所有 `results[].url` 保序且只指向本地 MP4，旧图片多 URL 一并回归；Key B 查询详情/列表均 404 或不可见；组开关 false 提交前拒绝、true 允许；缺档/缺时长无上游 POST、无 hold；原图 JSON/Stream/Async 和历史 owner 查询回归。
 - [ ] **Step 2: 红灯。** `go test ./internal/handler ./internal/server/routes -run 'TestGrsai' -count=1`；预期新视频断言失败。
 - [ ] **Step 3: 只补缺失契约与文案。** 将 `imagePricingI18nKey(platform,"allowImageGeneration")` 的 GRS.AI 专属显示键改为图片/视频；其他平台继续使用图片文案。同步检查并更新 GRS.AI 独立倍率区域的标题和说明，明确视频使用现有视频独立倍率或有效分组倍率。保持字段 `allow_image_generation`、Grok `video_model_prices` 和前端模型分类不变。
 - [ ] **Step 4: 全量离线验证。** `go test ./internal/service ./internal/repository ./internal/handler ./internal/server/routes ./internal/config ./cmd/server -count=1`；`go vet ./internal/service ./internal/repository ./internal/handler ./internal/server/routes`；`CI=1 go test -tags integration ./internal/repository -run 'TestGrsai' -count=1`；`pnpm test:run`、`pnpm build`。`test/grsai_live_contract.py --self-test` 无网络无密钥；`python test/grsai_video_traceability.py` 检查 `GRSAI-VIDEO-01..08` 每条至少关联一个实际测试且无未知 ID；每条验收均有失败和成功证据。
@@ -212,8 +213,8 @@ default:
 | GRSAI-VIDEO-01 | Task 1 价格模式判定；Task 6 原开关与授权/账号 handler |
 | GRSAI-VIDEO-02 | Task 1 严格档位/时长、Task 3 冻结与倍率真库测试 |
 | GRSAI-VIDEO-03 | Task 1 `json.RawMessage` 透传与假上游断言 |
-| GRSAI-VIDEO-04 | Task 4 本地 MP4、Task 5 事务终态、Task 6 三模式 |
-| GRSAI-VIDEO-05 | Task 3/5 幂等和失败恢复、Task 4 S3 异常/安全边界 |
+| GRSAI-VIDEO-04 | Task 4 多 URL 保序转存、Task 5 全部成功后的事务终态、Task 6 三模式 |
+| GRSAI-VIDEO-05 | Task 3/5 幂等和失败恢复、Task 4 多结果任一项失败与 S3 安全边界 |
 | GRSAI-VIDEO-06 | Task 5 用量快照、Task 6 两 API Key 隔离 |
 | GRSAI-VIDEO-07 | Task 2 真库新旧 worker 领取、Task 5 图片 v2 回归 |
 | GRSAI-VIDEO-08 | Task 7 兼容稳定槽位、候选 0% 实测及灰度门 |
