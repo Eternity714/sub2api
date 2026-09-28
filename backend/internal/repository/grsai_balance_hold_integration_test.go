@@ -123,3 +123,62 @@ func assertGrsaiBalance(t *testing.T, userID int64, wantBalance, wantFrozen floa
 	require.InDelta(t, wantBalance, balance, 0.000001)
 	require.InDelta(t, wantFrozen, frozen, 0.000001)
 }
+
+// GRSAI-VIDEO-02/05/06: one request charge for three results, capture is idempotent.
+func TestGrsaiVideoBalanceSingleRequestMultipleResults(t *testing.T) {
+	ctx := context.Background()
+	client := testEntClient(t)
+	user := mustCreateUser(t, client, &service.User{Email: "video-" + uuid.NewString() + "@example.com", PasswordHash: "hash", Balance: 10})
+	account := mustCreateAccount(t, client, &service.Account{Name: "video-" + uuid.NewString(), Type: service.AccountTypeAPIKey})
+	key := mustCreateApiKey(t, client, &service.APIKey{UserID: user.ID, Key: "sk-video-" + uuid.NewString(), Name: "video"})
+	repo := grsaiV2TestRepo(t)
+	params := grsaiV2TestParams(t)
+	params.UserID = user.ID
+	params.APIKeyID = key.ID
+	params.AccountID = account.ID
+	params.RequestedImageCount = 1
+	params.MediaKind = "video"
+	params.TaskVersion = 3
+	params.VideoDurationSeconds = 5
+	params.VideoResolution = "768p"
+	params.BaseUnitPrice = .14
+	params.GroupRateMultiplier = 1.5
+	params.AccountRateMultiplier = 1.2
+	params.BillableUnitPrice = 1.26
+	billing := &usageBillingRepository{db: integrationDB}
+	record, err := repo.CreateV2GrsaiTask(ctx, params, billing.ReserveGrsaiBalance)
+	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
+	t.Cleanup(func() {
+		_, _ = integrationDB.ExecContext(context.Background(), `DELETE FROM grsai_balance_holds WHERE local_task_id=$1`, params.LocalTaskID)
+	})
+	assertGrsaiBalance(t, user.ID, 8.74, 1.26)
+	claims, err := repo.ClaimDueV2(ctx, time.Now().UTC(), 1, time.Now().UTC().Add(time.Minute), 3)
+	require.NoError(t, err)
+	require.Len(t, claims, 1)
+	bound, err := repo.BindV2UpstreamTask(ctx, record.ID, claims[0].ClaimVersion, "private-video")
+	require.NoError(t, err)
+	require.True(t, bound)
+	result := []byte(`{"results":[{"url":"https://local/a.mp4"},{"url":"https://local/b.mp4"},{"url":"https://local/c.mp4"}]}`)
+	done, err := repo.CompleteV2(ctx, record.ID, claims[0].ClaimVersion, result, []byte(`[]`), nil, 1.26, billing.CaptureGrsaiBalanceTx)
+	require.NoError(t, err)
+	require.True(t, done)
+	assertGrsaiBalance(t, user.ID, 8.74, 0)
+	var quota, rate float64
+	require.NoError(t, integrationDB.QueryRowContext(ctx, `SELECT quota_used,usage_5h FROM api_keys WHERE id=$1`, key.ID).Scan(&quota, &rate))
+	require.InDelta(t, 1.26, quota, 1e-8)
+	require.InDelta(t, 1.26, rate, 1e-8)
+	tx, err := integrationDB.BeginTx(ctx, nil)
+	require.NoError(t, err)
+	require.NoError(t, billing.CaptureGrsaiBalanceTx(ctx, tx, record))
+	require.NoError(t, tx.Commit())
+	assertGrsaiBalance(t, user.ID, 8.74, 0)
+	require.NoError(t, integrationDB.QueryRowContext(ctx, `SELECT quota_used FROM api_keys WHERE id=$1`, key.ID).Scan(&quota))
+	require.InDelta(t, 1.26, quota, 1e-8)
+	owned, err := repo.GetOwnedV2(ctx, user.ID, key.ID, params.LocalTaskID)
+	require.NoError(t, err)
+	require.Equal(t, "video", owned.MediaKind)
+	require.Equal(t, "succeeded", owned.PublicStatus)
+	_, err = repo.GetOwnedV2(ctx, user.ID, key.ID+100000, params.LocalTaskID)
+	require.ErrorIs(t, err, service.ErrGrsaiSettlementNotFound)
+}

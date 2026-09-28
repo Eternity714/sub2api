@@ -1,11 +1,17 @@
-# Sub2API GRS.AI 视频测试
+# Sub2API GRS.AI 视频实测
 
-通过 Sub2API 的 `/v1/api/generate` 发起一次 `minimax-h3` 视频请求。
+脚本只通过 Sub2API 的 POST `/v1/api/generate` 提交一次付费请求，随后 GET `/v1/api/result?id=...` 轮询。成功后下载全部 MP4，验证文件签名并保存 SHA256，不按结果数量重复请求。
+
+默认 `minimax-h3`、480p、1 秒；价格取 API key 所在分组的渠道配置。
 
 ```powershell
-$env:SUB2API_BASE = "https://灰度候选地址"
-$env:SUB2API_KEY = "sk-..."
-python test/grsai_sub2api_video.py
+$env:SUB2API_KEY = "<测试分组的密钥>"
+python test/grsai_sub2api_video.py --base http://127.0.0.1:18082
+# 或加载本地已有配置（不提交 .env）
+python test/grsai_sub2api_video.py --env-file test/.env --base http://127.0.0.1:18082
+# 超时/中断后用 output 中 task.json 的 id 续查，不会再次扣费提交
+python test/grsai_sub2api_video.py --base http://127.0.0.1:18082 --task-id <id>
 ```
 
-可选环境变量：`GRSAI_VIDEO_MODEL`、`GRSAI_VIDEO_DURATION`、`GRSAI_VIDEO_RESOLUTION`、`GRSAI_VIDEO_PROMPT`。
+本地 HTTP 地址应通过 SSH 隧道连接当前无流量候选端口。密钥只在进程内使用，不发送给视频存储地址，不打印响应体或签名链接。
+产物默认位于 `test/output/grsai-video/`（已忽略）：任务 ID、视频、脱敏摘要。`--duration`、`--resolution`、`--timeout` 可调整。发生提交网络错误不自动重发，需要先核对服务器任务以避免重复付费。

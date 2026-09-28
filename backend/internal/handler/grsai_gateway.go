@@ -97,7 +97,7 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		}
 		preparedBody, model, imageCount, imageSize = request.OriginalBody, request.Model, request.ImageCount, request.ImageSize
 	} else {
-		preparedBody, err = service.PrepareGrsaiGenerateBody(body)
+		preparedBody, err = prepareGrsaiLegacyGenerateBody(body)
 		if err != nil {
 			h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", err.Error())
 			return
@@ -295,6 +295,22 @@ func (h *GrsaiGatewayHandler) checkSecurityAudit(c *gin.Context, reqLog *zap.Log
 		return nil
 	}
 	return runSecurityAudit(c, reqLog, h.securityAuditCoordinator, h.contentModerationService, apiKey, subject, service.ContentModerationProtocolOpenAIImages, model, body, "http")
+}
+
+// Keep legacy reply controls while removing unsupported generation quantities.
+func prepareGrsaiLegacyGenerateBody(body []byte) ([]byte, error) {
+	prepared, err := service.PrepareGrsaiGenerateBody(body)
+	if err != nil {
+		return nil, err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(prepared, &fields); err != nil {
+		return nil, err
+	}
+	for _, key := range []string{"n", "numImages", "num_images", "imageCount", "image_count", "requested_image_count"} {
+		delete(fields, key)
+	}
+	return json.Marshal(fields)
 }
 
 func parseGrsaiGenerateRequest(body []byte) (string, int, string) {

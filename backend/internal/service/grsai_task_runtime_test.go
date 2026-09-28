@@ -15,6 +15,7 @@ type grsaiRuntimeRepoStub struct {
 	bound, failed, completed, updated, deferred, manual int
 	lastNext                                            time.Time
 	manualReason                                        string
+	amount                                              float64
 }
 
 func (r *grsaiRuntimeRepoStub) BindV2UpstreamTask(context.Context, int64, int64, string) (bool, error) {
@@ -40,8 +41,9 @@ func (r *grsaiRuntimeRepoStub) MarkV2ManualReview(_ context.Context, _, _ int64,
 	return true, nil
 }
 
-func (r *grsaiRuntimeRepoStub) CompleteV2(context.Context, int64, int64, []byte, []byte, *time.Time, float64, GrsaiSettlementTxFunc) (bool, error) {
+func (r *grsaiRuntimeRepoStub) CompleteV2(_ context.Context, _ int64, _ int64, _ []byte, _ []byte, _ *time.Time, amount float64, _ GrsaiSettlementTxFunc) (bool, error) {
 	r.completed++
+	r.amount = amount
 	return true, nil
 }
 
@@ -195,4 +197,60 @@ func TestGrsaiTaskRuntimeResultErrorsBackOffThenRequireReview(t *testing.T) {
 	require.Zero(t, repo.failed)
 	require.Zero(t, repo.completed)
 	require.Zero(t, images.calls)
+}
+
+// GRSAI-VIDEO-04/05/06: output count is metadata, never a charge multiplier.
+type grsaiRuntimeVideosStub struct {
+	calls int
+	err   error
+}
+
+func (v *grsaiRuntimeVideosStub) PersistGrsaiVideo(context.Context, string, *GrsaiUpstreamResult) (*GrsaiStoredResult, error) {
+	v.calls++
+	if v.err != nil {
+		return nil, v.err
+	}
+	return &GrsaiStoredResult{ResultCount: 3, ResultJSON: []byte(`{"results":[{"url":"https://local/a.mp4"},{"url":"https://local/b.mp4"},{"url":"https://local/c.mp4"}]}`)}, nil
+}
+func TestGrsaiTaskRuntimeVideoDispatchUsageAndSingleCharge(t *testing.T) {
+	for _, mode := range []GrsaiDeliveryMode{GrsaiDeliveryAsync, GrsaiDeliveryJSON, GrsaiDeliveryStream} {
+		t.Run(string(mode), func(t *testing.T) {
+			repo, payload, upstream, images := &grsaiRuntimeRepoStub{}, &grsaiRuntimePayloadStub{}, &grsaiRuntimeUpstreamStub{}, &grsaiRuntimeImagesStub{}
+			videos := &grsaiRuntimeVideosStub{err: errors.New("storage failed")}
+			runtime := newGrsaiRuntimeTest(repo, payload, upstream, images).WithVideos(videos)
+			claim := grsaiRuntimeClaim()
+			id := "bound-task"
+			claim.UpstreamTaskID = &id
+			claim.MediaKind = "video"
+			claim.VideoDurationSeconds = 5
+			claim.VideoResolution = "768p"
+			claim.BaseUnitPrice = .14
+			claim.GroupRateMultiplier = 1.5
+			claim.AccountRateMultiplier = 1.2
+			claim.BillableUnitPrice = 1.26
+			claim.DeliveryMode = string(mode)
+			upstream.result = &GrsaiUpstreamResult{Status: GrsaiUpstreamStatusSucceeded, ImageURLs: []string{"a", "b", "c"}}
+			usage := &grsaiUsageSpy{}
+			runtime.WithUsageLogs(usage)
+			require.Error(t, runtime.processClaim(context.Background(), claim))
+			require.Zero(t, repo.completed)
+			require.Empty(t, usage.logs)
+			videos.err = nil
+			require.NoError(t, runtime.processClaim(context.Background(), claim))
+			require.Zero(t, images.calls)
+			require.Zero(t, upstream.posts)
+			require.Equal(t, 1, repo.completed)
+			require.Len(t, usage.logs, 1)
+			log := usage.logs[0]
+			require.Equal(t, string(BillingModeVideo), *log.BillingMode)
+			require.Zero(t, log.ImageCount)
+			require.Nil(t, log.ImageSize)
+			require.Equal(t, 3, log.VideoCount)
+			require.Equal(t, 5, *log.VideoDurationSeconds)
+			require.Equal(t, "768p", *log.VideoResolution)
+			require.InDelta(t, .7, log.TotalCost, 1e-9)
+			require.InDelta(t, 1.26, log.ActualCost, 1e-9)
+			require.InDelta(t, 1.26, repo.amount, 1e-9)
+		})
+	}
 }

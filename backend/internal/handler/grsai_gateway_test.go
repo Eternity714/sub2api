@@ -134,3 +134,15 @@ func newGrsaiGatewayTestContext(t *testing.T) (*gin.Context, *httptest.ResponseR
 	c.Request = httptest.NewRequest(http.MethodPost, "/v1/api/generate", nil)
 	return c, recorder
 }
+
+func TestGrsaiLegacyGenerateIgnoresQuantityFields(t *testing.T) {
+	body := []byte(`{"model":"image","n":3,"numImages":4,"num_images":5,"imageCount":6,"image_count":7,"requested_image_count":8,"seed":9007199254740993}`)
+	prepared, err := prepareGrsaiLegacyGenerateBody(body)
+	require.NoError(t, err)
+	for _, key := range []string{"n", "numImages", "num_images", "imageCount", "image_count", "requested_image_count"} {
+		require.NotContains(t, string(prepared), `"`+key+`":`)
+	}
+	require.Contains(t, string(prepared), `"seed":9007199254740993`)
+	_, count, _ := parseGrsaiGenerateRequest(body)
+	require.Equal(t, 1, count)
+}
