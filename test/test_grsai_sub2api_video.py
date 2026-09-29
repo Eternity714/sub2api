@@ -40,6 +40,7 @@ def args(output, **overrides):
         "model": "minimax-h3",
         "duration": 6,
         "resolution": "768p",
+        "aspect_ratio": "landscape",
         "prompt": "test prompt",
         "task_id": None,
         "output": str(output),
@@ -90,6 +91,7 @@ class GrsaiSub2APIVideoTest(unittest.TestCase):
         self.assertEqual("/v1/api/generate", posts[0].args[2])
         self.assertEqual(6, posts[0].args[3]["duration"])
         self.assertEqual("768p", posts[0].args[3]["resolution"])
+        self.assertEqual("landscape", posts[0].args[3]["aspectRatio"])
         self.assertEqual("async", posts[0].args[3]["replyType"])
         self.assertEqual(3, len(api_mock.call_args_list) - len(posts))
         self.assertEqual(2, sleep_mock.call_count)
