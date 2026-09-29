@@ -57,7 +57,7 @@ SELECT payloads.payload_ciphertext
 FROM grsai_task_payloads AS payloads
 JOIN grsai_settlements AS tasks ON tasks.local_task_id = payloads.local_task_id
 WHERE payloads.local_task_id = $1 AND payloads.expires_at > NOW()
-  AND tasks.claim_version = $2 AND tasks.task_version = 2
+  AND tasks.claim_version = $2 AND tasks.task_version IN (2, 3)
   AND tasks.internal_status = 'v2_submitting' AND tasks.submission_attempt = 1
   AND tasks.upstream_task_id IS NULL AND tasks.next_attempt_at > NOW()`, localTaskID, claimVersion).Scan(&ciphertext)
 	if errors.Is(err, sql.ErrNoRows) {

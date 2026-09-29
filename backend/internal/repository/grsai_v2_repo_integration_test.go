@@ -88,6 +88,33 @@ func TestGrsaiV2CreateIsAtomicAndOwnedByOriginalKey(t *testing.T) {
 	requirePostgresUniqueViolation(t, err, "grsai_settlements_local_task_id_uq")
 }
 
+func TestGrsaiVideoClaimCanReadEncryptedPayload(t *testing.T) {
+	ctx := context.Background()
+	repo := grsaiV2TestRepo(t)
+	params := grsaiV2TestParams(t)
+	params.TaskVersion = 3
+	params.MediaKind = "video"
+	params.VideoDurationSeconds = 1
+	params.VideoResolution = "480p"
+	record, err := repo.CreateV2GrsaiTask(ctx, params, grsaiV2NoopBalance)
+	require.NoError(t, err)
+	cleanupCreatedGrsaiSettlements(t, record)
+	t.Cleanup(func() {
+		_, _ = integrationDB.ExecContext(context.Background(), `DELETE FROM grsai_task_payloads WHERE local_task_id = $1`, params.LocalTaskID)
+	})
+	require.Equal(t, 3, record.TaskVersion)
+
+	now := time.Now().UTC()
+	claims, err := repo.ClaimDueV2(ctx, now, 1, now.Add(time.Minute), 3)
+	require.NoError(t, err)
+	require.Len(t, claims, 1)
+	require.Equal(t, record.ID, claims[0].ID)
+	require.Equal(t, 1, claims[0].SubmissionAttempt)
+	payloadRepo := NewGrsaiTaskPayloadRepository(integrationDB, repo.encryptor)
+	plaintext, err := payloadRepo.GetDecrypted(ctx, params.LocalTaskID, claims[0].ClaimVersion)
+	require.NoError(t, err)
+	require.Equal(t, params.UpstreamPayload, plaintext)
+}
 func TestGrsaiV2CreateRejectsExpiredPayload(t *testing.T) {
 	ctx := context.Background()
 	repo := grsaiV2TestRepo(t)
