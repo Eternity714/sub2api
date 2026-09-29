@@ -50,6 +50,7 @@ def run(args):
     if not task_id:
         code, created = api(base, key, "/v1/api/generate", {
             "model": args.model, "duration": args.duration, "resolution": args.resolution,
+            "aspectRatio": args.aspect_ratio,
             "prompt": args.prompt, "replyType": "async"})
         if code != 202 or not created.get("id"):
             raise RuntimeError("Expected async task acceptance")
@@ -102,6 +103,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", default="minimax-h3")
     parser.add_argument("--duration", type=int, default=1)
     parser.add_argument("--resolution", default="480p")
+    parser.add_argument("--aspect-ratio", choices=("portrait", "landscape", "square"), default="landscape")
     parser.add_argument("--prompt", default="A cinematic ocean wave at sunrise, smooth camera movement.")
     parser.add_argument("--task-id", help="Resume an existing task without another paid POST")
     parser.add_argument("--output", default="test/output/grsai-video")
