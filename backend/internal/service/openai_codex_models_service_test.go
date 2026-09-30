@@ -494,6 +494,27 @@ func TestBuildCodexModelsManifestKeepsKnownReasoningChoices(t *testing.T) {
 	require.NotEqual(t, "none", firstLevel["effort"])
 }
 
+func TestBuildCodexModelsManifestGPT61SolReasoningChoices(t *testing.T) {
+	t.Parallel()
+
+	for _, model := range []string{"gpt-6.1-sol", "openai/gpt-6.1-sol"} {
+		t.Run(model, func(t *testing.T) {
+			body, err := BuildCodexModelsManifest([]string{model})
+			require.NoError(t, err)
+			models := decodeCodexManifestModels(t, body)
+			require.Len(t, models, 1)
+			require.Equal(t, "medium", models[0]["default_reasoning_level"])
+			levels, ok := models[0]["supported_reasoning_levels"].([]any)
+			require.True(t, ok)
+			efforts := make([]string, 0, len(levels))
+			for _, level := range levels {
+				efforts = append(efforts, level.(map[string]any)["effort"].(string))
+			}
+			require.Equal(t, []string{"low", "medium", "high", "xhigh", "max"}, efforts)
+		})
+	}
+}
+
 // Scenario: 支持 Fast 的 GPT 型号在目录中声明 priority service tier。
 func TestBuildCodexModelsManifestAdvertisesPriorityServiceTierForFastGPTModels(t *testing.T) {
 	t.Parallel()
