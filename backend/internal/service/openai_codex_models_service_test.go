@@ -508,7 +508,11 @@ func TestBuildCodexModelsManifestGPT61SolReasoningChoices(t *testing.T) {
 			require.True(t, ok)
 			efforts := make([]string, 0, len(levels))
 			for _, level := range levels {
-				efforts = append(efforts, level.(map[string]any)["effort"].(string))
+				item, ok := level.(map[string]any)
+				require.True(t, ok)
+				effort, ok := item["effort"].(string)
+				require.True(t, ok)
+				efforts = append(efforts, effort)
 			}
 			require.Equal(t, []string{"low", "medium", "high", "xhigh", "max"}, efforts)
 		})
