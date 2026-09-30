@@ -2,6 +2,12 @@
 
 提交日志需要使用中文。
 
+## 本机测试
+
+本机测试必须通过 Docker Compose 容器执行，不得在宿主机直接运行测试命令
+（包括 `go test`、前端类型检查和前端测试）。
+后端单元测试使用 `docker compose -f deploy/docker-compose.test.yml run --rm backend-test`。
+
 ## 生产灰度发布
 
 生产环境通过 SSH 别名 `tenxunyun.guigu` 管理，Sub2API 部署目录为
