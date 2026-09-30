@@ -503,7 +503,7 @@ func TestBuildCodexModelsManifestGPT61SolReasoningChoices(t *testing.T) {
 			require.NoError(t, err)
 			models := decodeCodexManifestModels(t, body)
 			require.Len(t, models, 1)
-			require.Equal(t, "medium", models[0]["default_reasoning_level"])
+			require.Equal(t, "low", models[0]["default_reasoning_level"])
 			levels, ok := models[0]["supported_reasoning_levels"].([]any)
 			require.True(t, ok)
 			efforts := make([]string, 0, len(levels))
@@ -514,7 +514,7 @@ func TestBuildCodexModelsManifestGPT61SolReasoningChoices(t *testing.T) {
 				require.True(t, ok)
 				efforts = append(efforts, effort)
 			}
-			require.Equal(t, []string{"low", "medium", "high", "xhigh", "max"}, efforts)
+			require.Equal(t, []string{"low", "medium", "high", "xhigh", "max", "ultra"}, efforts)
 		})
 	}
 }
