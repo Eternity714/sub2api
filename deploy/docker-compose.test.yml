@@ -1,0 +1,13 @@
+services:
+  backend-test:
+    image: golang:1.27
+    working_dir: /workspace/backend
+    volumes:
+      - ../backend:/workspace/backend
+      - go-test-build-cache:/root/.cache/go-build
+      - go-test-mod-cache:/go/pkg/mod
+    command: ["go", "test", "-tags=unit", "./..."]
+
+volumes:
+  go-test-build-cache:
+  go-test-mod-cache:
