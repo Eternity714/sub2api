@@ -15,19 +15,19 @@ import (
 func (h *GrsaiGatewayHandler) taskCreateError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, service.ErrGrsaiTaskWaitingLimit):
-		h.errorResponse(c, http.StatusTooManyRequests, "rate_limit_error", "GRS.AI waiting task limit reached")
+		h.errorResponse(c, http.StatusTooManyRequests, "rate_limit_error", "Media waiting task limit reached")
 	case errors.Is(err, service.ErrGrsaiInsufficientBalance):
 		h.errorResponse(c, http.StatusPaymentRequired, "insufficient_balance", "Insufficient balance")
 	case errors.Is(err, service.ErrGrsaiSettlementPricingMissing), errors.Is(err, service.ErrGrsaiInvalidRequest), errors.Is(err, service.ErrGrsaiSettlementInvalidInput):
-		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "GRS.AI request or pricing is invalid")
+		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Media request or pricing is invalid")
 	default:
-		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "GRS.AI task creation is unavailable")
+		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "Media task creation is unavailable")
 	}
 }
 
 func (h *GrsaiGatewayHandler) deliverTask(c *gin.Context, task *service.GrsaiSettlement) {
 	if task == nil || task.LocalTaskID == nil {
-		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "GRS.AI task is unavailable")
+		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "Media task is unavailable")
 		return
 	}
 	id := *task.LocalTaskID
@@ -115,7 +115,7 @@ func (h *GrsaiGatewayHandler) Result(c *gin.Context) {
 		return
 	}
 	if h.taskService == nil {
-		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "GRS.AI tasks are unavailable")
+		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "Media tasks are unavailable")
 		return
 	}
 	record, err := h.taskService.GetOwned(c.Request.Context(), userID, keyID, id)
@@ -136,7 +136,7 @@ func (h *GrsaiGatewayHandler) Tasks(c *gin.Context) {
 		return
 	}
 	if h.taskService == nil {
-		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "GRS.AI tasks are unavailable")
+		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "Media tasks are unavailable")
 		return
 	}
 	page, pageSize := 1, 20

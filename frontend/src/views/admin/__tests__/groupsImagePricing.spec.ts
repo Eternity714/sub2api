@@ -19,9 +19,22 @@ describe("groups image pricing platform support", () => {
     expect(imagePricingPlatforms.has("grok")).toBe(true);
   });
 
-  it("shows the image-generation permission for GRS.AI without generic image pricing", () => {
+  it("keeps the media permission for legacy groups without generic image pricing", () => {
     expect(supportsImageGenerationPlatform("grsai")).toBe(true);
     expect(supportsImagePricingPlatform("grsai")).toBe(false);
+  });
+
+  it("uses the image/video permission for OpenAI and legacy media groups", () => {
+    expect(supportsImageGenerationPlatform("openai")).toBe(true);
+    expect(imagePricingI18nKey("openai", "allowImageGeneration")).toBe(
+      "admin.groups.imagePricing.allowMediaGeneration",
+    );
+    expect(imagePricingI18nKey("grsai", "allowImageGeneration")).toBe(
+      "admin.groups.imagePricing.allowMediaGeneration",
+    );
+    expect(imagePricingI18nKey("grok", "allowImageGeneration")).toBe(
+      "admin.groups.imagePricing.allowImageGeneration",
+    );
   });
 
   it("enables video pricing controls for Grok only", () => {

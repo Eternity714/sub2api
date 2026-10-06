@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { computed } from 'vue'
-import { CONCRETE_PLATFORM_OPTIONS, GROUP_PLATFORM_OPTIONS } from '@/constants/platforms'
+import { COMPOSITE_ROUTE_PLATFORM_OPTIONS, CONCRETE_PLATFORM_OPTIONS, GROUP_PLATFORM_OPTIONS } from '@/constants/platforms'
 import {
   BUILTIN_PLATFORM_CATALOG,
   compositePrecedencePlatformIds,
@@ -10,7 +10,7 @@ import {
   resetPlatformCatalog,
   setPlatformCatalog
 } from '@/constants/platformCatalog'
-import { platformLabel } from '@/utils/platformColors'
+import { platformDisplayValue, platformLabel } from '@/utils/platformColors'
 import { normalizePlatformQuotasMap, sanitizePlatformQuotasMap } from '@/api/admin/settings'
 import { platformQuotaPlatforms } from '@/api/admin/users'
 
@@ -33,8 +33,18 @@ const concretePlatforms = [
 ]
 
 describe('platform option catalogs', () => {
-  it('exposes every concrete account platform', () => {
+  it('exposes the supported account creation platforms', () => {
     expect(CONCRETE_PLATFORM_OPTIONS.map((option) => option.value)).toEqual(concretePlatforms)
+  })
+
+  it('uses the provider brand for accounts and the media capability for groups', () => {
+    expect(CONCRETE_PLATFORM_OPTIONS.find((option) => option.value === 'grsai')?.label).toBe('GRS.AI')
+    expect(GROUP_PLATFORM_OPTIONS.find((option) => option.value === 'grsai')?.label).toBe('Media API')
+    expect(platformLabel('grsai')).toBe('GRS.AI')
+    expect(platformLabel('media')).toBe('Media API')
+    expect(platformDisplayValue('grsai')).toBe('Media API')
+    expect(platformDisplayValue('media')).toBe('Media API')
+    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).not.toContain('grsai')
   })
 
   it('adds composite for group-backed filters', () => {
@@ -86,6 +96,7 @@ describe('platform catalog with a newly registered platform', () => {
       'composite'
     ])
     expect(platformLabel('acme_router')).toBe('Acme Router')
+    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toContain('acme_router')
     expect(platformDisplayName('acme_router')).toBe('Acme Router')
     expect(platformLabel('unregistered')).toBe('unregistered')
     expect(platformQuotaPlatforms()).toContain('acme_router')

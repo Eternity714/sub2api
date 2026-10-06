@@ -402,7 +402,7 @@
               </button>
               <!-- Import to CC Switch Button -->
               <button
-                v-if="!publicSettings?.hide_ccs_import_button"
+                v-if="!publicSettings?.hide_ccs_import_button && supportsCcsImport(row)"
                 @click="importToCcswitch(row)"
                 class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
               >
@@ -2009,7 +2009,11 @@ const resetRateLimitUsage = async () => {
   }
 }
 
+const supportsCcsImport = (row: ApiKey) =>
+  row.group?.platform !== 'media' && row.group?.platform !== 'grsai'
+
 const importToCcswitch = (row: ApiKey) => {
+  if (!supportsCcsImport(row)) return
   const platform = row.group?.platform || 'anthropic'
 
   // For antigravity platform, show client selection dialog

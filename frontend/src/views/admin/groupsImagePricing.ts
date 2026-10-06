@@ -9,7 +9,7 @@ export const imagePricingPlatforms = new Set([
 export const supportsImagePricingPlatform = (platform: string): boolean =>
   imagePricingPlatforms.has(platform);
 
-// GRS.AI uses per-model pricing, so it needs the image-generation permission
+// Legacy media groups use per-model pricing, so they need the media permission
 // without the generic resolution-tier price controls.
 export const supportsImageGenerationPlatform = (platform: string): boolean =>
   supportsImagePricingPlatform(platform) || platform === "grsai";
@@ -18,7 +18,7 @@ export const supportsVideoPricingPlatform = (platform: string): boolean =>
   platform === "grok";
 
 export const imagePricingI18nKey = (platform: string, key: string): string =>
-  `admin.groups.imagePricing.${platform === "grsai" && key === "allowImageGeneration" ? "allowGrsaiMediaGeneration" : key}`;
+  `admin.groups.imagePricing.${(platform === "openai" || platform === "grsai") && key === "allowImageGeneration" ? "allowMediaGeneration" : key}`;
 
 export const videoPricingI18nKey = (key: string): string =>
   `admin.groups.videoPricing.${key}`;
