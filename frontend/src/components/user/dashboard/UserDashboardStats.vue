@@ -230,6 +230,7 @@ import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import type { PlatformDashboardStats, UserDashboardStats as UserStatsType } from '@/api/usage'
 import type { PlatformQuotaItem } from '@/types'
+import { platformDisplayValue } from '@/utils/platformColors'
 
 interface FusedPlatformCard {
   platform: string
@@ -262,7 +263,7 @@ const PLATFORM_LABELS: Record<string, string> = {
   typesafe: 'TypeSafe / Jev',
 }
 
-const platformLabel = (p: string) => PLATFORM_LABELS[p] ?? p
+const platformLabel = (p: string) => PLATFORM_LABELS[p] ?? platformDisplayValue(p)
 
 // 处理"各平台之和 < 总值"的差值：后端按平台聚合时过滤了无法归属平台的行
 // （group 与 account 都缺 platform）。这里把差值作为"其他"卡片显式展示，
@@ -286,7 +287,7 @@ const platformCards = computed<FusedPlatformCard[]>(() => {
     if (hasAnyLimit(q)) platforms.add(platform)
   }
 
-  const PLATFORM_ORDER = ['anthropic', 'openai', 'gemini', 'antigravity', 'grok', 'typesafe']
+  const PLATFORM_ORDER = ['anthropic', 'openai', 'gemini', 'antigravity', 'grok', 'typesafe', 'media']
   const cards: FusedPlatformCard[] = []
 
   for (const p of platforms) {

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -85,6 +86,7 @@ func (h *ChannelMonitorV2Handler) Dimensions(c *gin.Context) {
 	}
 	// Admin and user share this handler; only non-admin responses strip volume.
 	if !admin {
+		result = userMonitorV2Dimensions(result)
 		service.RedactChannelMonitorV2Dimensions(result)
 	}
 	response.Success(c, result)
@@ -112,6 +114,14 @@ func (h *ChannelMonitorV2Handler) snapshot(c *gin.Context, admin bool) {
 		response.ErrorFrom(c, err)
 		return
 	}
+	if !admin && result != nil {
+		out := *result
+		out.Config.Platforms = append([]service.ChannelMonitorV2PlatformConfig(nil), result.Config.Platforms...)
+		for i := range out.Config.Platforms {
+			out.Config.Platforms[i].Platform = dto.UserVisiblePlatform(out.Config.Platforms[i].Platform)
+		}
+		result = &out
+	}
 	response.Success(c, result)
 }
 
@@ -127,6 +137,14 @@ func (h *ChannelMonitorV2Handler) models(c *gin.Context, admin bool) {
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
+	}
+	if !admin && result != nil {
+		out := *result
+		out.Items = append([]service.ChannelMonitorV2ModelRow(nil), result.Items...)
+		for i := range out.Items {
+			out.Items[i].Platform = dto.UserVisiblePlatform(out.Items[i].Platform)
+		}
+		result = &out
 	}
 	response.Success(c, result)
 }
@@ -148,6 +166,14 @@ func (h *ChannelMonitorV2Handler) matrix(c *gin.Context, admin bool) {
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
+	}
+	if !admin && result != nil {
+		out := *result
+		out.Items = append([]service.ChannelMonitorV2MatrixRow(nil), result.Items...)
+		for i := range out.Items {
+			out.Items[i].Platform = dto.UserVisiblePlatform(out.Items[i].Platform)
+		}
+		result = &out
 	}
 	response.Success(c, result)
 }
@@ -209,6 +235,18 @@ func (h *ChannelMonitorV2Handler) scopeFilter(c *gin.Context, filter *service.Ch
 		return false
 	}
 	filter.RestrictGroups = true
+	filter.Platforms = append([]string(nil), filter.Platforms...)
+	for i := range filter.Platforms {
+		if filter.Platforms[i] == "media" {
+			filter.Platforms[i] = "grsai"
+		}
+	}
+	filter.Models = append([]string(nil), filter.Models...)
+	for i := range filter.Models {
+		if model, ok := strings.CutPrefix(filter.Models[i], "media\x00"); ok {
+			filter.Models[i] = "grsai\x00" + model
+		}
+	}
 	filter.AllowedGroupIDs = make([]int64, 0, len(groups))
 	for i := range groups {
 		filter.AllowedGroupIDs = append(filter.AllowedGroupIDs, groups[i].ID)
@@ -241,6 +279,37 @@ func queryList(c *gin.Context, key string) []string {
 		}
 	}
 	return result
+}
+
+func userMonitorV2Dimensions(src *service.ChannelMonitorV2Dimensions) *service.ChannelMonitorV2Dimensions {
+	if src == nil {
+		return nil
+	}
+	out := *src
+	out.Platforms = append([]service.ChannelMonitorV2Dimension(nil), src.Platforms...)
+	out.Groups = append([]service.ChannelMonitorV2GroupDimension(nil), src.Groups...)
+	out.Models = append([]service.ChannelMonitorV2Dimension(nil), src.Models...)
+	for i := range out.Platforms {
+		if out.Platforms[i].Value == "grsai" {
+			out.Platforms[i].Value = "media"
+			out.Platforms[i].Label = "Media API"
+		}
+		out.Platforms[i].Platform = dto.UserVisiblePlatform(out.Platforms[i].Platform)
+	}
+	for i := range out.Groups {
+		out.Groups[i].Platform = dto.UserVisiblePlatform(out.Groups[i].Platform)
+	}
+	for i := range out.Models {
+		if model, ok := strings.CutPrefix(out.Models[i].Value, "grsai\x00"); ok {
+			out.Models[i].Value = "media\x00" + model
+			out.Models[i].Label = model
+			if model == service.ChannelMonitorV2OtherModel {
+				out.Models[i].Label = "Other models"
+			}
+		}
+		out.Models[i].Platform = dto.UserVisiblePlatform(out.Models[i].Platform)
+	}
+	return &out
 }
 
 func parseChannelMonitorV2GroupIDs(values []string) ([]int64, error) {

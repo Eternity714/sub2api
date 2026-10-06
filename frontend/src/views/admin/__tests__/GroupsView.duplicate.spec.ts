@@ -245,6 +245,20 @@ describe('GroupsView duplicate action', () => {
     wrapper.unmount()
   })
 
+  it('duplicates native media groups while preserving their internal platform', async () => {
+    const legacyGroup = { ...sourceGroup, platform: 'grsai' }
+    listGroups.mockResolvedValueOnce({ items: [legacyGroup], total: 1, page: 1, page_size: 20, pages: 1 })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="group-duplicate"]').exists()).toBe(true)
+    expect(wrapper.findAll('button').some((button) => button.text().includes('common.edit'))).toBe(true)
+    await wrapper.get('[data-testid="group-duplicate"]').trigger('click')
+    await flushPromises()
+    expect(duplicateGroup).toHaveBeenCalledWith(42)
+    wrapper.unmount()
+  })
+
   it('ignores repeated clicks while the duplicate request is in flight', async () => {
     let resolveDuplicate!: (value: AdminGroup) => void
     duplicateGroup.mockImplementationOnce(

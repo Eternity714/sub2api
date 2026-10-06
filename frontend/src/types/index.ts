@@ -539,10 +539,10 @@ export interface PaginationConfig {
 // ==================== API Key & Group Types ====================
 
 /**
- * 分组平台：具体平台或 composite。具体平台以平台清单（constants/platformCatalog）
+ * 分组平台：具体平台、用户侧媒体标识 media 或 composite。具体平台以平台清单（constants/platformCatalog）
  * 为准，后端新登记的平台是 KnownAccountPlatform 之外的字符串。
  */
-export type GroupPlatform = AccountPlatform | 'composite'
+export type GroupPlatform = AccountPlatform | 'media' | 'composite'
 
 export type VideoModelPrices = Record<string, Record<string, number>>
 

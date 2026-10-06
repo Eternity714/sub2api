@@ -9,21 +9,30 @@ export type PlatformOption<T extends string = string> = {
 }
 
 /**
- * Concrete upstream platforms supported by accounts and request routing.
+ * Concrete upstream platforms available for administrator account creation.
  * Derived from the platform catalog (backend platform list, see platformCatalog.ts),
  * so newly registered providers show up in every selector without frontend
  * changes. Reactive so that tests replacing the catalog see the update.
  */
 export const CONCRETE_PLATFORM_OPTIONS: PlatformOption<AccountPlatform>[] = reactive([])
 
-/** Platforms that can own a group. */
+/** Platforms available for new groups; native media uses its public capability label. */
 export const GROUP_PLATFORM_OPTIONS: PlatformOption<GroupPlatform>[] = reactive([])
+
+/** Native media uses its own endpoint and cannot target a composite route. */
+export const COMPOSITE_ROUTE_PLATFORM_OPTIONS: PlatformOption<AccountPlatform>[] = reactive([])
 
 watchSyncEffect(() => {
   const concrete = listPlatforms().map(spec => ({ value: spec.id, label: spec.display_name }))
   CONCRETE_PLATFORM_OPTIONS.splice(0, CONCRETE_PLATFORM_OPTIONS.length, ...concrete)
-  GROUP_PLATFORM_OPTIONS.splice(0, GROUP_PLATFORM_OPTIONS.length, ...concrete, {
+  const groups = concrete.map(option => ({
+    ...option,
+    label: option.value === 'grsai' ? 'Media API' : option.label
+  }))
+  GROUP_PLATFORM_OPTIONS.splice(0, GROUP_PLATFORM_OPTIONS.length, ...groups, {
     value: 'composite',
     label: 'Composite'
   })
+  const composite = concrete.filter(option => option.value !== 'grsai')
+  COMPOSITE_ROUTE_PLATFORM_OPTIONS.splice(0, COMPOSITE_ROUTE_PLATFORM_OPTIONS.length, ...composite)
 })

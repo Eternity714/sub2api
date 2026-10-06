@@ -3,6 +3,7 @@ package handler
 import (
 	"sort"
 
+	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -232,9 +233,13 @@ func buildPlatformSections(
 	sections := make([]userChannelPlatformSection, 0, len(platforms))
 	for _, platform := range platforms {
 		platformSet := map[string]struct{}{platform: {}}
+		groups := append([]userAvailableGroup(nil), groupsByPlatform[platform]...)
+		for i := range groups {
+			groups[i].Platform = dto.UserVisiblePlatform(groups[i].Platform)
+		}
 		sections = append(sections, userChannelPlatformSection{
-			Platform:        platform,
-			Groups:          groupsByPlatform[platform],
+			Platform:        dto.UserVisiblePlatform(platform),
+			Groups:          groups,
 			SupportedModels: toUserSupportedModels(ch.SupportedModels, platformSet),
 		})
 	}
@@ -284,7 +289,7 @@ func toUserSupportedModels(
 		}
 		out = append(out, userSupportedModel{
 			Name:     m.Name,
-			Platform: m.Platform,
+			Platform: dto.UserVisiblePlatform(m.Platform),
 			Pricing:  toUserPricing(m.Pricing),
 		})
 	}

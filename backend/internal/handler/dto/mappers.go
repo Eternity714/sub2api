@@ -37,6 +37,19 @@ func UserFromServiceShallow(u *service.User) *User {
 }
 
 func UserFromService(u *service.User) *User {
+	out := userFromServiceBase(u)
+	if out != nil {
+		for i := range out.APIKeys {
+			projectUserGroup(out.APIKeys[i].Group)
+		}
+		for i := range out.Subscriptions {
+			projectUserGroup(out.Subscriptions[i].Group)
+		}
+	}
+	return out
+}
+
+func userFromServiceBase(u *service.User) *User {
 	if u == nil {
 		return nil
 	}
@@ -45,14 +58,14 @@ func UserFromService(u *service.User) *User {
 		out.APIKeys = make([]APIKey, 0, len(u.APIKeys))
 		for i := range u.APIKeys {
 			k := u.APIKeys[i]
-			out.APIKeys = append(out.APIKeys, *APIKeyFromService(&k))
+			out.APIKeys = append(out.APIKeys, *APIKeyFromServiceAdmin(&k))
 		}
 	}
 	if len(u.Subscriptions) > 0 {
 		out.Subscriptions = make([]UserSubscription, 0, len(u.Subscriptions))
 		for i := range u.Subscriptions {
 			s := u.Subscriptions[i]
-			out.Subscriptions = append(out.Subscriptions, *UserSubscriptionFromService(&s))
+			out.Subscriptions = append(out.Subscriptions, userSubscriptionFromServiceBase(&s))
 		}
 	}
 	return out
@@ -64,7 +77,7 @@ func UserFromServiceAdmin(u *service.User) *AdminUser {
 	if u == nil {
 		return nil
 	}
-	base := UserFromService(u)
+	base := userFromServiceBase(u)
 	if base == nil {
 		return nil
 	}
@@ -78,6 +91,15 @@ func UserFromServiceAdmin(u *service.User) *AdminUser {
 }
 
 func APIKeyFromService(k *service.APIKey) *APIKey {
+	out := APIKeyFromServiceAdmin(k)
+	if out != nil {
+		projectUserGroup(out.Group)
+	}
+	return out
+}
+
+// APIKeyFromServiceAdmin preserves the internal platform for admin endpoints.
+func APIKeyFromServiceAdmin(k *service.APIKey) *APIKey {
 	if k == nil {
 		return nil
 	}
@@ -137,7 +159,23 @@ func GroupFromService(g *service.Group) *Group {
 	if g == nil {
 		return nil
 	}
-	return GroupFromServiceShallow(g)
+	out := GroupFromServiceShallow(g)
+	projectUserGroup(out)
+	return out
+}
+
+// UserVisiblePlatform exposes a neutral platform name at user and public exits.
+func UserVisiblePlatform(platform string) string {
+	if platform == "grsai" {
+		return "media"
+	}
+	return platform
+}
+
+func projectUserGroup(group *Group) {
+	if group != nil {
+		group.Platform = UserVisiblePlatform(group.Platform)
+	}
 }
 
 // GroupFromServiceAdmin converts a service Group to DTO for admin users.
@@ -625,6 +663,7 @@ func RedeemCodeFromService(rc *service.RedeemCode) *RedeemCode {
 		return nil
 	}
 	out := redeemCodeFromServiceBase(rc)
+	projectUserGroup(out.Group)
 	return &out
 }
 
@@ -740,9 +779,9 @@ func usageLogFromServiceUser(l *service.UsageLog) UsageLog {
 		BillingMode:               l.BillingMode,
 		CreatedAt:                 l.CreatedAt,
 		User:                      UserFromServiceShallow(l.User),
-		APIKey:                    APIKeyFromService(l.APIKey),
+		APIKey:                    APIKeyFromServiceAdmin(l.APIKey),
 		Group:                     GroupFromServiceShallow(l.Group),
-		Subscription:              UserSubscriptionFromService(l.Subscription),
+		Subscription:              userSubscriptionFromServiceShallow(l.Subscription),
 	}
 }
 
@@ -753,6 +792,16 @@ func UsageLogFromService(l *service.UsageLog) *UsageLog {
 		return nil
 	}
 	u := usageLogFromServiceUser(l)
+	if strings.HasPrefix(u.RequestID, "grsai_task:") {
+		u.RequestID = "media_task:" + strings.TrimPrefix(u.RequestID, "grsai_task:")
+	}
+	projectUserGroup(u.Group)
+	if u.APIKey != nil {
+		projectUserGroup(u.APIKey.Group)
+	}
+	if u.Subscription != nil {
+		projectUserGroup(u.Subscription.Group)
+	}
 	return &u
 }
 
@@ -865,6 +914,15 @@ func SettingFromService(s *service.Setting) *Setting {
 }
 
 func UserSubscriptionFromService(sub *service.UserSubscription) *UserSubscription {
+	if sub == nil {
+		return nil
+	}
+	out := userSubscriptionFromServiceBase(sub)
+	projectUserGroup(out.Group)
+	return &out
+}
+
+func userSubscriptionFromServiceShallow(sub *service.UserSubscription) *UserSubscription {
 	if sub == nil {
 		return nil
 	}

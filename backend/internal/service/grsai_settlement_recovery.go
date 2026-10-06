@@ -210,7 +210,7 @@ func (r *GrsaiSettlementRecoveryRuntime) recoverClaim(ctx context.Context, claim
 		return
 	}
 	account, err := r.accounts.GetByID(ctx, claim.AccountID)
-	if err != nil || account == nil || account.Platform != PlatformGrsai {
+	if err != nil || !IsNativeMediaAccount(account) {
 		r.deferUpstream(ctx, claim, "account unavailable for result polling")
 		return
 	}
