@@ -82,6 +82,17 @@ function cardPlatforms(w: VueWrapper): string[] {
 }
 
 describe('UserDashboardStats 按平台拆分', () => {
+  it('shows public media usage and quota together with a generic label', () => {
+    const w = mountStats(
+      makeStats({ total_actual_cost: 0.01, today_actual_cost: 0.01, by_platform: [usage('media', 0.01)] }),
+      [quota({ platform: 'media', daily_limit_usd: 1, daily_usage_usd: 0.01 })]
+    )
+    expect(cardPlatforms(w)).toEqual(['media'])
+    expect(w.text()).toContain('Media API')
+    expect(w.text()).not.toMatch(/grsai|GRS\.AI/)
+    expect(w.text()).toContain('dashboard.platformQuota.title')
+    w.unmount()
+  })
   it('只有用量的平台才产生卡片；三档全空的限额记录不产生卡片', () => {
     const w = mountStats(
       makeStats({ total_actual_cost: 0.03, today_actual_cost: 0.03, by_platform: [usage('grok', 0.03)] }),

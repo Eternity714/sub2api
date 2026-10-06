@@ -29,9 +29,9 @@ const (
 )
 
 var (
-	ErrGrsaiInvalidAccount  = errors.New("invalid grsai account")
-	ErrGrsaiInvalidRequest  = errors.New("invalid grsai request")
-	ErrGrsaiInvalidResponse = errors.New("invalid grsai response")
+	ErrGrsaiInvalidAccount  = errors.New("invalid native media account")
+	ErrGrsaiInvalidRequest  = errors.New("invalid native media request")
+	ErrGrsaiInvalidResponse = errors.New("invalid native media response")
 )
 
 // GrsaiUpstreamResult preserves the exact upstream response while exposing the
@@ -248,9 +248,15 @@ func (c *GrsaiNativeHTTPClient) do(
 	return result, nil
 }
 
+// IsNativeMediaAccount qualifies the provider before submission or polling.
+// A custom Base URL on another platform does not opt into the native protocol.
+func IsNativeMediaAccount(account *Account) bool {
+	return account != nil && account.Platform == PlatformGrsai && account.Type == AccountTypeAPIKey
+}
+
 func grsaiAccountCredentials(account *Account) (string, string, error) {
-	if account == nil || account.Platform != PlatformGrsai || account.Type != AccountTypeAPIKey {
-		return "", "", fmt.Errorf("%w: API key account on platform grsai is required", ErrGrsaiInvalidAccount)
+	if !IsNativeMediaAccount(account) {
+		return "", "", fmt.Errorf("%w: native media API key account is required", ErrGrsaiInvalidAccount)
 	}
 	baseURL := strings.TrimSpace(account.GetCredential("base_url"))
 	if baseURL == "" {
@@ -274,7 +280,11 @@ func buildGrsaiEndpointURL(baseURL, endpointPath string) (string, error) {
 	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
 		return "", fmt.Errorf("%w: base URL must not contain credentials, query, or fragment", ErrGrsaiInvalidAccount)
 	}
-	parsed.Path = strings.TrimRight(parsed.Path, "/") + endpointPath
+	basePath := strings.TrimRight(parsed.Path, "/")
+	if strings.HasSuffix(basePath, "/v1") && strings.HasPrefix(endpointPath, "/v1/") {
+		basePath = strings.TrimSuffix(basePath, "/v1")
+	}
+	parsed.Path = basePath + endpointPath
 	parsed.RawPath = ""
 	return parsed.String(), nil
 }

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -63,11 +64,11 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		return
 	}
 	if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGrsai {
-		h.errorResponse(c, http.StatusNotFound, "not_found_error", "GRS.AI native images are not supported for this group")
+		h.errorResponse(c, http.StatusNotFound, "not_found_error", "Native media generation is not supported for this group")
 		return
 	}
 	if h.gatewayService == nil || h.billingCacheService == nil || h.nativeClient == nil || h.settlementService == nil || h.concurrencyHelper == nil {
-		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "GRS.AI gateway is unavailable")
+		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "Native media gateway is unavailable")
 		return
 	}
 
@@ -144,23 +145,17 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 		return
 	}
 
-	selection, err := h.gatewayService.SelectAccountWithLoadAwareness(c.Request.Context(), apiKey.GroupID, "", model, nil, "", subject.UserID)
+	selection, err := h.selectNativeMediaAccount(c.Request.Context(), apiKey.GroupID, apiKey.Group.Platform, model, subject.UserID)
 	if err != nil || selection == nil || selection.Account == nil {
 		if err != nil {
 			reqLog.Warn("grsai.account_select_failed", zap.Error(err))
 		}
-		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "No available GRS.AI accounts")
+		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "No available native media accounts")
 		return
 	}
 	account := selection.Account
-	if account.Platform != service.PlatformGrsai || account.Type != service.AccountTypeAPIKey {
-		if selection.ReleaseFunc != nil {
-			wrapReleaseOnDone(c.Request.Context(), selection.ReleaseFunc)()
-		}
-		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "No available GRS.AI accounts")
-		return
-	}
 	setOpsSelectedAccount(c, account.ID, account.Platform)
+	setActualUpstreamEndpoint(c, EndpointGrsaiGenerate)
 
 	accountRelease, acquired := h.acquireAccountSlot(c, selection, &streamStarted, reqLog)
 	if !acquired {
@@ -187,7 +182,7 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 	})
 	if err != nil {
 		reqLog.Warn("grsai.settlement_prepare_failed", zap.Error(err))
-		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "GRS.AI model pricing is unavailable")
+		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Native media model pricing is unavailable")
 		return
 	}
 
@@ -210,10 +205,33 @@ func (h *GrsaiGatewayHandler) Generate(c *gin.Context) {
 	}
 	if upstreamErr != nil {
 		reqLog.Warn("grsai.upstream_request_failed", zap.Error(upstreamErr))
-		h.errorResponse(c, http.StatusBadGateway, "api_error", "GRS.AI upstream request failed")
+		h.errorResponse(c, http.StatusBadGateway, "api_error", "Native media upstream request failed")
 		return
 	}
-	h.errorResponse(c, http.StatusBadGateway, "api_error", "GRS.AI upstream returned an invalid response")
+	h.errorResponse(c, http.StatusBadGateway, "api_error", "Native media upstream returned an invalid response")
+}
+
+// Credential qualification happens after hydration and before any durable
+// submission. Skipping an incompatible account never sends an upstream request.
+func (h *GrsaiGatewayHandler) selectNativeMediaAccount(ctx context.Context, groupID *int64, platform, model string, userID int64) (*service.AccountSelectionResult, error) {
+	excluded := make(map[int64]struct{})
+	for {
+		selection, err := h.gatewayService.SelectAccountWithLoadAwareness(ctx, groupID, "", model, excluded, "", userID)
+		if err != nil || selection == nil || selection.Account == nil {
+			return selection, err
+		}
+		account := selection.Account
+		if account.Platform == platform && service.IsNativeMediaAccount(account) {
+			return selection, nil
+		}
+		if selection.ReleaseFunc != nil {
+			selection.ReleaseFunc()
+		}
+		if _, repeated := excluded[account.ID]; repeated {
+			return nil, service.ErrNoAvailableAccounts
+		}
+		excluded[account.ID] = struct{}{}
+	}
 }
 
 // acquireAccountSlot honors the scheduler's immediate lease or its bounded
@@ -227,7 +245,7 @@ func (h *GrsaiGatewayHandler) acquireAccountSlot(
 ) (func(), bool) {
 	if selection == nil || selection.Account == nil {
 		markOpsRoutingCapacityLimited(c)
-		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "No available GRS.AI accounts")
+		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "No available native media accounts")
 		return nil, false
 	}
 	if selection.Acquired {
@@ -235,7 +253,7 @@ func (h *GrsaiGatewayHandler) acquireAccountSlot(
 	}
 	if selection.WaitPlan == nil {
 		markOpsRoutingCapacityLimited(c)
-		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "No available GRS.AI accounts")
+		h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "No available native media accounts")
 		return nil, false
 	}
 

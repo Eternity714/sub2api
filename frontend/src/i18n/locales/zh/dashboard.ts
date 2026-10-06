@@ -156,6 +156,11 @@ export default {
     lastUsedIP: '最近使用 IP',
     useKey: '使用密钥',
     useKeyModal: {
+      media: {
+        tab: '媒体 API',
+        description: '使用此 Sub2API Key 调用原生图片/视频 API。以下示例提交图片任务并查询结果。',
+        note: '使用 Node.js 20 或更高版本运行 media-example.mjs，将 YOUR_IMAGE_MODEL 替换为分组支持的模型。保存返回的任务 ID，并使用同一个 Key 查询；再次生成会创建新的计费任务。'
+      },
       title: '使用 API 密钥',
       description: '将以下环境变量添加到您的终端配置文件或直接在终端中运行。',
       copy: '复制',

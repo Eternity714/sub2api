@@ -64,7 +64,9 @@ func (h *UserHandler) GetMyPlatformQuotas(c *gin.Context) {
 	now := time.Now().UTC()
 	out := make([]map[string]any, 0, len(records))
 	for _, r := range records {
-		out = append(out, quotaview.LazyZeroQuotaForResponse(r, now, false))
+		item := quotaview.LazyZeroQuotaForResponse(r, now, false)
+		item["platform"] = dto.UserVisiblePlatform(r.Platform)
+		out = append(out, item)
 	}
 	response.Success(c, map[string]any{"platform_quotas": out})
 }
