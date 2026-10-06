@@ -1,0 +1,57 @@
+services:
+  media-image-e2e:
+    image: node:20
+    working_dir: /test
+    command: ["node", "media-image-e2e.mjs"]
+    env_file:
+      - ../.dev/media-preview/media-test.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - .:/test:ro
+      - ./results:/test/results
+    init: true
+
+  media-config-check:
+    image: node:20
+    profiles: ["tools"]
+    working_dir: /workspace/test
+    command: ["node", "media-config-check.mjs"]
+    env_file:
+      - ../.dev/media-preview/upstream-test.env
+      - ../.dev/media-preview/media-test.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ..:/workspace:ro
+      - ./results:/workspace/test/results
+    init: true
+
+  media-billing-check:
+    image: node:20
+    profiles: ["tools"]
+    working_dir: /test
+    command: ["node", "media-billing-check.mjs"]
+    env_file:
+      - ../.dev/media-preview/media-test.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - .:/test:ro
+      - ./results:/test/results
+    init: true
+
+  media-setup:
+    image: node:20
+    profiles: ["tools"]
+    working_dir: /workspace
+    command: ["node", "test/media-setup.mjs"]
+    env_file:
+      - ../.dev/media-preview/upstream-test.env
+    environment:
+      SUB2API_TEST_BASE_URL: http://host.docker.internal:18081
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ..:/workspace
+    init: true

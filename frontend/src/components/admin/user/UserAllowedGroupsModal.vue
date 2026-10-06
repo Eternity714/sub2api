@@ -66,7 +66,7 @@
                   <div class="mt-1.5 flex items-center gap-3 text-sm">
                     <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400">
                       <PlatformIcon :platform="config.platform" size="xs" />
-                      <span>{{ config.platform }}</span>
+                      <span>{{ platformDisplayValue(config.platform) }}</span>
                     </span>
                     <span class="text-gray-300 dark:text-dark-500">•</span>
                     <span class="text-gray-500 dark:text-gray-400">
@@ -146,7 +146,7 @@
                   <div class="mt-1.5 flex items-center gap-3 text-sm">
                     <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400">
                       <PlatformIcon :platform="config.platform" size="xs" />
-                      <span>{{ config.platform }}</span>
+                      <span>{{ platformDisplayValue(config.platform) }}</span>
                     </span>
                     <span class="text-gray-300 dark:text-dark-500">•</span>
                     <span class="text-gray-500 dark:text-gray-400">
@@ -208,6 +208,7 @@ import { adminAPI } from '@/api/admin'
 import type { AdminUser, Group, GroupPlatform } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
+import { platformDisplayValue } from '@/utils/platformColors'
 
 interface GroupRateConfig {
   groupId: number

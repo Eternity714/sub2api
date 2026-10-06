@@ -72,7 +72,7 @@
               ]"
             >
               <PlatformIcon :platform="section.platform as GroupPlatform" size="xs" />
-              {{ section.platform }}
+              {{ platformDisplayValue(section.platform) }}
             </span>
           </td>
 
@@ -208,7 +208,7 @@
               ]"
             >
               <PlatformIcon :platform="section.platform as GroupPlatform" size="xs" />
-              {{ section.platform }}
+              {{ platformDisplayValue(section.platform) }}
             </span>
 
             <dl class="mt-3 space-y-3">
@@ -327,7 +327,7 @@ import GroupBadge from '@/components/common/GroupBadge.vue'
 import SupportedModelChip from './SupportedModelChip.vue'
 import type { UserAvailableChannel, UserAvailableGroup, UserChannelPlatformSection } from '@/api/channels'
 import type { GroupPlatform, SubscriptionType } from '@/types'
-import { platformBadgeClass } from '@/utils/platformColors'
+import { platformBadgeClass, platformDisplayValue } from '@/utils/platformColors'
 import { useAppStore } from '@/stores/app'
 import { hasPeakRate as groupHasPeakRate, formatPeakRateWindow, serverTimezoneLabel } from '@/utils/peak-rate'
 

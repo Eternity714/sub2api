@@ -125,3 +125,21 @@ func TestGrsaiDeliveryFailedStreamNeverReportsSuccess(t *testing.T) {
 	require.Contains(t, w.Body.String(), `"status":"failed"`)
 	require.NotContains(t, w.Body.String(), `"progress":100`)
 }
+
+func TestGrsaiDeliveryOpenAIGroupCannotReadNativeMediaTasks(t *testing.T) {
+	id := "existing-media-task"
+	record := &service.GrsaiSettlement{LocalTaskID: &id, UserID: 7, APIKeyID: 8, PublicStatus: "queued"}
+	h := &GrsaiGatewayHandler{taskService: &service.GrsaiTaskService{Repo: &grsaiTaskQueryRepoStub{record: record, items: []*service.GrsaiSettlement{record}}}}
+	for _, path := range []string{"/v1/api/result?id=" + id, "/v1/api/tasks"} {
+		c, w := grsaiQueryTestContext(t, path, 7, 8)
+		apiKey, _ := middleware2.GetAPIKeyFromContext(c)
+		apiKey.Group.Platform = service.PlatformOpenAI
+		if strings.Contains(path, "/result") {
+			h.Result(c)
+		} else {
+			h.Tasks(c)
+		}
+		require.Equal(t, http.StatusNotFound, w.Code)
+		require.NotContains(t, w.Body.String(), id)
+	}
+}

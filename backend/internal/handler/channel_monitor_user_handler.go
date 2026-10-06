@@ -116,7 +116,7 @@ func userMonitorViewToItem(v *service.UserMonitorView, includeQuota bool) channe
 	item := channelMonitorUserListItem{
 		ID:                   v.ID,
 		Name:                 v.Name,
-		Provider:             v.Provider,
+		Provider:             dto.UserVisiblePlatform(v.Provider),
 		GroupName:            v.GroupName,
 		PrimaryModel:         v.PrimaryModel,
 		PrimaryStatus:        v.PrimaryStatus,
@@ -148,7 +148,7 @@ func userMonitorDetailToResponse(d *service.UserMonitorDetail) *channelMonitorUs
 	return &channelMonitorUserDetailResponse{
 		ID:        d.ID,
 		Name:      d.Name,
-		Provider:  d.Provider,
+		Provider:  dto.UserVisiblePlatform(d.Provider),
 		GroupName: d.GroupName,
 		Models:    models,
 	}

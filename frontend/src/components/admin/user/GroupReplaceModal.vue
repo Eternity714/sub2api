@@ -45,7 +45,7 @@
           </div>
           <div class="flex-1">
             <span class="font-medium text-gray-900 dark:text-white">{{ group.name }}</span>
-            <span class="ml-2 text-xs text-gray-400">{{ group.platform }}</span>
+            <span class="ml-2 text-xs text-gray-400">{{ platformDisplayValue(group.platform) }}</span>
           </div>
         </label>
       </div>
@@ -84,6 +84,7 @@ import { extractApiErrorMessage } from '@/utils/apiError'
 import type { AdminUser, AdminGroup } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { platformDisplayValue } from '@/utils/platformColors'
 
 interface Props {
   show: boolean

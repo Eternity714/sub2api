@@ -29,12 +29,12 @@ const (
 )
 
 var (
-	ErrGrsaiSettlementNotFound       = errors.New("grsai settlement not found")
-	ErrGrsaiSettlementInvalidInput   = errors.New("invalid grsai settlement input")
-	ErrGrsaiSettlementInvalidState   = errors.New("invalid grsai settlement state")
-	ErrGrsaiSettlementClaimLost      = errors.New("grsai settlement claim lost")
-	ErrGrsaiSettlementPricingMissing = errors.New("grsai requires explicit flat image or per-request model pricing")
-	ErrGrsaiTaskWaitingLimit         = errors.New("grsai waiting task limit reached")
+	ErrGrsaiSettlementNotFound       = errors.New("media settlement not found")
+	ErrGrsaiSettlementInvalidInput   = errors.New("invalid media settlement input")
+	ErrGrsaiSettlementInvalidState   = errors.New("invalid media settlement state")
+	ErrGrsaiSettlementClaimLost      = errors.New("media settlement claim lost")
+	ErrGrsaiSettlementPricingMissing = errors.New("native media requires explicit image, video or per-request model pricing")
+	ErrGrsaiTaskWaitingLimit         = errors.New("media waiting task limit reached")
 )
 
 // These contracts live in service so the SQL repository can implement them
@@ -189,7 +189,7 @@ type GrsaiTaskPayloadRepository interface {
 }
 
 func NewGrsaiLocalTaskID() string {
-	return "grsai_" + uuid.NewString()
+	return "media_" + uuid.NewString()
 }
 
 // UsageBillingTransactionalRepository is an optional extension implemented by
@@ -295,7 +295,7 @@ func (s *GrsaiSettlementService) Prepare(ctx context.Context, input GrsaiPrepare
 		return nil, ErrGrsaiSettlementInvalidInput
 	}
 	group := input.APIKey.Group
-	if input.Account.Platform != PlatformGrsai || input.Account.Type != AccountTypeAPIKey || group.Platform != PlatformGrsai ||
+	if !IsNativeMediaAccount(input.Account) || group.Platform != PlatformGrsai ||
 		input.Account.ID <= 0 || input.APIKey.ID <= 0 || input.APIKey.UserID <= 0 || group.ID <= 0 ||
 		input.APIKey.GroupID == nil || *input.APIKey.GroupID != group.ID || input.ImageCount <= 0 ||
 		strings.TrimSpace(input.Model) == "" || group.SubscriptionType == SubscriptionTypeSubscription {

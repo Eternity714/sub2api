@@ -192,7 +192,7 @@ func (c *grsaiRecoveryClient) Result(context.Context, *Account, string) (*GrsaiU
 func newGrsaiRecoveryRuntime(now time.Time, record *GrsaiSettlement, client *grsaiRecoveryClient, billing *grsaiRecoveryBilling) (*GrsaiSettlementRecoveryRuntime, *grsaiRecoveryRepo) {
 	repo := &grsaiRecoveryRepo{record: record}
 	settlement := &GrsaiSettlementService{Repo: repo, Billing: billing}
-	runtime := NewGrsaiSettlementRecoveryRuntime(repo, grsaiRecoveryAccounts{account: &Account{ID: record.AccountID, Platform: PlatformGrsai}}, client, settlement, &config.Config{
+	runtime := NewGrsaiSettlementRecoveryRuntime(repo, grsaiRecoveryAccounts{account: &Account{ID: record.AccountID, Platform: PlatformGrsai, Type: AccountTypeAPIKey}}, client, settlement, &config.Config{
 		GrsaiSettlementRecovery: config.GrsaiSettlementRecoveryConfig{
 			Enabled: true, ScanIntervalSeconds: 60, BatchLimit: 10, SubmissionUnknownTimeoutSeconds: 600, SettlementRetryLimit: 5,
 		},

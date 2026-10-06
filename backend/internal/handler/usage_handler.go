@@ -461,6 +461,14 @@ func (h *UsageHandler) DashboardStats(c *gin.Context) {
 		return
 	}
 
+	if stats != nil {
+		out := *stats
+		out.ByPlatform = append([]usagestats.PlatformDashboardStats(nil), stats.ByPlatform...)
+		for i := range out.ByPlatform {
+			out.ByPlatform[i].Platform = dto.UserVisiblePlatform(out.ByPlatform[i].Platform)
+		}
+		stats = &out
+	}
 	response.Success(c, stats)
 }
 

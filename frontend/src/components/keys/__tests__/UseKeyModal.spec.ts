@@ -7,6 +7,25 @@ const { copyToClipboardMock, saveAsMock } = vi.hoisted(() => ({
   saveAsMock: vi.fn()
 }))
 
+describe('native media key instructions', () => {
+  it('shows the native async generation and owned result endpoints for a public media key', async () => {
+    const wrapper = mount(UseKeyModal, {
+      props: { show: true, apiKey: 'test-media-key', baseUrl: 'https://gateway.example.test/tenant/v1', platform: 'media' },
+      global: { stubs: { BaseDialog: { template: '<div><slot /><slot name="footer" /></div>' }, Icon: true } }
+    })
+    await flushPromises()
+    const code = wrapper.findAll('pre code').map((block) => block.text()).join('\n')
+    expect(code).toContain('https://gateway.example.test/tenant')
+    expect(code).toContain('/v1/api/generate')
+    expect(code).toContain('/v1/api/result?id=')
+    expect(code).toContain('replyType: "async"')
+    expect(code).toContain('Authorization')
+    expect(code).not.toMatch(/ANTHROPIC_|OPENAI_|grsai|GRS\.AI/)
+    expect(wrapper.find('nav[aria-label="Client"]').text()).not.toContain('keys.useKeyModal.cliTabs.claudeCode')
+    wrapper.unmount()
+  })
+})
+
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key: string) => key

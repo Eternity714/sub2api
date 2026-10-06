@@ -47,6 +47,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import type { PlatformUsage } from '@/api/admin/dashboard'
+import { platformDisplayValue } from '@/utils/platformColors'
 
 const props = defineProps<{
   today: number
@@ -103,6 +104,6 @@ const PLATFORM_LABELS: Record<string, string> = {
 }
 
 function platformLabel(platform: string): string {
-  return PLATFORM_LABELS[platform] ?? platform
+  return PLATFORM_LABELS[platform] ?? platformDisplayValue(platform)
 }
 </script>

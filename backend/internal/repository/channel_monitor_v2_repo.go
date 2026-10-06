@@ -536,6 +536,9 @@ func seedChannelMonitorV2MatrixAccumulators(filter service.ChannelMonitorV2Filte
 		if groupBy == service.ChannelMonitorV2GroupByPlatformModel || groupBy == service.ChannelMonitorV2GroupByPlatformGroupModel {
 			models = configuredChannelMonitorV2Models(cfg, platform, filter)
 			if len(models) == 0 {
+				if len(filter.Models) > 0 {
+					continue
+				}
 				models = []string{""}
 			}
 		}
@@ -576,10 +579,20 @@ func configuredChannelMonitorV2Models(cfg service.ChannelMonitorV2Config, platfo
 		break
 	}
 	if len(filter.Models) > 0 {
+		selected := make([]string, 0, len(filter.Models))
+		for _, key := range filter.Models {
+			if keyPlatform, model, scoped := strings.Cut(key, "\x00"); scoped {
+				if keyPlatform != platform {
+					continue
+				}
+				key = model
+			}
+			selected = append(selected, key)
+		}
 		if len(models) == 0 {
-			models = append(models, filter.Models...)
+			models = append(models, selected...)
 		} else {
-			models = intersectStrings(models, filter.Models)
+			models = intersectStrings(models, selected)
 		}
 	}
 	return models
@@ -1227,7 +1240,7 @@ func channelMonitorV2ModelSelected(filter service.ChannelMonitorV2Filter, cfg se
 	}
 	display := channelMonitorV2DisplayModel(cfg, platform, model)
 	for _, selected := range filter.Models {
-		if selected == display {
+		if selected == display || selected == platform+"\x00"+display {
 			return true
 		}
 	}

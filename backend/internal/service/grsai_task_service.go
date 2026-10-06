@@ -9,7 +9,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var ErrGrsaiDeliveryDisabled = errors.New("grsai durable delivery is disabled")
+var ErrGrsaiDeliveryDisabled = errors.New("durable media delivery is disabled")
 
 type GrsaiTaskCreateInput struct {
 	Account                  *Account
@@ -44,8 +44,8 @@ func (s *GrsaiTaskService) Create(ctx context.Context, input GrsaiTaskCreateInpu
 		return nil, err
 	}
 	group := input.APIKey.Group
-	if input.Account.Platform != PlatformGrsai || input.Account.Type != AccountTypeAPIKey ||
-		group.Platform != PlatformGrsai || group.SubscriptionType == SubscriptionTypeSubscription ||
+	if !IsNativeMediaAccount(input.Account) || group.Platform != PlatformGrsai ||
+		group.SubscriptionType == SubscriptionTypeSubscription ||
 		input.Account.ID <= 0 || input.APIKey.ID <= 0 || input.APIKey.UserID <= 0 ||
 		input.APIKey.GroupID == nil || *input.APIKey.GroupID != group.ID || request.Model == "" {
 		return nil, ErrGrsaiSettlementInvalidInput

@@ -3,6 +3,7 @@ package handler
 import (
 	"log/slog"
 
+	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -204,7 +205,7 @@ func toModelPlazaGroupDTO(g *service.PlazaGroup, userRates map[int64]float64) mo
 		m := &g.Models[i]
 		models = append(models, modelPlazaModel{
 			Name:             m.Name,
-			Platform:         m.Platform,
+			Platform:         dto.UserVisiblePlatform(m.Platform),
 			Pricing:          toUserPricing(m.Pricing),
 			OfficialPricing:  toModelPlazaOfficialPricing(m.OfficialPricing),
 			LongContextBasis: string(m.LongContextBasis),
@@ -215,7 +216,7 @@ func toModelPlazaGroupDTO(g *service.PlazaGroup, userRates map[int64]float64) mo
 		ID:                        g.ID,
 		Name:                      g.Name,
 		Description:               g.Description,
-		Platform:                  g.Platform,
+		Platform:                  dto.UserVisiblePlatform(g.Platform),
 		SubscriptionType:          g.SubscriptionType,
 		RateMultiplier:            g.RateMultiplier,
 		PeakRateEnabled:           g.PeakRateEnabled,
