@@ -125,13 +125,10 @@
             />
 
             <PricingRow
-              v-if="
-                model.pricing.billing_mode === BILLING_MODE_IMAGE &&
-                model.pricing.image_output_price != null
-              "
-              :label="t(prefixKey('imageOutputPrice'))"
-              :value="model.pricing.image_output_price"
-              :unit="t(prefixKey('unitPerRequest'))"
+              v-if="model.pricing.billing_mode === BILLING_MODE_IMAGE"
+              :label="t(prefixKey('imagePrice'))"
+              :value="model.pricing.per_request_price"
+              :unit="t(prefixKey('unitPerImage'))"
               :scale="1"
             />
 
@@ -260,7 +257,10 @@ function formatInterval(iv: UserPricingInterval, pricing: UserSupportedModelPric
   if (pricing.billing_mode === BILLING_MODE_VIDEO) {
     return `${formatScaled(iv.per_request_price, 1)} ${t(prefixKey('unitPerSecond'))}`
   }
-  if (pricing.billing_mode === BILLING_MODE_PER_REQUEST || pricing.billing_mode === BILLING_MODE_IMAGE) {
+  if (pricing.billing_mode === BILLING_MODE_IMAGE) {
+    return `${formatScaled(iv.per_request_price, 1)} ${t(prefixKey('unitPerImage'))}`
+  }
+  if (pricing.billing_mode === BILLING_MODE_PER_REQUEST) {
     return formatScaled(iv.per_request_price, 1)
   }
   const resolved = resolveIntervalPrices(iv, pricing)
