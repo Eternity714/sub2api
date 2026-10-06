@@ -38,15 +38,32 @@ end
 return n
 `)
 
-// consumeResetTokenScript atomically compares the stored token hash and deletes it.
-// KEYS[1] = reset key, ARGV[1] = expected token hash. Returns 1 on success, 0 otherwise.
+// consumeResetTokenScript compares the verified format, value and issue time.
+// ARGV = format, legacy token, hash, CreatedAt. Returns 1 only for the winner.
 var consumeResetTokenScript = redis.NewScript(`
 local v = redis.call('GET', KEYS[1])
 if not v then
   return 0
 end
 local ok, d = pcall(cjson.decode, v)
-if not ok or type(d) ~= 'table' or d['Token'] ~= ARGV[1] then
+if not ok or type(d) ~= 'table' then
+  return 0
+end
+local format = d['TokenFormat'] or ''
+local token = d['Token'] or ''
+local hash = d['TokenHash'] or ''
+if format ~= ARGV[1] or token ~= ARGV[2] or hash ~= ARGV[3] or d['CreatedAt'] ~= ARGV[4] then
+  return 0
+end
+if format == '' or format == 'legacy' then
+  if type(token) ~= 'string' or token == '' or hash ~= '' then
+    return 0
+  end
+elseif format == 'sha256' then
+  if token ~= '' or type(hash) ~= 'string' or #hash ~= 64 or not string.match(hash, '^[a-f0-9]+$') then
+    return 0
+  end
+else
   return 0
 end
 redis.call('DEL', KEYS[1])
@@ -169,10 +186,13 @@ func (c *emailCache) SetPasswordResetToken(ctx context.Context, email string, da
 	return c.rdb.Set(ctx, key, val, ttl).Err()
 }
 
-// ConsumePasswordResetToken atomically deletes the stored reset token when its
-// stored hash equals tokenHash. Returns true only for the single winning caller.
-func (c *emailCache) ConsumePasswordResetToken(ctx context.Context, email, tokenHash string) (bool, error) {
-	n, err := consumeResetTokenScript.Run(ctx, c.rdb, []string{passwordResetKey(email)}, tokenHash).Int()
+// ConsumePasswordResetToken deletes only the token verified by the service.
+func (c *emailCache) ConsumePasswordResetToken(ctx context.Context, email string, expected *service.PasswordResetTokenData) (bool, error) {
+	if expected == nil {
+		return false, nil
+	}
+	n, err := consumeResetTokenScript.Run(ctx, c.rdb, []string{passwordResetKey(email)},
+		expected.TokenFormat, expected.Token, expected.TokenHash, expected.CreatedAt.Format(time.RFC3339Nano)).Int()
 	if err != nil {
 		return false, err
 	}

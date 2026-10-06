@@ -825,6 +825,6 @@ func (s *userHandlerEmailCacheStub) IncrNotifyVerifyCodeAttempts(context.Context
 	return 0, errors.New("notify verification code not found")
 }
 
-func (s *userHandlerEmailCacheStub) ConsumePasswordResetToken(context.Context, string, string) (bool, error) {
+func (s *userHandlerEmailCacheStub) ConsumePasswordResetToken(context.Context, string, *service.PasswordResetTokenData) (bool, error) {
 	return false, nil
 }

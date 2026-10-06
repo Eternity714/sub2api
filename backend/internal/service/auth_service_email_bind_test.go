@@ -1178,6 +1178,6 @@ func (s *emailBindCacheStub) IncrNotifyVerifyCodeAttempts(context.Context, strin
 	return 0, errors.New("notify verification code not found")
 }
 
-func (s *emailBindCacheStub) ConsumePasswordResetToken(context.Context, string, string) (bool, error) {
+func (s *emailBindCacheStub) ConsumePasswordResetToken(context.Context, string, *service.PasswordResetTokenData) (bool, error) {
 	return false, nil
 }
