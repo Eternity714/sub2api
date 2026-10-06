@@ -64,6 +64,27 @@ func TestNormalizeVideoModelPricesDropsUnknownResolutions(t *testing.T) {
 	}))
 }
 
+func TestVideoPriceConfigKeeps768POnlyForGrsai(t *testing.T) {
+	t.Parallel()
+	for _, platform := range []string{PlatformGrsai, PlatformGrok, PlatformAnthropic, ""} {
+		t.Run(platform, func(t *testing.T) {
+			group := &Group{
+				Platform: platform,
+				VideoModelPrices: map[string]map[string]float64{
+					"minimax-h3": {"480p": 0.10, "720p": 0.22, "768p": 0.14, "1080p": 0.30, "4k": 0.80},
+				},
+			}
+			want := map[string]map[string]float64{
+				"minimax-h3": {"480p": 0.10, "720p": 0.22, "1080p": 0.30},
+			}
+			if platform == PlatformGrsai {
+				want["minimax-h3"]["768p"] = 0.14
+			}
+			require.Equal(t, want, group.VideoPriceConfig().ModelPrices)
+		})
+	}
+}
+
 func TestNormalizeVideoModelPricesIsDeterministicAcrossAliasConflicts(t *testing.T) {
 	t.Parallel()
 	// Both keys canonicalize onto grok-imagine-video-1.5 and disagree on 480p.
@@ -98,7 +119,7 @@ func TestLookupVideoBillingResolutionReportsUnknownTiers(t *testing.T) {
 		require.True(t, ok, "input=%q", in)
 		require.NotEmpty(t, normalized)
 	}
-	for _, in := range []string{"", "4k", "1080i", "2160p", "potato"} {
+	for _, in := range []string{"", "4k", "1080i", "2160p", "768p", "potato"} {
 		normalized, ok := LookupVideoBillingResolution(in)
 		require.False(t, ok, "input=%q", in)
 		require.Empty(t, normalized)
