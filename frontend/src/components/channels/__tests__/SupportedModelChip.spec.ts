@@ -12,6 +12,119 @@ vi.mock('vue-i18n', async () => {
 })
 
 describe('SupportedModelChip', () => {
+  describe.each(['availableChannels.pricing', 'admin.availableChannels.pricing'])(
+    'image pricing using %s translations',
+    (pricingKeyPrefix) => {
+      it.each([
+        { name: 'gpt-image-2', perImagePrice: 0.06, imageTokenPrice: 0.00003, expected: '$0.06' },
+        { name: 'nano-banana-fast', perImagePrice: 0.044, imageTokenPrice: null, expected: '$0.044' },
+        { name: 'free-image', perImagePrice: 0, imageTokenPrice: 0.00003, expected: '$0' }
+      ])('shows $name per-image price instead of its image-token price', async (fixture) => {
+        const wrapper = mount(SupportedModelChip, {
+          attachTo: document.body,
+          props: {
+            pricingKeyPrefix,
+            model: {
+              name: fixture.name,
+              platform: 'media',
+              pricing: {
+                billing_mode: 'image',
+                input_price: null,
+                output_price: null,
+                cache_write_price: null,
+                cache_read_price: null,
+                image_input_price: null,
+                image_output_price: fixture.imageTokenPrice,
+                per_request_price: fixture.perImagePrice,
+                intervals: []
+              }
+            }
+          }
+        })
+        try {
+          await wrapper.find('[tabindex="0"]').trigger('mouseenter')
+          await nextTick()
+          const tooltip = document.body.querySelector('[role="tooltip"]')
+          expect(tooltip?.textContent).toContain(`${pricingKeyPrefix}.imagePrice`)
+          expect(tooltip?.textContent).toContain(`${fixture.expected} ${pricingKeyPrefix}.unitPerImage`)
+          expect(tooltip?.textContent).not.toContain('$0.00003')
+          expect(tooltip?.textContent).not.toContain(`${pricingKeyPrefix}.unitPerRequest`)
+        } finally {
+          wrapper.unmount()
+        }
+      })
+
+      it('shows a missing per-image price explicitly without using image-token pricing', async () => {
+        const wrapper = mount(SupportedModelChip, {
+          attachTo: document.body,
+          props: {
+            pricingKeyPrefix,
+            model: {
+              name: 'image-without-per-image-price',
+              platform: 'media',
+              pricing: {
+                billing_mode: 'image',
+                input_price: null,
+                output_price: null,
+                cache_write_price: null,
+                cache_read_price: null,
+                image_input_price: null,
+                image_output_price: 0.00003,
+                per_request_price: null,
+                intervals: []
+              }
+            }
+          }
+        })
+        try {
+          await wrapper.find('[tabindex="0"]').trigger('mouseenter')
+          await nextTick()
+          const tooltip = document.body.querySelector('[role="tooltip"]')
+          expect(tooltip?.textContent).toContain(`${pricingKeyPrefix}.imagePrice-`)
+          expect(tooltip?.textContent).not.toContain('$0.00003')
+        } finally {
+          wrapper.unmount()
+        }
+      })
+
+      it('shows image tier prices per image when no flat price is configured', async () => {
+        const wrapper = mount(SupportedModelChip, {
+          attachTo: document.body,
+          props: {
+            pricingKeyPrefix,
+            model: {
+              name: 'tiered-image',
+              platform: 'media',
+              pricing: {
+                billing_mode: 'image',
+                input_price: null,
+                output_price: null,
+                cache_write_price: null,
+                cache_read_price: null,
+                image_input_price: null,
+                image_output_price: null,
+                per_request_price: null,
+                intervals: [
+                  { tier_label: '1K', min_tokens: 0, max_tokens: null, input_price: null, output_price: null, cache_write_price: null, cache_read_price: null, per_request_price: 0 },
+                  { tier_label: '2K', min_tokens: 0, max_tokens: null, input_price: null, output_price: null, cache_write_price: null, cache_read_price: null, per_request_price: 0.09 }
+                ]
+              }
+            }
+          }
+        })
+        try {
+          await wrapper.find('[tabindex="0"]').trigger('mouseenter')
+          await nextTick()
+          const tooltip = document.body.querySelector('[role="tooltip"]')
+          expect(tooltip?.textContent).toContain(`1K$0 ${pricingKeyPrefix}.unitPerImage`)
+          expect(tooltip?.textContent).toContain(`2K$0.09 ${pricingKeyPrefix}.unitPerImage`)
+        } finally {
+          wrapper.unmount()
+        }
+      })
+    }
+  )
+
   it.each(['availableChannels.pricing', 'admin.availableChannels.pricing'])(
     'shows video prices per second using %s translations',
     async (pricingKeyPrefix) => {
