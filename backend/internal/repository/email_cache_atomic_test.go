@@ -103,7 +103,7 @@ func TestEmailCache_PasswordResetTokenHashedAndSingleUse(t *testing.T) {
 	require.NoError(t, err)
 	sum := sha256.Sum256([]byte(token))
 	require.NoError(t, cache.SetPasswordResetToken(ctx, email, &service.PasswordResetTokenData{
-		Token: hex.EncodeToString(sum[:]), CreatedAt: time.Now(),
+		TokenHash: hex.EncodeToString(sum[:]), TokenFormat: service.PasswordResetTokenFormatSHA256, CreatedAt: time.Now(),
 	}, 30*time.Minute))
 
 	raw, err := mr.Get(passwordResetKey(email))
@@ -111,6 +111,7 @@ func TestEmailCache_PasswordResetTokenHashedAndSingleUse(t *testing.T) {
 	require.False(t, strings.Contains(raw, token), "plaintext token must not be stored")
 
 	require.NoError(t, svc.VerifyPasswordResetToken(ctx, email, token))
+	require.ErrorIs(t, svc.ConsumePasswordResetToken(ctx, email, hex.EncodeToString(sum[:])), service.ErrInvalidResetToken)
 	require.ErrorIs(t, svc.ConsumePasswordResetToken(ctx, email, "wrong"), service.ErrInvalidResetToken)
 
 	const workers = 30
@@ -136,15 +137,115 @@ func TestEmailCache_ConsumePasswordResetTokenMismatchKeepsToken(t *testing.T) {
 	email := "keep@example.com"
 	require.NoError(t, cache.SetPasswordResetToken(ctx, email, &service.PasswordResetTokenData{Token: "abc"}, time.Minute))
 
-	ok, err := cache.ConsumePasswordResetToken(ctx, email, "xyz")
+	ok, err := cache.ConsumePasswordResetToken(ctx, email, &service.PasswordResetTokenData{Token: "xyz"})
 	require.NoError(t, err)
 	require.False(t, ok)
 	require.True(t, mr.Exists(passwordResetKey(email)))
 
-	ok, err = cache.ConsumePasswordResetToken(ctx, email, "abc")
+	ok, err = cache.ConsumePasswordResetToken(ctx, email, &service.PasswordResetTokenData{Token: "abc"})
 	require.NoError(t, err)
 	require.True(t, ok)
-	ok, err = cache.ConsumePasswordResetToken(ctx, email, "abc")
+	ok, err = cache.ConsumePasswordResetToken(ctx, email, &service.PasswordResetTokenData{Token: "abc"})
 	require.NoError(t, err)
 	require.False(t, ok)
+}
+
+func TestEmailCache_LegacyPasswordResetTokenSingleUse(t *testing.T) {
+	cache, mr, _ := newMiniredisEmailCache(t)
+	ctx := context.Background()
+	email := "legacy@example.com"
+	token := strings.Repeat("a", 64)
+	require.NoError(t, cache.SetPasswordResetToken(ctx, email, &service.PasswordResetTokenData{
+		Token: token, CreatedAt: time.Now(),
+	}, 30*time.Minute))
+	svc := service.NewEmailService(nil, cache)
+	const workers = 30
+	var won atomic.Int32
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if svc.ConsumePasswordResetToken(ctx, email, token) == nil {
+				won.Add(1)
+			}
+		}()
+	}
+	wg.Wait()
+	require.Equal(t, int32(1), won.Load())
+	require.ErrorIs(t, svc.ConsumePasswordResetToken(ctx, email, token), service.ErrInvalidResetToken)
+	require.False(t, mr.Exists(passwordResetKey(email)))
+}
+
+func TestEmailCache_PasswordResetRejectsUnknownAndAmbiguousFormats(t *testing.T) {
+	cache, mr, _ := newMiniredisEmailCache(t)
+	ctx := context.Background()
+	svc := service.NewEmailService(nil, cache)
+	token := strings.Repeat("a", 64)
+	sum := sha256.Sum256([]byte(token))
+	hash := hex.EncodeToString(sum[:])
+	for _, data := range []*service.PasswordResetTokenData{
+		{Token: token, TokenFormat: "unknown"},
+		{Token: token, TokenHash: hash},
+		{TokenHash: hash},
+		{Token: token, TokenHash: hash, TokenFormat: service.PasswordResetTokenFormatSHA256},
+		{TokenHash: "invalid", TokenFormat: service.PasswordResetTokenFormatSHA256},
+		{},
+	} {
+		t.Run(data.TokenFormat+"/"+data.TokenHash, func(t *testing.T) {
+			require.NoError(t, cache.SetPasswordResetToken(ctx, "invalid@example.com", data, time.Minute))
+			require.ErrorIs(t, svc.ConsumePasswordResetToken(ctx, "invalid@example.com", token), service.ErrInvalidResetToken)
+			require.True(t, mr.Exists(passwordResetKey("invalid@example.com")))
+		})
+	}
+}
+
+type resetTokenReplacementCache struct {
+	service.EmailCache
+	replacement *service.PasswordResetTokenData
+}
+
+func (c *resetTokenReplacementCache) ConsumePasswordResetToken(ctx context.Context, email string, expected *service.PasswordResetTokenData) (bool, error) {
+	if err := c.EmailCache.SetPasswordResetToken(ctx, email, c.replacement, time.Minute); err != nil {
+		return false, err
+	}
+	return c.EmailCache.ConsumePasswordResetToken(ctx, email, expected)
+}
+
+func TestEmailCache_PasswordResetReplacementAfterVerificationIsPreserved(t *testing.T) {
+	cache, _, _ := newMiniredisEmailCache(t)
+	ctx := context.Background()
+	email := "replacement@example.com"
+	oldToken := strings.Repeat("a", 64)
+	newToken := strings.Repeat("b", 64)
+	old := &service.PasswordResetTokenData{Token: oldToken, CreatedAt: time.Now()}
+	require.NoError(t, cache.SetPasswordResetToken(ctx, email, old, time.Minute))
+	sum := sha256.Sum256([]byte(newToken))
+	newData := &service.PasswordResetTokenData{
+		TokenHash: hex.EncodeToString(sum[:]), TokenFormat: service.PasswordResetTokenFormatSHA256, CreatedAt: old.CreatedAt.Add(time.Second),
+	}
+	svc := service.NewEmailService(nil, &resetTokenReplacementCache{EmailCache: cache, replacement: newData})
+	require.ErrorIs(t, svc.ConsumePasswordResetToken(ctx, email, oldToken), service.ErrInvalidResetToken)
+	fresh := service.NewEmailService(nil, cache)
+	require.NoError(t, fresh.ConsumePasswordResetToken(ctx, email, newToken))
+}
+
+func TestEmailCache_PasswordResetConsumptionChecksFormatAndIssueTime(t *testing.T) {
+	cache, _, _ := newMiniredisEmailCache(t)
+	ctx := context.Background()
+	email := "snapshot@example.com"
+	issuedAt := time.Date(2026, 10, 6, 0, 0, 0, 0, time.UTC)
+	current := &service.PasswordResetTokenData{Token: "same-token", TokenFormat: service.PasswordResetTokenFormatLegacy, CreatedAt: issuedAt}
+	require.NoError(t, cache.SetPasswordResetToken(ctx, email, current, time.Minute))
+	for _, expected := range []*service.PasswordResetTokenData{
+		{Token: "same-token", CreatedAt: issuedAt},
+		{Token: "same-token", TokenFormat: service.PasswordResetTokenFormatLegacy, CreatedAt: issuedAt.Add(-time.Second)},
+	} {
+		ok, err := cache.ConsumePasswordResetToken(ctx, email, expected)
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+	ok, err := cache.ConsumePasswordResetToken(ctx, email, current)
+	require.NoError(t, err)
+	require.True(t, ok)
 }
