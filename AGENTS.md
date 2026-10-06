@@ -7,6 +7,9 @@
 本机测试必须通过 Docker Compose 容器执行，不得在宿主机直接运行测试命令
 （包括 `go test`、前端类型检查和前端测试）。
 后端单元测试使用 `docker compose -f deploy/docker-compose.test.yml run --rm backend-test`。
+前端检查与关键回归使用 `docker compose -f deploy/docker-compose.test.yml run --rm --no-deps frontend-test`。
+后端集成测试使用 `docker compose -f deploy/docker-compose.test.yml run --rm --no-deps backend-integration`，
+该服务仅通过 Testcontainers 创建临时测试数据库。
 
 ## 生产灰度发布
 
@@ -34,3 +37,11 @@
   容器、日志和备份现场，并向用户报告问题与已采取的回滚动作。
 - 自动回滚仅切换流量，不销毁候选容器，不删除镜像，不恢复数据库；后续处理
   必须等待用户明确指示。
+
+### 密码重置 Token 格式升级
+
+从明文 Token 旧版首次升级到哈希存储版时，先在 0% 候选槽位通过管理员设置
+接口启用 `password_reset_token_legacy_compat`，确认旧、新槽位的链接均可验证，
+再逐步放量。晋升后确认旧槽位的在途邮件已处理完，再关闭兼容开关，恢复仅
+保存哈希；新版本仍可消费有效期内的旧链接。该开关默认关闭，后续同格式版本
+之间的发布无需启用。设置变更前后核对其它功能开关，避免误改生产配置。

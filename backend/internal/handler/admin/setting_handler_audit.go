@@ -53,6 +53,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.PasswordResetEnabled != after.PasswordResetEnabled {
 		changed = append(changed, "password_reset_enabled")
 	}
+	if before.PasswordResetTokenLegacyCompat != after.PasswordResetTokenLegacyCompat {
+		changed = append(changed, "password_reset_token_legacy_compat")
+	}
 	if before.FrontendURL != after.FrontendURL {
 		changed = append(changed, "frontend_url")
 	}
