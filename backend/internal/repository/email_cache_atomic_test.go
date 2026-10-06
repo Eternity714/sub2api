@@ -206,7 +206,7 @@ type resetTokenReplacementCache struct {
 }
 
 func (c *resetTokenReplacementCache) ConsumePasswordResetToken(ctx context.Context, email string, expected *service.PasswordResetTokenData) (bool, error) {
-	if err := c.EmailCache.SetPasswordResetToken(ctx, email, c.replacement, time.Minute); err != nil {
+	if err := c.SetPasswordResetToken(ctx, email, c.replacement, time.Minute); err != nil {
 		return false, err
 	}
 	return c.EmailCache.ConsumePasswordResetToken(ctx, email, expected)
