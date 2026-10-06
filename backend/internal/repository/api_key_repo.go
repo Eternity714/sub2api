@@ -1003,7 +1003,7 @@ func groupEntityToService(g *dbent.Group) *service.Group {
 		VideoPrice480P:                  g.VideoPrice480p,
 		VideoPrice720P:                  g.VideoPrice720p,
 		VideoPrice1080P:                 g.VideoPrice1080p,
-		VideoModelPrices:                service.NormalizeVideoModelPrices(g.VideoModelPrices),
+		VideoModelPrices:                service.NormalizeVideoModelPricesForPlatform(g.Platform, g.VideoModelPrices),
 		WebSearchPricePerCall:           g.WebSearchPricePerCall,
 		SearchPricePer1k:                g.SearchPricePer1k,
 		AudioRealtimePricePerMin:        g.AudioRealtimePricePerMin,

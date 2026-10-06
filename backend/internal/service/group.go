@@ -218,7 +218,7 @@ func (g *Group) VideoPriceConfig() *VideoPriceConfig {
 		Price480P:   g.VideoPrice480P,
 		Price720P:   g.VideoPrice720P,
 		Price1080P:  g.VideoPrice1080P,
-		ModelPrices: NormalizeVideoModelPrices(g.VideoModelPrices),
+		ModelPrices: NormalizeVideoModelPricesForPlatform(g.Platform, g.VideoModelPrices),
 	}
 }
 
