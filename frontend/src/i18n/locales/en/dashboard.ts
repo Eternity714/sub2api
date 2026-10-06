@@ -156,6 +156,11 @@ export default {
     lastUsedIP: 'Last Used IP',
     useKey: 'Use Key',
     useKeyModal: {
+      media: {
+        tab: 'Media API',
+        description: 'Use the native image/video API with this Sub2API key. This example submits an image task and queries its result.',
+        note: 'Run media-example.mjs with Node.js 20 or later. Replace YOUR_IMAGE_MODEL with a model enabled for your group. Keep the returned task ID and query it with the same key; generating again creates another billable task.'
+      },
       title: 'Use API Key',
       description:
         'Add the following environment variables to your terminal profile or run directly in terminal to configure API access.',

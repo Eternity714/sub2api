@@ -1046,7 +1046,8 @@ export default {
         minimax: 'MiniMax',
         opencode_go: 'OpenCode',
         typesafe: 'TypeSafe / Jev',
-        grsai: 'GRS.AI',
+        grsai: 'Media API',
+        media: 'Media API',
         composite: 'Composite',
       },
       deleteConfirm:
@@ -1071,7 +1072,7 @@ export default {
       imagePricing: {
         title: 'Image Generation Pricing',
         description: 'Configure image generation access and base image prices. Leave empty to use default prices.',
-        allowGrsaiMediaGeneration: 'Allow image/video generation',
+        allowMediaGeneration: 'Allow image/video generation',
         allowImageGeneration: 'Allow image generation for this group',
         allowBatchImageGeneration: 'Allow batch image generation for this group',
         independentMultiplier: 'Use independent image multiplier',
@@ -1085,8 +1086,8 @@ export default {
         finalPricePreview: 'Final per-image price preview',
         notConfigured: 'Not configured'
       },
-      grsaiImageGeneration: {
-        title: 'Image Generation',
+      mediaGeneration: {
+        title: 'Image/Video Generation',
       },
       videoPricing: {
         title: 'Video Generation Pricing',

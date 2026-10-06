@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -41,6 +42,81 @@ func TestChannelMonitorV2DisplayModelIsPlatformScoped(t *testing.T) {
 	// Unconfigured platform still surfaces the real model name.
 	require.Equal(t, "gemini-2.5-pro", channelMonitorV2DisplayModel(cfg, "gemini", "gemini-2.5-pro"))
 	require.True(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{service.ChannelMonitorV2OtherModel}}, cfg, "grok", "shared"))
+}
+
+func TestChannelMonitorV2ModelSelectionSupportsPlatformKeysAndLegacyNames(t *testing.T) {
+	cfg := service.ChannelMonitorV2Config{Platforms: []service.ChannelMonitorV2PlatformConfig{
+		{Platform: "grsai", Enabled: true, Models: []string{"shared"}},
+		{Platform: "openai", Enabled: true, Models: []string{"shared"}},
+	}}
+	for _, tc := range []struct {
+		selected, platform, model string
+		want                      bool
+	}{
+		{"grsai\x00shared", "grsai", "shared", true},
+		{"grsai\x00shared", "openai", "shared", false},
+		{"openai\x00shared", "openai", "shared", true},
+		{"openai\x00shared", "grsai", "shared", false},
+		{"shared", "grsai", "shared", true},
+		{"shared", "openai", "shared", true},
+		{"grsai\x00__other__", "grsai", "unlisted", true},
+		{"grsai\x00__other__", "openai", "unlisted", false},
+		{"__other__", "openai", "unlisted", true},
+	} {
+		t.Run(tc.selected+"/"+tc.platform+"/"+tc.model, func(t *testing.T) {
+			filter := service.ChannelMonitorV2Filter{Models: []string{tc.selected}}
+			require.Equal(t, tc.want, channelMonitorV2ModelSelected(filter, cfg, tc.platform, tc.model))
+		})
+	}
+}
+
+func TestChannelMonitorV2ConfiguredModelsScopePlatformKeysBeforeSeeding(t *testing.T) {
+	for _, allowlist := range []bool{false, true} {
+		t.Run(fmt.Sprint("allowlist=", allowlist), func(t *testing.T) {
+			cfg := service.ChannelMonitorV2Config{Platforms: []service.ChannelMonitorV2PlatformConfig{
+				{Platform: "grsai", Enabled: true}, {Platform: "openai", Enabled: true},
+			}}
+			if allowlist {
+				cfg.Platforms[0].Models = []string{"shared", "grsai-only"}
+				cfg.Platforms[1].Models = []string{"shared", "openai-only"}
+			}
+			filter := service.ChannelMonitorV2Filter{Models: []string{"grsai\x00shared", "openai\x00openai-only"}}
+			require.Equal(t, []string{"shared"}, configuredChannelMonitorV2Models(cfg, "grsai", filter))
+			require.Equal(t, []string{"openai-only"}, configuredChannelMonitorV2Models(cfg, "openai", filter))
+			foreign := service.ChannelMonitorV2Filter{Models: []string{"openai\x00shared"}}
+			require.Empty(t, configuredChannelMonitorV2Models(cfg, "grsai", foreign))
+			legacy := service.ChannelMonitorV2Filter{Models: []string{"shared"}}
+			require.Equal(t, []string{"shared"}, configuredChannelMonitorV2Models(cfg, "grsai", legacy))
+			require.Equal(t, []string{"shared"}, configuredChannelMonitorV2Models(cfg, "openai", legacy))
+			if allowlist {
+				disallowed := service.ChannelMonitorV2Filter{Models: []string{"grsai\x00unlisted"}}
+				require.Empty(t, configuredChannelMonitorV2Models(cfg, "grsai", disallowed))
+			}
+			require.Equal(t, []string{"grsai\x00shared", "openai\x00openai-only"}, filter.Models)
+		})
+	}
+}
+
+func TestChannelMonitorV2MatrixSeedsOnlySelectedPlatformModelKeys(t *testing.T) {
+	for _, allowlist := range []bool{false, true} {
+		t.Run(fmt.Sprint("allowlist=", allowlist), func(t *testing.T) {
+			cfg := service.ChannelMonitorV2Config{Platforms: []service.ChannelMonitorV2PlatformConfig{
+				{Platform: "grsai", Enabled: true}, {Platform: "openai", Enabled: true},
+			}}
+			if allowlist {
+				cfg.Platforms[0].Models = []string{"shared"}
+				cfg.Platforms[1].Models = []string{"shared"}
+			}
+			filter := service.ChannelMonitorV2Filter{Models: []string{"grsai\x00shared"}}
+			rows := seedChannelMonitorV2MatrixAccumulators(filter, cfg, service.ChannelMonitorV2GroupByPlatformModel, nil)
+			require.Len(t, rows, 1)
+			require.Contains(t, rows, channelMonitorV2MatrixKey{platform: "grsai", model: "shared"})
+			require.NotContains(t, rows, channelMonitorV2MatrixKey{platform: "openai", model: "shared"})
+			require.NotContains(t, rows, channelMonitorV2MatrixKey{platform: "openai"})
+			unfiltered := seedChannelMonitorV2MatrixAccumulators(service.ChannelMonitorV2Filter{}, cfg, service.ChannelMonitorV2GroupByPlatformModel, nil)
+			require.Len(t, unfiltered, 2)
+		})
+	}
 }
 
 func TestChannelMonitorV2MatrixDimensionKey(t *testing.T) {

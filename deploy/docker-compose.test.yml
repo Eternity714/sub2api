@@ -55,12 +55,15 @@ services:
           src/components/account/__tests__/CreateAccountModal.spec.ts \
           src/components/account/__tests__/EditAccountModal.spec.ts \
           src/components/account/__tests__/AccountPriorityCell.spec.ts \
+          src/components/admin/account/__tests__/AccountActionMenu.spark_shadow.spec.ts \
+          src/components/common/__tests__/PlatformIcon.media.spec.ts \
           src/views/admin/__tests__/AccountsView.priorityColumn.spec.ts \
           src/components/keys/__tests__/UseKeyModal.spec.ts \
           src/constants/__tests__/platforms.spec.ts \
           src/views/admin/__tests__/platformFilterCatalogUsage.spec.ts \
           src/views/admin/__tests__/channelPlatformOptions.spec.ts \
           src/views/admin/__tests__/GroupsView.compositePlatforms.spec.ts \
+          src/views/admin/__tests__/GroupsView.duplicate.spec.ts \
           src/views/admin/__tests__/groupsImagePricing.spec.ts \
           src/components/user/__tests__/UserPlatformQuotaCell.spec.ts \
           src/components/user/dashboard/__tests__/UserDashboardStats.spec.ts \

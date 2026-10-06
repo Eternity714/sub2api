@@ -1,6 +1,54 @@
 package service
 
-import "time"
+import (
+	"encoding/json"
+	"regexp"
+	"strings"
+	"time"
+)
+
+var (
+	userMediaErrorURL   = regexp.MustCompile(`(?i)https?://[^\s"'<>]+`)
+	userMediaErrorBrand = regexp.MustCompile(`(?i)\b(?:grs\.ai|grsai)\b`)
+)
+
+func userMediaErrorText(text string) string {
+	text = userMediaErrorURL.ReplaceAllString(text, "upstream service")
+	return userMediaErrorBrand.ReplaceAllString(text, "Media API")
+}
+
+func userMediaErrorBody(body string) string {
+	if !json.Valid([]byte(body)) {
+		return userMediaErrorText(body)
+	}
+	var value any
+	decoder := json.NewDecoder(strings.NewReader(body))
+	decoder.UseNumber()
+	if decoder.Decode(&value) != nil {
+		return userMediaErrorText(body)
+	}
+	encoded, err := json.Marshal(userMediaErrorJSONValue(value))
+	if err != nil {
+		return userMediaErrorText(body)
+	}
+	return string(encoded)
+}
+
+func userMediaErrorJSONValue(value any) any {
+	switch v := value.(type) {
+	case string:
+		return userMediaErrorText(v)
+	case map[string]any:
+		for key, child := range v {
+			v[key] = userMediaErrorJSONValue(child)
+		}
+	case []any:
+		for i := range v {
+			v[i] = userMediaErrorJSONValue(v[i])
+		}
+	}
+	return value
+}
 
 // UserErrorRequest 是面向终端用户的"错误请求"精简脱敏视图（白名单）。
 // 严禁包含 account / api_key_prefix / upstream_endpoint / user_email 等
@@ -102,6 +150,12 @@ func ToUserErrorRequest(e *OpsErrorLog) *UserErrorRequest {
 	if e.ClientIP != nil {
 		clientIP = *e.ClientIP
 	}
+	platform := e.Platform
+	message := e.Message
+	if platform == PlatformGrsai {
+		platform = "media"
+		message = userMediaErrorText(message)
+	}
 	return &UserErrorRequest{
 		ID:              e.ID,
 		CreatedAt:       e.CreatedAt,
@@ -109,8 +163,8 @@ func ToUserErrorRequest(e *OpsErrorLog) *UserErrorRequest {
 		InboundEndpoint: e.InboundEndpoint,
 		StatusCode:      e.StatusCode,
 		Category:        MapUserErrorCategory(e.Phase, e.Type),
-		Platform:        e.Platform,
-		Message:         e.Message,
+		Platform:        platform,
+		Message:         message,
 		KeyName:         e.APIKeyName,
 		KeyDeleted:      e.APIKeyDeleted,
 		ClientIP:        clientIP,
@@ -136,9 +190,13 @@ func ToUserErrorRequestDetail(e *OpsErrorLogDetail) *UserErrorRequestDetail {
 		return nil
 	}
 	base := ToUserErrorRequest(&e.OpsErrorLog)
+	errorBody := e.ErrorBody
+	if e.Platform == PlatformGrsai {
+		errorBody = userMediaErrorBody(errorBody)
+	}
 	return &UserErrorRequestDetail{
 		UserErrorRequest:   *base,
-		ErrorBody:          e.ErrorBody,
+		ErrorBody:          errorBody,
 		UpstreamStatusCode: e.UpstreamStatusCode,
 	}
 }

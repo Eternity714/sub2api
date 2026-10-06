@@ -84,7 +84,7 @@
                   platformBadgeLightClass(m.platform)
                 ]"
               >
-                {{ platformLabel(m.platform) }}
+                {{ displayPlatformLabel(m.platform) }}
               </span>
               <span
                 v-if="billingMode(m) !== BILLING_MODE_TOKEN"
@@ -354,6 +354,9 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+
+const displayPlatformLabel = (platform: string) =>
+  platform === 'media' || platform === 'grsai' ? t('admin.groups.platforms.media') : platformLabel(platform)
 
 /** 实付分区只从平台拿一个主色,浅底/标题/下划线全部由 scoped CSS 用 color-mix 派生。 */
 const accentStyle = computed(() => ({ '--plaza-accent': platformAccentColor(props.platform ?? '') }))

@@ -313,6 +313,7 @@ const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
 const { copyToClipboard: clipboardCopy } = useClipboard()
+const isNativeMediaPlatform = computed(() => props.platform === 'media' || props.platform === 'grsai')
 
 const copiedIndex = ref<number | null>(null)
 const activeTab = ref<string>('unix')
@@ -356,6 +357,7 @@ const codexManifestContext = computed(() => {
 
 // Reset tabs when platform changes
 const defaultClientTab = computed(() => {
+  if (isNativeMediaPlatform.value) return 'media'
   if (props.claudeCodeOnly) return 'claude'
   switch (props.platform) {
     case 'openai':
@@ -463,6 +465,9 @@ const SparkleIcon = {
 
 const clientTabs = computed((): TabConfig[] => {
   if (!props.platform) return []
+  if (isNativeMediaPlatform.value) {
+    return [{ id: 'media', label: t('keys.useKeyModal.media.tab'), icon: TerminalIcon }]
+  }
   if (props.claudeCodeOnly) {
     return [{ id: 'claude', label: t('keys.useKeyModal.cliTabs.claudeCode'), icon: TerminalIcon }]
   }
@@ -532,7 +537,7 @@ const openaiTabs: TabConfig[] = [
   { id: 'windows', label: 'Windows', icon: WindowsIcon }
 ]
 
-const showShellTabs = computed(() => activeClientTab.value !== 'opencode')
+const showShellTabs = computed(() => !['opencode', 'media'].includes(activeClientTab.value))
 
 const showCodexAuthMode = computed(() =>
   props.platform === 'openai' &&
@@ -548,6 +553,7 @@ const currentTabs = computed(() => {
 })
 
 const platformDescription = computed(() => {
+  if (isNativeMediaPlatform.value) return t('keys.useKeyModal.media.description')
   if (activeClientTab.value === 'codex' &&
     props.platform !== 'openai' &&
     props.platform !== 'grok' &&
@@ -594,6 +600,7 @@ const platformDescription = computed(() => {
 })
 
 const platformNote = computed(() => {
+  if (isNativeMediaPlatform.value) return t('keys.useKeyModal.media.note')
   if (activeClientTab.value === 'codex' &&
     props.platform !== 'openai' &&
     props.platform !== 'grok' &&
@@ -754,6 +761,8 @@ const currentFiles = computed((): FileConfig[] => {
     return trimmed.endsWith('/v1beta') ? trimmed : `${trimmed}/v1beta`
   })()
 
+  if (isNativeMediaPlatform.value) return generateMediaFiles(baseRoot, apiKey)
+
   if (activeClientTab.value === 'opencode') {
     switch (props.platform) {
       case 'anthropic':
@@ -869,6 +878,38 @@ Invoke-RestMethod -Method Post -Uri "${endpoint}" -Headers $headers -ContentType
   -H "Content-Type: application/json" \\
   --data '${payload}'`
   }
+}
+
+function generateMediaFiles(baseUrl: string, apiKey: string): FileConfig[] {
+  const content = [
+    `const baseUrl = ${JSON.stringify(baseUrl)};`,
+    `const apiKey = ${JSON.stringify(apiKey)};`,
+    'const headers = { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" };',
+    '',
+    'const response = await fetch(baseUrl + "/v1/api/generate", {',
+    '  method: "POST",',
+    '  headers,',
+    '  body: JSON.stringify({',
+    '    model: "YOUR_IMAGE_MODEL",',
+    '    prompt: "Your image prompt",',
+    '    replyType: "async"',
+    '  })',
+    '});',
+    'if (!response.ok) throw new Error("Generation HTTP " + response.status);',
+    'const { id } = await response.json();',
+    '',
+    'for (;;) {',
+    '  await new Promise(resolve => setTimeout(resolve, 1000));',
+    '  const resultResponse = await fetch(baseUrl + "/v1/api/result?id=" + encodeURIComponent(id), { headers });',
+    '  if (!resultResponse.ok) throw new Error("Result HTTP " + resultResponse.status);',
+    '  const task = await resultResponse.json();',
+    '  if (["succeeded", "failed", "manual_review"].includes(task.status)) {',
+    '    console.log(task);',
+    '    break;',
+    '  }',
+    '}'
+  ].join('\n')
+  return [{ path: 'media-example.mjs', content }]
 }
 
 function generateAnthropicFiles(baseUrl: string, apiKey: string): FileConfig[] {
@@ -1336,7 +1377,8 @@ function generateRoutedCodexFiles(
     minimax: 'MiniMax',
     opencode_go: 'OpenCode',
     typesafe: 'TypeSafe / Jev',
-    grsai: 'GRS.AI',
+    grsai: t('admin.groups.platforms.grsai'),
+    media: t('admin.groups.platforms.media'),
     composite: 'Composite'
   }
   const label = labels[platform]

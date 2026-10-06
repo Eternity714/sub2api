@@ -17,8 +17,13 @@ const concretePlatforms = [
 ]
 
 describe('platform option catalogs', () => {
-  it('exposes every concrete account platform', () => {
+  it('exposes the supported account creation platforms', () => {
     expect(CONCRETE_PLATFORM_OPTIONS.map((option) => option.value)).toEqual(concretePlatforms)
+  })
+
+  it('uses the provider brand for accounts and the media capability for groups', () => {
+    expect(CONCRETE_PLATFORM_OPTIONS.find((option) => option.value === 'grsai')?.label).toBe('GRS.AI')
+    expect(GROUP_PLATFORM_OPTIONS.find((option) => option.value === 'grsai')?.label).toBe('Media API')
   })
 
   it('adds composite for group-backed filters', () => {

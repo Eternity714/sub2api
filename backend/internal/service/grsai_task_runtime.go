@@ -168,7 +168,7 @@ func (r *GrsaiTaskRuntime) processClaim(ctx context.Context, claim *GrsaiSettlem
 			return r.fail(ctx, claim, "payload_unavailable")
 		}
 		account, err := r.accounts.GetByID(ctx, claim.AccountID)
-		if err != nil || account == nil || account.Platform != PlatformGrsai {
+		if err != nil || !IsNativeMediaAccount(account) {
 			return r.fail(ctx, claim, "account_unavailable")
 		}
 		result, err := r.upstream.GenerateAsync(ctx, account, payload)
@@ -188,7 +188,7 @@ func (r *GrsaiTaskRuntime) processClaim(ctx context.Context, claim *GrsaiSettlem
 		return r.manualReview(ctx, claim, "result_retries_exhausted")
 	}
 	account, err := r.accounts.GetByID(ctx, claim.AccountID)
-	if err != nil || account == nil || account.Platform != PlatformGrsai {
+	if err != nil || !IsNativeMediaAccount(account) {
 		return r.deferFailure(ctx, claim, "account_unavailable")
 	}
 	result, err := r.upstream.Result(ctx, account, *claim.UpstreamTaskID)

@@ -6,9 +6,7 @@ export interface PlatformOption<T extends string = string> {
 }
 
 /**
- * Concrete upstream platforms supported by accounts and request routing.
- * Keep platform selectors derived from this catalog so newly added providers
- * do not silently disappear from list filters.
+ * Concrete upstream platforms available for administrator account creation.
  */
 export const CONCRETE_PLATFORM_OPTIONS = [
   { value: 'anthropic', label: 'Anthropic' },
@@ -25,8 +23,12 @@ export const CONCRETE_PLATFORM_OPTIONS = [
   { value: 'grsai', label: 'GRS.AI' }
 ] as const satisfies readonly PlatformOption<AccountPlatform>[]
 
-/** Platforms that can own a group. */
+/** Platforms available for new groups. */
 export const GROUP_PLATFORM_OPTIONS = [
-  ...CONCRETE_PLATFORM_OPTIONS,
+  ...CONCRETE_PLATFORM_OPTIONS.filter((option) => option.value !== 'grsai'),
+  { value: 'grsai', label: 'Media API' },
   { value: 'composite', label: 'Composite' }
 ] as const satisfies readonly PlatformOption<GroupPlatform>[]
+
+/** Native media uses its own endpoint and cannot target a composite route. */
+export const COMPOSITE_ROUTE_PLATFORM_OPTIONS = CONCRETE_PLATFORM_OPTIONS.filter((option) => option.value !== 'grsai')
