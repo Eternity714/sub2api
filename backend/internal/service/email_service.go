@@ -52,9 +52,9 @@ type EmailCache interface {
 	GetPasswordResetToken(ctx context.Context, email string) (*PasswordResetTokenData, error)
 	SetPasswordResetToken(ctx context.Context, email string, data *PasswordResetTokenData, ttl time.Duration) error
 	DeletePasswordResetToken(ctx context.Context, email string) error
-	// ConsumePasswordResetToken atomically compares the stored token hash with
-	// tokenHash and deletes it on match. Only one concurrent caller can succeed.
-	ConsumePasswordResetToken(ctx context.Context, email, tokenHash string) (bool, error)
+	// ConsumePasswordResetToken atomically compares the verified format, value and
+	// issue time, then deletes the same token. A replacement token is never consumed.
+	ConsumePasswordResetToken(ctx context.Context, email string, expected *PasswordResetTokenData) (bool, error)
 
 	// Password reset email cooldown methods
 	// Returns true if in cooldown period (email was sent recently)
@@ -76,10 +76,18 @@ type VerificationCodeData struct {
 
 // PasswordResetTokenData represents password reset token data
 type PasswordResetTokenData struct {
-	// Token holds the hex-encoded SHA-256 hash of the reset token (never the plaintext).
-	Token     string
-	CreatedAt time.Time
+	// Token is only used for legacy links during a staged upgrade. TokenHash is
+	// exclusive to the explicit SHA-256 format; its digest is never a bearer token.
+	Token       string `json:",omitempty"`
+	TokenHash   string `json:",omitempty"`
+	TokenFormat string `json:",omitempty"`
+	CreatedAt   time.Time
 }
+
+const (
+	PasswordResetTokenFormatLegacy = "legacy"
+	PasswordResetTokenFormatSHA256 = "sha256"
+)
 
 const (
 	verifyCodeTTL         = 15 * time.Minute
@@ -503,15 +511,35 @@ func (s *EmailService) GeneratePasswordResetToken() (string, error) {
 
 // SendPasswordResetEmail sends a password reset email with a reset link
 func (s *EmailService) SendPasswordResetEmail(ctx context.Context, email, siteName, resetURL string, locale ...string) error {
-	// Only the SHA-256 hash of the token is stored, so an existing token cannot be
-	// re-sent; always issue a fresh token (the email cooldown bounds resend frequency).
+	legacyCompat := false
+	if s.settingRepo != nil {
+		value, err := s.settingRepo.GetValue(ctx, SettingKeyPasswordResetTokenLegacyCompat)
+		if err != nil && !errors.Is(err, ErrSettingNotFound) {
+			return fmt.Errorf("get password reset compatibility setting: %w", err)
+		}
+		switch value {
+		case "true":
+			legacyCompat = true
+		case "", "false":
+		default:
+			return errors.New("invalid password reset compatibility setting")
+		}
+	}
+	// Issue a fresh token in either mode; hashed tokens cannot be re-sent. The
+	// legacy write mode is temporary while the old stable binary still serves.
 	token, err := s.GeneratePasswordResetToken()
 	if err != nil {
 		return fmt.Errorf("generate token: %w", err)
 	}
 	data := &PasswordResetTokenData{
-		Token:     hashPasswordResetToken(token),
-		CreatedAt: time.Now(),
+		TokenHash:   hashPasswordResetToken(token),
+		TokenFormat: PasswordResetTokenFormatSHA256,
+		CreatedAt:   time.Now(),
+	}
+	if legacyCompat {
+		data.Token = token
+		data.TokenHash = ""
+		data.TokenFormat = PasswordResetTokenFormatLegacy
 	}
 	if err := s.cache.SetPasswordResetToken(ctx, email, data, passwordResetTokenTTL); err != nil {
 		return fmt.Errorf("save reset token: %w", err)
@@ -582,26 +610,48 @@ func hashPasswordResetToken(token string) string {
 
 // VerifyPasswordResetToken verifies the password reset token without consuming it
 func (s *EmailService) VerifyPasswordResetToken(ctx context.Context, email, token string) error {
+	_, err := s.verifiedPasswordResetToken(ctx, email, token)
+	return err
+}
+
+func (s *EmailService) verifiedPasswordResetToken(ctx context.Context, email, token string) (*PasswordResetTokenData, error) {
 	data, err := s.cache.GetPasswordResetToken(ctx, email)
 	if err != nil || data == nil || token == "" {
-		return ErrInvalidResetToken
+		return nil, ErrInvalidResetToken
 	}
 
-	// Use constant-time comparison to prevent timing attacks
-	if subtle.ConstantTimeCompare([]byte(data.Token), []byte(hashPasswordResetToken(token))) != 1 {
-		return ErrInvalidResetToken
+	var stored, presented string
+	switch data.TokenFormat {
+	case "", PasswordResetTokenFormatLegacy:
+		// Missing format denotes tokens issued by the old stable binary. Do not
+		// infer formats from length: legacy tokens and SHA-256 digests are both hex.
+		if data.Token == "" || data.TokenHash != "" {
+			return nil, ErrInvalidResetToken
+		}
+		stored, presented = data.Token, token
+	case PasswordResetTokenFormatSHA256:
+		decoded, decodeErr := hex.DecodeString(data.TokenHash)
+		if data.Token != "" || decodeErr != nil || len(decoded) != sha256.Size {
+			return nil, ErrInvalidResetToken
+		}
+		stored, presented = data.TokenHash, hashPasswordResetToken(token)
+	default:
+		return nil, ErrInvalidResetToken
 	}
-
-	return nil
+	if subtle.ConstantTimeCompare([]byte(stored), []byte(presented)) != 1 {
+		return nil, ErrInvalidResetToken
+	}
+	return data, nil
 }
 
 // ConsumePasswordResetToken verifies and deletes the token atomically (one-time use).
 func (s *EmailService) ConsumePasswordResetToken(ctx context.Context, email, token string) error {
 	// Constant-time pre-check in Go; the atomic compare-and-delete below is authoritative.
-	if err := s.VerifyPasswordResetToken(ctx, email, token); err != nil {
+	data, err := s.verifiedPasswordResetToken(ctx, email, token)
+	if err != nil {
 		return err
 	}
-	ok, err := s.cache.ConsumePasswordResetToken(ctx, email, hashPasswordResetToken(token))
+	ok, err := s.cache.ConsumePasswordResetToken(ctx, email, data)
 	if err != nil {
 		slog.Error("failed to consume password reset token", "email", email, "error", err)
 		return ErrInvalidResetToken
