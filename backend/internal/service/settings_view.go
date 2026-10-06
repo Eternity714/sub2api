@@ -18,6 +18,7 @@ type SystemSettings struct {
 	RegistrationEmailDomainQuotaEnabled bool // 白名单非空时放行非白名单域名限量注册（默认关闭）
 	PromoCodeEnabled                    bool
 	PasswordResetEnabled                bool
+	PasswordResetTokenLegacyCompat      bool
 	FrontendURL                         string
 	InvitationCodeEnabled               bool
 	TotpEnabled                         bool // TOTP 双因素认证
