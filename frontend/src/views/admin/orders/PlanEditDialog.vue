@@ -104,7 +104,7 @@ import BaseDialog from '@/components/common/BaseDialog.vue'
 import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'
 import GroupBadge from '@/components/common/GroupBadge.vue'
-import { platformTextClass } from '@/utils/platformColors'
+import { platformTextClass, platformDisplayValue } from '@/utils/platformColors'
 
 const props = defineProps<{
   show: boolean
@@ -136,7 +136,7 @@ const groupOptions = computed(() =>
     .filter(g => g.subscription_type === 'subscription')
     .map(g => ({
       value: g.id,
-      label: `${g.name} — ${g.platform} (${g.rate_multiplier}x)`,
+      label: `${g.name} — ${platformDisplayValue(g.platform)} (${g.rate_multiplier}x)`,
       platform: g.platform,
     })),
 )

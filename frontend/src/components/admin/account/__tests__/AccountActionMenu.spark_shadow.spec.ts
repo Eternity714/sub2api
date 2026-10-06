@@ -69,6 +69,17 @@ describe('AccountActionMenu — spark shadow 按钮可见性', () => {
     wrapper.unmount()
   })
 
+  it('GRS.AI API Key 账号允许复制账号', () => {
+    const account = makeAccount({ platform: 'grsai', type: 'apikey', parent_account_id: null })
+    const wrapper = mount(AccountActionMenu, {
+      props: { show: true, account, anchorRect },
+      attachTo: document.body,
+    })
+    expect(getBodyText()).toContain('admin.accounts.duplicateAccount')
+    expect(getBodyText()).toContain('admin.accounts.viewStats')
+    wrapper.unmount()
+  })
+
   it.each(['oauth', 'setup-token'] as const)('%s 账号隐藏「复制账号」按钮，避免共享可轮换令牌', (type) => {
     const account = makeAccount({ platform: 'openai', type, parent_account_id: null })
     const wrapper = mount(AccountActionMenu, {

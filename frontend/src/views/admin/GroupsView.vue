@@ -894,7 +894,7 @@
           class="border-t pt-4"
         >
           <label class="block mb-3 font-medium text-gray-700 dark:text-gray-300">
-            {{ t("admin.groups.grsaiImageGeneration.title") }}
+            {{ t("admin.groups.mediaGeneration.title") }}
           </label>
           <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input
@@ -2551,7 +2551,7 @@
           class="border-t pt-4"
         >
           <label class="block mb-3 font-medium text-gray-700 dark:text-gray-300">
-            {{ t("admin.groups.grsaiImageGeneration.title") }}
+            {{ t("admin.groups.mediaGeneration.title") }}
           </label>
           <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input
@@ -4317,7 +4317,7 @@ import type {
   SubscriptionType,
 } from "@/types";
 import {
-  CONCRETE_PLATFORM_OPTIONS,
+  COMPOSITE_ROUTE_PLATFORM_OPTIONS,
   GROUP_PLATFORM_OPTIONS,
 } from "@/constants/platforms";
 import type { Column } from "@/components/common/types";
@@ -4658,7 +4658,7 @@ const platformFilterOptions = computed(() => [
 ]);
 
 const compositeRoutePlatformOptions = computed(() => [
-  ...CONCRETE_PLATFORM_OPTIONS.filter((option) => option.value !== 'grsai'),
+  ...COMPOSITE_ROUTE_PLATFORM_OPTIONS,
 ]);
 
 const compositeRouteEndpointOptions = computed(() => [
@@ -4777,7 +4777,7 @@ const invalidRequestFallbackOptionsForEdit = computed(() => {
 });
 
 const canCopyAccountsFromGroup = (targetPlatform: GroupPlatform, sourcePlatform: GroupPlatform) =>
-  targetPlatform === "composite" || sourcePlatform === targetPlatform;
+  (targetPlatform === "composite" && sourcePlatform !== "grsai") || sourcePlatform === targetPlatform;
 
 const copyAccountsGroupLabel = (g: AdminGroup) => {
   const count = g.account_count || 0;

@@ -48,13 +48,24 @@
   <svg v-else-if="platform === 'opencode_go'" :class="sizeClass" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd">
     <path d="M16 6H8v12h8V6zm4 16H4V2h16v20z" />
   </svg>
-  <!-- GRS.AI 官方 favicon -->
-  <img
-    v-else-if="platform === 'grsai'"
-    src="https://grsai.com/favicon.ico"
-    alt="GRS.AI"
+  <!-- Administrator upstream provider brand -->
+  <img v-else-if="platform === 'grsai'" src="https://grsai.com/favicon.ico" alt="GRS.AI" :class="sizeClass" />
+  <!-- Public image/video API capability -->
+  <svg
+    v-else-if="platform === 'media'"
     :class="sizeClass"
-  />
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="3" />
+    <circle cx="8" cy="8" r="1.5" />
+    <path d="m3 17 5-5 4 4" />
+    <path d="m14 10 5 3.5-5 3.5z" fill="currentColor" stroke="none" />
+  </svg>
   <!-- DeepSeek official logo mark (whale) -->
   <svg v-else-if="platform === 'deepseek'" :class="sizeClass" viewBox="0 0 24 24" fill="currentColor">
     <path

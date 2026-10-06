@@ -18,6 +18,7 @@ export type Platform =
   | 'opencode_go'
   | 'typesafe'
   | 'grsai'
+  | 'media'
   | 'composite'
 
 // ── Badge (bg + text + border, for inline badges with border) ───────
@@ -34,6 +35,7 @@ const BADGE: Record<Platform, string> = {
   opencode_go: 'bg-amber-500/10 text-amber-700 border-amber-500/30 dark:text-amber-300',
   typesafe: 'bg-sky-500/10 text-sky-700 border-sky-500/30 dark:text-sky-300',
   grsai: 'bg-lime-500/10 text-lime-700 border-lime-500/30 dark:text-lime-300',
+  media: 'bg-lime-500/10 text-lime-700 border-lime-500/30 dark:text-lime-300',
   composite: 'bg-cyan-500/10 text-cyan-700 border-cyan-500/30 dark:text-cyan-300',
 }
 const BADGE_DEFAULT = 'bg-slate-500/10 text-slate-600 border-slate-500/30 dark:text-slate-400'
@@ -52,6 +54,7 @@ const BADGE_LIGHT: Record<Platform, string> = {
   opencode_go: 'bg-amber-500/10 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
   typesafe: 'bg-sky-500/10 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300',
   grsai: 'bg-lime-500/10 text-lime-700 dark:bg-lime-500/10 dark:text-lime-300',
+  media: 'bg-lime-500/10 text-lime-700 dark:bg-lime-500/10 dark:text-lime-300',
   composite: 'bg-cyan-500/10 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300',
 }
 
@@ -69,6 +72,7 @@ const BORDER: Record<Platform, string> = {
   opencode_go: 'border-amber-500/20 dark:border-amber-500/20',
   typesafe: 'border-sky-500/20 dark:border-sky-500/20',
   grsai: 'border-lime-500/20 dark:border-lime-500/20',
+  media: 'border-lime-500/20 dark:border-lime-500/20',
   composite: 'border-cyan-500/20 dark:border-cyan-500/20',
 }
 const BORDER_DEFAULT = 'border-gray-200 dark:border-dark-700'
@@ -87,6 +91,7 @@ const BORDER_STRONG: Record<Platform, string> = {
   opencode_go: 'border-amber-500/35 dark:border-amber-500/30',
   typesafe: 'border-sky-500/35 dark:border-sky-500/30',
   grsai: 'border-lime-500/35 dark:border-lime-500/30',
+  media: 'border-lime-500/35 dark:border-lime-500/30',
   composite: 'border-cyan-500/35 dark:border-cyan-500/30',
 }
 const BORDER_STRONG_DEFAULT = 'border-gray-300 dark:border-dark-600'
@@ -106,6 +111,7 @@ const ACCENT: Record<Platform, string> = {
   opencode_go: '#f59e0b', // amber-500
   typesafe: '#0ea5e9', // sky-500
   grsai: '#84cc16', // lime-500
+  media: '#84cc16', // lime-500
   composite: '#06b6d4', // cyan-500
 }
 const ACCENT_DEFAULT = '#14b8a6' // primary-500 (teal)
@@ -124,6 +130,7 @@ const ACCENT_BAR: Record<Platform, string> = {
   opencode_go: 'bg-gradient-to-r from-amber-400 to-amber-500',
   typesafe: 'bg-gradient-to-r from-sky-400 to-sky-500',
   grsai: 'bg-gradient-to-r from-lime-400 to-lime-500',
+  media: 'bg-gradient-to-r from-lime-400 to-lime-500',
   composite: 'bg-gradient-to-r from-slate-500 to-cyan-500',
 }
 const ACCENT_BAR_DEFAULT = 'bg-gradient-to-r from-primary-400 to-primary-500'
@@ -142,6 +149,7 @@ const TEXT: Record<Platform, string> = {
   opencode_go: 'text-amber-700 dark:text-amber-300',
   typesafe: 'text-sky-700 dark:text-sky-300',
   grsai: 'text-lime-700 dark:text-lime-300',
+  media: 'text-lime-700 dark:text-lime-300',
   composite: 'text-cyan-700 dark:text-cyan-300',
 }
 const TEXT_DEFAULT = 'text-primary-600 dark:text-primary-400'
@@ -160,6 +168,7 @@ const ICON: Record<Platform, string> = {
   opencode_go: 'text-amber-500 dark:text-amber-300',
   typesafe: 'text-sky-500 dark:text-sky-300',
   grsai: 'text-lime-500 dark:text-lime-300',
+  media: 'text-lime-500 dark:text-lime-300',
   composite: 'text-cyan-600 dark:text-cyan-300',
 }
 const ICON_DEFAULT = 'text-primary-500 dark:text-primary-400'
@@ -178,6 +187,7 @@ const BUTTON: Record<Platform, string> = {
   opencode_go: 'bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 dark:bg-amber-500/80 dark:hover:bg-amber-500',
   typesafe: 'bg-sky-600 text-white hover:bg-sky-700 active:bg-sky-800 dark:bg-sky-600/80 dark:hover:bg-sky-600',
   grsai: 'bg-lime-600 text-white hover:bg-lime-700 active:bg-lime-800 dark:bg-lime-600/80 dark:hover:bg-lime-500',
+  media: 'bg-lime-600 text-white hover:bg-lime-700 active:bg-lime-800 dark:bg-lime-600/80 dark:hover:bg-lime-500',
   composite: 'bg-cyan-700 text-white hover:bg-cyan-800 active:bg-cyan-900 dark:bg-cyan-600 dark:hover:bg-cyan-500',
 }
 const BUTTON_DEFAULT = 'bg-primary-500 text-white hover:bg-primary-600 dark:bg-primary-600 dark:hover:bg-primary-500'
@@ -196,6 +206,7 @@ const DISCOUNT: Record<Platform, string> = {
   opencode_go: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
   typesafe: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
   grsai: 'bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300',
+  media: 'bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300',
   composite: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300',
 }
 const DISCOUNT_DEFAULT = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
@@ -214,6 +225,7 @@ const GRADIENT: Record<Platform, string> = {
   opencode_go: 'from-amber-500 to-amber-600',
   typesafe: 'from-sky-500 to-sky-600',
   grsai: 'from-lime-500 to-lime-600',
+  media: 'from-lime-500 to-lime-600',
   composite: 'from-slate-600 to-cyan-600',
 }
 const GRADIENT_DEFAULT = 'from-primary-500 to-primary-600'
@@ -232,6 +244,7 @@ const GRADIENT_TEXT: Record<Platform, string> = {
   opencode_go: 'text-amber-100',
   typesafe: 'text-sky-100',
   grsai: 'text-lime-100',
+  media: 'text-lime-100',
   composite: 'text-cyan-100',
 }
 const GRADIENT_TEXT_DEFAULT = 'text-primary-100'
@@ -249,6 +262,7 @@ const GRADIENT_SUBTEXT: Record<Platform, string> = {
   opencode_go: 'text-amber-200',
   typesafe: 'text-sky-200',
   grsai: 'text-lime-200',
+  media: 'text-lime-200',
   composite: 'text-cyan-200',
 }
 const GRADIENT_SUBTEXT_DEFAULT = 'text-primary-200'
@@ -269,6 +283,7 @@ function isPlatform(p: string): p is Platform {
     p === 'opencode_go' ||
     p === 'typesafe' ||
     p === 'grsai' ||
+    p === 'media' ||
     p === 'composite'
   )
 }
@@ -325,6 +340,10 @@ export function platformGradientSubtextClass(p: string): string {
   return isPlatform(p) ? GRADIENT_SUBTEXT[p] : GRADIENT_SUBTEXT_DEFAULT
 }
 
+export function platformDisplayValue(p: string): string {
+  return p === 'grsai' || p === 'media' ? 'Media API' : p
+}
+
 export function platformLabel(p: string): string {
   switch (p) {
     case 'anthropic': return 'Anthropic'
@@ -339,6 +358,7 @@ export function platformLabel(p: string): string {
     case 'opencode_go': return 'OpenCode'
     case 'typesafe': return 'TypeSafe / Jev'
     case 'grsai': return 'GRS.AI'
+    case 'media': return 'Media API'
     case 'composite': return 'Composite'
     default: return p || 'API'
   }

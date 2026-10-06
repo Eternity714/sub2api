@@ -17,7 +17,7 @@
           @click="$emit('update:platform', p)"
         >
           <PlatformIcon v-if="p !== 'all'" :platform="p as GroupPlatform" size="xs" />
-          {{ p === 'all' ? t('modelPlaza.filters.all') : p }}
+          {{ p === 'all' ? t('modelPlaza.filters.all') : displayPlatformLabel(p) }}
         </button>
       </div>
     </div>
@@ -139,6 +139,9 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const displayPlatformLabel = (platform: string) =>
+  platform === 'media' || platform === 'grsai' ? t('admin.groups.platforms.media') : platform
 
 /**
  * 三个维度互为约束(faceted):某选项可点 ⟺ 在「其他两维」当前选择下仍有分组命中。

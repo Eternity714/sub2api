@@ -979,7 +979,8 @@ export default {
         minimax: 'MiniMax',
         opencode_go: 'OpenCode',
         typesafe: 'TypeSafe / Jev',
-        grsai: 'GRS.AI',
+        grsai: '媒体 API',
+        media: '媒体 API',
         composite: 'Composite',
       },
       saving: '保存中...',
@@ -1068,7 +1069,7 @@ export default {
       imagePricing: {
         title: '图片生成计费',
         description: '配置图片生成能力和图片基础单价，留空则使用默认价格',
-        allowGrsaiMediaGeneration: '允许图片/视频生成',
+        allowMediaGeneration: '允许图片/视频生成',
         allowImageGeneration: '允许当前分组生图',
         allowBatchImageGeneration: '允许当前分组批量生图',
         independentMultiplier: '生图倍率独立',
@@ -1082,8 +1083,8 @@ export default {
         finalPricePreview: '最终单张价格预览',
         notConfigured: '未配置'
       },
-      grsaiImageGeneration: {
-        title: '图片生成',
+      mediaGeneration: {
+        title: '图片/视频生成',
       },
       videoPricing: {
         title: '视频生成计费',

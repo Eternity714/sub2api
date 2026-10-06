@@ -233,7 +233,7 @@
               <label class="input-label mb-0">{{ t('admin.channels.form.platformConfig') }}</label>
               <div class="flex flex-wrap gap-2">
                 <label
-                  v-for="p in platformOrder"
+                  v-for="p in selectablePlatforms"
                   :key="p"
                   class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors"
                   :class="activePlatforms.includes(p)
@@ -652,6 +652,7 @@ import Toggle from '@/components/common/Toggle.vue'
 import PricingEntryCard from '@/components/admin/channel/PricingEntryCard.vue'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { useKeyedDebouncedSearch } from '@/composables/useKeyedDebouncedSearch'
+import { channelPlatformOrder, selectableChannelPlatforms } from './channelPlatformOptions'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -763,7 +764,10 @@ const form = reactive({
 let abortController: AbortController | null = null
 
 // ── Platform config ──
-const platformOrder: GroupPlatform[] = ['anthropic', 'openai', 'gemini', 'antigravity', 'grok', 'kimi', 'zhipu', 'deepseek', 'minimax', 'opencode_go', 'typesafe', 'grsai']
+const platformOrder = channelPlatformOrder
+const selectablePlatforms = computed(() => selectableChannelPlatforms(
+  editingChannel.value ? form.platforms.map((section) => section.platform) : [],
+))
 // Composite pricing/mapping may target every concrete schedulable provider.
 const compositePlatforms: GroupPlatform[] = ['anthropic', 'openai', 'gemini', 'antigravity', 'grok', 'kimi', 'zhipu', 'deepseek', 'minimax', 'opencode_go', 'typesafe']
 
