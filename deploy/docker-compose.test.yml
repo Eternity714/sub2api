@@ -8,6 +8,70 @@ services:
       - go-test-mod-cache:/go/pkg/mod
     command: ["go", "test", "-tags=unit", "./..."]
 
+  backend-integration:
+    image: golang:1.27
+    working_dir: /workspace/backend
+    environment:
+      CI: "true"
+      DOCKER_HOST: unix:///var/run/docker.sock
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ../backend:/workspace/backend
+      - go-test-build-cache:/root/.cache/go-build
+      - go-test-mod-cache:/go/pkg/mod
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - bash
+      - -c
+      - |
+        set -euo pipefail
+        apt-get update
+        apt-get install -y --no-install-recommends docker-cli
+        go test -tags=integration ./...
+
+  frontend-test:
+    image: node:20
+    working_dir: /workspace
+    environment:
+      CI: "true"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    volumes:
+      - ..:/workspace
+      - frontend-test-node-modules:/workspace/frontend/node_modules
+      - frontend-test-pnpm-store:/pnpm/store
+    command:
+      - bash
+      - -c
+      - |
+        set -euo pipefail
+        corepack enable
+        corepack prepare pnpm@9.15.9 --activate
+        pnpm --dir frontend install --frozen-lockfile --store-dir /pnpm/store
+        make test-frontend
+        pnpm --dir frontend exec vitest run \
+          src/components/account/__tests__/credentialsBuilder.spec.ts \
+          src/components/account/__tests__/CreateAccountModal.spec.ts \
+          src/components/account/__tests__/EditAccountModal.spec.ts \
+          src/components/account/__tests__/AccountPriorityCell.spec.ts \
+          src/views/admin/__tests__/AccountsView.priorityColumn.spec.ts \
+          src/components/keys/__tests__/UseKeyModal.spec.ts \
+          src/constants/__tests__/platforms.spec.ts \
+          src/views/admin/__tests__/platformFilterCatalogUsage.spec.ts \
+          src/views/admin/__tests__/channelPlatformOptions.spec.ts \
+          src/views/admin/__tests__/GroupsView.compositePlatforms.spec.ts \
+          src/views/admin/__tests__/groupsImagePricing.spec.ts \
+          src/components/user/__tests__/UserPlatformQuotaCell.spec.ts \
+          src/components/user/dashboard/__tests__/UserDashboardStats.spec.ts \
+          src/utils/__tests__/codexCatalogConfig.spec.ts \
+          src/utils/__tests__/rechargeBonus.spec.ts \
+          src/api/__tests__/payment.spec.ts \
+          src/stores/__tests__/payment.config.spec.ts \
+          src/views/user/__tests__/paymentUx.spec.ts
+
 volumes:
   go-test-build-cache:
   go-test-mod-cache:
+  frontend-test-node-modules:
+  frontend-test-pnpm-store:

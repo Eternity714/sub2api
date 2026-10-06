@@ -34,6 +34,7 @@ type SystemSettings struct {
 	RegistrationEmailDomainQuotaEnabled bool                     `json:"registration_email_domain_quota_enabled"`
 	PromoCodeEnabled                    bool                     `json:"promo_code_enabled"`
 	PasswordResetEnabled                bool                     `json:"password_reset_enabled"`
+	PasswordResetTokenLegacyCompat      bool                     `json:"password_reset_token_legacy_compat"`
 	FrontendURL                         string                   `json:"frontend_url"`
 	InvitationCodeEnabled               bool                     `json:"invitation_code_enabled"`
 	TotpEnabled                         bool                     `json:"totp_enabled"`                   // TOTP 双因素认证

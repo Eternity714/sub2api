@@ -1023,6 +1023,6 @@ func (s *emailCacheStub) IncrNotifyVerifyCodeAttempts(context.Context, string) (
 	return 0, errors.New("notify verification code not found")
 }
 
-func (s *emailCacheStub) ConsumePasswordResetToken(context.Context, string, string) (bool, error) {
+func (s *emailCacheStub) ConsumePasswordResetToken(context.Context, string, *PasswordResetTokenData) (bool, error) {
 	return false, nil
 }

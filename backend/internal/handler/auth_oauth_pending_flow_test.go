@@ -3607,6 +3607,6 @@ func (s *oauthPendingFlowEmailCacheStub) IncrNotifyVerifyCodeAttempts(context.Co
 	return 0, errors.New("notify verification code not found")
 }
 
-func (s *oauthPendingFlowEmailCacheStub) ConsumePasswordResetToken(context.Context, string, string) (bool, error) {
+func (s *oauthPendingFlowEmailCacheStub) ConsumePasswordResetToken(context.Context, string, *service.PasswordResetTokenData) (bool, error) {
 	return false, nil
 }
