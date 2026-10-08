@@ -948,6 +948,8 @@ func TestRelay_BeforeWriteClientTracksDownstreamPerTurn(t *testing.T) {
 	defer cancel()
 
 	wroteStates := make(chan bool, 3)
+	firstWriteDelivered := make(chan struct{})
+	nextTurnForwarded := make(chan struct{})
 	done := make(chan *RelayExit, 1)
 	stopErr := errors.New("stop after second-turn error")
 	go func() {
@@ -956,13 +958,27 @@ func TestRelay_BeforeWriteClientTracksDownstreamPerTurn(t *testing.T) {
 			clientConn,
 			upstreamConn,
 			[]byte(`{"type":"response.create","model":"gpt-5.3-codex","input":[]}`),
-			RelayOptions{BeforeWriteClient: func(_ coderws.MessageType, payload []byte, wroteDownstream bool) error {
-				wroteStates <- wroteDownstream
-				if strings.Contains(string(payload), `"type":"error"`) {
-					return stopErr
-				}
-				return nil
-			}},
+			RelayOptions{
+				BeforeWriteClient: func(_ coderws.MessageType, payload []byte, wroteDownstream bool) error {
+					wroteStates <- wroteDownstream
+					if strings.Contains(string(payload), `"type":"error"`) {
+						return stopErr
+					}
+					return nil
+				},
+				AfterClientWrite: func(_ coderws.MessageType, payload []byte, _ error) {
+					if !strings.Contains(string(payload), `"type":"response.completed"`) {
+						return
+					}
+					close(firstWriteDelivered)
+					// Deliver the first terminal frame, then accept the next turn
+					// before the previous write's downstream state is committed.
+					select {
+					case <-nextTurnForwarded:
+					case <-ctx.Done():
+					}
+				},
+			},
 		)
 		done <- relayExit
 	}()
@@ -970,16 +986,26 @@ func TestRelay_BeforeWriteClientTracksDownstreamPerTurn(t *testing.T) {
 	require.Eventually(t, func() bool { return len(upstreamConn.Writes()) == 1 }, time.Second, time.Millisecond)
 	upstreamConn.readCh <- passthroughTestFrame{
 		msgType: coderws.MessageText,
-		payload: []byte(`{"type":"response.completed","response":{"id":"resp_first","usage":{"input_tokens":1,"output_tokens":1}}}`),
+		payload: []byte(`{"type":"response.output_text.delta","response_id":"resp_first","delta":"hello"}`),
 	}
 	require.False(t, <-wroteStates)
-	require.Eventually(t, func() bool { return len(clientConn.Writes()) == 1 }, time.Second, time.Millisecond)
+	upstreamConn.readCh <- passthroughTestFrame{
+		msgType: coderws.MessageText,
+		payload: []byte(`{"type":"response.completed","response":{"id":"resp_first","usage":{"input_tokens":1,"output_tokens":1}}}`),
+	}
+	require.True(t, <-wroteStates, "later frames in the same turn must retain its downstream write")
+	select {
+	case <-firstWriteDelivered:
+	case <-time.After(time.Second):
+		t.Fatal("first terminal frame was not delivered")
+	}
 
 	clientConn.readCh <- passthroughTestFrame{
 		msgType: coderws.MessageText,
 		payload: []byte(`{"type":"response.create","model":"gpt-5.3-codex","input":[]}`),
 	}
 	require.Eventually(t, func() bool { return len(upstreamConn.Writes()) == 2 }, time.Second, time.Millisecond)
+	close(nextTurnForwarded)
 	upstreamConn.readCh <- passthroughTestFrame{
 		msgType: coderws.MessageText,
 		payload: []byte(`{"type":"error","error":{"type":"usage_limit_reached"}}`),
