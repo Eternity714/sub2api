@@ -101,9 +101,10 @@ type RelayTraceEvent struct {
 }
 
 type relayState struct {
-	usage                   Usage
-	turnUsage               Usage
-	turnWroteDownstream     atomic.Bool
+	usage     Usage
+	turnUsage Usage
+	// Bit 0 records output; the remaining bits identify the accepted turn.
+	turnDownstreamState     atomic.Uint64
 	requestModelMu          sync.RWMutex
 	requestModel            string
 	pendingTurnStart        atomic.Pointer[time.Time]
@@ -220,13 +221,13 @@ func Relay(
 			// The policy-enforcing client connection has accepted this turn.
 			// Reset before the write so an immediate upstream response cannot race
 			// with the transport returning from WriteFrame.
-			state.turnWroteDownstream.Store(false)
+			state.turnDownstreamState.Store((state.turnDownstreamState.Load() &^ 1) + 2)
 		}
 		err := writeUpstream(msgType, payload)
 		if err != nil && isResponseCreate {
 			// The relay exits on this error, but retain the previous turn's state
 			// for accurate diagnostics while the two relay goroutines settle.
-			state.turnWroteDownstream.Store(true)
+			state.turnDownstreamState.Or(1)
 		}
 		return err
 	}
@@ -570,11 +571,15 @@ func runUpstreamToClient(
 			}
 			return
 		}
+		var downstreamTurnState uint64
+		if state != nil {
+			downstreamTurnState = state.turnDownstreamState.Load()
+		}
 		markActivity()
 		if beforeWriteClient != nil {
 			wroteDownstreamInTurn := wroteDownstream
 			if state != nil {
-				wroteDownstreamInTurn = state.turnWroteDownstream.Load()
+				wroteDownstreamInTurn = downstreamTurnState&1 != 0
 			}
 			if err := beforeWriteClient(msgType, payload, wroteDownstreamInTurn); err != nil {
 				emitRelayTrace(onTrace, RelayTraceEvent{
@@ -655,7 +660,10 @@ func runUpstreamToClient(
 		}
 		wroteDownstream = true
 		if state != nil {
-			state.turnWroteDownstream.Store(true)
+			// A completed frame can let the client start another turn before
+			// WriteFrame or AfterClientWrite returns. Never mark that new turn
+			// as written on behalf of this frame's older turn.
+			state.turnDownstreamState.CompareAndSwap(downstreamTurnState, downstreamTurnState|1)
 		}
 		if afterWriteClient != nil {
 			afterWriteClient(msgType, payload)
