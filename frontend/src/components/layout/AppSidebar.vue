@@ -151,7 +151,8 @@
     <div class="mt-auto border-t border-gray-100 p-3 dark:border-dark-800">
       <a
         href="https://catfk.com/shop/BK9HYWAR"
-        rel="noreferrer"
+        target="_blank"
+        rel="noopener noreferrer"
         data-testid="sidebar-cdk-purchase"
         class="sidebar-link mb-2"
         :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
