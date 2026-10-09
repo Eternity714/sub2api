@@ -1,6 +1,6 @@
 services:
   backend-test:
-    image: golang:1.27
+    image: golang:1.27.2
     working_dir: /workspace/backend
     volumes:
       - ../backend:/workspace/backend
@@ -9,7 +9,7 @@ services:
     command: ["go", "test", "-tags=unit", "./..."]
 
   backend-integration:
-    image: golang:1.27
+    image: golang:1.27.2
     working_dir: /workspace/backend
     environment:
       CI: "true"
