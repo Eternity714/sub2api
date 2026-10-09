@@ -198,6 +198,7 @@ export default {
     mySubscriptions: 'My Subscriptions',
     buySubscription: 'Recharge / Subscription',
     recharge: 'Recharge',
+    cdkPurchase: 'Buy CDK & Recharge',
     subscribe: 'Subscription',
     docs: 'Docs',
     myOrders: 'My Orders',
