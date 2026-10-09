@@ -149,6 +149,19 @@
 
     <!-- Bottom Section -->
     <div class="mt-auto border-t border-gray-100 p-3 dark:border-dark-800">
+      <a
+        href="/docs"
+        data-testid="sidebar-docs"
+        class="sidebar-link mb-2"
+        :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
+        :title="t('nav.docs')"
+        :aria-label="t('nav.docs')"
+        @click="handleMenuItemClick('/docs')"
+      >
+        <Icon name="book" class="h-5 w-5 flex-shrink-0" />
+        <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ t('nav.docs') }}</span>
+      </a>
+
       <!-- Theme Toggle -->
       <button
         @click="toggleTheme"

@@ -17,6 +17,12 @@ docs/
 !docs/legal/
 !docs/legal/*.md
 
+# Public VitePress pages are build inputs for the embedded documentation site.
+!frontend/docs/
+!frontend/docs/**/*.md
+frontend/docs/.vitepress/cache/
+frontend/docs/.vitepress/.temp/
+
 # IDE
 .idea/
 .vscode/
@@ -48,6 +54,7 @@ coverage/
 .env
 .env.*
 !.env.example
+deploy/docs-preview.env
 
 # 本地闭源插件目录可能包含发布签名私钥，绝不能进入 Docker 构建上下文。
 /plugins/
