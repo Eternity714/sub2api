@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"io/fs"
 	"net/http"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -41,6 +42,12 @@ func serveDocumentation(c *gin.Context, distFS fs.FS) bool {
 		c.Abort()
 		return true
 	}
+	if directory := openDocumentationDirectory(); directory != nil {
+		defer func() { _ = directory.Close() }()
+		// Select one complete site per request. Missing mounted files must never
+		// fall back to a different embedded build's pages, chunks or 404 page.
+		distFS = documentationDirectoryFS{FS: directory.FS()}
+	}
 
 	pagePath := strings.TrimSuffix(strings.TrimPrefix(requestPath, "/docs/"), "/")
 	if pagePath != "" && !fs.ValidPath(pagePath) {
@@ -75,6 +82,39 @@ func serveDocumentation(c *gin.Context, distFS fs.FS) bool {
 	}
 	serveDocumentationNotFound(c, distFS)
 	return true
+}
+
+// Recheck the directory on each request so publishing or updating the generated
+// site does not require restarting the server. The mounted path is the directory
+// containing index.html, 404.html and assets/, without another docs/ level.
+func openDocumentationDirectory() *os.Root {
+	directory := strings.TrimSpace(os.Getenv("DOCUMENTATION_DIR"))
+	if directory == "" {
+		return nil
+	}
+	root, err := os.OpenRoot(directory)
+	if err != nil {
+		return nil
+	}
+	info, err := fs.Stat(root.FS(), "index.html")
+	if err != nil || !info.Mode().IsRegular() {
+		_ = root.Close()
+		return nil
+	}
+	return root
+}
+
+// Match the embedded dist filesystem's docs/ prefix while keeping disk reads
+// inside the generated site. os.Root also prevents symlinks escaping that root.
+type documentationDirectoryFS struct {
+	fs.FS
+}
+
+func (directory documentationDirectoryFS) Open(name string) (fs.File, error) {
+	if !fs.ValidPath(name) || !strings.HasPrefix(name, "docs/") {
+		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
+	}
+	return directory.FS.Open(strings.TrimPrefix(name, "docs/"))
 }
 
 func serveDocumentationNotFound(c *gin.Context, distFS fs.FS) {

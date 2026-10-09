@@ -21,18 +21,59 @@ export default defineConfig({
     sidebar: [
       { text: '文档首页', link: '/' },
       { text: '开始使用', items: [
+        { text: '简易使用', link: '/easy-use' },
         { text: '快速开始', link: '/quick-start' },
         { text: 'API 密钥与分组', link: '/api-keys' },
       ] },
-      { text: '客户端接入', items: [
+      { text: '编程与 Agent', items: [
+        { text: '客户端接入总览', link: '/clients' },
+        { text: 'CC Switch', link: '/cc-switch' },
         { text: 'Claude Code', link: '/claude-code' },
+        { text: 'Claude Desktop', link: '/claude-desktop' },
         { text: 'Codex', link: '/codex' },
-        { text: '常用客户端', link: '/clients' },
+        { text: 'Codex++', link: '/codex-plus' },
+        { text: 'Hermes', link: '/hermes' },
+        { text: 'OpenClaw', link: '/openclaw' },
+        { text: 'OpenCode', link: '/opencode' },
+        { text: 'Gemini CLI', link: '/gemini-cli' },
       ] },
       { text: 'API 参考', items: [
+        { text: 'API 手册', link: '/api-manual' },
         { text: 'OpenAI 兼容 API', link: '/openai-api' },
         { text: 'Anthropic API', link: '/anthropic-api' },
         { text: 'Gemini API', link: '/gemini-api' },
+        { text: '国内模型接入', link: '/domestic-models' },
+      ] },
+      { text: '图片与视频', items: [
+        { text: '图像生成 API', link: '/image-generate' },
+        { text: 'Grok 视频生成', link: '/video-generation' },
+        { text: 'Seedance API', link: '/seedance-api' },
+        { text: '图片转视频', link: '/image-to-video' },
+      ] },
+      { text: '使用场景', collapsed: false, items: [
+        { text: '使用场景总览', link: '/scenarios/' },
+        { text: '聊天与翻译', collapsed: true, items: [
+          { text: 'Cherry Studio', link: '/scenarios/cherry-studio' },
+          { text: 'Chatbox', link: '/scenarios/chatbox' },
+          { text: 'NextChat', link: '/scenarios/nextchat' },
+          { text: 'Open WebUI', link: '/scenarios/open-webui' },
+          { text: '沉浸式翻译', link: '/scenarios/immersive-translate' },
+          { text: 'Bob 翻译', link: '/scenarios/bob' },
+        ] },
+        { text: '编辑器', collapsed: true, items: [
+          { text: 'Cursor', link: '/scenarios/cursor' },
+          { text: 'Cline', link: '/scenarios/cline' },
+          { text: 'Roo Code', link: '/scenarios/roo-code' },
+          { text: 'Trae', link: '/scenarios/trae' },
+        ] },
+        { text: '工作流与开发', collapsed: true, items: [
+          { text: 'Dify', link: '/scenarios/dify' },
+          { text: 'LangChain', link: '/scenarios/langchain' },
+          { text: 'FastClaw', link: '/scenarios/fastclaw' },
+          { text: 'Paper2Any', link: '/scenarios/paper2any' },
+          { text: 'Make Gemini 图像理解', link: '/scenarios/make-gemini-vision' },
+          { text: '飞书多维表格生图', link: '/scenarios/lark-images' },
+        ] },
       ] },
       { text: '账户与支持', items: [
         { text: '计费与用量', link: '/billing' },

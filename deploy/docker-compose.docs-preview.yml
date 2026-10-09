@@ -8,6 +8,7 @@ services:
       args:
         VERSION: docs-preview
         COMMIT: local-docs-preview
+        GO_CACHE_SCOPE: sub2api-docs-preview
         NPM_CONFIG_REGISTRY: ${DOCS_PREVIEW_NPM_REGISTRY:-https://registry.npmmirror.com}
     restart: "no"
     security_opt:
@@ -16,8 +17,10 @@ services:
       - "127.0.0.1:${DOCS_PREVIEW_PORT:-18082}:8080"
     volumes:
       - app-data:/app/data
+      - ../backend/internal/web/dist/docs:/app/docs:ro
     environment:
       AUTO_SETUP: "true"
+      DOCUMENTATION_DIR: /app/docs
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: "8080"
       SERVER_MODE: debug

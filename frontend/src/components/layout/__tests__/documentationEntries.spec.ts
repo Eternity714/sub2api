@@ -72,6 +72,8 @@ const global = {
   },
 }
 
+// AC-001: default/compact home, header, key usage, sidebar and mobile entries use /docs.
+// AC-002 (partial): backend-mode entry visibility; public serving and route auth are checked separately.
 describe('documentation entries', () => {
   beforeEach(() => {
     appStore.cachedPublicSettings = { doc_url: 'https://outdated.example.com/docs' }
