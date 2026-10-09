@@ -16,15 +16,18 @@ features:
   - title: 快速开始
     details: 从注册、创建密钥到完成第一次 API 请求。
     link: /quick-start
-  - title: Claude Code
-    details: 配置 Anthropic 接口，连接终端编程工具。
-    link: /claude-code
-  - title: Codex
-    details: 配置模型提供商与 Responses API。
-    link: /codex
+  - title: 编程与 Agent
+    details: Claude Code、Codex、Desktop、OpenClaw 等工具的完整接入步骤。
+    link: /clients
+  - title: 使用场景
+    details: 聊天、翻译、编辑器、论文工作流和自动化配置。
+    link: /scenarios/
   - title: API 参考
     details: 查阅 OpenAI、Anthropic 与 Gemini 的接入示例。
-    link: /openai-api
+    link: /api-manual
+  - title: 图片与视频
+    details: 图片生成与编辑、Grok 视频、Seedance 和首帧图转视频。
+    link: /image-generate
   - title: 计费与用量
     details: 了解充值、订阅、Token 计费和用量查询。
     link: /billing
@@ -43,7 +46,7 @@ API 服务地址是 **`https://www.gkotta.bid`**。OpenAI 兼容客户端通常�
 
 1. [快速开始](/quick-start)：注册账户，完成第一次请求。
 2. [API 密钥与分组](/api-keys)：查看可用渠道并配置密钥。
-3. [常用客户端](/clients)：为所用工具选择正确的协议、地址与模型。
+3. [客户端接入](/clients)与[使用场景](/scenarios/)：为所用工具选择正确的协议、地址与模型。
 
 ## 开始之前
 

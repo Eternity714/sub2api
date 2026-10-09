@@ -30,6 +30,8 @@ services:
     volumes:
       # Data persistence (config.yaml will be auto-generated here)
       - sub2api_data:/app/data
+      # Generated VitePress site; empty directories use the embedded site.
+      - ${DOCUMENTATION_HOST_DIR:-./docs}:/app/docs:ro
       # Optional: Mount custom config.yaml (uncomment and create the file first)
       # Copy config.example.yaml to config.yaml, modify it, then uncomment:
       # - ./config.yaml:/app/data/config.yaml
@@ -42,6 +44,7 @@ services:
       # Auto Setup (REQUIRED for Docker deployment)
       # =======================================================================
       - AUTO_SETUP=true
+      - DOCUMENTATION_DIR=/app/docs
 
       # =======================================================================
       # Server Configuration
