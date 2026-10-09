@@ -150,6 +150,20 @@
     <!-- Bottom Section -->
     <div class="mt-auto border-t border-gray-100 p-3 dark:border-dark-800">
       <a
+        href="https://catfk.com/shop/BK9HYWAR"
+        rel="noreferrer"
+        data-testid="sidebar-cdk-purchase"
+        class="sidebar-link mb-2"
+        :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
+        :title="t('nav.cdkPurchase')"
+        :aria-label="t('nav.cdkPurchase')"
+        @click="handleMenuItemClick('https://catfk.com/shop/BK9HYWAR')"
+      >
+        <TicketIcon class="h-5 w-5 flex-shrink-0" />
+        <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ t('nav.cdkPurchase') }}</span>
+      </a>
+
+      <a
         href="/docs"
         data-testid="sidebar-docs"
         class="sidebar-link mb-2"
