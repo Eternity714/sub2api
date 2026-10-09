@@ -1,0 +1,87 @@
+# 从当前源码构建主站与文档，用独立数据库和数据卷进行本地人工验收。
+# 在仓库根目录运行，使用专用 env 文件和项目名；详见 frontend/docs/README.md。
+services:
+  sub2api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        VERSION: docs-preview
+        COMMIT: local-docs-preview
+        NPM_CONFIG_REGISTRY: ${DOCS_PREVIEW_NPM_REGISTRY:-https://registry.npmmirror.com}
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "127.0.0.1:${DOCS_PREVIEW_PORT:-18082}:8080"
+    volumes:
+      - app-data:/app/data
+    environment:
+      AUTO_SETUP: "true"
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: "8080"
+      SERVER_MODE: debug
+      RUN_MODE: standard
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
+      DATABASE_USER: docs_preview
+      DATABASE_PASSWORD: ${DOCS_PREVIEW_DB_PASSWORD:?Set DOCS_PREVIEW_DB_PASSWORD in deploy/docs-preview.env}
+      DATABASE_DBNAME: docs_preview
+      DATABASE_SSLMODE: disable
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      ADMIN_EMAIL: docs-preview@example.invalid
+      ADMIN_PASSWORD: ${DOCS_PREVIEW_ADMIN_PASSWORD:?Set DOCS_PREVIEW_ADMIN_PASSWORD in deploy/docs-preview.env}
+      JWT_SECRET: ${DOCS_PREVIEW_JWT_SECRET:?Set DOCS_PREVIEW_JWT_SECRET in deploy/docs-preview.env}
+      SECURITY_CSP_ENABLED: "true"
+      BATCH_IMAGE_ENABLED: "false"
+      BATCH_IMAGE_QUEUE_ENABLED: "false"
+      BATCH_IMAGE_VERTEX_ENABLED: "false"
+      TZ: Asia/Shanghai
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  postgres:
+    image: postgres:18-alpine
+    restart: "no"
+    volumes:
+      # PostgreSQL 18 默认 PGDATA 位于 /var/lib/postgresql/18/docker。
+      - postgres-data:/var/lib/postgresql
+    environment:
+      POSTGRES_USER: docs_preview
+      POSTGRES_PASSWORD: ${DOCS_PREVIEW_DB_PASSWORD:?Set DOCS_PREVIEW_DB_PASSWORD in deploy/docs-preview.env}
+      POSTGRES_DB: docs_preview
+      TZ: Asia/Shanghai
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docs_preview -d docs_preview"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:8-alpine
+    restart: "no"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  app-data:
+  postgres-data:
+  redis-data:
