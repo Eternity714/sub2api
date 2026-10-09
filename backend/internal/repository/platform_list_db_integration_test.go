@@ -90,7 +90,7 @@ func TestUserPlatformQuotaRepository_RejectsUnregisteredPlatform(t *testing.T) {
 		{UserID: userID, Platform: service.PlatformOpenCodeGo, DailyLimitUSD: &daily},
 	}))
 
-	for _, platform := range []string{"bogus", "moonshot", "Kimi", service.PlatformComposite} {
+	for _, platform := range []string{"bogus", "moonshot", "Kimi", service.PlatformComposite, service.PlatformGrsai} {
 		err := repo.BulkInsertInitial(txCtx, []UserPlatformQuotaRecord{
 			{UserID: userID, Platform: service.PlatformAnthropic, DailyLimitUSD: &daily},
 			{UserID: userID, Platform: platform, DailyLimitUSD: &daily},
@@ -134,6 +134,11 @@ func TestCompositeModelRouteRepository_RejectsUnregisteredTargetPlatform(t *test
 	require.Error(t, repo.Create(txCtx, bad))
 
 	route.TargetPlatform = service.PlatformComposite
+	require.Error(t, repo.Update(txCtx, route))
+
+	bad.TargetPlatform = service.PlatformGrsai
+	require.Error(t, repo.Create(txCtx, bad))
+	route.TargetPlatform = service.PlatformGrsai
 	require.Error(t, repo.Update(txCtx, route))
 
 	routes, err := repo.ListByGroup(txCtx, group.ID, true)
