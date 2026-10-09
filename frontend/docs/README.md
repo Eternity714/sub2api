@@ -36,7 +36,9 @@ Claude Code 地址不含 `/v1`，其配置使用 `ANTHROPIC_AUTH_TOKEN`。Codex 
 
 [参考文档中心](https://docs.fastaitoken.com/docs/)采用 VitePress v1.6.4，具有三栏阅读布局、快速入口卡片、工具安装配置、API 与计费排错目录。版式细节见[公开样式文件](https://docs.fastaitoken.com/assets/style.DphkpMR2.css)。
 
-只借鉴信息架构和阅读方式。文章重新按 Gkotta 源码编写，不复制参考站的模型清单、充值活动、退款、SLA、客服及其他运营承诺。
+逐项核对参考站的 49 个导航入口，迁移 Gkotta 已支持的主题，并合并同一工具的安装与使用文章。具体对应关系、排除原因和官方依据见 `specs/documentation/reference-coverage.md`。兼容第三方客户端包含完整配置、验证和排错步骤；图片、视频与国内模型按实际分组及源码条件编写。
+
+参考站存在部分过期配置和专属产品依赖，正文据当前工具官方资料与 Gkotta 源码重写。未迁移 Tisoz 专属服务、AI 视频工作台、人物素材库，以及尚无经核实 Gkotta 接入方式的 ComfyUI 节点。飞书教程是用户自建集成流程，Paper2Any 明确文本模型入口与外部处理依赖。模型清单、充值活动、退款、SLA、客服及其他运营承诺不照搬。
 
 ## 更新流程
 
@@ -47,6 +49,27 @@ Claude Code 地址不含 `/v1`，其配置使用 `ANTHROPIC_AUTH_TOKEN`。Codex 
 `pnpm --dir frontend build` 先构建主应用，再运行 `docs:build` 将 VitePress 产物写入 `backend/internal/web/dist/docs`。现有 Dockerfile 会把整个 dist 嵌入同一个 Go 二进制。构建顺序不能反过来，否则主应用构建清空 dist 时会删除文档产物。
 
 后端同时支持 `/docs`、clean URL 文章直达、资源缓存和文档 404，并为 HTML 脚本注入 CSP nonce。原 `/docs/batch-image` 属于主应用登录功能，保留原入口，禁止复用该文档 slug。
+
+## 主机目录与文档更新
+
+`deploy/docker-compose.yml` 将 `${DOCUMENTATION_HOST_DIR:-./docs}` 只读挂载到 `/app/docs`，环境变量 `DOCUMENTATION_DIR=/app/docs` 指定运行时文档目录。目录含 `index.html` 时整站使用外置文件；空目录则使用二进制自带的文档。外置站缺少的文章或资源返回文档 404，不混用其他版本的内置文件。
+
+首次使用源码构建镜像时，可从镜像的 `/app/docs-default` 复制完整静态站到主机目录：
+
+```bash
+mkdir -p docs
+docker compose cp sub2api:/app/docs-default/. ./docs/
+```
+
+Markdown 源码仍在本仓库的 `frontend/docs/`。开发模式 `vitepress dev` 会即时更新；生产需要重新执行 `docs:build`，同时生成 HTML、资源和搜索索引。不要把原始 Markdown 当作生成后的目录挂载。后续只构建文档并将完整产物同步到主机目录，不需要重新编译 Go。
+
+本地预览直接挂载 `backend/internal/web/dist/docs`，因此在 Compose 的 `frontend-test` 容器中运行 `pnpm --dir frontend docs:build` 后，刷新页面即可看到更新。生产灰度 Compose 分别将 `./docs-blue`、`./docs-green` 只读挂载到 `/app/docs`，不要覆盖稳定槽位的 HTML。
+
+把 `deploy/gray-prepare-documentation.sh` 安装到服务器现有灰度脚本目录，在 0% 候选槽位执行它，随后执行既有 `gray-deploy.sh`。准备脚本从不可变镜像的 `/app/docs-default` 提取完整静态站，备份候选旧站、保留旧 hash 资源，并只为另一槽位追加资源。流量变更和晋升仍须走既有灰度脚本。首次旧版本没有文档路由，回滚后已打开的新文档可能需要刷新；候选容器和文件仍保留。
+
+准备脚本在提取镜像之后、写入槽位之前重新核对同一候选仍为 0%，并拒绝两个文档目录及其子目录中的符号链接。现有灰度脚本没有共享锁，准备、部署、切流和晋升必须按单一操作序列执行，不得同时运行。脚本需要服务器已安装 `podman` 和 `rsync`。
+
+后续更新保持挂载根目录不变（bind mount 持有目录 inode），在目录内先追加 hash 资源，再原子替换文章和首页。不要替换整个挂载目录、切换其符号链接、删除首页或用 `rsync --delete` 清掉旧资源。主机目录和文件分别需有 `755`、`644` 权限，供容器 UID 1000 读取。完整 HTML、资源及搜索索引应作为同一批产物更新。
 
 文章死链接由 VitePress 构建检查，入口与后端文档深链接有回归测试。所有测试、类型检查与构建均按根目录 `AGENTS.md` 的 Docker Compose 要求执行。
 
@@ -64,7 +87,7 @@ docker compose --env-file deploy/docs-preview.env -p sub2api-docs-preview -f dep
 
 该 Compose 使用专属项目网络和数据卷，首次自动创建本地管理员 `docs-preview@example.invalid`，密码为 env 中设置的值。数据库与 Redis 不暴露宿主机端口，批量生图关闭。文档中的主站、控制台按钮和业务链接仍指向生产站；本地入口测试从上述 `/home` 地址开始。
 
-构建命令显式选择 Docker 默认构建器，避免本机残留的构建器配置影响预览。修改文档后重新执行构建和启动命令即可更新镜像。停止预览并保留数据：
+构建命令显式选择 Docker 默认构建器，避免本机残留的构建器配置影响预览。预览使用独立的 Go 构建缓存作用域，避免复用本机已损坏的共享缓存；普通构建仍使用原默认缓存。修改文档后重新执行构建和启动命令即可更新镜像。停止预览并保留数据：
 
 ```powershell
 docker compose --env-file deploy/docs-preview.env -p sub2api-docs-preview -f deploy/docker-compose.docs-preview.yml stop

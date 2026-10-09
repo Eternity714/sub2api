@@ -85,6 +85,8 @@ curl --no-buffer --fail-with-body "https://www.gkotta.bid/v1beta/models/${GKOTTA
 
 ## Gemini CLI 配置
 
+安装、Node.js 版本、认证选择和完整排错步骤见[Gemini CLI 专篇](/gemini-cli)。下方是快速配置摘要。
+
 安装和依赖要求见 [Gemini CLI 官方仓库](https://github.com/google-gemini/gemini-cli)。使用支持自定义地址的版本时，可按下面的环境变量方式接入。
 
 macOS 或 Linux：
