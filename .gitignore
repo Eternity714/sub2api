@@ -153,6 +153,7 @@ docs/screenshots/*
 .serena/
 .codex/
 frontend/coverage/
+frontend/docs/.vitepress/cache/
 aicodex
 output/
 .codegraph/

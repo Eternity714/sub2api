@@ -93,6 +93,9 @@ func (s *FrontendServer) Middleware() gin.HandlerFunc {
 			c.Next()
 			return
 		}
+		if serveDocumentation(c, s.distFS) {
+			return
+		}
 
 		cleanPath := strings.TrimPrefix(path, "/")
 		if cleanPath == "" {
@@ -305,14 +308,20 @@ func ServeEmbeddedFrontend() gin.HandlerFunc {
 	if err != nil {
 		panic("failed to get dist subdirectory: " + err.Error())
 	}
+	return serveEmbeddedFrontendFromFS(distFS, filepath.Join("data", "public"))
+}
+
+func serveEmbeddedFrontendFromFS(distFS fs.FS, overrideDir string) gin.HandlerFunc {
 	fileServer := http.FileServer(http.FS(distFS))
-	overrideDir := filepath.Join("data", "public")
 
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 
 		if shouldBypassEmbeddedFrontend(path) {
 			c.Next()
+			return
+		}
+		if serveDocumentation(c, distFS) {
 			return
 		}
 
