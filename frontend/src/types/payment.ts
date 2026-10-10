@@ -73,6 +73,8 @@ export interface CheckoutInfoResponse {
   global_max: number
   plans: SubscriptionPlan[]
   balance_disabled: boolean
+  /** Explicit capability: absent on older servers means balance subscriptions are unavailable. */
+  subscription_balance_enabled?: boolean
   balance_recharge_multiplier: number
   /** Subscription CNY conversion rate (1 USD = X CNY); 0 = disabled, plan price is charged as-is */
   subscription_usd_to_cny_rate: number
@@ -179,6 +181,23 @@ export interface ProviderInstance {
 }
 
 // ==================== Request / Response ====================
+
+export interface BalanceSubscriptionPurchaseRequest {
+  plan_id: number
+  idempotency_key: string
+  expected_amount: number
+}
+
+export interface BalanceSubscriptionPurchaseResult {
+  order_id: number
+  status: 'COMPLETED'
+  payment_type: 'balance'
+  currency: 'USD'
+  amount: number
+  pay_amount: number
+  balance: number
+  subscription_id: number
+}
 
 export interface CreateOrderRequest {
   amount: number
