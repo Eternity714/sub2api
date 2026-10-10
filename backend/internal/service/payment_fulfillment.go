@@ -81,6 +81,9 @@ func (s *PaymentService) confirmPayment(ctx context.Context, oid int64, tradeNo 
 		slog.Error("order not found", "orderID", oid)
 		return nil
 	}
+	if isInternalBalanceOrder(o) {
+		return infraerrors.BadRequest("BALANCE_ORDER_EXTERNAL_PAYMENT_UNSUPPORTED", "internal balance purchases cannot accept external payments")
+	}
 	instanceProviderKey := ""
 	if inst, instErr := s.getOrderProviderInstance(ctx, o); instErr == nil && inst != nil {
 		instanceProviderKey = inst.ProviderKey
@@ -228,6 +231,9 @@ func (s *PaymentService) ExecuteBalanceFulfillment(ctx context.Context, oid int6
 	o, err := s.entClient.PaymentOrder.Get(ctx, oid)
 	if err != nil {
 		return infraerrors.NotFound("NOT_FOUND", "order not found")
+	}
+	if isInternalBalanceOrder(o) {
+		return infraerrors.BadRequest("BALANCE_ORDER_EXTERNAL_PAYMENT_UNSUPPORTED", "internal balance purchases cannot use external fulfillment")
 	}
 	if o.Status == OrderStatusCompleted {
 		return nil
@@ -511,6 +517,9 @@ func (s *PaymentService) ExecuteSubscriptionFulfillment(ctx context.Context, oid
 	if err != nil {
 		return infraerrors.NotFound("NOT_FOUND", "order not found")
 	}
+	if isInternalBalanceOrder(o) {
+		return infraerrors.BadRequest("BALANCE_ORDER_EXTERNAL_PAYMENT_UNSUPPORTED", "internal balance purchases cannot use external fulfillment")
+	}
 	if o.Status == OrderStatusCompleted {
 		return nil
 	}
@@ -737,7 +746,7 @@ func (s *PaymentService) applyAffiliateRebateForOrder(ctx context.Context, o *db
 }
 
 func affiliateRebateBaseAmount(o *dbent.PaymentOrder) float64 {
-	if o == nil {
+	if o == nil || isInternalBalanceOrder(o) {
 		return 0
 	}
 	switch o.OrderType {
@@ -872,6 +881,9 @@ func (s *PaymentService) RetryFulfillment(ctx context.Context, oid int64) error 
 	o, err := s.entClient.PaymentOrder.Get(ctx, oid)
 	if err != nil {
 		return infraerrors.NotFound("NOT_FOUND", "order not found")
+	}
+	if isInternalBalanceOrder(o) {
+		return infraerrors.BadRequest("BALANCE_ORDER_EXTERNAL_PAYMENT_UNSUPPORTED", "internal balance purchases cannot use external fulfillment")
 	}
 	if o.PaidAt == nil {
 		return infraerrors.BadRequest("INVALID_STATUS", "order is not paid")

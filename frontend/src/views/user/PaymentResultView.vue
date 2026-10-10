@@ -112,6 +112,7 @@ import {
 } from '@/components/payment/paymentFlow'
 import { usePaymentStore } from '@/stores/payment'
 import { useAuthStore } from '@/stores/auth'
+import { useSubscriptionStore } from '@/stores/subscriptions'
 import { paymentAPI } from '@/api/payment'
 import type { PublicOrderVerifyResult } from '@/api/payment'
 import type { OrderStatus, PaymentOrder } from '@/types/payment'
@@ -124,6 +125,7 @@ const route = useRoute()
 const router = useRouter()
 const paymentStore = usePaymentStore()
 const authStore = useAuthStore()
+const subscriptionStore = useSubscriptionStore()
 
 type ResolvedOrder = PaymentOrder | PublicOrderVerifyResult
 
@@ -211,7 +213,8 @@ function refreshUserBalanceForSuccessfulOrder(nextOrder: ResolvedOrder | null): 
   if (!nextOrder || userBalanceRefreshStarted || normalizeOrderStatus(nextOrder.status) !== 'COMPLETED') {
     return
   }
-  if ('order_type' in nextOrder && nextOrder.order_type !== 'balance') {
+  const isBalanceSubscription = 'order_type' in nextOrder && nextOrder.order_type === 'subscription' && nextOrder.payment_type === 'balance'
+  if ('order_type' in nextOrder && nextOrder.order_type !== 'balance' && !isBalanceSubscription) {
     return
   }
 
@@ -219,6 +222,11 @@ function refreshUserBalanceForSuccessfulOrder(nextOrder: ResolvedOrder | null): 
   void authStore.refreshUser().catch(() => {
     // The order result remains authoritative even if refreshing profile data fails.
   })
+  if (isBalanceSubscription) {
+    void subscriptionStore.fetchActiveSubscriptions(true).catch(() => {
+      // Keep the completed payment result when subscription refresh is unavailable.
+    })
+  }
 }
 
 function hasOrderId(nextOrder: ResolvedOrder | null): nextOrder is PaymentOrder {

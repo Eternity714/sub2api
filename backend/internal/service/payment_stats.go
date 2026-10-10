@@ -29,6 +29,7 @@ func (s *PaymentService) GetDashboardStats(ctx context.Context, days int) (*Dash
 	orders, err := s.entClient.PaymentOrder.Query().
 		Where(
 			paymentorder.StatusIn(paidStatuses...),
+			paymentorder.PaymentTypeNEQ(balanceSubscriptionPaymentType),
 			paymentorder.PaidAtGTE(since),
 		).
 		All(ctx)
