@@ -352,6 +352,9 @@ func (s *PaymentService) VerifyOrderPublic(ctx context.Context, outTradeNo strin
 	if err != nil {
 		return nil, infraerrors.NotFound("NOT_FOUND", "order not found")
 	}
+	if isInternalBalanceOrder(o) {
+		return nil, infraerrors.NotFound("NOT_FOUND", "order not found")
+	}
 	return o, nil
 }
 

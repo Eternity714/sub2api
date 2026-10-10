@@ -147,6 +147,7 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 		GlobalMax:                     limitsResp.GlobalMax,
 		Plans:                         planList,
 		BalanceDisabled:               cfg.BalanceDisabled,
+		SubscriptionBalanceEnabled:    cfg.SubscriptionBalanceEnabled,
 		BalanceRechargeMultiplier:     cfg.BalanceRechargeMultiplier,
 		SubscriptionUSDToCNYRate:      cfg.SubscriptionUSDToCNYRate,
 		RechargeFeeRate:               cfg.RechargeFeeRate,
@@ -167,6 +168,7 @@ type checkoutInfoResponse struct {
 	GlobalMax                     float64                         `json:"global_max"`
 	Plans                         []checkoutPlan                  `json:"plans"`
 	BalanceDisabled               bool                            `json:"balance_disabled"`
+	SubscriptionBalanceEnabled    bool                            `json:"subscription_balance_enabled"`
 	BalanceRechargeMultiplier     float64                         `json:"balance_recharge_multiplier"`
 	SubscriptionUSDToCNYRate      float64                         `json:"subscription_usd_to_cny_rate"`
 	RechargeFeeRate               float64                         `json:"recharge_fee_rate"`
@@ -293,6 +295,33 @@ func (h *PaymentHandler) CreateOrder(c *gin.Context) {
 		OrderType:       req.OrderType,
 		PlanID:          req.PlanID,
 		Locale:          c.GetHeader("Accept-Language"),
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
+}
+
+// PurchaseSubscriptionWithBalance settles a subscription purchase from authenticated account funds.
+// POST /api/v1/payment/orders/balance-subscription
+func (h *PaymentHandler) PurchaseSubscriptionWithBalance(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	var req struct {
+		PlanID         int64    `json:"plan_id" binding:"required,gt=0"`
+		IdempotencyKey string   `json:"idempotency_key" binding:"required"`
+		ExpectedAmount *float64 `json:"expected_amount"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	result, err := h.paymentService.PurchaseSubscriptionWithBalance(c.Request.Context(), service.BalanceSubscriptionPurchaseRequest{
+		UserID: subject.UserID, PlanID: req.PlanID, IdempotencyKey: req.IdempotencyKey, ExpectedAmount: req.ExpectedAmount,
+		ClientIP: c.ClientIP(), SrcHost: c.Request.Host, Locale: c.GetHeader("Accept-Language"),
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)

@@ -160,7 +160,7 @@ const emit = defineEmits<{
 }>()
 
 function canRefund(order: PaymentOrder): boolean {
-  return canRefundStatus(order.status)
+  return order.payment_type !== 'balance' && canRefundStatus(order.status)
 }
 
 function formatDateTime(dateStr: string): string {

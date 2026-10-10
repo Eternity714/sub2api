@@ -27,6 +27,8 @@ const DataTableStub = {
     <div>
       <div v-for="row in data" :key="row.id">
         <slot name="cell-pay_amount" :value="row.pay_amount" :row="row" />
+        <slot name="cell-payment_type" :value="row.payment_type" :row="row" />
+        <slot name="cell-actions" :row="row" />
       </div>
     </div>
   `,
@@ -52,6 +54,26 @@ function orderFactory(overrides: Partial<PaymentOrder> = {}): PaymentOrder {
 }
 
 describe('admin order currency display', () => {
+  // AC-031.9: balance orders do not offer provider refunds in either admin entry.
+  it('hides refunds for balance subscription orders while retaining external refunds', async () => {
+    const balanceOrder = orderFactory({ payment_type: 'balance', currency: 'USD', refund_amount: 0 })
+    const table = mount(AdminOrderTable, {
+      props: { orders: [balanceOrder], loading: false, page: 1, pageSize: 20, total: 1 },
+      global: { stubs: { DataTable: DataTableStub, Select: true, SearchInput: true, Icon: true } },
+    })
+    const detail = mount(AdminOrderDetail, {
+      props: { show: true, order: balanceOrder },
+      global: { stubs: { BaseDialog: BaseDialogStub } },
+    })
+    expect(table.text()).toContain('payment.methods.balance')
+    expect(table.findAll('button').some(button => button.text() === 'payment.admin.refund')).toBe(false)
+    expect(detail.findAll('button').some(button => button.text() === 'payment.admin.refund')).toBe(false)
+    await table.setProps({ orders: [orderFactory()] })
+    await detail.setProps({ order: orderFactory() })
+    expect(table.findAll('button').some(button => button.text() === 'payment.admin.refund')).toBe(true)
+    expect(detail.findAll('button').some(button => button.text() === 'payment.admin.refund')).toBe(true)
+  })
+
   it('uses order currency for paid/base/fee amounts and USD for credited/refund amounts', () => {
     const wrapper = mount(AdminOrderDetail, {
       props: {

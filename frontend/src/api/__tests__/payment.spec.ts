@@ -37,4 +37,19 @@ describe('payment api', () => {
       resume_token: 'resume-token-123',
     })
   })
+
+  // AC-031.3, AC-031.10: the confirmed quote guards against a changed server price.
+  it('purchases a subscription with its plan, stable intent key and confirmed USD quote', async () => {
+    await paymentAPI.purchaseSubscriptionWithBalance({
+      plan_id: 7,
+      idempotency_key: '11111111-1111-4111-8111-111111111111',
+      expected_amount: 10,
+    })
+
+    expect(post).toHaveBeenCalledWith('/payment/orders/balance-subscription', {
+      plan_id: 7,
+      idempotency_key: '11111111-1111-4111-8111-111111111111',
+      expected_amount: 10,
+    })
+  })
 })
