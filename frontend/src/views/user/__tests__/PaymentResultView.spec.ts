@@ -11,6 +11,7 @@ const verifyOrder = vi.hoisted(() => vi.fn())
 const verifyOrderPublic = vi.hoisted(() => vi.fn())
 const resolveOrderPublicByResumeToken = vi.hoisted(() => vi.fn())
 const refreshUser = vi.hoisted(() => vi.fn())
+const fetchActiveSubscriptions = vi.hoisted(() => vi.fn())
 
 vi.mock('vue-router', async () => {
   const actual = await vi.importActual<typeof import('vue-router')>('vue-router')
@@ -41,6 +42,10 @@ vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({
     refreshUser,
   }),
+}))
+
+vi.mock('@/stores/subscriptions', () => ({
+  useSubscriptionStore: () => ({ fetchActiveSubscriptions }),
 }))
 
 vi.mock('@/api/payment', () => ({
@@ -100,11 +105,37 @@ describe('PaymentResultView', () => {
     resolveOrderPublicByResumeToken.mockReset()
     refreshUser.mockReset()
     refreshUser.mockResolvedValue({})
+    fetchActiveSubscriptions.mockReset().mockResolvedValue([])
     window.localStorage.clear()
   })
 
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  // AC-031.11: directly opening the result page refreshes both account resources.
+  it('refreshes both balance and subscriptions for a completed balance subscription order', async () => {
+    routeState.query = { order_id: '42' }
+    pollOrderStatus.mockResolvedValue({ ...orderFactory('COMPLETED'), order_type: 'subscription', payment_type: 'balance', currency: 'USD' })
+    const wrapper = mount(PaymentResultView, { global: { stubs: { OrderStatusBadge: true } } })
+    await flushPromises()
+    expect(refreshUser).toHaveBeenCalledTimes(1)
+    expect(fetchActiveSubscriptions).toHaveBeenCalledWith(true)
+    expect(wrapper.text()).toContain('payment.methods.balance')
+    expect(wrapper.text()).toContain('payment.result.success')
+  })
+
+  it('preserves the completed balance subscription result if both account refreshes fail', async () => {
+    routeState.query = { order_id: '42' }
+    pollOrderStatus.mockResolvedValue({ ...orderFactory('COMPLETED'), order_type: 'subscription', payment_type: 'balance', currency: 'USD' })
+    refreshUser.mockRejectedValueOnce(new Error('profile unavailable'))
+    fetchActiveSubscriptions.mockRejectedValueOnce(new Error('subscriptions unavailable'))
+    const wrapper = mount(PaymentResultView, { global: { stubs: { OrderStatusBadge: true } } })
+    await flushPromises()
+    expect(refreshUser).toHaveBeenCalledTimes(1)
+    expect(fetchActiveSubscriptions).toHaveBeenCalledWith(true)
+    expect(wrapper.text()).toContain('payment.result.success')
+    expect(wrapper.text()).not.toContain('payment.result.failed')
   })
 
   it('renders a pending state instead of a failure state when the restored order is still pending', async () => {

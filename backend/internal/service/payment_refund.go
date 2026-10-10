@@ -188,6 +188,9 @@ func (s *PaymentService) validateRefundRequest(ctx context.Context, oid, uid int
 	if o.UserID != uid {
 		return nil, infraerrors.Forbidden("FORBIDDEN", "no permission")
 	}
+	if isInternalBalanceOrder(o) {
+		return nil, infraerrors.BadRequest("BALANCE_ORDER_REFUND_UNSUPPORTED", "internal balance purchases do not support gateway refunds")
+	}
 	if o.OrderType != payment.OrderTypeBalance {
 		return nil, infraerrors.BadRequest("INVALID_ORDER_TYPE", "only balance orders can request refund")
 	}
@@ -209,6 +212,9 @@ func (s *PaymentService) PrepareRefund(ctx context.Context, oid int64, amt float
 	o, err := s.entClient.PaymentOrder.Get(ctx, oid)
 	if err != nil {
 		return nil, nil, infraerrors.NotFound("NOT_FOUND", "order not found")
+	}
+	if isInternalBalanceOrder(o) {
+		return nil, nil, infraerrors.BadRequest("BALANCE_ORDER_REFUND_UNSUPPORTED", "internal balance purchases do not support gateway refunds")
 	}
 	ok := []string{OrderStatusCompleted, OrderStatusRefundRequested, OrderStatusRefundPending, OrderStatusRefundFailed}
 	if !psSliceContains(ok, o.Status) {
@@ -296,6 +302,13 @@ func (s *PaymentService) deductAvailableBalance(ctx context.Context, userID int6
 }
 
 func (s *PaymentService) ExecuteRefund(ctx context.Context, p *RefundPlan) (*RefundResult, error) {
+	order, err := s.entClient.PaymentOrder.Get(ctx, p.OrderID)
+	if err != nil {
+		return nil, infraerrors.NotFound("NOT_FOUND", "order not found")
+	}
+	if isInternalBalanceOrder(order) {
+		return nil, infraerrors.BadRequest("BALANCE_ORDER_REFUND_UNSUPPORTED", "internal balance purchases do not support gateway refunds")
+	}
 	c, err := s.entClient.PaymentOrder.Update().Where(paymentorder.IDEQ(p.OrderID), paymentorder.StatusIn(OrderStatusCompleted, OrderStatusRefundRequested, OrderStatusRefundPending, OrderStatusRefundFailed)).SetStatus(OrderStatusRefunding).Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("lock: %w", err)
@@ -422,6 +435,9 @@ func (s *PaymentService) QueryAndFinalizeRefund(ctx context.Context, oid int64) 
 	o, err := s.entClient.PaymentOrder.Get(ctx, oid)
 	if err != nil {
 		return nil, infraerrors.NotFound("NOT_FOUND", "order not found")
+	}
+	if isInternalBalanceOrder(o) {
+		return nil, infraerrors.BadRequest("BALANCE_ORDER_REFUND_UNSUPPORTED", "internal balance purchases do not support gateway refunds")
 	}
 	if o.Status != OrderStatusRefundPending {
 		return nil, infraerrors.BadRequest("INVALID_STATUS", "only refund pending orders can be finalized")

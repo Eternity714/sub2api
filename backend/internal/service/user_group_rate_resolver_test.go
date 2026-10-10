@@ -81,3 +81,41 @@ func TestGatewayServiceGetUserGroupRateMultiplier_FallbacksAndUsesExistingResolv
 	require.Equal(t, rate, got)
 	require.Equal(t, 1, repo.calls)
 }
+
+func TestGatewayRateDefault_NoPerRequestAllocations(t *testing.T) {
+	ctx := context.Background()
+	const defaultRate = 1.3
+	tests := []struct {
+		name    string
+		resolve func(context.Context, int64, int64, float64) float64
+	}{
+		{"gateway", (&GatewayService{}).getUserGroupRateMultiplier},
+		{"openai", (&OpenAIGatewayService{}).ResolveUserGroupRateMultiplier},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var rate float64
+			allocs := testing.AllocsPerRun(100, func() {
+				rate = test.resolve(ctx, 101, 202, defaultRate)
+			})
+			require.Equal(t, defaultRate, rate)
+			require.Zero(t, allocs, "default-only lookups must not allocate caches and cleanup goroutines per request")
+		})
+	}
+}
+
+func TestGatewayRateDefault_PreservesPrewarmedCache(t *testing.T) {
+	cache := gocache.New(time.Minute, 0)
+	cache.Set("101:202", 1.9, time.Minute)
+	ctx := context.Background()
+
+	gateway := &GatewayService{userGroupRateCache: cache}
+	require.Equal(t, 1.9, gateway.getUserGroupRateMultiplier(ctx, 101, 202, 1.3))
+	require.Equal(t, 1.3, gateway.getUserGroupRateMultiplier(ctx, 101, 203, 1.3))
+
+	openai := &OpenAIGatewayService{
+		userGroupRateResolver: newUserGroupRateResolver(nil, cache, time.Minute, nil, "service.openai_gateway"),
+	}
+	require.Equal(t, 1.9, openai.ResolveUserGroupRateMultiplier(ctx, 101, 202, 1.3))
+	require.Equal(t, 1.3, openai.ResolveUserGroupRateMultiplier(ctx, 101, 203, 1.3))
+}
