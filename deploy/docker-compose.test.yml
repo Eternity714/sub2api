@@ -1,4 +1,25 @@
 services:
+  docsify-image-test:
+    image: ${DOCSIFY_IMAGE:-sub2api-docsify:local}
+    entrypoint: ["/bin/sh", "-c"]
+    read_only: true
+    cap_drop: [ALL]
+    command:
+      - |
+        set -eu
+        seed=/usr/share/nginx/html/docs
+        test -d "$$seed"
+        for name in index.md _sidebar.md _navbar.md _404.md; do
+          test -f "$$seed/$$name" || { printf 'FAIL missing public document: %s\n' "$$name"; exit 1; }
+        done
+        find "$$seed" -type f -print | sort
+        unsafe="$$(find "$$seed" \( -type l -o -name '.*' -o -iname README.md -o \( -type f ! -iname '*.md' ! -iname '*.png' ! -iname '*.jpg' ! -iname '*.jpeg' ! -iname '*.gif' ! -iname '*.ico' ! -iname '*.svg' ! -iname '*.webp' \) \) -print -quit)"
+        if [ -n "$$unsafe" ]; then
+          printf 'FAIL image exposes maintenance, hidden, linked or unsupported content: %s\n' "$$unsafe"
+          exit 1
+        fi
+        printf 'PASS immutable image contains only public Docsify seed content\n'
+
   docsify-edge-preview:
     image: nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
     profiles: [docsify-edge]

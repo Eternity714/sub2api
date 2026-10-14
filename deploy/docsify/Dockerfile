@@ -9,7 +9,10 @@ COPY deploy/docsify/nginx.conf /etc/nginx/conf.d/default.conf
 COPY deploy/docsify/runtime/ /opt/docsify/runtime/
 COPY frontend/docs/ /usr/share/nginx/html/docs/
 # The source README describes maintenance and is never part of the public site.
-RUN rm -f /usr/share/nginx/html/docs/README.md
+# Git removes tracked VitePress files but local build contexts can retain its
+# empty directory. Exclude the old tool's entire private directory from seeds.
+RUN rm -f /usr/share/nginx/html/docs/README.md \
+    && rm -rf /usr/share/nginx/html/docs/.vitepress
 
 USER 101:101
 ENTRYPOINT ["nginx"]

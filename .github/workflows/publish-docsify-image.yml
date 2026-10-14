@@ -43,8 +43,14 @@ jobs:
             DOCSIFY_REAL_NGINX=/usr/sbin/nginx bash deploy/tests/docsify-gray-test.sh
           '
 
-      - name: Start documentation container
-        run: docker compose -p docsify-ci -f deploy/docker-compose.docsify.yml up --build -d --wait
+      - name: Build documentation image
+        run: docker compose -p docsify-ci -f deploy/docker-compose.docsify.yml build
+
+      - name: Verify immutable image public seed contents
+        run: docker compose -f deploy/docker-compose.test.yml run --rm --no-deps docsify-image-test
+
+      - name: Start verified documentation image
+        run: docker compose -p docsify-ci -f deploy/docker-compose.docsify.yml up --no-build -d --wait
 
       - name: Verify HTTP behavior and mounted Markdown updates
         run: docker compose -f deploy/docker-compose.test.yml run --rm --no-deps docsify-http-test
