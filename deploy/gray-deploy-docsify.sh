@@ -47,6 +47,9 @@ port=18083
 docsify_podman run -d --name "$container" --restart unless-stopped \
   --publish "127.0.0.1:$port:8080" --read-only \
   --security-opt no-new-privileges --cap-drop all \
+  --health-cmd 'wget -q -T 4 -O /dev/null http://127.0.0.1:8080/health' \
+  --health-interval 10s --health-timeout 5s \
+  --health-start-period 5s --health-retries 3 \
   --tmpfs /tmp:rw,noexec,nosuid,size=16m,mode=1777 \
   --volume "$content:/usr/share/nginx/html/docs:ro" "$DOCSIFY_IMAGE:$tag"
 printf -v "DOCSIFY_${slot^^}_TAG" '%s' "$tag"

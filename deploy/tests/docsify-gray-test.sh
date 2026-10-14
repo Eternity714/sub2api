@@ -166,6 +166,10 @@ assert_equal "$(state_value DOCSIFY_CANDIDATE_PERCENT)" 0 'No public candidate t
 [[ -f "$(state_value DOCSIFY_BLUE_CONTENT)/scenarios/index.md" ]] || fail_test 'Incomplete extracted content'
 grep -q -- '127.0.0.1:18083:8080' "$TEST_CASE_DIR/operations" || fail_test 'Candidate port is not loopback-only'
 grep -q -- '--read-only' "$TEST_CASE_DIR/operations" || fail_test 'Container filesystem is writable'
+grep -qF -- '--health-cmd wget -q -T 4 -O /dev/null http://127.0.0.1:8080/health' "$TEST_CASE_DIR/operations" || fail_test 'Container health command depends on image metadata'
+for health_option in '--health-interval 10s' '--health-timeout 5s' '--health-start-period 5s' '--health-retries 3'; do
+  grep -qF -- "$health_option" "$TEST_CASE_DIR/operations" || fail_test "Container health timing is missing: $health_option"
+done
 assert_equal "$(grep -cF "include $SUB2API_DOCSIFY_NGINX_LOCATIONS;" "$SUB2API_DOCSIFY_NGINX_MAIN")" 1 'Server include count'
 ! grep -qF "$SUB2API_DOCSIFY_NGINX_POLICY" "$SUB2API_DOCSIFY_NGINX_MAIN" || fail_test 'Policy would be included twice'
 grep -qF 'proxy_pass $sub2api_docsify_entry_target$request_uri;' "$SUB2API_DOCSIFY_NGINX_LOCATIONS" || fail_test 'Documentation URI was stripped'
