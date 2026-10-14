@@ -4,6 +4,10 @@ source "$(cd "$(dirname "$0")" && pwd)/gray-docsify-common.sh"
 [[ $# == 0 ]] || fail 'Usage: gray-promote-docsify.sh'
 docsify_begin
 [[ "$DOCSIFY_CANDIDATE_PERCENT" == 100 && "$DOCSIFY_FULL_TRAFFIC_AT" != 0 ]] || fail 'Docsify promotion requires 100% candidate traffic'
+if ! docsify_canonical_mount "$DOCSIFY_CANDIDATE_SLOT"; then
+  docsify_rollback_entries
+  fail 'Docsify candidate must bind the fixed content directory read-only before promotion; entries rolled back to stable'
+fi
 observation="${SUB2API_DOCSIFY_OBSERVATION_SECONDS:-300}"
 [[ "$observation" =~ ^(0|[1-9][0-9]*)$ ]] || fail 'Invalid Docsify observation interval'
 now="$(date +%s)"

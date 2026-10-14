@@ -44,6 +44,14 @@ class ProductionBoundary(unittest.TestCase):
                 self.assertEqual(status, 200)
                 self.assertEqual(headers.get('X-Docs-Release'), os.environ['DOCSIFY_EXPECTED_RELEASE'])
                 self.assertIn('docsify-4.13.1.min.js', body)
+                probe = os.environ.get('DOCSIFY_PROMOTED_PROBE')
+                if probe:
+                    # A canonical-only file distinguishes slots sharing one image.
+                    status, _, _ = get(probe, request_headers)
+                    self.assertEqual(status, 200)
+                    status, _, text = get(probe + '.md', request_headers)
+                    self.assertEqual(status, 200)
+                    self.assertIn(os.environ['DOCSIFY_PROMOTED_PROBE_TEXT'], text)
                 status, headers, _ = get('/docs/assets/no-such-legacy.js', request_headers)
                 self.assertEqual(status, 404)
                 self.assertEqual(headers.get('X-Docs-Release'), os.environ['DOCSIFY_EXPECTED_RELEASE'])

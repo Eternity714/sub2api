@@ -118,17 +118,21 @@ try {
   page.setDefaultTimeout(timeoutMs)
   page.setDefaultNavigationTimeout(timeoutMs)
 
-  await step('async false readiness keeps polling until its deadline', async () => {
-    let polls = 0
-    await assert.rejects(waitForAsyncCondition(async () => {
-      polls += 1
-      return page.evaluate(async () => false)
-    }, { timeout: 250, polling: 50, description: 'async false readiness' }),
+  await step('async readiness awaits false results and enforces pending deadlines', async () => {
+    await assert.rejects(waitForAsyncCondition(async () => false,
+      { timeout: 250, polling: 50, description: 'async false readiness' }),
     /async false readiness did not become ready within 250ms/)
-    assert.ok(polls >= 2, 'an unresolved async condition stopped after its first false result')
     await assert.rejects(waitForAsyncCondition(() => new Promise(() => {}),
       { timeout: 100, description: 'pending async readiness' }),
     /pending async readiness did not become ready within 100ms/)
+
+    let polls = 0
+    await waitForAsyncCondition(async () => {
+      polls += 1
+      await new Promise(resolve => setTimeout(resolve, 10))
+      return polls === 2
+    }, { polling: 0, description: 'delayed async readiness after its first false result' })
+    assert.equal(polls, 2, 'an async condition did not await its false result before polling again')
   })
 
   await step('home, sidebar and navbar render', async () => {

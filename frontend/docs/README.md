@@ -70,7 +70,11 @@ Docsify 的入口页面和固定静态运行资源位于镜像中的 `/opt/docsi
 
 ## 生产内容与发布
 
-生产每个文档槽位有独立内容目录 **`/opt/sub2api/gray/docsify/releases/<slot>-sha-<commit>/content`**，只读挂载到对应 Docsify 容器。先运行 `gray-docsify-status.sh`，以输出的稳定槽位 `docsify_<slot>_content` 为准。已发布后更新文章、导航或图片，直接修改这个目录中的对应文件并刷新即可，不需要重新编译主应用或重建文档镜像。保持挂载根目录不变，在目录内更新文件；不要替换整个挂载目录或切换为符号链接。同步修改仓库 `frontend/docs/`，保证后续发布包含已维护的正文。
+生产 Markdown、导航和图片统一维护在固定真实目录 **`/opt/sub2api/content`**，只读挂载到 Docsify 容器的 `/usr/share/nginx/html/docs`，不会随槽位或镜像版本改变。更新其中的对应文件后刷新即可，不需要重新编译、重建镜像或重启容器。保持挂载根目录及其 inode 不变，在目录内更新文件；不要替换整个目录或切换为符号链接。同步修改仓库 `frontend/docs/`，保留正文源码。
+
+首次创建固定目录时，发布脚本优先复制当前稳定 Docsify 槽位的已维护正文；尚未部署 Docsify 时才使用镜像正文初始化。固定目录已存在时只验证并复用，不覆盖文件、不调整现有权限、不替换目录；缺少入口、导航或存在不允许公开的文件时拒绝发布。后续镜像只更新运行资源，不自动同步或覆盖固定目录中的文章。新增正文由维护者明确同步到该目录，并保证目录和公开文件可供容器 UID 101 读取。
+
+迁移期间保留旧版本正文与旧容器供回切；旧路径候选不能再放量或晋升。先运行 `gray-docsify-status.sh`，确认稳定槽位的 `docsify_<slot>_content=/opt/sub2api/content`。迁移验收记录见 `docs/superpowers/results/2026-10-14-docsify-content-migration.md`。
 
 文档镜像仓库为 `ghcr.io/eternity714/sub2api-docsify`，发布时只使用不可变 `sha-<commit>` 标签，禁止使用 `latest`。镜像和脚本的更新与正文维护分开进行。公开内容同步时排除 `README.md`、隐藏目录及仓库其它文件。
 

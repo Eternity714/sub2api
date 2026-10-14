@@ -5,6 +5,10 @@ percent="${1:-}"
 [[ $# == 1 && "$percent" =~ ^(0|[1-9][0-9]?|100)$ ]] || fail 'Usage: gray-set-docsify-traffic.sh <0..100>'
 docsify_begin
 previous_percent="$DOCSIFY_CANDIDATE_PERCENT"
+if [[ "$percent" != 0 ]] && ! docsify_canonical_mount "$DOCSIFY_CANDIDATE_SLOT"; then
+  [[ "$previous_percent" == 0 ]] || docsify_rollback_entries
+  fail 'Docsify candidate must bind the fixed content directory read-only before receiving traffic; legacy candidate evidence retained'
+fi
 if [[ "$percent" != 0 ]] && ! docsify_health "$DOCSIFY_CANDIDATE_SLOT"; then
   [[ "$previous_percent" == 0 ]] || docsify_rollback_entries
   fail 'Docsify candidate is unhealthy; new entries are on the stable slot and candidate evidence is retained'

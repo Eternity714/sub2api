@@ -13,7 +13,7 @@ setup_case() {
   export TEST_CASE_DIR="$test_root/$1"
   export MOCK_UNHEALTHY=0 MOCK_NGINX_FAIL=0 MOCK_RELOAD_FAIL=0 MOCK_BAD_IMAGE=0 MOCK_STATE_SAVE_FAIL=0
   export SUB2API_DOCSIFY_OBSERVATION_SECONDS=0
-  mkdir -p "$TEST_CASE_DIR/scripts" "$TEST_CASE_DIR/bin" "$TEST_CASE_DIR/gray" "$TEST_CASE_DIR/nginx" "$TEST_CASE_DIR/image/scenarios" "$TEST_CASE_DIR/containers"
+  mkdir -p "$TEST_CASE_DIR/scripts" "$TEST_CASE_DIR/bin" "$TEST_CASE_DIR/gray" "$TEST_CASE_DIR/nginx" "$TEST_CASE_DIR/image/scenarios" "$TEST_CASE_DIR/containers" "$TEST_CASE_DIR/mounts"
   for file in gray-docsify-common.sh gray-deploy-docsify.sh gray-set-docsify-traffic.sh gray-promote-docsify.sh gray-docsify-status.sh gray-docsify-nginx-install.py; do
     [[ -f "$scripts/$file" ]] || fail_test "Docsify gray implementation missing: $file"
     cp "$scripts/$file" "$TEST_CASE_DIR/scripts/$file"
@@ -69,10 +69,16 @@ case "$1" in
   rm) [[ "$2" == docsify-export-fixture ]] || exit 92 ;;
   run)
     shift
+    container='' volume=''
     while (( $# )); do
-      if [[ "$1" == --name ]]; then container="$2"; break; fi
-      shift
+      case "$1" in
+        --name) container="$2"; shift 2 ;;
+        --volume) volume="$2"; shift 2 ;;
+        *) shift ;;
+      esac
     done
+    [[ -n "$container" && -n "$volume" && -d "${volume%%:*}" ]] || exit 94
+    printf '%s\n' "$volume" >"$TEST_CASE_DIR/mounts/$container"
     printf 'running\n' >"$TEST_CASE_DIR/containers/$container"
     printf '%s\n' "$container"
     ;;
@@ -82,6 +88,14 @@ case "$1" in
     case "$*" in
       *Health.Status*) if [[ "$MOCK_UNHEALTHY" == 1 ]]; then printf 'unhealthy\n'; else printf 'healthy\n'; fi ;;
       *State.Running*) cat "$TEST_CASE_DIR/containers/$container" ;;
+      *Mounts*)
+        IFS=: read -r mount_source mount_destination mount_mode <"$TEST_CASE_DIR/mounts/$container"
+        if [[ "$mount_destination" == /usr/share/nginx/html/docs ]]; then
+          mount_rw=true
+          [[ "$mount_mode" != ro ]] || mount_rw=false
+          printf 'bind|%s|%s\n' "$mount_source" "$mount_rw"
+        fi
+        ;;
       *) printf 'fixture\n' ;;
     esac
     ;;
@@ -132,6 +146,45 @@ run_script() {
 run_ok() { run_script "$@" || { cat "$TEST_CASE_DIR/output"; fail_test "Command failed: $*"; }; }
 reject() { if run_script "$@"; then fail_test "Unsafe command accepted: $*"; fi; }
 state_value() { bash -c 'source "$1"; printf "%s" "${!2}"' _ "$TEST_CASE_DIR/gray/docsify/state.env" "$1"; }
+set_state_value() {
+  local variable="$1" value="$2"
+  sed -i "/^$variable=/d" "$TEST_CASE_DIR/gray/docsify/state.env"
+  printf '%s=%q\n' "$variable" "$value" >>"$TEST_CASE_DIR/gray/docsify/state.env"
+}
+assert_canonical_mount() {
+  local slot="$1" container
+  container="$(state_value "DOCSIFY_${slot^^}_CONTAINER")"
+  assert_equal "$(state_value "DOCSIFY_${slot^^}_CONTENT")" "$TEST_CASE_DIR/content" 'Recorded canonical content'
+  assert_equal "$(cat "$TEST_CASE_DIR/mounts/$container")" "$TEST_CASE_DIR/content:/usr/share/nginx/html/docs:ro" 'Container bind mount'
+}
+mounted_body() {
+  local slot="$1" container mount
+  container="$(state_value "DOCSIFY_${slot^^}_CONTAINER")"
+  mount="$(cat "$TEST_CASE_DIR/mounts/$container")"
+  cat "${mount%%:*}/index.md"
+}
+write_legacy_state() {
+  local stable="$1" tag=sha-abcdef1234567890 content
+  content="$TEST_CASE_DIR/gray/docsify/releases/blue-$tag/content"
+  mkdir -p "$content"
+  cp -a "$TEST_CASE_DIR/image/." "$content/"
+  printf 'running\n' >"$TEST_CASE_DIR/containers/sub2api-docsify-blue-$tag"
+  printf '%s\n' "$content:/usr/share/nginx/html/docs:ro" >"$TEST_CASE_DIR/mounts/sub2api-docsify-blue-$tag"
+  cat >"$TEST_CASE_DIR/gray/docsify/state.env" <<STATE
+DOCSIFY_STABLE_SLOT=$stable
+DOCSIFY_CANDIDATE_SLOT=$([[ "$stable" == blue ]] && printf green || printf blue)
+DOCSIFY_CANDIDATE_PERCENT=0
+DOCSIFY_COOKIE_EPOCH=1
+DOCSIFY_FULL_TRAFFIC_AT=0
+DOCSIFY_PROMOTED_AT=0
+DOCSIFY_BLUE_TAG=$tag
+DOCSIFY_BLUE_CONTAINER=sub2api-docsify-blue-$tag
+DOCSIFY_BLUE_CONTENT=$content
+DOCSIFY_GREEN_TAG=''
+DOCSIFY_GREEN_CONTAINER=''
+DOCSIFY_GREEN_CONTENT=''
+STATE
+}
 assert_main_untouched() {
   assert_equal "$(cat "$TEST_CASE_DIR/gray/state.env")" main-state-sentinel 'Main gray state'
   assert_equal "$(cat "$TEST_CASE_DIR/gray/slots.env")" main-slots-sentinel 'Main slots'
@@ -158,6 +211,202 @@ CONF
   python3 "$scripts/tests/docsify-proxy-test.py" "$DOCSIFY_REAL_NGINX" "$TEST_CASE_DIR/nginx/validation.conf" \
     "$(state_value DOCSIFY_COOKIE_EPOCH)" "$(state_value DOCSIFY_STABLE_SLOT)" "$(state_value DOCSIFY_CANDIDATE_SLOT)" "$(state_value DOCSIFY_CANDIDATE_PERCENT)"
 }
+
+canonical_initial_case() {
+  setup_case canonical-initial
+  run_ok gray-deploy-docsify.sh sha-abcdef1234567890
+  [[ -d "$TEST_CASE_DIR/content" && ! -L "$TEST_CASE_DIR/content" ]] || fail_test 'Canonical content was not initialized as a real directory'
+  assert_canonical_mount blue
+  cmp "$TEST_CASE_DIR/content/index.md" "$TEST_CASE_DIR/image/index.md" || fail_test 'Initial canonical content does not contain image seed'
+  [[ -f "$TEST_CASE_DIR/gray/docsify/releases/blue-sha-abcdef1234567890/content/index.md" ]] || fail_test 'Immutable seed snapshot was not retained'
+  assert_main_untouched
+}
+
+canonical_preserve_case() {
+  setup_case canonical-preserve
+  mkdir "$TEST_CASE_DIR/content"
+  cp -a "$TEST_CASE_DIR/image/." "$TEST_CASE_DIR/content/"
+  printf '# Maintained before deploy\n' >"$TEST_CASE_DIR/content/index.md"
+  cp "$TEST_CASE_DIR/content/index.md" "$TEST_CASE_DIR/maintained-before.md"
+  chmod 640 "$TEST_CASE_DIR/content/index.md"
+  local directory_inode file_inode file_mode
+  directory_inode="$(stat -c %i "$TEST_CASE_DIR/content")"
+  file_inode="$(stat -c %i "$TEST_CASE_DIR/content/index.md")"
+  file_mode="$(stat -c %a "$TEST_CASE_DIR/content/index.md")"
+  run_ok gray-deploy-docsify.sh sha-abcdef1234567890
+  assert_canonical_mount blue
+  assert_equal "$(stat -c %i "$TEST_CASE_DIR/content")" "$directory_inode" 'First deployment canonical directory inode'
+  assert_equal "$(cat "$TEST_CASE_DIR/content/index.md")" '# Maintained before deploy' 'First deployment maintained body'
+  cmp "$TEST_CASE_DIR/content/index.md" "$TEST_CASE_DIR/maintained-before.md" || fail_test 'First deployment changed maintained body bytes'
+  assert_equal "$(stat -c %i "$TEST_CASE_DIR/content/index.md")" "$file_inode" 'First deployment maintained file inode'
+  assert_equal "$(stat -c %a "$TEST_CASE_DIR/content/index.md")" "$file_mode" 'First deployment maintained file permissions'
+  run_ok gray-set-docsify-traffic.sh 100
+  run_ok gray-promote-docsify.sh
+  printf '# Live manual update\n' >"$TEST_CASE_DIR/content/index.md"
+  cp "$TEST_CASE_DIR/content/index.md" "$TEST_CASE_DIR/maintained-live.md"
+  assert_equal "$(mounted_body blue)" '# Live manual update' 'Running stable bind observes manual body update'
+  printf '# New image seed\n' >"$TEST_CASE_DIR/image/index.md"
+  printf '# Newly added seed page\n' >"$TEST_CASE_DIR/image/new-page.md"
+  run_ok gray-deploy-docsify.sh sha-fedcba0987654321
+  assert_canonical_mount green
+  assert_equal "$(mounted_body green)" '# Live manual update' 'New candidate bind observes maintained body'
+  assert_equal "$(stat -c %i "$TEST_CASE_DIR/content")" "$directory_inode" 'Subsequent deployment canonical directory inode'
+  assert_equal "$(stat -c %i "$TEST_CASE_DIR/content/index.md")" "$file_inode" 'Subsequent deployment maintained file inode'
+  assert_equal "$(stat -c %a "$TEST_CASE_DIR/content/index.md")" "$file_mode" 'Subsequent deployment maintained file permissions'
+  assert_equal "$(cat "$TEST_CASE_DIR/content/index.md")" '# Live manual update' 'Subsequent deployment maintained body'
+  cmp "$TEST_CASE_DIR/content/index.md" "$TEST_CASE_DIR/maintained-live.md" || fail_test 'Subsequent deployment changed maintained body bytes'
+  [[ ! -e "$TEST_CASE_DIR/content/new-page.md" ]] || fail_test 'New image seed was merged into canonical content'
+  assert_equal "$(cat "$TEST_CASE_DIR/gray/docsify/releases/green-sha-fedcba0987654321/content/index.md")" '# New image seed' 'New immutable seed snapshot'
+  assert_main_untouched
+}
+
+canonical_migrate_case() {
+  setup_case canonical-migrate
+  write_legacy_state blue
+  local legacy_content
+  legacy_content="$(state_value DOCSIFY_BLUE_CONTENT)"
+  printf '# Maintained stable body\n' >"$legacy_content/index.md"
+  cp "$legacy_content/index.md" "$TEST_CASE_DIR/maintained-stable.md"
+  printf '# Stable-only page\n' >"$legacy_content/stable-only.md"
+  printf '# New image seed\n' >"$TEST_CASE_DIR/image/index.md"
+  run_ok gray-deploy-docsify.sh sha-fedcba0987654321
+  assert_canonical_mount green
+  [[ -d "$TEST_CASE_DIR/content" && ! -L "$TEST_CASE_DIR/content" ]] || fail_test 'Migrated canonical content is not a real directory'
+  assert_equal "$(cat "$TEST_CASE_DIR/content/index.md")" '# Maintained stable body' 'Migration prioritizes maintained stable body'
+  cmp "$TEST_CASE_DIR/content/index.md" "$TEST_CASE_DIR/maintained-stable.md" || fail_test 'Migration changed maintained stable body bytes'
+  assert_equal "$(cat "$TEST_CASE_DIR/content/stable-only.md")" '# Stable-only page' 'Migration preserves maintained stable page'
+  assert_equal "$(cat "$legacy_content/index.md")" '# Maintained stable body' 'Migration retains legacy content evidence'
+  assert_equal "$(cat "$TEST_CASE_DIR/gray/docsify/releases/green-sha-fedcba0987654321/content/index.md")" '# New image seed' 'Migration retains new image seed separately'
+  assert_main_untouched
+}
+
+canonical_reject_case() {
+  local invalid="$1"
+  setup_case "canonical-reject-$invalid"
+  mkdir "$TEST_CASE_DIR/content"
+  cp -a "$TEST_CASE_DIR/image/." "$TEST_CASE_DIR/content/"
+  case "$invalid" in
+    root-symlink) mv "$TEST_CASE_DIR/content" "$TEST_CASE_DIR/elsewhere"; ln -s "$TEST_CASE_DIR/elsewhere" "$TEST_CASE_DIR/content" ;;
+    child-symlink) ln -s index.md "$TEST_CASE_DIR/content/linked.md" ;;
+    maintenance) printf 'private notes\n' >"$TEST_CASE_DIR/content/README.md" ;;
+    missing-navigation) rm "$TEST_CASE_DIR/content/_navbar.md" ;;
+    regular-file) rm -r "$TEST_CASE_DIR/content"; printf 'not a directory\n' >"$TEST_CASE_DIR/content" ;;
+    hidden-file) printf 'private config\n' >"$TEST_CASE_DIR/content/.env" ;;
+    unsupported-file) printf '<script>private</script>\n' >"$TEST_CASE_DIR/content/private.html" ;;
+    special-file) mkfifo "$TEST_CASE_DIR/content/pipe.md" ;;
+  esac
+  cp "$SUB2API_DOCSIFY_NGINX_MAIN" "$TEST_CASE_DIR/original.conf"
+  reject gray-deploy-docsify.sh sha-abcdef1234567890
+  ! grep -q '^podman run ' "$TEST_CASE_DIR/operations" || fail_test 'Unsafe canonical content started a container'
+  [[ ! -e "$SUB2API_DOCSIFY_NGINX_POLICY" ]] || fail_test 'Unsafe canonical content was published'
+  cmp "$SUB2API_DOCSIFY_NGINX_MAIN" "$TEST_CASE_DIR/original.conf" || fail_test 'Unsafe canonical content changed Nginx'
+  assert_main_untouched
+}
+
+legacy_stable_reject_case() {
+  local invalid="$1" legacy_content
+  setup_case "legacy-stable-reject-$invalid"
+  write_legacy_state blue
+  legacy_content="$(state_value DOCSIFY_BLUE_CONTENT)"
+  case "$invalid" in
+    missing) rm -r "$legacy_content" ;;
+    child-symlink) ln -s index.md "$legacy_content/linked.md" ;;
+    maintenance) printf 'private notes\n' >"$legacy_content/README.md" ;;
+    missing-navigation) rm "$legacy_content/_sidebar.md" ;;
+  esac
+  cp "$TEST_CASE_DIR/gray/docsify/state.env" "$TEST_CASE_DIR/original-state.env"
+  reject gray-deploy-docsify.sh sha-fedcba0987654321
+  [[ ! -e "$TEST_CASE_DIR/content" ]] || fail_test 'Invalid maintained stable content was replaced by image seed'
+  ! grep -q '^podman run ' "$TEST_CASE_DIR/operations" || fail_test 'Invalid maintained stable content started a candidate'
+  cmp "$TEST_CASE_DIR/gray/docsify/state.env" "$TEST_CASE_DIR/original-state.env" || fail_test 'Invalid maintained stable content changed state'
+  assert_main_untouched
+}
+
+legacy_candidate_reject_case() {
+  local operation="$1"
+  setup_case "legacy-candidate-$operation"
+  write_legacy_state legacy
+  cp "$TEST_CASE_DIR/gray/docsify/state.env" "$TEST_CASE_DIR/original-state.env"
+  case "$operation" in
+    same-sha)
+      reject gray-deploy-docsify.sh sha-abcdef1234567890
+      grep -qiE 'content|canonical|migrat' "$TEST_CASE_DIR/output" || fail_test 'Same-SHA legacy candidate rejection did not explain its content path'
+      cmp "$TEST_CASE_DIR/gray/docsify/state.env" "$TEST_CASE_DIR/original-state.env" || fail_test 'Same-SHA legacy candidate changed state'
+      ;;
+    traffic)
+      reject gray-set-docsify-traffic.sh 10
+      assert_equal "$(state_value DOCSIFY_CANDIDATE_PERCENT)" 0 'Legacy candidate traffic remains zero'
+      ;;
+    promote)
+      set_state_value DOCSIFY_CANDIDATE_PERCENT 100
+      set_state_value DOCSIFY_FULL_TRAFFIC_AT "$(date +%s)"
+      reject gray-promote-docsify.sh
+      assert_equal "$(state_value DOCSIFY_STABLE_SLOT)" legacy 'Legacy candidate was not promoted'
+      assert_equal "$(state_value DOCSIFY_CANDIDATE_PERCENT)" 0 'Legacy candidate promotion rolls public traffic back'
+      ;;
+  esac
+  ! grep -q '^podman stop ' "$TEST_CASE_DIR/operations" || fail_test 'Rejected legacy candidate was stopped'
+  [[ -f "$TEST_CASE_DIR/containers/sub2api-docsify-blue-sha-abcdef1234567890" ]] || fail_test 'Rejected legacy candidate evidence was destroyed'
+  assert_main_untouched
+}
+
+canonical_mount_reject_case() {
+  local invalid="$1" operation="$2" container
+  setup_case "canonical-mount-$invalid-$operation"
+  run_ok gray-deploy-docsify.sh sha-abcdef1234567890
+  container="$(state_value DOCSIFY_BLUE_CONTAINER)"
+  if [[ "$operation" == promote ]]; then
+    run_ok gray-set-docsify-traffic.sh 100
+  elif [[ "$operation" == traffic ]]; then
+    run_ok gray-set-docsify-traffic.sh 10
+  fi
+  case "$invalid" in
+    old-source) printf '%s\n' "$TEST_CASE_DIR/gray/docsify/releases/blue-sha-abcdef1234567890/content:/usr/share/nginx/html/docs:ro" >"$TEST_CASE_DIR/mounts/$container" ;;
+    writable) printf '%s\n' "$TEST_CASE_DIR/content:/usr/share/nginx/html/docs:rw" >"$TEST_CASE_DIR/mounts/$container" ;;
+  esac
+  assert_equal "$(state_value DOCSIFY_BLUE_CONTENT)" "$TEST_CASE_DIR/content" 'Mount mismatch fixture still records canonical content'
+  case "$operation" in
+    same-sha) reject gray-deploy-docsify.sh sha-abcdef1234567890 ;;
+    traffic) reject gray-set-docsify-traffic.sh 50 ;;
+    promote) reject gray-promote-docsify.sh ;;
+  esac
+  assert_equal "$(state_value DOCSIFY_STABLE_SLOT)" legacy 'Mismatched actual mount is not promoted'
+  assert_equal "$(state_value DOCSIFY_CANDIDATE_PERCENT)" 0 'Mismatched actual mount restores stable entry traffic'
+  grep -qF 'map "" $sub2api_docsify_route { default stable; }' "$SUB2API_DOCSIFY_NGINX_POLICY" || fail_test 'Mismatched actual mount left candidate public entries'
+  ! grep -q '^podman stop ' "$TEST_CASE_DIR/operations" || fail_test 'Mismatched actual mount container was stopped'
+  [[ -f "$TEST_CASE_DIR/containers/$container" ]] || fail_test 'Mismatched actual mount evidence was destroyed'
+  assert_main_untouched
+}
+
+canonical_failures=0
+run_canonical_case() {
+  local name="$1"
+  shift
+  if ( "$@" ); then
+    pass_case "$name"
+  else
+    printf 'Failed protection case: %s\n' "$name" >&2
+    canonical_failures=$((canonical_failures + 1))
+  fi
+}
+run_canonical_case 'Initialize canonical content and bind it into the candidate' canonical_initial_case
+run_canonical_case 'Preserve canonical inode, manual body and permissions across releases' canonical_preserve_case
+run_canonical_case 'Migrate maintained legacy stable content before image seed' canonical_migrate_case
+for invalid in root-symlink child-symlink maintenance missing-navigation regular-file hidden-file unsupported-file special-file; do
+  run_canonical_case "Reject unsafe canonical content: $invalid" canonical_reject_case "$invalid"
+done
+for invalid in missing child-symlink maintenance missing-navigation; do
+  run_canonical_case "Reject unsafe maintained legacy stable content: $invalid" legacy_stable_reject_case "$invalid"
+done
+for operation in same-sha traffic promote; do
+  run_canonical_case "Reject legacy content candidate: $operation" legacy_candidate_reject_case "$operation"
+done
+for invalid in old-source writable; do
+  for operation in same-sha traffic promote; do
+    run_canonical_case "Reject actual container mount mismatch: $invalid/$operation" canonical_mount_reject_case "$invalid" "$operation"
+  done
+done
+[[ "$canonical_failures" == 0 ]] || fail_test "$canonical_failures canonical content protection cases failed"
 
 setup_case initial
 run_ok gray-deploy-docsify.sh sha-abcdef1234567890

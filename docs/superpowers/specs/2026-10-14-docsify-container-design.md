@@ -20,7 +20,9 @@
 
 使用不可变 `ghcr.io/eternity714/sub2api-docsify:sha-<commit>`，通过安装到 `/opt/sub2api/scripts` 的 Docsify 灰度脚本操作。先 `gray-status.sh`，在无流量独立端口部署 Docsify，健康与人工浏览检查通过后逐步分流 `/docs`。文档规则采用独立 Nginx include，不修改主应用蓝绿权重。现有 `gray-set-traffic.sh` 只重写主应用 policy，不会覆盖独立文档规则。
 
-旧 VitePress 页面引用旧资源而 Docsify 使用保留的 `/docs/_assets/` 命名空间；首次迁移观察期内 Markdown/Docsify资源始终从新文档容器获取，文章入口按文档专用 cookie 固定分流，`/docs/assets/` 暂时保留旧资源入口。晋升后全部 `/docs` 路径转到文档容器。失败回滚仅将文档入口切回原主应用；保留 Docsify 容器、日志与备份。
+生产正文固定为真实目录 `/opt/sub2api/content`（脚本使用 `$DEPLOY_DIR/content`），新容器只读挂载该目录。目录不存在时优先从当前稳定 Docsify 正文初始化，全新安装才从镜像初始化；已存在时验证并复用，绝不覆盖正文或替换根目录 inode。运行时发布不自动同步正文，维护时明确更新固定目录并同步仓库源码。旧版本目录和容器保留，迁移期允许回切旧稳定槽位；放量及晋升必须核对候选状态和实际 Podman bind mount 均指向固定目录且只读。
+
+旧 VitePress 页面引用旧资源而 Docsify 使用保留的 `/docs/_assets/` 命名空间；首次迁移观察期内 Markdown/Docsify资源始终从新文档容器获取，文章入口按文档专用 cookie 固定分流，`/docs/assets/` 暂时保留旧资源入口。晋升后全部 `/docs` 路径转到文档容器。首次迁移失败时将文档入口切回原主应用；后续发布及固定目录迁移失败时切回当前稳定 Docsify 槽位。回滚保留容器、正文、日志与备份。
 
 ## 验收
 

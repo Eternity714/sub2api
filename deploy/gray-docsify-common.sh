@@ -5,6 +5,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/gray-common.sh"
 
 DOCSIFY_IMAGE=ghcr.io/eternity714/sub2api-docsify
 DOCSIFY_DIR="$GRAY_DIR/docsify"
+DOCSIFY_CONTENT_DIR="$DEPLOY_DIR/content"
 DOCSIFY_STATE="$DOCSIFY_DIR/state.env"
 DOCSIFY_NGINX_MAIN="${SUB2API_DOCSIFY_NGINX_MAIN:-/etc/nginx/conf.d/sub2api.conf}"
 DOCSIFY_NGINX_POLICY="${SUB2API_DOCSIFY_NGINX_POLICY:-/etc/nginx/conf.d/sub2api-docsify-policy.conf}"
@@ -21,10 +22,53 @@ docsify_check_directory() {
   fi
 }
 
+docsify_validate_content() {
+  local path="$1" name unsafe_file
+  docsify_check_directory "$path"
+  [[ -d "$path" ]] || fail "Docsify public content directory is missing: $path"
+  for name in index.md _sidebar.md _navbar.md _404.md; do
+    [[ -f "$path/$name" ]] || fail "Docsify public content/navigation is missing: $path/$name"
+  done
+  unsafe_file="$(find "$path" -mindepth 1 \( -name '.*' -o -iname README.md -o \( ! -type d ! -type f \) -o \( -type f ! -iname '*.md' ! -iname '*.png' ! -iname '*.jpg' ! -iname '*.jpeg' ! -iname '*.gif' ! -iname '*.ico' ! -iname '*.svg' ! -iname '*.webp' \) \) -print -quit)" || fail "Cannot inspect Docsify public content: $path"
+  [[ -z "$unsafe_file" ]] || fail "Docsify content exposes a maintenance or unsupported file: $unsafe_file"
+}
+
+docsify_prepare_content() (
+  local source="$1" temporary=''
+  [[ -d "$DEPLOY_DIR" && ! -L "$DEPLOY_DIR" ]] || fail "Docsify deployment root must be a real directory: $DEPLOY_DIR"
+  if [[ -e "$DOCSIFY_CONTENT_DIR" || -L "$DOCSIFY_CONTENT_DIR" ]]; then
+    # Existing maintained content is authoritative; do not chmod or replace it.
+    docsify_validate_content "$DOCSIFY_CONTENT_DIR"
+    exit 0
+  fi
+  if [[ "$DOCSIFY_STABLE_SLOT" != legacy ]]; then
+    source="$(docsify_slot_value "$DOCSIFY_STABLE_SLOT" CONTENT)"
+  fi
+  docsify_validate_content "$source"
+  temporary="$(mktemp -d "$DEPLOY_DIR/.docsify-content.XXXXXX")" || fail 'Cannot stage the fixed Docsify content directory'
+  trap '[[ -z "$temporary" ]] || rm -rf -- "$temporary"' EXIT
+  cp -a -- "$source/." "$temporary/"
+  docsify_validate_content "$temporary"
+  find "$temporary" -type d -exec chmod 755 {} +
+  find "$temporary" -type f -exec chmod 644 {} +
+  # Never replace an existing directory, including one created during staging.
+  mv -T -n -- "$temporary" "$DOCSIFY_CONTENT_DIR"
+  [[ ! -e "$temporary" ]] || fail 'The fixed Docsify content directory appeared during initialization; existing content retained'
+  temporary=''
+)
+
 docsify_valid_tag() { [[ "$1" =~ ^sha-[0-9a-f]{7,64}$ ]]; }
 # Podman's background monitor must not inherit the operation lock descriptor.
 docsify_podman() { command podman "$@" 9>&-; }
 docsify_slot_value() { local variable="DOCSIFY_${1^^}_$2"; printf '%s' "${!variable}"; }
+docsify_canonical_mount() {
+  local slot="$1" container mount
+  [[ "$(docsify_slot_value "$slot" CONTENT)" == "$DOCSIFY_CONTENT_DIR" ]] || return 1
+  container="$(docsify_slot_value "$slot" CONTAINER)"
+  [[ -n "$container" ]] || return 1
+  mount="$(docsify_podman inspect --format '{{range .Mounts}}{{if eq .Destination "/usr/share/nginx/html/docs"}}{{.Type}}|{{.Source}}|{{.RW}}{{end}}{{end}}' "$container" 2>/dev/null)" || return 1
+  [[ "$mount" == "bind|$DOCSIFY_CONTENT_DIR|false" ]]
+}
 docsify_slot_target() {
   case "$1" in
     legacy) printf '%s' '$sub2api_gray_target' ;;
@@ -56,7 +100,7 @@ docsify_load_state() {
     content="$(docsify_slot_value "$slot" CONTENT)"
     if [[ -n "$tag" ]]; then
       docsify_valid_tag "$tag" || fail 'State contains a mutable Docsify image tag'
-      [[ "$container" == "sub2api-docsify-$slot-$tag" && "$content" == "$DOCSIFY_DIR/releases/$slot-$tag/content" ]] || fail 'Invalid Docsify container/content state'
+      [[ "$container" == "sub2api-docsify-$slot-$tag" && ( "$content" == "$DOCSIFY_CONTENT_DIR" || "$content" == "$DOCSIFY_DIR/releases/$slot-$tag/content" ) ]] || fail 'Invalid Docsify container/content state'
     else
       [[ -z "$container" && -z "$content" ]] || fail 'Incomplete Docsify slot metadata'
     fi
