@@ -53,10 +53,10 @@ jobs:
         run: docker compose -p docsify-ci -f deploy/docker-compose.docsify.yml up --no-build -d --wait
 
       - name: Verify HTTP behavior and mounted Markdown updates
-        run: docker compose -f deploy/docker-compose.test.yml run --rm --no-deps docsify-http-test
+        run: DOCSIFY_TEST_URL=http://docsify:8080 docker compose -p docsify-ci -f deploy/docker-compose.test.yml run --rm --no-deps docsify-http-test
 
       - name: Verify browser navigation, search and diagrams
-        run: docker compose -f deploy/docker-compose.test.yml run --rm --no-deps docsify-browser-test
+        run: DOCSIFY_TEST_URL=http://docsify:8080 docker compose -p docsify-ci -f deploy/docker-compose.test.yml run --rm --no-deps docsify-browser-test
 
       - name: Read immutable source revision
         id: revision
