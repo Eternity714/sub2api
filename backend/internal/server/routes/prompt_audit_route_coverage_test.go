@@ -20,11 +20,15 @@ import (
 func TestEveryGatewayPOSTRouteIsClassifiedForPromptAuditCoverage(t *testing.T) {
 	routeSource, err := os.ReadFile("gateway.go")
 	require.NoError(t, err)
-	pattern := regexp.MustCompile(`(?:gateway|gemini|r|codexDirect|antigravityV1|antigravityV1Beta)\.POST\("([^"]+)"`)
+	pattern := regexp.MustCompile(`(?:gateway|gemini|r|codexDirect|antigravityV1|antigravityV1Beta|uploads)\.POST\("([^"]+)"`)
 	matches := pattern.FindAllStringSubmatch(string(routeSource), -1)
 	actual := map[string]struct{}{}
 	for _, match := range matches {
-		actual[match[1]] = struct{}{}
+		path := match[1]
+		if strings.HasPrefix(match[0], "uploads.") {
+			path = "/uploads" + path
+		}
+		actual[path] = struct{}{}
 	}
 
 	audited := map[string][]string{
@@ -58,6 +62,9 @@ func TestEveryGatewayPOSTRouteIsClassifiedForPromptAuditCoverage(t *testing.T) {
 		"/images/batches/:id/cancel": "control-plane cancellation with no user prompt",
 		"/stt":                       "speech transcription is not a text-generation prompt",
 		"/custom-voices":             "voice profile management has no model prompt",
+		"/uploads/images":            "reference media upload has no model prompt",
+		"/uploads/videos":            "reference media upload has no model prompt",
+		"/uploads/audios":            "reference media upload has no model prompt",
 	}
 
 	unclassified := make([]string, 0)

@@ -648,6 +648,11 @@ func registerBackupRoutes(admin *gin.RouterGroup, h *handler.Handlers, stepUpAut
 		backup.PUT("/image-storage", gin.HandlerFunc(stepUpAuth), h.Admin.Backup.UpdateImageStorageConfig)
 		backup.POST("/image-storage/test", h.Admin.Backup.TestImageStorageConnection)
 
+		// Each reference-media kind has an independent S3 target and upload limit.
+		backup.GET("/media-upload-storage/:kind", h.Admin.Backup.GetMediaUploadStorageConfig)
+		backup.PUT("/media-upload-storage/:kind", gin.HandlerFunc(stepUpAuth), h.Admin.Backup.UpdateMediaUploadStorageConfig)
+		backup.POST("/media-upload-storage/:kind/test", h.Admin.Backup.TestMediaUploadStorageConnection)
+
 		// 定时备份配置
 		backup.GET("/schedule", h.Admin.Backup.GetSchedule)
 		backup.PUT("/schedule", h.Admin.Backup.UpdateSchedule)

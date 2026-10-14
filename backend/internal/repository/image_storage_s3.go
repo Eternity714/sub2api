@@ -27,6 +27,7 @@ type S3ImageStorage struct {
 
 var _ service.ImageStorage = (*S3ImageStorage)(nil)
 var _ service.ImageStorageWithMetadata = (*S3ImageStorage)(nil)
+var _ service.MediaStorageWithReader = (*S3ImageStorage)(nil)
 
 // NewS3ImageStorage 依据配置构造 S3 图片存储（调用方应先确认 cfg.Active()）。
 func NewS3ImageStorage(ctx context.Context, cfg *config.ImageStorageConfig) (*S3ImageStorage, error) {
@@ -58,7 +59,14 @@ func (s *S3ImageStorage) SaveVideoReader(ctx context.Context, key string, body i
 	if body == nil || size <= 0 {
 		return service.ImageStorageSaveMetadata{}, fmt.Errorf("invalid video reader")
 	}
-	contentType := "video/mp4"
+	return s.SaveReader(ctx, key, "video/mp4", body, size)
+}
+
+// SaveReader 上传已验证的媒体文件，保留原始 reader，文件大小不会决定进程内存占用。
+func (s *S3ImageStorage) SaveReader(ctx context.Context, key, contentType string, body io.Reader, size int64) (service.ImageStorageSaveMetadata, error) {
+	if body == nil || size <= 0 || strings.TrimSpace(contentType) == "" {
+		return service.ImageStorageSaveMetadata{}, fmt.Errorf("invalid media reader")
+	}
 	finish := servertiming.ObserveDependency(ctx, "s3")
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{Bucket: &s.bucket, Key: &key, Body: body, ContentType: &contentType, ContentLength: &size})
 	finish()
@@ -66,6 +74,17 @@ func (s *S3ImageStorage) SaveVideoReader(ctx context.Context, key string, body i
 		return service.ImageStorageSaveMetadata{}, fmt.Errorf("S3 PutObject: %w", err)
 	}
 	return s.objectMetadata(ctx, key, contentType)
+}
+
+// TestConnection 向已配置的桶发送 HeadBucket，验证端点和凭证可访问该桶。
+func (s *S3ImageStorage) TestConnection(ctx context.Context) error {
+	finish := servertiming.ObserveDependency(ctx, "s3")
+	_, err := s.client.HeadBucket(ctx, &s3.HeadBucketInput{Bucket: &s.bucket})
+	finish()
+	if err != nil {
+		return fmt.Errorf("S3 HeadBucket: %w", err)
+	}
+	return nil
 }
 
 // Save 上传图片字节，返回可访问 URL：配了 public_base_url 则返回公开直链，否则返回 presigned 临时链接。
