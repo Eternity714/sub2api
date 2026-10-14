@@ -12,6 +12,9 @@ const contentDir = process.env.DOCSIFY_TEST_CONTENT_DIR || '/workspace/frontend/
 const origin = new URL(baseURL).origin
 const remoteFixture = process.env.DOCSIFY_TEST_REMOTE_FIXTURE
 const routeCookie = process.env.DOCSIFY_TEST_COOKIE
+const timeoutMs = Number(process.env.DOCSIFY_TEST_TIMEOUT_MS || 15_000)
+assert.ok(Number.isInteger(timeoutMs) && timeoutMs > 0,
+  'DOCSIFY_TEST_TIMEOUT_MS must be a positive integer')
 if (remoteFixture) {
   assert.ok(remoteFixture.startsWith('/docs/') && !/[?#]/.test(remoteFixture)
     && !remoteFixture.endsWith('/') && !remoteFixture.endsWith('.md'),
@@ -67,6 +70,37 @@ async function openArticle(page, path, heading) {
   assert.equal(new URL(page.url()).pathname, path, 'history route changed the /docs prefix')
 }
 
+async function waitForMarkdownText(page, text) {
+  await page.locator('.markdown-section').waitFor({ state: 'visible' })
+  await page.waitForFunction(expected =>
+    document.querySelector('.markdown-section')?.innerText.includes(expected), text)
+}
+
+async function waitForAsyncCondition(check, { timeout = timeoutMs, polling = 1000, description }) {
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    const budget = Math.max(1, deadline - Date.now())
+    let timer
+    let ready
+    try {
+      ready = await Promise.race([
+        check(budget),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`${description} did not become ready within ${timeout}ms`)), budget)
+        }),
+      ])
+    } finally {
+      clearTimeout(timer)
+    }
+    if (ready && Date.now() < deadline) return
+    const remaining = deadline - Date.now()
+    if (remaining > 0) {
+      await new Promise(resolve => setTimeout(resolve, Math.min(polling, remaining)))
+    }
+  }
+  assert.fail(`${description} did not become ready within ${timeout}ms`)
+}
+
 async function step(name, action) {
   await action()
   console.log(`PASS ${name}`)
@@ -81,12 +115,27 @@ try {
   })
   await observe(desktop)
   const page = await desktop.newPage()
-  page.setDefaultTimeout(15_000)
+  page.setDefaultTimeout(timeoutMs)
+  page.setDefaultNavigationTimeout(timeoutMs)
+
+  await step('async false readiness keeps polling until its deadline', async () => {
+    let polls = 0
+    await assert.rejects(waitForAsyncCondition(async () => {
+      polls += 1
+      return page.evaluate(async () => false)
+    }, { timeout: 250, polling: 50, description: 'async false readiness' }),
+    /async false readiness did not become ready within 250ms/)
+    assert.ok(polls >= 2, 'an unresolved async condition stopped after its first false result')
+    await assert.rejects(waitForAsyncCondition(() => new Promise(() => {}),
+      { timeout: 100, description: 'pending async readiness' }),
+    /pending async readiness did not become ready within 100ms/)
+  })
 
   await step('home, sidebar and navbar render', async () => {
     const response = await page.goto(baseURL + '/docs/', { waitUntil: 'networkidle' })
     assert.equal(response.status(), 200)
     await page.locator('.markdown-section').getByText('推荐阅读顺序', { exact: true }).waitFor()
+    await page.locator('.sidebar-nav a[href^="/docs/"]').nth(34).waitFor({ state: 'visible' })
     assert.ok(await page.locator('.sidebar-nav a[href^="/docs/"]').count() >= 35,
       'the existing tutorial sidebar is missing')
     await page.locator('.app-nav').getByRole('link', { name: '主站', exact: true }).waitFor()
@@ -99,6 +148,7 @@ try {
     await page.getByRole('heading', { level: 1, name: '快速开始', exact: true }).waitFor()
     assert.equal(new URL(page.url()).pathname, '/docs/quick-start')
     assert.equal(new URL(page.url()).hash, '', 'article routes must use history mode')
+    await waitForMarkdownText(page, 'Base URL 是接口地址')
     assert.ok((await page.locator('.markdown-section').innerText()).includes('Base URL 是接口地址'))
   })
 
@@ -107,7 +157,9 @@ try {
     const expected = (await code.locator('code').innerText()).trim()
     assert.ok(expected.includes('GKOTTA_API_KEY'), 'copy target is not the tutorial sample')
     await code.locator('.docsify-copy-code-button').click()
-    await page.waitForFunction(expected => navigator.clipboard.readText().then(text => text.trim() === expected), expected)
+    await waitForAsyncCondition(() =>
+      page.evaluate(expected => navigator.clipboard.readText().then(text => text.trim() === expected), expected),
+    { polling: 100, description: 'copied tutorial sample to match the actual clipboard' })
     assert.equal((await page.evaluate(() => navigator.clipboard.readText())).trim(), expected)
   })
 
@@ -152,17 +204,20 @@ try {
       await writeFile(fixture, '# Browser live update\n\nInitial mounted browser content.\n')
     }
     await openArticle(page, articlePath, 'Browser live update')
+    await waitForMarkdownText(page, 'Initial mounted browser content.')
     assert.ok((await page.locator('.markdown-section').innerText()).includes('Initial mounted browser content.'))
     if (remoteFixture) {
       console.log('READY remote fixture mounted initial content')
-      await page.waitForFunction(async path => {
-        const response = await fetch(path + '.md', { cache: 'no-store' })
+      await waitForAsyncCondition(remaining => page.evaluate(async ({ path, remaining }) => {
+        const response = await fetch(path + '.md', { cache: 'no-store', signal: AbortSignal.timeout(remaining) })
         return response.ok && (await response.text()).includes('Revised mounted browser content.')
-      }, articlePath, { timeout: 60_000, polling: 1000 })
+      }, { path: articlePath, remaining }),
+      { timeout: 60_000, description: 'remote fixture to contain Revised mounted browser content.' })
     } else {
       await writeFile(fixture, '# Browser live update\n\nRevised mounted browser content.\n')
     }
     await page.reload({ waitUntil: 'networkidle' })
+    await waitForMarkdownText(page, 'Revised mounted browser content.')
     const content = await page.locator('.markdown-section').innerText()
     assert.ok(content.includes('Revised mounted browser content.'))
     assert.ok(!content.includes('Initial mounted browser content.'))
@@ -178,14 +233,24 @@ try {
     })
     await observe(mobile)
     const mobilePage = await mobile.newPage()
+    mobilePage.setDefaultTimeout(timeoutMs)
+    mobilePage.setDefaultNavigationTimeout(timeoutMs)
     await mobilePage.goto(baseURL + '/docs/', { waitUntil: 'networkidle' })
+    await waitForMarkdownText(mobilePage, '推荐阅读顺序')
     await mobilePage.locator('.sidebar-toggle').click()
     await mobilePage.locator('.sidebar-nav').getByRole('link', { name: '快速开始', exact: true }).click()
     await mobilePage.getByRole('heading', { level: 1, name: '快速开始', exact: true }).waitFor()
     assert.equal(new URL(mobilePage.url()).pathname, '/docs/quick-start', 'mobile navigation failed')
-    for (const path of ['/docs/', '/docs/quick-start', '/docs/scenarios/lark-images']) {
+    for (const [path, expectedText] of [
+      ['/docs/', '推荐阅读顺序'],
+      ['/docs/quick-start', 'Base URL 是接口地址'],
+      ['/docs/scenarios/lark-images', '飞书多维表格图片生成'],
+    ]) {
       await mobilePage.goto(baseURL + path, { waitUntil: 'networkidle' })
-      await mobilePage.locator('.markdown-section').waitFor({ state: 'visible' })
+      await waitForMarkdownText(mobilePage, expectedText)
+      if (path === '/docs/scenarios/lark-images') {
+        await mobilePage.locator('.markdown-section .mermaid svg').first().waitFor({ state: 'visible' })
+      }
       const dimensions = await mobilePage.evaluate(() => ({
         viewport: document.documentElement.clientWidth,
         document: document.documentElement.scrollWidth,

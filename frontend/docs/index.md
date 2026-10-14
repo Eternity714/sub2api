@@ -22,7 +22,7 @@
 
 > **根据协议选择地址**
 >
-> API 服务地址是 **`https://www.gkotta.bid`**。OpenAI 兼容客户端通常填写 `https://www.gkotta.bid/v1`；Claude Code 填写根地址。具体路径见相应教程。
+> API 服务地址是 `https://www.gkotta.bid`。OpenAI 兼容客户端通常填写 `https://www.gkotta.bid/v1`；Claude Code 填写根地址。具体路径见相应教程。
 
 ## 推荐阅读顺序
 

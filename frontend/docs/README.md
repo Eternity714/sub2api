@@ -80,6 +80,8 @@ Docsify 的入口页面和固定静态运行资源位于镜像中的 `/opt/docsi
 
 将同一发布版本的 `gray-docsify-common.sh`、`gray-docsify-nginx-install.py`、`gray-docsify-status.sh`、`gray-deploy-docsify.sh`、`gray-set-docsify-traffic.sh` 和 `gray-promote-docsify.sh` 安装在已有的 `/opt/sub2api/scripts` 目录，保留已有 `gray-common.sh` 和主应用灰度脚本。服务器需要 `python3`、`flock`、Podman、curl 和免交互 sudo。`Publish Docsify GHCR Image` workflow 在 `main` 或 `codex/**` 分支的相关变更推送后验证并发布 `sha-<完整提交SHA>` 镜像；部署时把下面的标签占位符替换为 workflow 输出的实际标签。
 
+2026-10-14 首次发布时，GitHub 平台拒绝运行本仓库 Actions，手动触发返回 `HTTP 422: Actions has been disabled for this repository`。本次通过 Docker 构建并由生产服务器现有 Podman GHCR 登录发布固定 SHA 镜像；自动工作流恢复前，运行时或镜像更新需手动发布。已挂载的 Markdown、导航和图片更新不受此限制。
+
 ```bash
 cd /opt/sub2api
 ./scripts/gray-status.sh
