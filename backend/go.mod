@@ -18,6 +18,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/coder/websocket v1.8.14
 	github.com/dgraph-io/ristretto v0.2.0
+	github.com/gabriel-vasile/mimetype v1.4.2
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-playground/validator/v10 v10.14.0
 	github.com/go-webauthn/webauthn v0.17.4
@@ -113,7 +114,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

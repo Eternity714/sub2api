@@ -103,6 +103,31 @@ export default {
         testFailed: 'S3 连接测试失败',
         saved: 'S3 配置已保存'
       },
+      mediaUploadStorage: {
+        description: '为上传接口单独配置 S3 兼容存储，图片、视频、音频分别保存。配置保存后立即生效。',
+        enabled: '启用上传',
+        reuseBackupS3: '复用上方备份的 S3 配置',
+        reuseHint: '开启复用后使用备份的端点和凭证，仍可单独设置存储桶、前缀和访问链接。',
+        maxUploadMB: '单文件大小上限（MB）',
+        sizeHint: '支持 1–1024 MB 的整数，1 MB = 1,048,576 字节。',
+        invalidSize: '文件大小上限必须为 1–1024 MB 的整数',
+        invalidExpiry: '预签名链接有效期必须为 1–168 小时的整数',
+        loadFailed: '上传存储配置加载失败，请重试',
+        retry: '重试',
+        saved: '上传对象存储配置已保存',
+        images: {
+          title: '图片上传对象存储',
+          formats: '支持 JPEG、PNG、WebP、GIF'
+        },
+        videos: {
+          title: '视频上传对象存储',
+          formats: '支持 MP4、WebM、MOV'
+        },
+        audios: {
+          title: '音频上传对象存储',
+          formats: '支持 MP3、WAV、M4A'
+        }
+      },
       imageStorage: {
         title: '异步生图对象存储',
         description: '开启后，异步生图接口可用，生成结果转存到对象存储，只把短链接写入 Redis。与备份共用同一套 S3 客户端，保存后立即生效，无需重启。',
