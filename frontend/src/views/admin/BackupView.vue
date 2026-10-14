@@ -54,6 +54,13 @@
         </div>
       </div>
 
+      <MediaUploadStorageSettings
+        v-for="kind in mediaUploadKinds"
+        :key="kind"
+        :kind="kind"
+        :run-step-up="backupStepUp.run"
+      />
+
       <!-- Async image object storage -->
       <div class="card p-6">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -425,14 +432,17 @@ import type {
   BackupRecord,
   BackupDownloadPart,
   ImageStorageConfig,
+  MediaUploadKind,
 } from '@/api/admin/backup'
 import { useStepUp, isStepUpBlocked, isStepUpCancelled, stepUpBlockReason } from '@/composables/useStepUp'
 import TotpStepUpDialog from '@/components/auth/TotpStepUpDialog.vue'
 import BackupArchiveSettings from '@/components/admin/BackupArchiveSettings.vue'
+import MediaUploadStorageSettings from '@/components/admin/MediaUploadStorageSettings.vue'
 
 const { t } = useI18n()
 const appStore = useAppStore()
 const backupStepUp = useStepUp()
+const mediaUploadKinds: MediaUploadKind[] = ['images', 'videos', 'audios']
 
 // 敏感操作被 2FA 门控拦截时的统一提示。
 function reportStepUpBlocked(error: unknown): boolean {

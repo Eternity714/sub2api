@@ -140,6 +140,51 @@ export async function testImageStorageConnection(
   return data
 }
 
+// Upload storage is configured independently for each media kind.
+export type MediaUploadKind = 'images' | 'videos' | 'audios'
+
+export interface MediaUploadStorageConfig {
+  enabled: boolean
+  reuse_backup_s3: boolean
+  endpoint: string
+  region: string
+  bucket: string
+  access_key_id: string
+  secret_access_key?: string
+  force_path_style: boolean
+  prefix: string
+  public_base_url: string
+  presign_expiry_hours: number
+  max_upload_bytes: number
+}
+
+export interface MediaUploadStorageConfigResponse {
+  config: MediaUploadStorageConfig
+  // The media kind's own secret, independent of whether backup S3 is selected.
+  secret_configured: boolean
+}
+
+export async function getMediaUploadStorageConfig(kind: MediaUploadKind): Promise<MediaUploadStorageConfigResponse> {
+  const { data } = await apiClient.get<MediaUploadStorageConfigResponse>(`/admin/backups/media-upload-storage/${kind}`)
+  return data
+}
+
+export async function updateMediaUploadStorageConfig(
+  kind: MediaUploadKind,
+  config: MediaUploadStorageConfig,
+): Promise<MediaUploadStorageConfig> {
+  const { data } = await apiClient.put<MediaUploadStorageConfig>(`/admin/backups/media-upload-storage/${kind}`, config)
+  return data
+}
+
+export async function testMediaUploadStorageConnection(
+  kind: MediaUploadKind,
+  config: MediaUploadStorageConfig,
+): Promise<TestS3Response> {
+  const { data } = await apiClient.post<TestS3Response>(`/admin/backups/media-upload-storage/${kind}/test`, config)
+  return data
+}
+
 // Schedule
 export async function getSchedule(): Promise<BackupScheduleConfig> {
   const { data } = await apiClient.get<BackupScheduleConfig>('/admin/backups/schedule')
@@ -189,6 +234,9 @@ export const backupAPI = {
   getImageStorageConfig,
   updateImageStorageConfig,
   testImageStorageConnection,
+  getMediaUploadStorageConfig,
+  updateMediaUploadStorageConfig,
+  testMediaUploadStorageConnection,
   getSchedule,
   updateSchedule,
   createBackup,
