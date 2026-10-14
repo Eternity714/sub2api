@@ -6,6 +6,10 @@ import BackupView from '../BackupView.vue'
 const {
   getS3Config,
   getImageStorageConfig,
+  getMediaUploadStorageConfig,
+  updateMediaUploadStorageConfig,
+  testMediaUploadStorageConnection,
+  stepUpRun,
   getSchedule,
   updateSchedule,
   deleteBackup,
@@ -14,6 +18,10 @@ const {
 } = vi.hoisted(() => ({
   getS3Config: vi.fn(),
   getImageStorageConfig: vi.fn(),
+  getMediaUploadStorageConfig: vi.fn(),
+  updateMediaUploadStorageConfig: vi.fn(),
+  testMediaUploadStorageConnection: vi.fn(),
+  stepUpRun: vi.fn((fn: () => unknown) => fn()),
   getSchedule: vi.fn(),
   updateSchedule: vi.fn(),
   deleteBackup: vi.fn(),
@@ -30,6 +38,9 @@ vi.mock('@/api', () => ({
       getImageStorageConfig,
       updateImageStorageConfig: vi.fn(),
       testImageStorageConnection: vi.fn(),
+      getMediaUploadStorageConfig,
+      updateMediaUploadStorageConfig,
+      testMediaUploadStorageConnection,
       getSchedule,
       updateSchedule,
       createBackup: vi.fn(),
@@ -51,7 +62,7 @@ vi.mock('@/stores', () => ({
 }))
 
 vi.mock('@/composables/useStepUp', () => ({
-  useStepUp: () => ({ run: (fn: () => unknown) => fn() }),
+  useStepUp: () => ({ run: stepUpRun }),
   isStepUpBlocked: () => false,
   isStepUpCancelled: () => false,
   stepUpBlockReason: () => '',
@@ -94,6 +105,20 @@ describe('admin BackupView', () => {
   beforeEach(() => {
     getS3Config.mockResolvedValue({})
     getImageStorageConfig.mockResolvedValue({ config: {}, secret_configured: false })
+    const mediaConfigs = new Map<string, { config: object; secret_configured: boolean }>()
+    getMediaUploadStorageConfig.mockReset().mockImplementation((kind: string) => Promise.resolve(mediaConfigs.get(kind) || { config: {
+      enabled: false, reuse_backup_s3: false, endpoint: '', region: 'auto', bucket: '',
+      access_key_id: '', force_path_style: false, prefix: `uploads/${kind}/`,
+      public_base_url: '', presign_expiry_hours: 24,
+      max_upload_bytes: kind === 'images' ? 10485760 : 52428800,
+    }, secret_configured: false }))
+    updateMediaUploadStorageConfig.mockReset().mockImplementation((kind: string, config: Record<string, unknown>) => {
+      const { secret_access_key, ...publicConfig } = config
+      mediaConfigs.set(kind, { config: publicConfig, secret_configured: Boolean(secret_access_key) || !!mediaConfigs.get(kind)?.secret_configured })
+      return Promise.resolve(publicConfig)
+    })
+    testMediaUploadStorageConnection.mockReset().mockResolvedValue({ ok: true, message: 'connected' })
+    stepUpRun.mockClear()
     getSchedule.mockResolvedValue({ enabled: false, cron_expr: '', retain_days: 14, retain_count: 10 })
     updateSchedule.mockReset().mockResolvedValue({})
     deleteBackup.mockReset().mockResolvedValue(undefined)
@@ -106,6 +131,113 @@ describe('admin BackupView', () => {
     wrappers.splice(0).forEach(wrapper => wrapper.unmount())
     vi.restoreAllMocks()
     document.body.innerHTML = ''
+  })
+
+  it('三类上传存储独立配置，只有打开复用开关才隐藏该类 S3 凭证', async () => {
+    const wrapper = mountBackupView()
+    await flushPromises()
+    for (const kind of ['images', 'videos', 'audios']) {
+      const card = wrapper.get(`[data-testid="media-upload-storage-${kind}"]`)
+      expect((card.get('[data-field="reuse-backup-s3"]').element as HTMLInputElement).checked).toBe(false)
+      expect(card.find('[data-field="endpoint"]').exists()).toBe(true)
+    }
+    const images = wrapper.get('[data-testid="media-upload-storage-images"]')
+    await images.get('[data-field="reuse-backup-s3"]').setValue(true)
+    expect(images.find('[data-field="endpoint"]').exists()).toBe(false)
+    expect(images.find('[data-field="secret-access-key"]').exists()).toBe(false)
+    expect(images.find('[data-field="bucket"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="media-upload-storage-videos"]').find('[data-field="endpoint"]').exists()).toBe(true)
+  })
+
+  it('上传上限按 MB 编辑并按字节独立保存，通过现有二次认证保护', async () => {
+    const wrapper = mountBackupView()
+    await flushPromises()
+    const images = wrapper.get('[data-testid="media-upload-storage-images"]')
+    const videos = wrapper.get('[data-testid="media-upload-storage-videos"]')
+    expect((images.get('[data-field="max-upload-mb"]').element as HTMLInputElement).value).toBe('10')
+    expect((videos.get('[data-field="max-upload-mb"]').element as HTMLInputElement).value).toBe('50')
+    await videos.get('[data-field="max-upload-mb"]').setValue(75)
+    await videos.get('[data-field="prefix"]').setValue('custom/videos/')
+    await videos.get('[data-action="save"]').trigger('click')
+    await flushPromises()
+    expect(stepUpRun).toHaveBeenCalledTimes(1)
+    expect(updateMediaUploadStorageConfig).toHaveBeenCalledTimes(1)
+    expect(updateMediaUploadStorageConfig).toHaveBeenCalledWith('videos', expect.objectContaining({
+      max_upload_bytes: 78643200, prefix: 'custom/videos/', reuse_backup_s3: false,
+    }))
+    expect((images.get('[data-field="max-upload-mb"]').element as HTMLInputElement).value).toBe('10')
+    expect((videos.get('[data-field="max-upload-mb"]').element as HTMLInputElement).value).toBe('75')
+  })
+
+  it('非法文件上限和链接有效期阻止保存与连接测试', async () => {
+    const wrapper = mountBackupView()
+    await flushPromises()
+    const card = wrapper.get('[data-testid="media-upload-storage-audios"]')
+    for (const value of ['0', '-1', '1025', '1.5', '']) {
+      await card.get('[data-field="max-upload-mb"]').setValue(value)
+      expect(card.get('[data-action="save"]').attributes('disabled')).toBeDefined()
+      expect(card.get('[data-action="test"]').attributes('disabled')).toBeDefined()
+      expect(card.find('[role="alert"]').exists()).toBe(true)
+    }
+    await card.get('[data-field="max-upload-mb"]').setValue(1024)
+    await card.get('[data-field="presign-expiry-hours"]').setValue(169)
+    expect(card.get('[data-action="save"]').attributes('disabled')).toBeDefined()
+    await card.get('[data-field="presign-expiry-hours"]').setValue(24)
+    expect(card.get('[data-action="save"]').attributes('disabled')).toBeUndefined()
+    expect(updateMediaUploadStorageConfig).not.toHaveBeenCalled()
+    expect(testMediaUploadStorageConnection).not.toHaveBeenCalled()
+  })
+
+  it('已保存的密钥只提示已配置，更新后清空密钥输入', async () => {
+    getMediaUploadStorageConfig.mockResolvedValue({ config: {
+      enabled: true, reuse_backup_s3: false, endpoint: 'https://s3.example.test', region: 'auto',
+      bucket: 'media', access_key_id: 'key', force_path_style: false, prefix: 'uploads/',
+      public_base_url: '', presign_expiry_hours: 24, max_upload_bytes: 10485760,
+    }, secret_configured: true })
+    const wrapper = mountBackupView()
+    await flushPromises()
+    const card = wrapper.get('[data-testid="media-upload-storage-images"]')
+    const secret = card.get('[data-field="secret-access-key"]')
+    expect((secret.element as HTMLInputElement).value).toBe('')
+    expect(secret.attributes('placeholder')).toBe('admin.backup.s3.secretConfigured')
+    await secret.setValue('new-secret')
+    await card.get('[data-action="save"]').trigger('click')
+    await flushPromises()
+    expect(updateMediaUploadStorageConfig).toHaveBeenCalledWith('images', expect.objectContaining({ secret_access_key: 'new-secret' }))
+    expect((secret.element as HTMLInputElement).value).toBe('')
+  })
+
+  it('保存后重新读取独立密钥状态，取消复用不会错误提示已配置', async () => {
+    const config = {
+      enabled: false, reuse_backup_s3: false, endpoint: 'https://s3.example.test', region: 'auto',
+      bucket: 'media', access_key_id: 'key', force_path_style: false, prefix: 'uploads/images/',
+      public_base_url: '', presign_expiry_hours: 24, max_upload_bytes: 10485760,
+    }
+    getMediaUploadStorageConfig.mockResolvedValue({ config, secret_configured: true })
+    const wrapper = mountBackupView()
+    await flushPromises()
+    const card = wrapper.get('[data-testid="media-upload-storage-images"]')
+    expect(card.get('[data-field="secret-access-key"]').attributes('placeholder')).toBe('admin.backup.s3.secretConfigured')
+    await card.get('[data-field="reuse-backup-s3"]').setValue(true)
+    getMediaUploadStorageConfig.mockResolvedValue({ config: { ...config, reuse_backup_s3: true }, secret_configured: false })
+    await card.get('[data-action="save"]').trigger('click')
+    await flushPromises()
+    await card.get('[data-field="reuse-backup-s3"]').setValue(false)
+    expect(card.get('[data-field="secret-access-key"]').attributes('placeholder')).toBe('')
+  })
+
+  it('连接测试使用当前类别的未保存配置，并保留独立的其他表单', async () => {
+    const wrapper = mountBackupView()
+    await flushPromises()
+    const card = wrapper.get('[data-testid="media-upload-storage-audios"]')
+    await card.get('[data-field="bucket"]').setValue('audio-files')
+    await card.get('[data-field="max-upload-mb"]').setValue(100)
+    await card.get('[data-action="test"]').trigger('click')
+    await flushPromises()
+    expect(testMediaUploadStorageConnection).toHaveBeenCalledTimes(1)
+    expect(testMediaUploadStorageConnection).toHaveBeenCalledWith('audios', expect.objectContaining({ bucket: 'audio-files', max_upload_bytes: 104857600 }))
+    expect(updateMediaUploadStorageConfig).not.toHaveBeenCalled()
+    expect((wrapper.get('[data-testid="media-upload-storage-images"] [data-field="bucket"]').element as HTMLInputElement).value).toBe('')
   })
 
   it.each(['backup', 'restore'])('does not resume %s polling after navigation during initial loading', async (operation) => {

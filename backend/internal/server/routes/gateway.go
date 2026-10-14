@@ -176,6 +176,13 @@ func RegisterGatewayRoutes(
 		}
 	}
 
+	// Reference uploads use per-kind limits and storage, without model routing.
+	uploads := r.Group("/v1/uploads")
+	uploads.Use(clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth))
+	uploads.POST("/images", h.MediaUpload.Images)
+	uploads.POST("/videos", h.MediaUpload.Videos)
+	uploads.POST("/audios", h.MediaUpload.Audios)
+
 	// API网关（Claude API兼容）
 	gateway := r.Group("/v1")
 	gateway.Use(bodyLimit)

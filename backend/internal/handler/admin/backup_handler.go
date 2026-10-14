@@ -1,6 +1,9 @@
 package admin
 
 import (
+	"errors"
+	"net/http"
+
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -11,13 +14,15 @@ type BackupHandler struct {
 	backupService *service.BackupService
 	userService   *service.UserService
 	imageStorage  *service.ImageStorageSettingService
+	uploadStorage *service.MediaUploadSettingService
 }
 
-func NewBackupHandler(backupService *service.BackupService, userService *service.UserService, imageStorage *service.ImageStorageSettingService) *BackupHandler {
+func NewBackupHandler(backupService *service.BackupService, userService *service.UserService, imageStorage *service.ImageStorageSettingService, uploadStorage *service.MediaUploadSettingService) *BackupHandler {
 	return &BackupHandler{
 		backupService: backupService,
 		userService:   userService,
 		imageStorage:  imageStorage,
+		uploadStorage: uploadStorage,
 	}
 }
 
@@ -255,4 +260,73 @@ func (h *BackupHandler) TestImageStorageConnection(c *gin.Context) {
 		return
 	}
 	response.Success(c, gin.H{"ok": true, "message": "connection successful"})
+}
+
+// Media uploads have independent credentials and limits for each media kind.
+func (h *BackupHandler) GetMediaUploadStorageConfig(c *gin.Context) {
+	kind, ok := h.mediaUploadKind(c)
+	if !ok {
+		return
+	}
+	ctx := c.Request.Context()
+	cfg, err := h.uploadStorage.Get(ctx, kind)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"config": cfg, "secret_configured": h.uploadStorage.SecretConfigured(ctx, kind)})
+}
+
+func (h *BackupHandler) UpdateMediaUploadStorageConfig(c *gin.Context) {
+	kind, ok := h.mediaUploadKind(c)
+	if !ok {
+		return
+	}
+	var req service.MediaUploadStorageSettings
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	cfg, err := h.uploadStorage.Update(c.Request.Context(), kind, req)
+	if err != nil {
+		if errors.Is(err, service.ErrMediaUploadInvalidConfig) {
+			response.BadRequest(c, err.Error())
+		} else {
+			response.ErrorFrom(c, err)
+		}
+		return
+	}
+	response.Success(c, cfg)
+}
+
+func (h *BackupHandler) TestMediaUploadStorageConnection(c *gin.Context) {
+	kind, ok := h.mediaUploadKind(c)
+	if !ok {
+		return
+	}
+	var req service.MediaUploadStorageSettings
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if err := h.uploadStorage.TestConnection(c.Request.Context(), kind, req); err != nil {
+		response.Success(c, gin.H{"ok": false, "message": err.Error()})
+		return
+	}
+	response.Success(c, gin.H{"ok": true, "message": "connection successful"})
+}
+
+func (h *BackupHandler) mediaUploadKind(c *gin.Context) (service.MediaUploadKind, bool) {
+	kind := service.MediaUploadKind(c.Param("kind"))
+	switch kind {
+	case service.MediaUploadImages, service.MediaUploadVideos, service.MediaUploadAudios:
+	default:
+		response.BadRequest(c, "Unsupported media kind")
+		return "", false
+	}
+	if h.uploadStorage == nil {
+		response.Error(c, http.StatusServiceUnavailable, "Upload storage is unavailable")
+		return "", false
+	}
+	return kind, true
 }

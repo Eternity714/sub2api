@@ -103,6 +103,31 @@ export default {
         testFailed: 'S3 connection test failed',
         saved: 'S3 configuration saved'
       },
+      mediaUploadStorage: {
+        description: 'Configure S3-compatible storage for uploads. Images, videos, and audio have separate settings that take effect on save.',
+        enabled: 'Enable uploads',
+        reuseBackupS3: 'Reuse the backup S3 configuration above',
+        reuseHint: 'Reuse the backup endpoint and credentials while keeping a separate bucket, prefix, and access links.',
+        maxUploadMB: 'Maximum file size (MB)',
+        sizeHint: 'Enter a whole number from 1 to 1024 MB. 1 MB = 1,048,576 bytes.',
+        invalidSize: 'Maximum file size must be a whole number from 1 to 1024 MB',
+        invalidExpiry: 'Presigned link expiry must be a whole number from 1 to 168 hours',
+        loadFailed: 'Failed to load upload storage settings. Please retry.',
+        retry: 'Retry',
+        saved: 'Upload storage configuration saved',
+        images: {
+          title: 'Image upload storage',
+          formats: 'Supports JPEG, PNG, WebP, GIF'
+        },
+        videos: {
+          title: 'Video upload storage',
+          formats: 'Supports MP4, WebM, MOV'
+        },
+        audios: {
+          title: 'Audio upload storage',
+          formats: 'Supports MP3, WAV, M4A'
+        }
+      },
       imageStorage: {
         title: 'Async image object storage',
         description: 'Enables the asynchronous image endpoints and offloads generated images to object storage, keeping only short links in Redis. Shares the S3 client with backups and takes effect on save — no restart needed.',
