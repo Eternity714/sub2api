@@ -151,4 +151,4 @@ Chat Completions 的 SSE 数据通常从 `choices[0].delta` 读取，并以 `dat
 
 参数支持范围由模型决定，`temperature`、输出长度、工具调用等选项并非对所有模型通用。先验证最小文本请求，再逐项添加参数。
 
-费用以[使用记录](https://www.gkotta.bid/usage)为准；权限、额度和重试建议见[常见问题](/troubleshooting)。
+费用以[使用记录](https://www.gkotta.bid/usage)为准；权限、额度和重试建议见[常见问题](/docs/troubleshooting)。

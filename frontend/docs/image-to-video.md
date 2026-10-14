@@ -1,14 +1,12 @@
----
-description: 使用 Seedance 首帧图片或 Grok 图片输入，将静态图片生成视频。
----
-
 # 图片转视频
+
+使用 Seedance 首帧图片或 Grok 图片输入，将静态图片生成视频。
 
 图片转视频以一张输入图片作为画面参考，再通过提示词描述主体、镜头和场景如何运动。Gkotta 已提供 Seedance 首帧图片请求和 Grok 图片输入请求，选择与你的密钥分组对应的协议即可。
 
 ## 准备输入图片
 
-可以使用已有图片，也可以先按[图片生成与编辑](/image-generate)创建一张图片。选择主体清楚、尺寸符合模型要求的输入，先用短视频验证效果。
+可以使用已有图片，也可以先按[图片生成与编辑](/docs/image-generate)创建一张图片。选择主体清楚、尺寸符合模型要求的输入，先用短视频验证效果。
 
 将图片放在视频渠道能够直接访问的 HTTPS 地址。`C:\Pictures\source.png`、`file://` 路径、需要网页登录的地址以及只能在本机访问的 URL 都不能直接填进示例中的图片地址字段。
 
@@ -65,7 +63,7 @@ curl --fail-with-body "https://www.gkotta.bid/api/v3/contents/generations/tasks/
 curl --fail-with-body "YOUR_RETURNED_CONTENT_VIDEO_URL" -o image-to-video.mp4
 ```
 
-下载渠道返回的结果 URL 时不附加 Gkotta 密钥。`failed`、`cancelled`、`expired` 为需要停止轮询并检查原因的状态。参数扩展、完整状态和取消操作见 [Seedance API](/seedance-api)。
+下载渠道返回的结果 URL 时不附加 Gkotta 密钥。`failed`、`cancelled`、`expired` 为需要停止轮询并检查原因的状态。参数扩展、完整状态和取消操作见 [Seedance API](/docs/seedance-api)。
 
 ### Windows PowerShell
 
@@ -140,7 +138,7 @@ curl --fail-with-body "https://www.gkotta.bid/v1/videos/$GKOTTA_VIDEO_TASK/conte
   -o grok-image-to-video.mp4
 ```
 
-`pending` 时继续按间隔查询；`failed` 或 `expired` 时读取错误内容。完整查询、编辑与续写步骤见[视频生成](/video-generation)，其中视频编辑和续写要求 Grok 渠道；组合分组必须有匹配并指向 Grok 的模型路由。
+`pending` 时继续按间隔查询；`failed` 或 `expired` 时读取错误内容。完整查询、编辑与续写步骤见[视频生成](/docs/video-generation)，其中视频编辑和续写要求 Grok 渠道；组合分组必须有匹配并指向 Grok 的模型路由。
 
 ## 改进效果与排错
 
@@ -151,4 +149,4 @@ curl --fail-with-body "https://www.gkotta.bid/v1/videos/$GKOTTA_VIDEO_TASK/conte
 - **视频处理失败**：读取最终状态和错误信息，检查图片、提示词及模型参数后再新建任务。
 - **请求超时**：保留已经返回的任务 ID，先查询原任务，避免重复创建产生额外消耗。
 
-完成后及时保存视频，在[使用记录](https://www.gkotta.bid/usage)核对结果和费用；更多接入问题见[常见问题](/troubleshooting)。
+完成后及时保存视频，在[使用记录](https://www.gkotta.bid/usage)核对结果和费用；更多接入问题见[常见问题](/docs/troubleshooting)。

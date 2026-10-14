@@ -15,9 +15,9 @@ Gkotta 提供 OpenAI、Anthropic 和 Gemini 兼容接口。先准备账号、API
 
 | 使用方式 | 地址 | 进一步阅读 |
 | --- | --- | --- |
-| OpenAI SDK、Codex、OpenAI 兼容客户端 | `https://www.gkotta.bid/v1` | [OpenAI API](/openai-api) |
-| Anthropic SDK、Claude Code | `https://www.gkotta.bid` | [Anthropic API](/anthropic-api) |
-| Gemini 原生 HTTP 请求 | `https://www.gkotta.bid/v1beta` | [Gemini API](/gemini-api) |
+| OpenAI SDK、Codex、OpenAI 兼容客户端 | `https://www.gkotta.bid/v1` | [OpenAI API](/docs/openai-api) |
+| Anthropic SDK、Claude Code | `https://www.gkotta.bid` | [Anthropic API](/docs/anthropic-api) |
+| Gemini 原生 HTTP 请求 | `https://www.gkotta.bid/v1beta` | [Gemini API](/docs/gemini-api) |
 
 Base URL 是接口地址，不是文档或控制台地址。不要填写 `/docs`、`/keys`，也不要在客户端自动追加 `/v1` 时重复填写该路径。
 
@@ -75,13 +75,13 @@ $response.choices[0].message.content
 
 打开[使用记录](https://www.gkotta.bid/usage)，核对请求时间、密钥、模型、Token 用量和费用。模型列表返回成功只表示模型查询成功；生成请求还会检查分组权限、账户余额或订阅额度，以及密钥自身的配额和有效期。
 
-若第一次请求失败，先看响应中的错误消息，再查看[常见问题](/troubleshooting)。不要反复提交同一条失败请求。
+若第一次请求失败，先看响应中的错误消息，再查看[常见问题](/docs/troubleshooting)。不要反复提交同一条失败请求。
 
 ## 接下来做什么
 
-- 使用编程工具：阅读 [Claude Code](/claude-code) 或 [Codex](/codex)。
-- 使用桌面客户端或编辑器：阅读[常用客户端](/clients)。
-- 管理不同项目的凭证：阅读[API 密钥管理](/api-keys)。
-- 了解费用和限额：阅读[计费与用量](/billing)。
+- 使用编程工具：阅读 [Claude Code](/docs/claude-code) 或 [Codex](/docs/codex)。
+- 使用桌面客户端或编辑器：阅读[常用客户端](/docs/clients)。
+- 管理不同项目的凭证：阅读[API 密钥管理](/docs/api-keys)。
+- 了解费用和限额：阅读[计费与用量](/docs/billing)。
 
 密钥仅应放在你控制的本地工具或服务端。避免把真实密钥写进网页前端、公开仓库、截图或分享的配置文件。

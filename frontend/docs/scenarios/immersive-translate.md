@@ -51,4 +51,4 @@
 
 - [OpenAI 翻译服务与自定义地址](https://immersivetranslate.com/docs/services/openai/)
 - [沉浸式翻译文档](https://immersivetranslate.com/docs/)
-- [Gkotta OpenAI API](/openai-api)
+- [Gkotta OpenAI API](/docs/openai-api)

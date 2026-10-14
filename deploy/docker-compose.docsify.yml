@@ -1,0 +1,24 @@
+# Standalone documentation, independent of the application/database services.
+services:
+  docsify:
+    image: ${DOCSIFY_IMAGE:-sub2api-docsify:local}
+    build:
+      context: ..
+      dockerfile: deploy/docsify/Dockerfile
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    cap_drop: [ALL]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
+    ports:
+      - "127.0.0.1:${DOCSIFY_PORT:-18083}:8080"
+    volumes:
+      - ${DOCSIFY_CONTENT_DIR:-../frontend/docs}:/usr/share/nginx/html/docs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "4", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

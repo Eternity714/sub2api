@@ -81,11 +81,11 @@ $env:GKOTTA_API_KEY = "sk-YOUR_API_KEY"
 
 这套字段来自[官方自定义供应商文档](https://docs.openclaw.ai/concepts/model-providers/custom-providers)：`baseUrl` 是协议的基础地址，`api` 选择请求格式，`models` 注册可选模型。`agents.defaults.model.primary` 中的供应商 ID 与模型 ID 必须与下方配置一致。
 
-`openai-completions` 在 OpenClaw 中表示 OpenAI 兼容对话协议，目标请求为 `/v1/chat/completions`。如果准备使用其他协议，先查看其配置规范及[Gkotta API 文档](/openai-api)，不要仅修改地址而保留错误的请求格式。
+`openai-completions` 在 OpenClaw 中表示 OpenAI 兼容对话协议，目标请求为 `/v1/chat/completions`。如果准备使用其他协议，先查看其配置规范及[Gkotta API 文档](/docs/openai-api)，不要仅修改地址而保留错误的请求格式。
 
 ## 通过 CC Switch 配置
 
-也可以安装 [CC Switch](/cc-switch)，选择 OpenClaw，添加自定义供应商：
+也可以安装 [CC Switch](/docs/cc-switch)，选择 OpenClaw，添加自定义供应商：
 
 | 字段 | 内容 |
 | --- | --- |
@@ -121,6 +121,6 @@ openclaw dashboard
 | 缺少密钥或 401 | 检查 `${GKOTTA_API_KEY}` 在当前网关进程中是否存在 |
 | 返回 404 | 检查 Base URL、协议、真实模型 ID，避免重复 `/v1` |
 | 文本正常，工具失败 | 确认模型支持工具调用，再检查 OpenClaw 工具权限与执行环境 |
-| 403 / 429 | 核对密钥分组、IP 限制、额度和并发，见[常见问题](/troubleshooting) |
+| 403 / 429 | 核对密钥分组、IP 限制、额度和并发，见[常见问题](/docs/troubleshooting) |
 
 完整管理方式见[项目仓库](https://github.com/openclaw/openclaw)、[模型供应商说明](https://docs.openclaw.ai/concepts/model-providers)和[配置参考](https://docs.openclaw.ai/gateway/configuration)。

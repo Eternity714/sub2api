@@ -50,4 +50,4 @@ HIDE_USER_API_KEY=1
 
 - [NextChat 环境变量与部署说明](https://github.com/ChatGPTNextWeb/NextChat#environment-variables)
 - [官方服务器代理的路径拼接实现](https://github.com/ChatGPTNextWeb/NextChat/blob/main/app/api/common.ts)
-- [Gkotta OpenAI API](/openai-api)
+- [Gkotta OpenAI API](/docs/openai-api)

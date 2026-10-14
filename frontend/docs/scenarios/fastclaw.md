@@ -31,7 +31,7 @@ FastClaw 的管理员令牌用于管理本地服务，Gkotta API Key 用于支�
 
 ## 验证请求
 
-1. 先使用[OpenAI API](/openai-api)中的最小请求确认密钥和模型可用。
+1. 先使用[OpenAI API](/docs/openai-api)中的最小请求确认密钥和模型可用。
 2. 在 Agent 的 Chat 页面发送“只回复 Hello，不调用工具”。
 3. 在 Gkotta [使用记录](https://www.gkotta.bid/usage)检查实际模型和密钥。
 4. 简单聊天成功后，再测试 Agent 工具。所选模型必须支持客户端要求的工具调用格式。
@@ -46,6 +46,6 @@ IM Channels、沙箱、文件访问与定时任务在 FastClaw 内单独配置�
 | 模型请求 401 | 检查供应商栏中的 Gkotta 密钥及服务实际加载的配置 |
 | 配置已修改但请求走旧地址 | 检查 Agent 层覆盖项；按官方提示重载或重启 FastClaw |
 | 普通聊天成功但工具失败 | 检查模型工具能力、FastClaw 工具权限和本地依赖 |
-| 找不到模型 | 核对分组、实际模型 ID，见[API 密钥与分组](/api-keys) |
+| 找不到模型 | 核对分组、实际模型 ID，见[API 密钥与分组](/docs/api-keys) |
 
-官方配置、存储及平台支持说明见[FastClaw README](https://github.com/fastclaw-ai/fastclaw#configuration)，额度和网络排错见[常见问题](/troubleshooting)。
+官方配置、存储及平台支持说明见[FastClaw README](https://github.com/fastclaw-ai/fastclaw#configuration)，额度和网络排错见[常见问题](/docs/troubleshooting)。

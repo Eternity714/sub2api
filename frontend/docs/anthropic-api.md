@@ -125,6 +125,6 @@ curl --no-buffer --fail-with-body "https://www.gkotta.bid/v1/messages" \
 - **路径出现 `/v1/v1/messages`**：SDK Base URL 改为 `https://www.gkotta.bid`。
 - **模型或参数不支持**：检查当前分组、模型 ID 和该模型支持的内容类型，先测试最小文本请求。
 - **没有有效订阅**：密钥可能绑定订阅分组，到[我的订阅](https://www.gkotta.bid/subscriptions)确认该分组状态。
-- **401、403、429**：结合完整响应区分密钥无效、有效期、IP 限制、余额、配额和周期限额，参见[常见问题](/troubleshooting)。
+- **401、403、429**：结合完整响应区分密钥无效、有效期、IP 限制、余额、配额和周期限额，参见[常见问题](/docs/troubleshooting)。
 
-使用 Claude Code 的终端及文件配置见 [Claude Code 教程](/claude-code)。
+使用 Claude Code 的终端及文件配置见 [Claude Code 教程](/docs/claude-code)。

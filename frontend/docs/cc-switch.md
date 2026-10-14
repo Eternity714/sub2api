@@ -49,7 +49,7 @@ Claude Code、Codex 和 Gemini CLI 的供应商是切换式配置，启用的配
 - **Codex / Gemini CLI**：保存后重启客户端；编辑器插件可能需要重开编辑器窗口。
 - **Claude Code**：为确认配置生效，结束旧会话后重新启动，并查看 `/status`。
 - **OpenCode / Hermes / OpenClaw**：在客户端选模型；若进程启动时已加载旧配置，重启该进程。
-- **Claude Desktop**：使用专门的 [Claude Desktop](/claude-desktop)教程，切换后必须完全退出并重启应用。
+- **Claude Desktop**：使用专门的 [Claude Desktop](/docs/claude-desktop)教程，切换后必须完全退出并重启应用。
 
 不要同时让多个管理工具改写同一份配置。需要手动编辑时，先记录当前供应商，编辑后确认 CC Switch 没有重新写回旧配置。
 
@@ -57,7 +57,7 @@ Claude Code、Codex 和 Gemini CLI 的供应商是切换式配置，启用的配
 
 打开目标客户端，提出一个只要求文本回复的小请求，例如“只回复 Hello，不执行工具”。随后在[使用记录](https://www.gkotta.bid/usage)核对密钥和模型。
 
-如果获取模型列表成功、实际对话失败，检查协议、模型能力、额度和分组。可用[OpenAI API](/openai-api)、[Anthropic API](/anthropic-api)或[Gemini API](/gemini-api)中的最小请求区分接口问题与客户端配置问题。
+如果获取模型列表成功、实际对话失败，检查协议、模型能力、额度和分组。可用[OpenAI API](/docs/openai-api)、[Anthropic API](/docs/anthropic-api)或[Gemini API](/docs/gemini-api)中的最小请求区分接口问题与客户端配置问题。
 
 ## 备份、恢复与路由
 
@@ -75,7 +75,7 @@ Claude Code、Codex 和 Gemini CLI 的供应商是切换式配置，启用的配
 | 获取模型失败 | 检查密钥、地址、空格和所选接口格式；部分工具需手工填写模型 |
 | 请求仍发往旧服务 | 检查当前供应商、启动参数、环境变量和其他配置管理工具 |
 | 返回 404 | 检查协议与路径，避免 `/v1/v1`，Codex 确认 Responses |
-| 401 / 403 / 429 | 按[常见问题](/troubleshooting)检查凭证、权限与额度 |
+| 401 / 403 / 429 | 按[常见问题](/docs/troubleshooting)检查凭证、权限与额度 |
 | 路由模式连接失败 | 确认 CC Switch 仍运行，本地服务已启动且端口没有冲突 |
 
 进阶操作见[添加供应商](https://github.com/farion1231/cc-switch/blob/main/docs/user-manual/zh/2-providers/2.1-add.md)、[切换供应商](https://github.com/farion1231/cc-switch/blob/main/docs/user-manual/zh/2-providers/2.2-switch.md)和[环境变量冲突](https://github.com/farion1231/cc-switch/blob/main/docs/user-manual/zh/5-faq/5.4-env-conflict.md)。

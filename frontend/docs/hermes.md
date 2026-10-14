@@ -121,4 +121,4 @@ providers:
 | 终端正常，后台失败 | 检查后台服务的环境、profile 和实际读取的配置 |
 | 工具调用失败 | 先验证文本，再确认模型支持工具及客户端的工具权限 |
 
-使用 `hermes doctor` 查看本地配置诊断；额度、权限和服务状态问题见[常见问题](/troubleshooting)。官方资源：[项目仓库](https://github.com/NousResearch/hermes-agent)、[CLI 用法](https://hermes-agent.nousresearch.com/docs/user-guide/cli)、[配置说明](https://hermes-agent.nousresearch.com/docs/user-guide/configuration)。
+使用 `hermes doctor` 查看本地配置诊断；额度、权限和服务状态问题见[常见问题](/docs/troubleshooting)。官方资源：[项目仓库](https://github.com/NousResearch/hermes-agent)、[CLI 用法](https://hermes-agent.nousresearch.com/docs/user-guide/cli)、[配置说明](https://hermes-agent.nousresearch.com/docs/user-guide/configuration)。

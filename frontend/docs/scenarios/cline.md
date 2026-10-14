@@ -62,4 +62,4 @@ Base URL 不包含 `/chat/completions`。如果 Plan 与 Act 模式分别保存�
 - [Cline OpenAI Compatible 配置](https://docs.cline.bot/provider-config/openai-compatible)
 - [Cline 文档](https://docs.cline.bot/)
 - [Cline 开源仓库](https://github.com/cline/cline)
-- [Gkotta OpenAI API](/openai-api)
+- [Gkotta OpenAI API](/docs/openai-api)

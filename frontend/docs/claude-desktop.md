@@ -4,7 +4,7 @@ Claude Desktop 可以通过第三方供应商模式（3P）连接兼容的 Anthr
 
 ## 版本与使用方式
 
-从 [Claude 官方下载页](https://claude.com/download)安装支持 3P 的当前桌面版本，再安装 [CC Switch](/cc-switch)。本文按 **CC Switch v4.0.4+** 的[Claude Desktop 手册](https://github.com/farion1231/cc-switch/blob/main/docs/user-manual/zh/2-providers/2.6-claude-desktop.md)说明操作。
+从 [Claude 官方下载页](https://claude.com/download)安装支持 3P 的当前桌面版本，再安装 [CC Switch](/docs/cc-switch)。本文按 **CC Switch v4.0.4+** 的[Claude Desktop 手册](https://github.com/farion1231/cc-switch/blob/main/docs/user-manual/zh/2-providers/2.6-claude-desktop.md)说明操作。
 
 Claude Desktop 的官方账号模式与 3P 模式使用不同认证来源：
 
@@ -17,7 +17,7 @@ Claude Desktop 的官方账号模式与 3P 模式使用不同认证来源：
 
 1. 在[API 密钥](https://www.gkotta.bid/keys)创建密钥。
 2. 在[可用渠道](https://www.gkotta.bid/available-channels)确认分组支持 Anthropic Messages 和实际 Claude 模型 ID。
-3. 可先用[Anthropic API](/anthropic-api)中的最小请求验证，确认密钥与模型能正常回复。
+3. 可先用[Anthropic API](/docs/anthropic-api)中的最小请求验证，确认密钥与模型能正常回复。
 
 Base URL 使用 `https://www.gkotta.bid`，请求协议为 Anthropic Messages。直连需要模型 ID 属于 Desktop 识别的 `claude-sonnet-*`、`claude-opus-*` 或 `claude-haiku-*` 角色形式；模型的实际可用性以当前分组为准。
 
@@ -78,7 +78,7 @@ Gkotta 的 Messages 接口接受 Bearer 凭证。完整 profile、元数据及�
 | 仍要求官方账号或升级 | 确认当前是 3P profile 而非官方模式，核对桌面版本和组织策略 |
 | 模型列表为空或 ID 被拒绝 | 确认直连使用可识别的 Claude 角色 ID，必要时使用映射 |
 | 映射模式请求失败 | 确认 CC Switch 运行、本地路由正常、映射有真实模型 ID |
-| 401 / 403 / 429 | 检查密钥、分组、IP 限制及额度，见[常见问题](/troubleshooting) |
+| 401 / 403 / 429 | 检查密钥、分组、IP 限制及额度，见[常见问题](/docs/troubleshooting) |
 | API 正常但某个桌面工具失败 | 分别检查客户端工具权限、系统依赖与目标模型能力 |
 
 3P 接入成功表示模型请求可用，Desktop 的全部工具、沙箱和组织功能仍需满足它们各自的使用要求。

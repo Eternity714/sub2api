@@ -1,8 +1,6 @@
----
-description: 用自建服务连接飞书多维表格与 Gkotta 图片 API，将生成图片上传为表格附件。
----
-
 # 飞书多维表格图片生成
+
+用自建服务连接飞书多维表格与 Gkotta 图片 API，将生成图片上传为表格附件。
 
 可以将多维表格中的提示词交给你自己的服务，由服务调用 Gkotta 图片 API，再把生成的图片上传到飞书并回写附件。本文介绍这套自建集成流程，需要你部署服务并配置飞书应用；Gkotta 提供图片接口，当前没有内置的飞书多维表格插件。
 
@@ -26,7 +24,7 @@ flowchart LR
 1. 在[API 密钥](https://www.gkotta.bid/keys)创建专用密钥，设置适当的额度上限。
 2. 在[可用渠道](https://www.gkotta.bid/available-channels)确认开放的图片模型和协议。
 3. 对 OpenAI Images/Grok 图片接口，确认分组已开启图片生成权限。
-4. 在自建服务中先完成[图片生成与编辑](/image-generate)的最小请求，确认能保存图片文件。
+4. 在自建服务中先完成[图片生成与编辑](/docs/image-generate)的最小请求，确认能保存图片文件。
 
 `YOUR_IMAGE_MODEL_ID` 必须替换为当前密钥分组开放的图片模型 ID，可使用 `/v1/models` 查询。使用 Gemini 原生分组时，按图片教程的 `/v1beta` 请求和图片返回格式接入。
 
@@ -100,7 +98,7 @@ OpenAI Images 协议的最小请求体示例：
 
 生成成功后，将 `data[].b64_json` 解码为图片字节，或从响应 `data[].url` 下载图片。核对图片实际格式、大小和内容后保存到服务管理的临时文件或存储中，再进入“上传中”阶段。URL 可能过期，不能只把它当作永久结果保存。
 
-如果当前 Gkotta 部署开放了异步图片接口，也可以提交任务后持久化返回的 `task_id`，按间隔使用创建时的同一密钥查询，再处理完成结果。异步接口的分组和存储条件见[图片生成与编辑](/image-generate)中的异步图片任务说明。
+如果当前 Gkotta 部署开放了异步图片接口，也可以提交任务后持久化返回的 `task_id`，按间隔使用创建时的同一密钥查询，再处理完成结果。异步接口的分组和存储条件见[图片生成与编辑](/docs/image-generate)中的异步图片任务说明。
 
 ## 4. 上传飞书素材
 
@@ -152,4 +150,4 @@ Content-Type: application/json
 
 先选择一条短提示词记录，确认以下结果：应用能读取记录、Gkotta 能返回一张有效图片、飞书上传返回素材 `file_token`、原记录附件能打开，状态变为“已完成”。再用同一条记录验证重复触发不会重复生成，并验证上传或回写失败时能从对应阶段重试。
 
-官方接口资料：[访问令牌](https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token_internal)、[列出记录](https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/list)、[上传素材](https://open.feishu.cn/document/server-docs/docs/drive-v1/media/upload_all)、[更新记录](https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/update)。Gkotta 的请求与结果保存代码见[图片生成与编辑](/image-generate)。
+官方接口资料：[访问令牌](https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token_internal)、[列出记录](https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/list)、[上传素材](https://open.feishu.cn/document/server-docs/docs/drive-v1/media/upload_all)、[更新记录](https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-record/update)。Gkotta 的请求与结果保存代码见[图片生成与编辑](/docs/image-generate)。

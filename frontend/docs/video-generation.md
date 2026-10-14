@@ -1,17 +1,15 @@
----
-description: 使用 Gkotta 的 Grok 视频接口创建任务、查询状态、下载结果并编辑或续写视频。
----
-
 # 视频生成
 
-Gkotta 的 Grok 视频接口采用异步任务方式：提交提示词，保存任务 ID，使用同一密钥查询状态，完成后下载视频。Seedance 使用另一套原生协议，接入方法见 [Seedance API](/seedance-api)。
+使用 Gkotta 的 Grok 视频接口创建任务、查询状态、下载结果并编辑或续写视频。
+
+Gkotta 的 Grok 视频接口采用异步任务方式：提交提示词，保存任务 ID，使用同一密钥查询状态，完成后下载视频。Seedance 使用另一套原生协议，接入方法见 [Seedance API](/docs/seedance-api)。
 
 ## 确认视频渠道
 
 在[可用渠道](https://www.gkotta.bid/available-channels)确认当前分组开放了 Grok 视频模型和媒体生成权限，再到[API 密钥](https://www.gkotta.bid/keys)选择对应分组的密钥。
 
 - 文生视频需要支持文本输入的视频模型。
-- 部分模型仅支持图片转视频，使用这类模型时按[图片转视频](/image-to-video)添加输入图片。
+- 部分模型仅支持图片转视频，使用这类模型时按[图片转视频](/docs/image-to-video)添加输入图片。
 - Grok 视频创建和查询可以使用 Grok 分组，或路由到 Grok 的组合分组。
 - 视频编辑与续写接口要求 Grok 渠道；组合分组须有匹配所选模型并指向 Grok 的路由。
 
@@ -181,4 +179,4 @@ curl --fail-with-body "https://www.gkotta.bid/v1/videos/extensions" \
 | 提交后断连或超时 | 先保留响应和请求信息并确认任务是否已接收，避免盲目重复创建 |
 | 下载出错 | 先查询任务状态，确认完成后使用 Gkotta 内容接口和原密钥下载 |
 
-视频费用受实际模型、生成时长、分辨率及分组倍率影响。完成后的费用以[使用记录](https://www.gkotta.bid/usage)为准，详见[计费与用量](/billing)。
+视频费用受实际模型、生成时长、分辨率及分组倍率影响。完成后的费用以[使用记录](https://www.gkotta.bid/usage)为准，详见[计费与用量](/docs/billing)。

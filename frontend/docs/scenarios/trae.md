@@ -54,4 +54,4 @@ Trae 可添加自定义模型，通过 OpenAI Chat Completions 或 Anthropic Mes
 
 - [Trae 内置与自定义模型说明](https://docs.trae.ai/ide/models)
 - [Trae 国内版文档](https://docs.trae.cn/)
-- [Gkotta OpenAI API](/openai-api) · [Anthropic API](/anthropic-api)
+- [Gkotta OpenAI API](/docs/openai-api) · [Anthropic API](/docs/anthropic-api)

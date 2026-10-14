@@ -1,7 +1,43 @@
-# 从当前源码构建主站与文档，用独立数据库和数据卷进行本地人工验收。
+# 同域入口将 /docs 分流到 Docsify，主站使用独立数据库和数据卷。
 # 在仓库根目录运行，使用专用 env 文件和项目名；详见 frontend/docs/README.md。
 services:
+  edge:
+    image: nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "127.0.0.1:${DOCS_PREVIEW_PORT:-18082}:8080"
+    volumes:
+      - ./docsify/edge.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      sub2api:
+        condition: service_healthy
+      docsify:
+        condition: service_healthy
+
+  docsify:
+    image: ${DOCSIFY_IMAGE:-sub2api-docsify:local}
+    build:
+      context: ..
+      dockerfile: deploy/docsify/Dockerfile
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    cap_drop: [ALL]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
+    volumes:
+      - ../frontend/docs:/usr/share/nginx/html/docs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "4", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+
   sub2api:
+    image: ${DOCS_PREVIEW_APP_IMAGE:-sub2api-docs-preview-sub2api:local}
     build:
       context: ..
       dockerfile: Dockerfile
@@ -13,14 +49,10 @@ services:
     restart: "no"
     security_opt:
       - no-new-privileges:true
-    ports:
-      - "127.0.0.1:${DOCS_PREVIEW_PORT:-18082}:8080"
     volumes:
       - app-data:/app/data
-      - ../backend/internal/web/dist/docs:/app/docs:ro
     environment:
       AUTO_SETUP: "true"
-      DOCUMENTATION_DIR: /app/docs
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: "8080"
       SERVER_MODE: debug

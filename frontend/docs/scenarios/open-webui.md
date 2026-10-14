@@ -49,4 +49,4 @@ Open WebUI 的文件上传、知识库、检索和图像生成需要各自的组
 
 - [OpenAI 兼容连接说明](https://docs.openwebui.com/getting-started/quick-start/connect-a-provider/starting-with-openai-compatible)
 - [官方环境变量配置源码](https://github.com/open-webui/open-webui/blob/main/backend/open_webui/config.py)
-- [Gkotta OpenAI API](/openai-api)
+- [Gkotta OpenAI API](/docs/openai-api)
