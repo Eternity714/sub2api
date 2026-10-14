@@ -54,7 +54,7 @@ reply = llm.invoke(messages)
 print(reply.content)
 ```
 
-`use_responses_api=False` 明确使用 Chat Completions；如果改用 Responses，需要先确认模型与分组支持该协议，参考[OpenAI API](/openai-api)。不要仅因模型名称相似就切换协议。
+`use_responses_api=False` 明确使用 Chat Completions；如果改用 Responses，需要先确认模型与分组支持该协议，参考[OpenAI API](/docs/openai-api)。不要仅因模型名称相似就切换协议。
 
 正常运行应输出文本。在 [Gkotta 使用记录](https://www.gkotta.bid/usage)核对本次模型和消耗，再扩展工作流。
 
@@ -122,4 +122,4 @@ Agent、结构化输出和 RAG 需要额外组件。Agent 使用的工具调用�
 
 - [LangChain ChatOpenAI 参考](https://reference.langchain.com/python/integrations/langchain_openai/ChatOpenAI/)
 - [官方 ChatOpenAI 实现与参数说明](https://github.com/langchain-ai/langchain/blob/master/libs/partners/openai/langchain_openai/chat_models/base.py)
-- [Gkotta OpenAI API](/openai-api)
+- [Gkotta OpenAI API](/docs/openai-api)

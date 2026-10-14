@@ -20,3 +20,7 @@ backend/migrations/*.sql text eol=lf
 
 # Dockerfile
 Dockerfile text eol=lf
+
+# 固定 Docsify 运行资源的字节与校验清单保持一致
+deploy/docsify/runtime/assets/* text eol=lf -whitespace
+deploy/docsify/runtime/SHA256SUMS text eol=lf

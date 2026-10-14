@@ -56,7 +56,7 @@ bash deploy/docker-up.sh
 
 ## 图片和文档处理依赖
 
-图片流程有独立的 `SIMPLE_IMAGE_API_URL`、`SIMPLE_IMAGE_API_KEY` 和 `SIMPLE_IMAGE_MODEL`。使用前需要核对所选 Paper2Any 图片适配器发送的是 Gemini 原生还是 OpenAI Images 格式，再按[图像生成 API](/image-generate)填写匹配地址和模型；文本 Base URL 不能直接作为所有图片适配器的配置。
+图片流程有独立的 `SIMPLE_IMAGE_API_URL`、`SIMPLE_IMAGE_API_KEY` 和 `SIMPLE_IMAGE_MODEL`。使用前需要核对所选 Paper2Any 图片适配器发送的是 Gemini 原生还是 OpenAI Images 格式，再按[图像生成 API](/docs/image-generate)填写匹配地址和模型；文本 Base URL 不能直接作为所有图片适配器的配置。
 
 部分流程还依赖 MinerU、OCR/VLM、SAM3、本地 GPU、Supabase 或向量服务。这些按[官方配置指南](https://github.com/OpenDCAI/Paper2Any/blob/main/docs/guides/configuration.md)单独准备。完成文本接入后，再逐项开启需要的流程。
 
@@ -70,4 +70,4 @@ bash deploy/docker-up.sh
 | 文本正常但 PDF、图片或导出失败 | 检查对应解析、图片、GPU和导出服务日志 |
 | 404 / model_not_found | 检查 `/v1` 只出现一次、实际模型 ID和接口协议 |
 
-官方安装和 Docker 说明见[Paper2Any README](https://github.com/OpenDCAI/Paper2Any)，本站额度和请求错误见[排错指南](/troubleshooting)。
+官方安装和 Docker 说明见[Paper2Any README](https://github.com/OpenDCAI/Paper2Any)，本站额度和请求错误见[排错指南](/docs/troubleshooting)。

@@ -18,7 +18,7 @@ macOS / Linux 也可按官方文档使用 Homebrew。Windows 安装 Node.js 后�
 
 在[API 密钥](https://www.gkotta.bid/keys)创建密钥，在[可用渠道](https://www.gkotta.bid/available-channels)确认它的分组支持 Gemini 原生协议及目标模型。
 
-文档中的 `YOUR_MODEL_ID` 填写模型 ID 部分，不带重复的 `models/`。需要验证模型列表和 HTTP 请求时，阅读[Gemini API](/gemini-api)。OpenAI 兼容分组不一定同时开放 Gemini 原生接口。
+文档中的 `YOUR_MODEL_ID` 填写模型 ID 部分，不带重复的 `models/`。需要验证模型列表和 HTTP 请求时，阅读[Gemini API](/docs/gemini-api)。OpenAI 兼容分组不一定同时开放 Gemini 原生接口。
 
 ## 配置环境变量
 
@@ -54,7 +54,7 @@ gemini
 
 自定义 `GOOGLE_GEMINI_BASE_URL` 作用于 Gemini API Key 路径。使用 Google 账号登录或 Vertex AI 时，不会因为填了 Gkotta 密钥就自动切换成这套请求。Gkotta 的 API 凭证与官方账号订阅是不同来源。
 
-Gemini 原生请求可用 `x-goog-api-key` 认证；CLI 会根据 API Key 认证方式传递凭证，通常不需要手工添加请求头。手写请求可参考[Gemini API](/gemini-api)。
+Gemini 原生请求可用 `x-goog-api-key` 认证；CLI 会根据 API Key 认证方式传递凭证，通常不需要手工添加请求头。手写请求可参考[Gemini API](/docs/gemini-api)。
 
 ## 保留长期配置
 
@@ -69,7 +69,7 @@ GOOGLE_GENAI_API_VERSION=v1beta
 
 环境文件包含真实密钥，放在自己的用户目录并限制访问，不提交到项目仓库。项目、工作区或 shell 中已有的设置可能覆盖这些值；更改后重启 Gemini CLI。
 
-如果使用 [CC Switch](/cc-switch)，选择 Gemini CLI，按根地址、密钥与模型保存并启用供应商。不要再用另一个旧环境文件覆盖它生成的配置。
+如果使用 [CC Switch](/docs/cc-switch)，选择 Gemini CLI，按根地址、密钥与模型保存并启用供应商。不要再用另一个旧环境文件覆盖它生成的配置。
 
 ## 验证与使用
 
@@ -97,6 +97,6 @@ gemini -m YOUR_MODEL_ID -p "只回复 Hello，不执行工具。"
 | 404 | Base URL 保持根地址，版本为 `v1beta`，模型 ID 没有重复 `models/` |
 | 模型不可用 | 检查分组支持的 Gemini 模型，不沿用客户端默认模型 |
 | 配置改了无变化 | 检查 shell、`.env` 与 settings 覆盖，结束旧进程再启动 |
-| 403 / 429 / 超时 | 按[常见问题](/troubleshooting)区分权限、额度、并发与服务状态 |
+| 403 / 429 / 超时 | 按[常见问题](/docs/troubleshooting)区分权限、额度、并发与服务状态 |
 
 官方资源：[项目仓库](https://github.com/google-gemini/gemini-cli)、[认证说明](https://www.geminicli.com/docs/get-started/authentication)、[配置参考](https://www.geminicli.com/docs/reference/configuration)。

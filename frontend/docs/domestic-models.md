@@ -32,9 +32,9 @@ Gkotta 有智谱渠道能力。使用管理员配置的智谱分组时，按渠�
 
 ## Qwen
 
-管理员可以通过兼容上游配置 Qwen 等模型。只有当前密钥所属分组确实开放了对应模型，才能按[OpenAI API](/openai-api)接入。模型本身的能力可参考[阿里云百炼模型文档](https://help.aliyun.com/zh/model-studio/models)。
+管理员可以通过兼容上游配置 Qwen 等模型。只有当前密钥所属分组确实开放了对应模型，才能按[OpenAI API](/docs/openai-api)接入。模型本身的能力可参考[阿里云百炼模型文档](https://help.aliyun.com/zh/model-studio/models)。
 
-在[Cherry Studio](/scenarios/cherry-studio)、[Chatbox](/scenarios/chatbox)或[Open WebUI](/scenarios/open-webui)添加 OpenAI 兼容服务，地址填写 `https://www.gkotta.bid/v1`，手动添加该分组实际提供的 Qwen 模型 ID。
+在[Cherry Studio](/docs/scenarios/cherry-studio)、[Chatbox](/docs/scenarios/chatbox)或[Open WebUI](/docs/scenarios/open-webui)添加 OpenAI 兼容服务，地址填写 `https://www.gkotta.bid/v1`，手动添加该分组实际提供的 Qwen 模型 ID。
 
 ## 最小对话请求
 
@@ -60,4 +60,4 @@ Invoke-RestMethod -Uri "https://www.gkotta.bid/v1/chat/completions" `
   -ContentType "application/json" -Body ([Text.Encoding]::UTF8.GetBytes($body))
 ```
 
-在[使用记录](https://www.gkotta.bid/usage)核对实际模型、密钥和费用。出现 `model_not_found` 或分组错误时，优先核对模型 ID 与分组；不能通过修改显示名称获得未开放模型。没有工具调用能力的模型应先用于普通聊天，具体错误见[排错指南](/troubleshooting)。
+在[使用记录](https://www.gkotta.bid/usage)核对实际模型、密钥和费用。出现 `model_not_found` 或分组错误时，优先核对模型 ID 与分组；不能通过修改显示名称获得未开放模型。没有工具调用能力的模型应先用于普通聊天，具体错误见[排错指南](/docs/troubleshooting)。

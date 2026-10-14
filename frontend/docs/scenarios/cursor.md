@@ -42,4 +42,4 @@ Cursor 官方说明 BYOK 请求会经过 Cursor 的服务端构建提示词。�
 
 - [Cursor 自带 API Key 说明](https://cursor.com/docs/settings/api-keys)
 - [官方支持人员说明自定义 Base URL 的配置步骤](https://forum.cursor.com/t/how-to-adjust-settings-for-custom-added-models/173253)
-- [Gkotta OpenAI API](/openai-api)
+- [Gkotta OpenAI API](/docs/openai-api)

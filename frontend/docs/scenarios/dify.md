@@ -54,4 +54,4 @@ Dify 应用发布后有它自己的应用 API 地址和应用 API Key。调用 D
 
 - [Dify 文档](https://docs.dify.ai/)
 - [官方 OpenAI-compatible 插件配置字段](https://github.com/langgenius/dify-official-plugins/blob/main/models/openai_api_compatible/provider/openai_api_compatible.yaml)
-- [Gkotta OpenAI API](/openai-api)
+- [Gkotta OpenAI API](/docs/openai-api)

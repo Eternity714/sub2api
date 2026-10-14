@@ -1,8 +1,6 @@
----
-description: 通过 Gkotta 的 Seedance 原生任务协议创建、查询、下载和删除视频任务。
----
-
 # Seedance API
+
+通过 Gkotta 的 Seedance 原生任务协议创建、查询、下载和删除视频任务。
 
 Seedance 使用 Ark 原生异步任务协议。通过 `/api/v3/contents/generations/tasks` 创建视频任务，保存返回的 `id`，用同一密钥查询完成状态，再从 `content.video_url` 下载结果。
 
@@ -34,7 +32,7 @@ curl --fail-with-body "https://www.gkotta.bid/v1/models" \
 | 完成状态 | `succeeded` | `done` |
 | 结果地址 | `content.video_url` | `video.url` 或 Gkotta 内容下载接口 |
 
-按所用渠道选择完整的一套协议。Grok 的教程见[视频生成](/video-generation)。
+按所用渠道选择完整的一套协议。Grok 的教程见[视频生成](/docs/video-generation)。
 
 ## 创建文生视频任务
 
@@ -69,7 +67,7 @@ curl --fail-with-body "https://www.gkotta.bid/api/v3/contents/generations/tasks"
 }
 ```
 
-需要首帧图片时，在 `content` 中添加图片项，完整步骤见[图片转视频](/image-to-video)。
+需要首帧图片时，在 `content` 中添加图片项，完整步骤见[图片转视频](/docs/image-to-video)。
 
 Windows PowerShell 创建示例：
 
@@ -182,4 +180,4 @@ curl --fail-with-body -X DELETE \
 | 查询或删除 404 | 核对任务 ID、原用户和原 API Key，并检查任务是否已过期 |
 | 创建请求超时 | 保留已有任务 ID或错误响应，先确认任务是否已接收，再决定是否重新创建 |
 
-Seedance 使用上游实际返回的完成用量计费，费用受模型定价和分组倍率影响。请在[使用记录](https://www.gkotta.bid/usage)核对消耗，阅读[计费与用量](/billing)了解账户额度。
+Seedance 使用上游实际返回的完成用量计费，费用受模型定价和分组倍率影响。请在[使用记录](https://www.gkotta.bid/usage)核对消耗，阅读[计费与用量](/docs/billing)了解账户额度。

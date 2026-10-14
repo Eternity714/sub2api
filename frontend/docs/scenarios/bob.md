@@ -56,4 +56,4 @@ $text
 - [Bob 使用指南](https://bobtranslate.com/guide/)
 - [OpenAI Translator 插件仓库](https://github.com/nextai-translator/bob-plugin-openai-translator)
 - [插件配置手册](https://github.com/nextai-translator/bob-plugin-openai-translator/blob/main/docs/configuration_manual_CN.md)
-- [Gkotta OpenAI API](/openai-api)
+- [Gkotta OpenAI API](/docs/openai-api)

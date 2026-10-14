@@ -82,4 +82,4 @@ HTTP 模块可开启解析响应；旧版若返回原始字符串，连接 **JSO
 - [Make 文本与二进制函数](https://help.make.com/text-and-binary-functions)
 - [Gemini GenerateContent API](https://ai.google.dev/api/generate-content)
 - [Gemini 图片理解指南](https://ai.google.dev/gemini-api/docs/image-understanding)
-- [Gkotta Gemini API](/gemini-api)
+- [Gkotta Gemini API](/docs/gemini-api)

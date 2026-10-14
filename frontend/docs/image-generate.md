@@ -1,8 +1,6 @@
----
-description: 使用 Gkotta 的 OpenAI 兼容与 Gemini 原生接口生成、编辑和保存图片。
----
-
 # 图片生成与编辑
+
+使用 Gkotta 的 OpenAI 兼容与 Gemini 原生接口生成、编辑和保存图片。
 
 Gkotta 提供 OpenAI 兼容 Images 接口和 Gemini 原生图片接口。先确认密钥的分组、图片模型和协议，再选择下方对应的请求格式。
 
@@ -33,7 +31,7 @@ curl --fail-with-body "https://www.gkotta.bid/v1/models" \
   -H "Authorization: Bearer $GKOTTA_API_KEY"
 ```
 
-使用响应 `data[].id` 中与你的图片渠道对应的 ID。模型列表展示成功后，生成请求还会检查额度、分组权限及上游能力。Gemini 原生接口也可通过 `/v1beta/models` 查询模型，见 [Gemini API](/gemini-api)。
+使用响应 `data[].id` 中与你的图片渠道对应的 ID。模型列表展示成功后，生成请求还会检查额度、分组权限及上游能力。Gemini 原生接口也可通过 `/v1beta/models` 查询模型，见 [Gemini API](/docs/gemini-api)。
 
 ## 选择接口
 
@@ -231,4 +229,4 @@ curl --fail-with-body "https://www.gkotta.bid/v1/images/tasks/$GKOTTA_IMAGE_TASK
 | 413 或上传失败 | 缩小源图并检查文件类型、请求体大小限制 |
 | 429、超时或上游错误 | 保存错误消息，按重试提示等待；超时后的生成结果可能已产生，不要连续重复提交 |
 
-费用与调用结果可在[使用记录](https://www.gkotta.bid/usage)核对，额度说明见[计费与用量](/billing)。若需要让生成的图片运动起来，继续阅读[图片转视频](/image-to-video)。
+费用与调用结果可在[使用记录](https://www.gkotta.bid/usage)核对，额度说明见[计费与用量](/docs/billing)。若需要让生成的图片运动起来，继续阅读[图片转视频](/docs/image-to-video)。

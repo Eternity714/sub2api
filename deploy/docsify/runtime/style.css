@@ -1,0 +1,40 @@
+:root {
+  --theme-color: #0077c2;
+  --text-color: #243449;
+  color-scheme: light;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; color: var(--text-color); }
+.sidebar { width: 280px; border-right: 1px solid #e5eaf0; background: #f8fafc; padding-top: 24px; }
+.sidebar .app-name { font-size: 18px; font-weight: 650; }
+.sidebar .app-name img { max-width: 155px; max-height: 44px; }
+.sidebar-nav { padding: 0 16px 24px; }
+.sidebar-nav > ul > li { font-weight: 650; margin-top: 16px; }
+.sidebar ul li a { font-size: 14px; line-height: 1.8; }
+.sidebar ul li.active > a { background: #e8f3fa; border-radius: 6px; }
+.search { border-bottom: 1px solid #e5eaf0; margin-bottom: 8px; }
+.search input { border-radius: 6px; background: #fff; }
+.content { left: 280px; padding-top: 58px; }
+.markdown-section { max-width: 920px; padding: 30px 36px 80px; overflow-wrap: anywhere; }
+.markdown-section h1 { font-size: 2rem; letter-spacing: -.025em; }
+.markdown-section h2 { font-size: 1.5rem; padding-bottom: 10px; border-bottom: 1px solid #e5eaf0; }
+.markdown-section h3 { font-size: 1.2rem; }
+.markdown-section p, .markdown-section ul, .markdown-section ol { line-height: 1.85; }
+.markdown-section pre { border: 1px solid #e5eaf0; border-radius: 10px; background: #f6f8fb; }
+.markdown-section pre > code { font-family: 'Cascadia Code', Consolas, Monaco, monospace; white-space: pre; }
+.markdown-section table { display: block; overflow-x: auto; max-width: 100%; }
+.markdown-section blockquote { background: #eef7fd; padding: 12px 18px; border-radius: 0 8px 8px 0; color: #40546c; }
+.markdown-section blockquote p { font-weight: normal; }
+.markdown-section .mermaid { overflow-x: auto; max-width: 100%; margin: 24px 0; }
+.markdown-section .mermaid svg { display: block; max-width: 100%; height: auto; margin: auto; }
+.app-nav { margin-right: 36px; font-size: 14px; }
+.sidebar-toggle { background: #f8fafc; }
+@media (max-width: 768px) {
+  .sidebar { left: -280px; }
+  .content { left: 0; padding-top: 12px; }
+  .markdown-section { padding: 24px 20px 60px; min-width: 0; }
+  .markdown-section h1 { font-size: 1.65rem; }
+  .markdown-section pre { padding: 0 12px; }
+  .app-nav { margin-right: 16px; }
+  body.close .sidebar { transform: translateX(280px); }
+  body.close .content { transform: translateX(280px); }
+}

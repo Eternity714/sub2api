@@ -7,7 +7,7 @@ Codex++ 是社区维护的 Codex App 增强启动器。它的“中转注入”�
 1. 安装并启动 Codex App，按官方流程完成 ChatGPT 账号登录。
 2. 从[Codex++ 官方仓库](https://github.com/xianyu110/CodexPlusPlus)及[Releases](https://github.com/xianyu110/CodexPlusPlus/releases)下载对应 Windows 或 macOS、CPU 架构的安装包。
 3. 退出 Codex App，备份已有的 `~/.codex/config.toml`。Windows 对应用户目录下的 `.codex/config.toml`。
-4. 在 Gkotta 创建支持 Responses 的密钥，确认所选模型在该分组可用。可先按[OpenAI API](/openai-api)验证。
+4. 在 Gkotta 创建支持 Responses 的密钥，确认所选模型在该分组可用。可先按[OpenAI API](/docs/openai-api)验证。
 
 安装后通常有 **Codex++** 启动入口和 **Codex++ 管理工具** 两个入口。配置在管理工具中完成，启动时使用 Codex++ 入口。
 
@@ -22,7 +22,7 @@ Codex++ 是社区维护的 Codex App 增强启动器。它的“中转注入”�
 
 在[使用记录](https://www.gkotta.bid/usage)确认请求使用了自己的密钥和预期模型，再验证编程任务。
 
-管理工具会维护 `CodexPlusPlus` provider，协议为 `responses`，Base URL 带 `/v1`。其配置和认证由管理工具生成；不要同时用另一份 CLI 配置覆盖它。[Codex CLI](/codex)可以独立接入，使用方式与该增强启动器不同。
+管理工具会维护 `CodexPlusPlus` provider，协议为 `responses`，Base URL 带 `/v1`。其配置和认证由管理工具生成；不要同时用另一份 CLI 配置覆盖它。[Codex CLI](/docs/codex)可以独立接入，使用方式与该增强启动器不同。
 
 ## 恢复官方模式
 
@@ -41,4 +41,4 @@ Gkotta 只负责配置后经过本站的模型请求；Codex App 登录、插件
 | 增强界面未出现 | 使用 Codex++ 启动入口，在其诊断和日志中检查注入状态 |
 | App 更新后增强功能异常 | 查看 Codex++ 更新及兼容说明 |
 
-日志和截图分享前隐藏完整密钥。官方配置说明见[中转注入](https://github.com/xianyu110/CodexPlusPlus#中转注入)，账户与额度问题见[排错指南](/troubleshooting)。
+日志和截图分享前隐藏完整密钥。官方配置说明见[中转注入](https://github.com/xianyu110/CodexPlusPlus#中转注入)，账户与额度问题见[排错指南](/docs/troubleshooting)。

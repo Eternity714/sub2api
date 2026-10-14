@@ -50,4 +50,4 @@ Cherry Studio 会根据渠道类型补充协议路径，地址输入框下方的
 
 - [Cherry Studio 文档](https://docs.cherry-ai.com/)
 - [官方地址预览实现](https://github.com/CherryHQ/cherry-studio/blob/main/src/renderer/pages/settings/ProviderSettings/hooks/providerSetting/buildHostEndpointPreviews.ts)
-- [OpenAI API](/openai-api) · [Anthropic API](/anthropic-api) · [Gemini API](/gemini-api)
+- [OpenAI API](/docs/openai-api) · [Anthropic API](/docs/anthropic-api) · [Gemini API](/docs/gemini-api)

@@ -1,0 +1,51 @@
+- [文档首页](/docs/)
+- 开始使用
+  - [简易使用](/docs/easy-use)
+  - [快速开始](/docs/quick-start)
+  - [API 密钥与分组](/docs/api-keys)
+- 编程与 Agent
+  - [客户端接入总览](/docs/clients)
+  - [CC Switch](/docs/cc-switch)
+  - [Claude Code](/docs/claude-code)
+  - [Claude Desktop](/docs/claude-desktop)
+  - [Codex](/docs/codex)
+  - [Codex++](/docs/codex-plus)
+  - [Hermes](/docs/hermes)
+  - [OpenClaw](/docs/openclaw)
+  - [OpenCode](/docs/opencode)
+  - [Gemini CLI](/docs/gemini-cli)
+- API 参考
+  - [API 手册](/docs/api-manual)
+  - [OpenAI 兼容 API](/docs/openai-api)
+  - [Anthropic API](/docs/anthropic-api)
+  - [Gemini API](/docs/gemini-api)
+  - [国内模型接入](/docs/domestic-models)
+- 图片与视频
+  - [图像生成 API](/docs/image-generate)
+  - [Grok 视频生成](/docs/video-generation)
+  - [Seedance API](/docs/seedance-api)
+  - [图片转视频](/docs/image-to-video)
+- 使用场景
+  - [使用场景总览](/docs/scenarios/)
+  - 聊天与翻译
+    - [Cherry Studio](/docs/scenarios/cherry-studio)
+    - [Chatbox](/docs/scenarios/chatbox)
+    - [NextChat](/docs/scenarios/nextchat)
+    - [Open WebUI](/docs/scenarios/open-webui)
+    - [沉浸式翻译](/docs/scenarios/immersive-translate)
+    - [Bob 翻译](/docs/scenarios/bob)
+  - 编辑器
+    - [Cursor](/docs/scenarios/cursor)
+    - [Cline](/docs/scenarios/cline)
+    - [Roo Code](/docs/scenarios/roo-code)
+    - [Trae](/docs/scenarios/trae)
+  - 工作流与开发
+    - [Dify](/docs/scenarios/dify)
+    - [LangChain](/docs/scenarios/langchain)
+    - [FastClaw](/docs/scenarios/fastclaw)
+    - [Paper2Any](/docs/scenarios/paper2any)
+    - [Make Gemini 图像理解](/docs/scenarios/make-gemini-vision)
+    - [飞书多维表格生图](/docs/scenarios/lark-images)
+- 账户与支持
+  - [计费与用量](/docs/billing)
+  - [常见问题与排错](/docs/troubleshooting)

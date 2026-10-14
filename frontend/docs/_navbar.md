@@ -1,0 +1,3 @@
+- [文档](/docs/)
+- [主站](https://www.gkotta.bid)
+- [控制台](https://www.gkotta.bid/login)

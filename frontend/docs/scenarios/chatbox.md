@@ -46,4 +46,4 @@ API Host 与 API Path 拼接后的请求应为 `https://www.gkotta.bid/v1/chat/c
 - [Chatbox 帮助中心](https://chatboxai.app/en/help-center)
 - [Chatbox 开源仓库](https://github.com/chatboxai/chatbox)
 - [官方自定义 OpenAI 地址处理源码](https://github.com/chatboxai/chatbox/blob/main/src/shared/utils/llm_utils.ts)
-- [Gkotta OpenAI API](/openai-api)
+- [Gkotta OpenAI API](/docs/openai-api)

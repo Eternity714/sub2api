@@ -85,3 +85,5 @@ jobs:
         run: |
           bash -n deploy/gray-prepare-documentation.sh
           bash deploy/tests/gray-prepare-documentation-test.sh
+      - name: Check independent Docsify gray protection
+        run: docker compose -f deploy/docker-compose.test.yml run --rm --no-deps frontend-test bash deploy/tests/docsify-gray-test.sh

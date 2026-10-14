@@ -55,7 +55,7 @@ Windows PowerShell：
 $env:GKOTTA_API_KEY = "sk-YOUR_API_KEY"
 ```
 
-这些变量只影响当前终端及它启动的程序。打开新的终端、重启客户端或通过其他方式启动应用后，可能需要重新设置。持久化配置的方法由客户端决定，参见 [Claude Code](/claude-code) 和 [Codex](/codex)。
+这些变量只影响当前终端及它启动的程序。打开新的终端、重启客户端或通过其他方式启动应用后，可能需要重新设置。持久化配置的方法由客户端决定，参见 [Claude Code](/docs/claude-code) 和 [Codex](/docs/codex)。
 
 OpenAI 兼容请求的鉴权头为：
 
@@ -77,4 +77,4 @@ Anthropic 请求可使用 `x-api-key`，Gemini 原生请求推荐使用 `x-goog-
 
 停用操作会影响仍使用旧密钥的客户端。替换完成后，在[使用记录](https://www.gkotta.bid/usage)核对新密钥的调用情况和异常消耗。
 
-需要区分账户余额、订阅额度与密钥配额时，阅读[计费与用量](/billing)。
+需要区分账户余额、订阅额度与密钥配额时，阅读[计费与用量](/docs/billing)。

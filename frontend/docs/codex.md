@@ -9,7 +9,7 @@ npm install -g @openai/codex
 codex --version
 ```
 
-准备一把支持 OpenAI Responses 接口的 Gkotta 密钥，在[可用渠道](https://www.gkotta.bid/available-channels)确认目标模型 ID。密钥创建步骤见[API 密钥管理](/api-keys)。
+准备一把支持 OpenAI Responses 接口的 Gkotta 密钥，在[可用渠道](https://www.gkotta.bid/available-channels)确认目标模型 ID。密钥创建步骤见[API 密钥管理](/docs/api-keys)。
 
 ## 配置文件位置
 
@@ -81,7 +81,7 @@ chmod 600 ~/.codex/auth.json
 3. 提出简单请求，例如“只回复 Hello，不修改文件”。
 4. 在[使用记录](https://www.gkotta.bid/usage)确认当前请求使用了正确的密钥和模型。
 
-需要单独验证 HTTP 接口时，使用[OpenAI API](/openai-api)中的 Responses 请求示例。直接请求成功而工具失败时，检查它使用的配置目录、provider、认证模式和模型。
+需要单独验证 HTTP 接口时，使用[OpenAI API](/docs/openai-api)中的 Responses 请求示例。直接请求成功而工具失败时，检查它使用的配置目录、provider、认证模式和模型。
 
 ## 常见配置问题
 
@@ -90,6 +90,6 @@ chmod 600 ~/.codex/auth.json
 - **仍然提示登录或密钥无效**：检查 `auth.json` 是否位于有效配置目录，JSON 是否有效，以及密钥是否停用。
 - **模型不可用**：把 `YOUR_MODEL_ID` 替换成分组实际支持的模型 ID；模型列表中有某个名称也不代表所有分组均可用。
 - **某个额外功能被拒绝**：先验证基本文本请求，再检查该功能是否属于分组和模型支持的能力；不要把单项能力错误当成整个接口不可用。
-- **403、429 或超时**：按[常见问题](/troubleshooting)区分额度、权限、并发和服务状态。
+- **403、429 或超时**：按[常见问题](/docs/troubleshooting)区分额度、权限、并发和服务状态。
 
 如果使用配置管理工具，确认保存后重新启用 Gkotta provider；否则下次切换时它可能覆盖手工编辑的文件。

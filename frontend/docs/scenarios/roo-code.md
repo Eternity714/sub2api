@@ -56,4 +56,4 @@ Roo Code 可以按 Ask、Code、Architect、Debug 等模式处理编程任务，
 - [Roo Code OpenAI Compatible 配置与工具调用要求](https://docs.roocode.com/providers/openai-compatible)
 - [Roo Code 文档](https://docs.roocode.com/)
 - [Roo Code 开源仓库](https://github.com/RooCodeInc/Roo-Code)
-- [Gkotta OpenAI API](/openai-api)
+- [Gkotta OpenAI API](/docs/openai-api)

@@ -96,7 +96,7 @@ opencode
 
 ## 通过 CC Switch 配置
 
-也可在 [CC Switch](/cc-switch)中选择 OpenCode，添加自定义供应商，填写对应协议、`https://www.gkotta.bid/v1`、密钥与模型。保存并添加后，在 OpenCode 的模型列表中选择 Gkotta。
+也可在 [CC Switch](/docs/cc-switch)中选择 OpenCode，添加自定义供应商，填写对应协议、`https://www.gkotta.bid/v1`、密钥与模型。保存并添加后，在 OpenCode 的模型列表中选择 Gkotta。
 
 手工配置、项目配置和 CC Switch 都可能影响最终配置。排错时先确认当前使用哪一套，不要并行覆盖相同字段。
 
@@ -116,6 +116,6 @@ opencode
 | 404 / 不支持接口 | 检查 SDK 包、Base URL 和当前分组的接口协议 |
 | 配置改了无效 | 检查项目、全局及 `OPENCODE_CONFIG` 等配置的覆盖关系，重启客户端 |
 | 文本可用但工具失败 | 检查目标模型工具能力及工具权限，不要先扩大所有权限 |
-| 401 / 403 / 429 | 按[常见问题](/troubleshooting)核对密钥、分组和额度 |
+| 401 / 403 / 429 | 按[常见问题](/docs/troubleshooting)核对密钥、分组和额度 |
 
 官方资源：[项目仓库](https://github.com/anomalyco/opencode)、[供应商配置](https://opencode.ai/docs/providers/)、[配置文件](https://opencode.ai/docs/config/)。

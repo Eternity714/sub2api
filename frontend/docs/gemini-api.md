@@ -10,7 +10,7 @@ Gkotta 的 Gemini 原生接口使用 `/v1beta` 路径，适用于发送 Gemini �
 | POST | `/v1beta/models/{model}:generateContent` | 生成内容 |
 | POST | `/v1beta/models/{model}:streamGenerateContent?alt=sse` | SSE 流式生成 |
 
-请选择支持 Gemini 原生协议的密钥分组，在[可用渠道](https://www.gkotta.bid/available-channels)确认模型。OpenAI 兼容工具应使用[OpenAI API](/openai-api)的格式和地址，不能仅替换 URL 后复用 Gemini 请求体。
+请选择支持 Gemini 原生协议的密钥分组，在[可用渠道](https://www.gkotta.bid/available-channels)确认模型。OpenAI 兼容工具应使用[OpenAI API](/docs/openai-api)的格式和地址，不能仅替换 URL 后复用 Gemini 请求体。
 
 ## 设置变量与认证
 
@@ -85,7 +85,7 @@ curl --no-buffer --fail-with-body "https://www.gkotta.bid/v1beta/models/${GKOTTA
 
 ## Gemini CLI 配置
 
-安装、Node.js 版本、认证选择和完整排错步骤见[Gemini CLI 专篇](/gemini-cli)。下方是快速配置摘要。
+安装、Node.js 版本、认证选择和完整排错步骤见[Gemini CLI 专篇](/docs/gemini-cli)。下方是快速配置摘要。
 
 安装和依赖要求见 [Gemini CLI 官方仓库](https://github.com/google-gemini/gemini-cli)。使用支持自定义地址的版本时，可按下面的环境变量方式接入。
 
@@ -116,4 +116,4 @@ CLI 地址使用根路径，由客户端追加 API 版本。修改变量后从�
 - **模型不可用**：确认密钥分组和模型支持 Gemini 原生协议及所请求的方法。
 - **返回结构与程序预期不符**：检查 `candidates`、内容块和错误消息，避免只按固定文本字段读取。
 
-更多额度、订阅和服务状态排查见[常见问题](/troubleshooting)，消耗记录见[使用记录](https://www.gkotta.bid/usage)。
+更多额度、订阅和服务状态排查见[常见问题](/docs/troubleshooting)，消耗记录见[使用记录](https://www.gkotta.bid/usage)。

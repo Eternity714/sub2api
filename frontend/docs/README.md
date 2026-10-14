@@ -1,11 +1,14 @@
+# Docsify 文档维护说明
+
 ## 内容维护约定
 
-本目录存放公开文档正文，不用于记录账号凭证，也不承担用户教程之外的运行时逻辑。`README.md` 是维护说明，不应进入用户目录、搜索索引或正文导入列表。
+本目录存放公开文档正文，不用于记录账号凭证，也不承担用户教程之外的运行时逻辑。`README.md` 是维护说明，不应进入用户目录、搜索索引或正文导入列表；文档服务器必须拒绝访问该文件和隐藏目录。
 
-- 文档工具为与参考站相同的 **VitePress 1.6.4**，版本在 `frontend/package.json` 中固定。每篇教程只维护 Markdown，不编写独立 HTML 页面。
-- 文章使用 H1 标题、H2 章节和 H3 子章节，VitePress 自动生成页内目录。导航和站点设置统一维护在 `.vitepress/config.ts`。
-- 内部教程链接写为 `/<slug>`（例如 `/api-keys`），VitePress 自动加上 `/docs/` base。不要重复写 `/docs/<slug>`，否则会变成 `/docs/docs/<slug>`。
+- 文档使用 **Docsify 4.13.1** 在浏览器解析 Markdown。固定版本的 Docsify、搜索、代码复制和 Mermaid 运行资源保存在独立文档镜像中，不依赖第三方 CDN。每篇教程只维护普通 Markdown，不编写独立 HTML 页面。
+- 文章使用 H1 标题、H2 章节和 H3 子章节。侧栏维护在 `_sidebar.md`，顶部导航维护在 `_navbar.md`，未找到文档的提示维护在 `_404.md`。首页保留 `index.md`，使用场景目录首页保留 `scenarios/index.md`。
+- 内部教程链接显式写为 `/docs/<slug>`（例如 `/docs/api-keys`），文档首页写为 `/docs/`，目录首页写为 `/docs/scenarios/`。运行时使用 history 路由并将目录首页映射到对应的 `index.md`。
 - 主站账户功能链接使用完整 `https://www.gkotta.bid/<path>`，避免被文档工具误加 `/docs/` 前缀。
+- 提示内容使用普通 Markdown 引用；流程图使用 `mermaid` 代码块。文章摘要写在 H1 之后，不使用 VitePress frontmatter、容器语法或 Vue 组件。
 - 文档只描述已核实的产品行为。路由存在不代表所有分组、模型和上游都支持该能力。
 - 样例统一使用 `sk-YOUR_API_KEY` 和 `YOUR_MODEL_ID`，不得提交真实密钥或未经验证的固定模型名称。
 - 不使用未经确认的退款、价格、活动、SLA 或客服信息。涉及价格、可用模型、功能开关和订阅状态时引导用户查看当前控制台。
@@ -34,7 +37,7 @@ Claude Code 地址不含 `/v1`，其配置使用 `ANTHROPIC_AUTH_TOKEN`。Codex 
 
 ## 参考站证据
 
-[参考文档中心](https://docs.fastaitoken.com/docs/)采用 VitePress v1.6.4，具有三栏阅读布局、快速入口卡片、工具安装配置、API 与计费排错目录。版式细节见[公开样式文件](https://docs.fastaitoken.com/assets/style.DphkpMR2.css)。
+[参考文档中心](https://docs.fastaitoken.com/docs/)采用 VitePress v1.6.4，具有三栏阅读布局、快速入口卡片、工具安装配置、API 与计费排错目录。版式细节见[公开样式文件](https://docs.fastaitoken.com/assets/style.DphkpMR2.css)。本站教程已迁移为普通 Markdown，由独立 Docsify 容器提供。
 
 逐项核对参考站的 49 个导航入口，迁移 Gkotta 已支持的主题，并合并同一工具的安装与使用文章。具体对应关系、排除原因和官方依据见 `specs/documentation/reference-coverage.md`。兼容第三方客户端包含完整配置、验证和排错步骤；图片、视频与国内模型按实际分组及源码条件编写。
 
@@ -42,53 +45,73 @@ Claude Code 地址不含 `/v1`，其配置使用 `ANTHROPIC_AUTH_TOKEN`。Codex 
 
 ## 更新流程
 
-修改接口或工具配置时同步核对相关教程、页面元数据和导航配置。外部安装命令以文章链接的官方资料为准，避免固化过时的依赖版本或安装界面。
+修改接口或工具配置时同步核对相关教程、摘要和导航。外部安装命令以文章链接的官方资料为准，避免固化过时的依赖版本或安装界面。新增、重命名或删除文章时，同时调整 `_sidebar.md` 和引用该文章的正文链接。
 
-本地文档开发命令为 `pnpm --dir frontend docs:dev`，静态预览为 `pnpm --dir frontend docs:preview`。文档开发服务器仅用于单独编写页面，生产入口始终是主站 `/docs`。
+文档图片与 Markdown 一起放在本目录，图片链接使用 `/docs/` 前缀；站点标志位于 `logo.svg`，公开地址为 `/docs/logo.svg`。维护 README 和隐藏目录不属于公开内容，不要将它们加入导航或导入清单。
 
-`pnpm --dir frontend build` 先构建主应用，再运行 `docs:build` 将 VitePress 产物写入 `backend/internal/web/dist/docs`。现有 Dockerfile 会把整个 dist 嵌入同一个 Go 二进制。构建顺序不能反过来，否则主应用构建清空 dist 时会删除文档产物。
+## 本地编写与预览
 
-后端同时支持 `/docs`、clean URL 文章直达、资源缓存和文档 404，并为 HTML 脚本注入 CSP nonce。原 `/docs/batch-image` 属于主应用登录功能，保留原入口，禁止复用该文档 slug。
+在仓库根目录启动独立文档容器：
 
-## 主机目录与文档更新
+```powershell
+docker compose -f deploy/docker-compose.docsify.yml build --builder default
+docker compose -f deploy/docker-compose.docsify.yml up -d --no-build --wait
+```
 
-`deploy/docker-compose.yml` 将 `${DOCUMENTATION_HOST_DIR:-./docs}` 只读挂载到 `/app/docs`，环境变量 `DOCUMENTATION_DIR=/app/docs` 指定运行时文档目录。目录含 `index.html` 时整站使用外置文件；空目录则使用二进制自带的文档。外置站缺少的文章或资源返回文档 404，不混用其他版本的内置文件。
+打开[本地文档首页](http://127.0.0.1:18083/docs/)，也可直接打开[快速开始](http://127.0.0.1:18083/docs/quick-start)或[使用场景](http://127.0.0.1:18083/docs/scenarios/)。宿主机默认只绑定 `127.0.0.1:18083`，容器内部使用 8080。
 
-首次使用源码构建镜像时，可从镜像的 `/app/docs-default` 复制完整静态站到主机目录：
+Compose 将 `frontend/docs/` 中的原始 Markdown、导航和图片只读挂载到容器的 `/usr/share/nginx/html/docs`。修改文章并保存后，刷新浏览器即可看到新正文，无需构建、重建镜像或重启容器。HTML、Markdown 和导航不持久缓存。
+
+Docsify 的入口页面和固定静态运行资源位于镜像中的 `/opt/docsify/runtime`，独立于内容挂载目录。修改这些运行资源或容器配置时，才需要重新构建并启动文档容器。主应用构建不再运行 `docs:build`，也不再将文档编译进 Go 二进制。
+
+同域完整预览使用 `deploy/docker-compose.docs-preview.yml` 的入口代理；文档内容仍来自 `frontend/docs/`。预览的主站、控制台按钮和业务链接保持指向文中明确给出的地址。
+
+所有本地测试、HTTP 与浏览器回归、前端类型检查均按根目录 `AGENTS.md` 要求通过 Docker Compose 容器执行，不在宿主机直接运行测试命令。
+
+## 生产内容与发布
+
+生产 Markdown、导航和图片统一维护在固定真实目录 **`/opt/sub2api/content`**，只读挂载到 Docsify 容器的 `/usr/share/nginx/html/docs`，不会随槽位或镜像版本改变。更新其中的对应文件后刷新即可，不需要重新编译、重建镜像或重启容器。保持挂载根目录及其 inode 不变，在目录内更新文件；不要替换整个目录或切换为符号链接。同步修改仓库 `frontend/docs/`，保留正文源码。
+
+首次创建固定目录时，发布脚本优先复制当前稳定 Docsify 槽位的已维护正文；尚未部署 Docsify 时才使用镜像正文初始化。固定目录已存在时只验证并复用，不覆盖文件、不调整现有权限、不替换目录；缺少入口、导航或存在不允许公开的文件时拒绝发布。后续镜像只更新运行资源，不自动同步或覆盖固定目录中的文章。新增正文由维护者明确同步到该目录，并保证目录和公开文件可供容器 UID 101 读取。
+
+迁移期间保留旧版本正文与旧容器供回切；旧路径候选不能再放量或晋升。先运行 `gray-docsify-status.sh`，确认稳定槽位的 `docsify_<slot>_content=/opt/sub2api/content`。迁移验收记录见 `docs/superpowers/results/2026-10-14-docsify-content-migration.md`。
+
+文档镜像仓库为 `ghcr.io/eternity714/sub2api-docsify`，发布时只使用不可变 `sha-<commit>` 标签，禁止使用 `latest`。镜像和脚本的更新与正文维护分开进行。公开内容同步时排除 `README.md`、隐藏目录及仓库其它文件。
+
+生产操作通过 SSH 别名 `tenxunyun.guigu` 访问 `/opt/sub2api`。每次操作前先运行服务器中已安装的 `gray-status.sh`，核对主应用稳定、候选槽位及健康状态；不得重新初始化灰度或启动旧 `sub2api` 容器。
+
+使用 `/opt/sub2api/scripts` 中的文档灰度脚本依次完成部署、放量和晋升：`gray-deploy-docsify.sh` 先部署到无流量的独立端口，完成容器健康、`/health`、文章、搜索、代码复制、Mermaid、移动布局及 Nginx 配置检查后，再由 `gray-set-docsify-traffic.sh` 逐步扩大文档流量。达到 100% 并完成观察后，由 `gray-promote-docsify.sh` 确认晋升。文档流量通过独立 Nginx include 管理，不修改主应用蓝绿权重。
+
+将同一发布版本的 `gray-docsify-common.sh`、`gray-docsify-nginx-install.py`、`gray-docsify-status.sh`、`gray-deploy-docsify.sh`、`gray-set-docsify-traffic.sh` 和 `gray-promote-docsify.sh` 安装在已有的 `/opt/sub2api/scripts` 目录，保留已有 `gray-common.sh` 和主应用灰度脚本。服务器需要 `python3`、`flock`、Podman、curl 和免交互 sudo。`Publish Docsify GHCR Image` workflow 在 `main` 或 `codex/**` 分支的相关变更推送后验证并发布 `sha-<完整提交SHA>` 镜像；部署时把下面的标签占位符替换为 workflow 输出的实际标签。
+
+2026-10-14 首次发布时，GitHub 平台拒绝运行本仓库 Actions，手动触发返回 `HTTP 422: Actions has been disabled for this repository`。本次通过 Docker 构建并由生产服务器现有 Podman GHCR 登录发布固定 SHA 镜像；自动工作流恢复前，运行时或镜像更新需手动发布。已挂载的 Markdown、导航和图片更新不受此限制。
 
 ```bash
-mkdir -p docs
-docker compose cp sub2api:/app/docs-default/. ./docs/
+cd /opt/sub2api
+./scripts/gray-status.sh
+./scripts/gray-deploy-docsify.sh 'sha-<完整提交SHA>'
+./scripts/gray-docsify-status.sh
+# 首次候选是 127.0.0.1:18083，下一候选使用 18084；按状态输出核对。
+# 先完成候选直连健康检查与浏览器人工验收，再逐步放量。
+./scripts/gray-set-docsify-traffic.sh 10
+./scripts/gray-docsify-status.sh
+# 检查 Nginx、容器健康、最近错误日志和主站功能后继续。
+./scripts/gray-set-docsify-traffic.sh 50
+./scripts/gray-docsify-status.sh
+./scripts/gray-set-docsify-traffic.sh 100
+./scripts/gray-docsify-status.sh
+# 在 100% 连续观察至少 300 秒，确认文档和主站正常后晋升。
+./scripts/gray-promote-docsify.sh
+./scripts/gray-docsify-status.sh
+./scripts/gray-status.sh
 ```
 
-Markdown 源码仍在本仓库的 `frontend/docs/`。开发模式 `vitepress dev` 会即时更新；生产需要重新执行 `docs:build`，同时生成 HTML、资源和搜索索引。不要把原始 Markdown 当作生成后的目录挂载。后续只构建文档并将完整产物同步到主机目录，不需要重新编译 Go。
+晋升脚本默认要求 100% 流量后至少观察 300 秒，起始时间以状态输出的 `docsify_full_traffic_at`（Unix 秒）为准。放量会更新 `docsify_cookie_epoch`，让此前固定到旧比例的会话按新比例重新分流。首次迁移期间，Markdown 和 `/docs/_assets/` 始终由候选 Docsify 提供，旧站 `/docs/assets/` 仍走主应用；晋升后所有 `/docs` 地址都归 Docsify，缺失的旧资源返回真实 404。
 
-本地预览直接挂载 `backend/internal/web/dist/docs`，因此在 Compose 的 `frontend-test` 容器中运行 `pnpm --dir frontend docs:build` 后，刷新页面即可看到更新。生产灰度 Compose 分别将 `./docs-blue`、`./docs-green` 只读挂载到 `/app/docs`，不要覆盖稳定槽位的 HTML。
+主机规则位于独立的 `/etc/nginx/conf.d/sub2api-docsify-policy.conf` 和 `/etc/nginx/snippets/sub2api-docsify-locations.conf`。policy 由 Nginx 的 `conf.d/*.conf` 自动加载，不要在主站配置中重复 include；locations 只安装到 `www.gkotta.bid` 的 HTTPS 业务 server。配置变更前的备份保存在 `/opt/sub2api/gray/docsify/backups`，主应用 `state.env`、`slots.env` 和蓝绿 policy 不会被文档脚本改写。
 
-把 `deploy/gray-prepare-documentation.sh` 安装到服务器现有灰度脚本目录，在 0% 候选槽位执行它，随后执行既有 `gray-deploy.sh`。准备脚本从不可变镜像的 `/app/docs-default` 提取完整静态站，备份候选旧站、保留旧 hash 资源，并只为另一槽位追加资源。流量变更和晋升仍须走既有灰度脚本。首次旧版本没有文档路由，回滚后已打开的新文档可能需要刷新；候选容器和文件仍保留。
+`/docs` 转到 `/docs/`，历史 `/docs/batch-image` 及其尾斜杠形式转到主应用 `/batch-image` 并保留查询参数；不要复用 `batch-image` 文档 slug。入口代理保留 `/docs` URI，不剥离前缀；未知文章、Markdown、资源和维护文件返回 404，不回落到主应用 SPA。
 
-准备脚本在提取镜像之后、写入槽位之前重新核对同一候选仍为 0%，并拒绝两个文档目录及其子目录中的符号链接。现有灰度脚本没有共享锁，准备、部署、切流和晋升必须按单一操作序列执行，不得同时运行。脚本需要服务器已安装 `podman` 和 `rsync`。
+发现候选文档不健康、Nginx 检查失败或主站异常时，先通过文档灰度脚本将新文档请求切回稳定入口，并保留候选容器、镜像、日志和备份现场。回滚仅切流，不销毁容器，不删除数据卷，不恢复数据库；后续处理按根目录 `AGENTS.md` 的要求执行。
 
-后续更新保持挂载根目录不变（bind mount 持有目录 inode），在目录内先追加 hash 资源，再原子替换文章和首页。不要替换整个挂载目录、切换其符号链接、删除首页或用 `rsync --delete` 清掉旧资源。主机目录和文件分别需有 `755`、`644` 权限，供容器 UID 1000 读取。完整 HTML、资源及搜索索引应作为同一批产物更新。
-
-文章死链接由 VitePress 构建检查，入口与后端文档深链接有回归测试。所有测试、类型检查与构建均按根目录 `AGENTS.md` 的 Docker Compose 要求执行。
-
-## 本地人工预览
-
-在仓库根目录，将 `deploy/docs-preview.env.example` 复制为 `deploy/docs-preview.env`，填写三个必填的独立随机凭证。真实 env 文件已被 Git 忽略。随后运行：
-
-```powershell
-docker compose --env-file deploy/docs-preview.env -p sub2api-docs-preview -f deploy/docker-compose.docs-preview.yml build --builder default
-docker compose --env-file deploy/docs-preview.env -p sub2api-docs-preview -f deploy/docker-compose.docs-preview.yml up -d
-docker compose --env-file deploy/docs-preview.env -p sub2api-docs-preview -f deploy/docker-compose.docs-preview.yml ps
-```
-
-应用健康后，打开 [本地主页](http://127.0.0.1:18082/home)，点击文档入口，或直接访问 [文档首页](http://127.0.0.1:18082/docs/) 和 [快速开始](http://127.0.0.1:18082/docs/quick-start)。配置不同的 `DOCS_PREVIEW_PORT` 时替换地址中的端口。预览运行真实 Go 嵌入服务，可检查 CSP、文章直达、搜索、代码复制、主题和移动端布局。
-
-该 Compose 使用专属项目网络和数据卷，首次自动创建本地管理员 `docs-preview@example.invalid`，密码为 env 中设置的值。数据库与 Redis 不暴露宿主机端口，批量生图关闭。文档中的主站、控制台按钮和业务链接仍指向生产站；本地入口测试从上述 `/home` 地址开始。
-
-构建命令显式选择 Docker 默认构建器，避免本机残留的构建器配置影响预览。预览使用独立的 Go 构建缓存作用域，避免复用本机已损坏的共享缓存；普通构建仍使用原默认缓存。修改文档后重新执行构建和启动命令即可更新镜像。停止预览并保留数据：
-
-```powershell
-docker compose --env-file deploy/docs-preview.env -p sub2api-docs-preview -f deploy/docker-compose.docs-preview.yml stop
-```
+候选晋升前的人工回切命令为 `./scripts/gray-set-docsify-traffic.sh 0`，随后运行 `./scripts/gray-docsify-status.sh` 和 `./scripts/gray-status.sh` 核对文档与主应用状态。脚本发现活动候选不健康或切流状态保存失败时会先执行同样的入口回切；如回切或状态保存仍失败，会明确报告 `CRITICAL`，应检查保留的 Nginx 备份与状态后再操作。

@@ -7,7 +7,7 @@
 3. **分组和模型**：在[可用渠道](https://www.gkotta.bid/available-channels)核对密钥分组、协议与模型 ID。
 4. **费用和状态**：检查账户、[我的订阅](https://www.gkotta.bid/subscriptions)、[使用记录](https://www.gkotta.bid/usage)和[渠道状态](https://www.gkotta.bid/monitor)。
 
-先用[快速开始](/quick-start)或对应协议教程中的最小请求测试。最小请求成功后，再加历史上下文、工具、图片或其他参数。
+先用[快速开始](/docs/quick-start)或对应协议教程中的最小请求测试。最小请求成功后，再加历史上下文、工具、图片或其他参数。
 
 ## 按 HTTP 状态排查
 
@@ -95,4 +95,4 @@ Python 或 Node.js 程序没有读到环境变量时，确认变量与程序在�
 
 隐藏 API 密钥、Authorization 请求头、个人信息和敏感提示内容。说明最小请求是否成功，通常能更快区分账户问题、客户端配置问题和某项模型能力问题。
 
-重新配置工具可参考 [Claude Code](/claude-code)、[Codex](/codex)和[常用客户端](/clients)；额度概念见[计费与用量](/billing)。
+重新配置工具可参考 [Claude Code](/docs/claude-code)、[Codex](/docs/codex)和[常用客户端](/docs/clients)；额度概念见[计费与用量](/docs/billing)。

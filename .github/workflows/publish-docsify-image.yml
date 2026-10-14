@@ -1,0 +1,99 @@
+name: Publish Docsify GHCR Image
+
+on:
+  push:
+    branches: [main, 'codex/**']
+    paths:
+      - 'deploy/docsify/**'
+      - 'frontend/docs/**'
+      - 'deploy/docker-compose.docsify.yml'
+      - 'deploy/docker-compose.test.yml'
+      - 'deploy/gray-*docsify*.sh'
+      - 'deploy/gray-docsify-nginx-install.py'
+      - 'deploy/tests/docsify-*'
+      - '.github/workflows/publish-docsify-image.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docsify-image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify and publish immutable Docsify image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify vendored runtime checksums
+        run: cd deploy/docsify/runtime && sha256sum -c SHA256SUMS
+
+      - name: Verify deployment protection and generated Nginx rules
+        run: |
+          docker compose -f deploy/docker-compose.test.yml run --rm --no-deps frontend-test bash -c '
+            set -euo pipefail
+            apt-get update
+            apt-get install -y --no-install-recommends nginx-light
+            bash -n deploy/gray-docsify-common.sh deploy/gray-deploy-docsify.sh deploy/gray-set-docsify-traffic.sh deploy/gray-promote-docsify.sh deploy/gray-docsify-status.sh
+            DOCSIFY_REAL_NGINX=/usr/sbin/nginx bash deploy/tests/docsify-gray-test.sh
+          '
+
+      - name: Build documentation image
+        run: docker compose -p docsify-ci -f deploy/docker-compose.docsify.yml build
+
+      - name: Verify immutable image public seed contents
+        run: docker compose -f deploy/docker-compose.test.yml run --rm --no-deps docsify-image-test
+
+      - name: Start verified documentation image
+        run: docker compose -p docsify-ci -f deploy/docker-compose.docsify.yml up --no-build -d --wait
+
+      - name: Verify HTTP behavior and mounted Markdown updates
+        run: DOCSIFY_TEST_URL=http://docsify:8080 docker compose -p docsify-ci -f deploy/docker-compose.test.yml run --rm --no-deps docsify-http-test
+
+      - name: Verify browser navigation, search and diagrams
+        run: DOCSIFY_TEST_URL=http://docsify:8080 docker compose -p docsify-ci -f deploy/docker-compose.test.yml run --rm --no-deps docsify-browser-test
+
+      - name: Read immutable source revision
+        id: revision
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GHCR_PAT || github.token }}
+
+      - name: Publish linux/amd64 Docsify image
+        id: image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docsify/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/eternity714/sub2api-docsify:sha-${{ steps.revision.outputs.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ steps.revision.outputs.sha }}
+          cache-from: type=gha,scope=docsify
+          cache-to: type=gha,scope=docsify,mode=max
+
+      - name: Record immutable image
+        run: |
+          echo 'ghcr.io/eternity714/sub2api-docsify:sha-${{ steps.revision.outputs.sha }}' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Digest: ${{ steps.image.outputs.digest }}' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Collect documentation logs
+        if: failure()
+        run: docker compose -p docsify-ci -f deploy/docker-compose.docsify.yml logs --tail 100
+
+      - name: Clean up CI documentation container
+        if: always()
+        run: docker compose -p docsify-ci -f deploy/docker-compose.docsify.yml down

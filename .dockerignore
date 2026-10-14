@@ -17,11 +17,9 @@ docs/
 !docs/legal/
 !docs/legal/*.md
 
-# Public VitePress pages are build inputs for the embedded documentation site.
+# Public Markdown is copied into the independent Docsify image.
 !frontend/docs/
 !frontend/docs/**/*.md
-frontend/docs/.vitepress/cache/
-frontend/docs/.vitepress/.temp/
 
 # IDE
 .idea/
