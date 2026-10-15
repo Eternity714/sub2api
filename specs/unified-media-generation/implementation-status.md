@@ -162,3 +162,15 @@ ToAPIs 官方只读检查确认当前令牌为无限额度，用户余额从本�
 **代码发布已完成，生产统一媒体业务尚未开放。** 生产尚无 ToAPIs 账号、新媒体能力与路由，以及相应的分组渠道关联和媒体价格；现有 GRS 账号与 S3 配置没有替换。管理员完成这些生产配置并验收后，才能让下游调用新协议。价格需按本站余额单位配置，ToAPIs USD 单价乘以 7；GRS GPT Image 系列继续不提供服务。
 
 本次是在 Docker Compose 门禁通过后发布；GitHub Actions 仍因仓库禁用而未执行，不能记为 CI 通过。最终记录与探针保存在上述临时证据目录：`f40-production-promotion.log`、`f40-production-probe-post-promotion*.json`、`f40-production-http-assets-post-promotion.log`、`production-f40-independent-monitoring-complete.json` 和 `fixed-release-review-receipt.json`。前一节的“待确认”描述保留为首次 0% 故障后的历史状态，以本节最终结果为准。
+
+## 生产统一媒体配置完成（2026-10-15）
+
+按用户最新指令，旧配置由用户自行处理，本次仅新增统一媒体配置。北京时间 **23:15:55** 启用 Composite 分组 **22「统一媒体 · GRS + ToAPIs」**，关联渠道 **6「统一媒体渠道 · ToAPIs 人民币换算」**，专用账号为 **17（GRS.AI）／18（ToAPIs）**。两个账号均新建，使用已授权的上游连接凭据并直连；未复制本地测试代理、用户、Key、余额、历史用量或任务。已有 Key 没有迁移，下游需将新建或自行调整的 Key 关联分组 22 后使用统一异步协议。
+
+生产导入 165 条能力（124 启用）、128 条路由（126 启用），与本地最终配置逐项一致。渠道维护 60 条价格规则、129 个价位，精确保留已确认的 ToAPIs USD ×7 换算值；新分组直接模型价目为空、倍率为 1。GRS GPT Image 的 5 条能力与 2 条路由保持停用，专用 GRS 账号映射仅包含 Nano Banana 2.1 与 MiniMax；GPT Image 由 ToAPIs 提供。未配置价格、动态 Token 计费、缺少可信 schema 及此前指定停用的型号仍不开放。
+
+管理员诊断完成 19／19 项检查：124 个启用能力样例校验通过，124 组公开模型／端点路由预览覆盖 126 个启用候选；价格、schema、启停状态与源导出一致，严格字段负例通过。生产 ToAPIs 只读模型查询为 200、返回 161 个模型，包含重点 GPT Image／Nano Banana 型号；GRS TLS 可达但不提供 `/v1/models`（404），本次没有据此宣称其鉴权或全部模型可用性已重新实测。S3 已保存配置的客户端检查通过，未执行新的结果转存或付费生成。
+
+独立核对确认旧分组 18／20／21、渠道 3／5 及价目关联、原账号及凭据、现有 Key 的分组／额度／累计、用户权限与旧人工审核冻结均未改变，新统一媒体任务为 0。启用后公开 `/health`、Nginx、容器健康、已有 Key 只读鉴权通过，观察窗口无 5xx／超时／容器错误。本次结论为**生产配置已启用并通过零付费验收**，不扩大为所有模型和规格均已在生产付费生成验证。
+
+脱敏证据：`%TEMP%/sub2api-production-media-config-20261015/` 的 `activation-result.json`、`preflight-result.json`、`preflight-details.json`、`old-configuration-preserved.json`、`new-media-connections.json` 与 `post-configuration-service-probe.json`。服务器备份与配置操作记录位于 `/opt/sub2api/gray/releases/unified-media-config-20261015/`，私有凭据与快照只保存在受限目录，不提交仓库。前述“生产统一媒体业务尚未开放”为配置前历史状态，以本节为准。
