@@ -4,6 +4,8 @@ services:
     working_dir: /workspace/backend
     volumes:
       - ../backend:/workspace/backend
+      - ../docs:/workspace/docs:ro
+      - ../frontend/src/constants:/workspace/frontend/src/constants:ro
       - go-test-build-cache:/root/.cache/go-build
       - go-test-mod-cache:/go/pkg/mod
     command: ["go", "test", "-tags=unit", "./..."]
@@ -19,6 +21,8 @@ services:
       - host.docker.internal:host-gateway
     volumes:
       - ../backend:/workspace/backend
+      - ../docs:/workspace/docs:ro
+      - ../frontend/src/constants:/workspace/frontend/src/constants:ro
       - go-test-build-cache:/root/.cache/go-build
       - go-test-mod-cache:/go/pkg/mod
       - /var/run/docker.sock:/var/run/docker.sock

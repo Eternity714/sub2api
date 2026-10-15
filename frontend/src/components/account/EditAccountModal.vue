@@ -46,7 +46,9 @@
             type="text"
             class="input"
             :placeholder="
-              account.platform === 'openai'
+              account.platform === 'toapis'
+                ? TOAPIS_GLOBAL_BASE_URL
+                : account.platform === 'openai'
                 ? 'https://api.openai.com'
                 : account.platform === 'gemini'
                   ? 'https://generativelanguage.googleapis.com'
@@ -1836,7 +1838,7 @@
             }}
           </p>
           <div
-            v-if="account?.type === 'apikey'"
+            v-if="supportsUpstreamBillingProbe"
             class="mt-3 flex items-center justify-between gap-3"
           >
             <div class="min-w-0">
@@ -2103,7 +2105,7 @@
       </div>
 
       <div
-        v-if="account?.type === 'apikey'"
+        v-if="supportsUpstreamBillingProbe"
         class="flex items-center justify-between gap-4 border-t border-gray-200 pt-4 dark:border-dark-600"
       >
         <div>
@@ -3310,6 +3312,7 @@ import {
   defaultCNBaseUrl,
   GRSAI_BASE_URL_PRESETS,
   GRSAI_GLOBAL_BASE_URL,
+  TOAPIS_GLOBAL_BASE_URL,
   isCNProviderPlatform,
   HEADER_OVERRIDE_ENABLED_CREDENTIAL_KEY,
   HEADER_OVERRIDES_CREDENTIAL_KEY,
@@ -3478,6 +3481,7 @@ const baseUrlHint = computed(() => {
   if (props.account.platform === 'openai') return t('admin.accounts.openai.baseUrlHint')
   if (props.account.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
   if (props.account.platform === 'grok') return ''
+  if (props.account.platform === 'toapis') return t('admin.accounts.toapis.baseUrlHint')
   if (props.account.platform === 'grsai') return t('admin.accounts.grsai.baseUrlHint')
   return t('admin.accounts.baseUrlHint')
 })
@@ -3804,6 +3808,9 @@ const autoResetCredit5hThreshold = ref(100)
 const autoResetCredit7dThreshold = ref(100)
 const upstreamBillingAutoProbeEnabled = ref(false)
 const upstreamBillingRateSyncEnabled = ref(false)
+const supportsUpstreamBillingProbe = computed(() =>
+  props.account?.type === 'apikey' && props.account.platform !== 'grsai' && props.account.platform !== 'toapis'
+)
 const mixedScheduling = ref(false) // For antigravity accounts: enable mixed scheduling
 // 上游ID：直接上游声明请求标识的响应头名，留空不记录。
 const upstreamRequestIdHeader = ref('')
@@ -4192,6 +4199,7 @@ const defaultBaseUrl = computed(() => {
   if (props.account?.platform === 'gemini') return 'https://generativelanguage.googleapis.com'
   if (props.account?.platform === 'grok') return 'https://api.x.ai/v1'
   if (props.account?.platform === 'typesafe') return 'https://api.typesafe.ai'
+  if (props.account?.platform === 'toapis') return TOAPIS_GLOBAL_BASE_URL
   if (props.account?.platform === 'grsai') return GRSAI_GLOBAL_BASE_URL
   // CN 供应商：按当前模式/协议回落到官方预设（清空输入框提交时使用），
   // 不能落到 anthropic 默认值（会被当 CC base 拼出错误端点）。
@@ -4362,7 +4370,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
 		typeof extra?.auto_reset_credit_5h_threshold === 'number' ? extra.auto_reset_credit_5h_threshold * 100 : 100
 	autoResetCredit7dThreshold.value =
 		typeof extra?.auto_reset_credit_7d_threshold === 'number' ? extra.auto_reset_credit_7d_threshold * 100 : 100
-	upstreamBillingAutoProbeEnabled.value = extra?.upstream_billing_probe_enabled === true
+	upstreamBillingAutoProbeEnabled.value = supportsUpstreamBillingProbe.value && extra?.upstream_billing_probe_enabled === true
   upstreamBillingRateSyncEnabled.value =
     upstreamBillingAutoProbeEnabled.value && extra?.upstream_billing_rate_sync_enabled === true
 
@@ -4642,7 +4650,9 @@ const syncFormFromAccount = (newAccount: Account | null) => {
             ? 'https://api.x.ai/v1'
             : newAccount.platform === 'typesafe'
               ? 'https://api.typesafe.ai'
-              : newAccount.platform === 'grsai'
+              : newAccount.platform === 'toapis'
+                ? TOAPIS_GLOBAL_BASE_URL
+                : newAccount.platform === 'grsai'
                 ? GRSAI_GLOBAL_BASE_URL
                 : isMultiProtocolApiKeyPlatform(newAccount.platform)
                   ? defaultCNBaseUrl(newAccount.platform, currentOpenCodeOrCNMode(), editApiProtocol.value)
@@ -5352,6 +5362,10 @@ const submitUpdateAccount = async (accountID: number, updatePayload: Record<stri
 const handleSubmit = async () => {
   if (!props.account) return
   const accountID = props.account.id
+  if (props.account.platform === 'toapis' && !editBaseUrl.value.trim()) {
+    appStore.showError(t('admin.accounts.toapis.baseUrlRequired'))
+    return
+  }
 
   if (form.status !== 'active' && form.status !== 'inactive' && form.status !== 'error') {
     appStore.showError(t('admin.accounts.pleaseSelectStatus'))
@@ -5380,7 +5394,7 @@ const handleSubmit = async () => {
       updatePayload.load_factor = 0
     }
     updatePayload.auto_pause_on_expired = autoPauseOnExpired.value
-    if (props.account.type === 'apikey') {
+    if (supportsUpstreamBillingProbe.value) {
       updatePayload.upstream_billing_probe_enabled = upstreamBillingAutoProbeEnabled.value
       updatePayload.upstream_billing_rate_sync_enabled = upstreamBillingRateSyncEnabled.value
       if (upstreamBillingRateSyncEnabled.value) {
@@ -6042,8 +6056,7 @@ const handleSubmit = async () => {
       const currentExtra = (updatePayload.extra as Record<string, unknown>) ||
         (props.account.extra as Record<string, unknown>) || {}
       const newExtra: Record<string, unknown> = { ...currentExtra }
-      // 上游倍率自动探测对全部 API-key 平台开放（sub2api 上游即可应答），
-      // Bedrock 凭证无静态 Key 不参与。
+      // 旧探测字段统一走独立更新参数；原生媒体账号也清除旧 extra 残留。
       if (props.account.type === 'apikey') {
         delete newExtra.upstream_billing_probe_enabled
         delete newExtra.upstream_billing_rate_sync_enabled

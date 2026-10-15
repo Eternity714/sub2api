@@ -4055,7 +4055,7 @@
         </section>
 
         <section class="space-y-5">
-          <form class="space-y-3" @submit.prevent="saveCompositeRoute">
+          <form data-testid="composite-route-form" class="space-y-3" @submit.prevent="saveCompositeRoute">
             <div class="flex items-center justify-between gap-3">
               <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
                 {{
@@ -4080,6 +4080,7 @@
               }}</label>
               <input
                 v-model.trim="compositeRouteForm.public_model"
+                data-testid="composite-public-model"
                 type="text"
                 class="input"
                 required
@@ -4103,6 +4104,7 @@
                 }}</label>
                 <Select
                   v-model="compositeRouteForm.endpoint"
+                  data-testid="composite-endpoint"
                   :options="compositeRouteEndpointOptions"
                 />
               </div>
@@ -4115,6 +4117,7 @@
                 }}</label>
                 <Select
                   v-model="compositeRouteForm.target_platform"
+                  data-testid="composite-platform"
                   :options="compositeRoutePlatformOptions"
                 />
               </div>
@@ -4145,6 +4148,14 @@
               <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {{ t("admin.groups.compositeRoutes.upstreamModelHint") }}
               </p>
+            </div>
+
+            <div v-if="compositeRouteForm.endpoint === 'images' || compositeRouteForm.endpoint === 'videos'">
+              <label class="input-label">{{ t('admin.groups.compositeRoutes.capabilityModel') }}</label>
+              <input v-model.trim="compositeRouteForm.capability_model" data-testid="composite-capability-model" type="text" maxlength="200" class="input" />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.groups.compositeRoutes.capabilityModelHint') }}</p>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.groups.compositeRoutes.mediaCandidatesHint') }}</p>
+              <router-link class="mt-1 inline-block text-xs text-primary-600 hover:underline dark:text-primary-400" to="/admin/media-capabilities">{{ t('nav.mediaCapabilities') }}</router-link>
             </div>
 
             <div>
@@ -4190,6 +4201,7 @@
             <div class="space-y-3">
               <input
                 v-model.trim="compositePreviewModel"
+                data-testid="composite-preview-model"
                 type="text"
                 class="input"
                 placeholder="openrouter/gpt-5"
@@ -4198,6 +4210,7 @@
               <div class="flex gap-2">
                 <Select
                   v-model="compositePreviewEndpoint"
+                  data-testid="composite-preview-endpoint"
                   :options="compositeRouteEndpointOptions"
                   class="min-w-0 flex-1"
                 />
@@ -4206,6 +4219,7 @@
                   class="btn btn-secondary"
                   :disabled="compositePreviewLoading || !compositePreviewModel"
                   @click="previewCompositeRoute"
+                  data-testid="composite-preview-submit"
                 >
                   <Icon name="play" size="sm" />
                 </button>
@@ -4261,6 +4275,13 @@
                 >
                   {{ compositePreviewDecision.reason }}
                 </div>
+                <ol v-if="compositePreviewDecision.candidates?.length" data-testid="composite-media-candidates" class="mt-3 list-inside list-decimal space-y-2 border-t border-gray-200 pt-3 dark:border-dark-600">
+                  <li v-for="candidate in compositePreviewDecision.candidates" :key="candidate.route?.id" class="break-all">
+                    {{ formatCompositePlatform(candidate.target_platform) }} · {{ candidate.upstream_model }}
+                    <span class="text-xs text-gray-500">{{ t('admin.groups.compositeRoutes.priority') }}: {{ candidate.route?.priority }} · schema: {{ candidate.route?.capability_model || candidate.public_model }}</span>
+                  </li>
+                </ol>
+                <p v-if="compositePreviewDecision.candidates?.length" class="mt-2 text-xs text-gray-500">{{ t('admin.groups.compositeRoutes.mediaPreviewHint') }}</p>
               </div>
             </div>
           </div>
@@ -4687,6 +4708,7 @@ const compositeRouteEndpointOptions = computed(() => [
     label: t("admin.groups.compositeRoutes.endpoints.embeddings"),
   },
   { value: "images", label: t("admin.groups.compositeRoutes.endpoints.images") },
+  { value: "videos", label: t("admin.groups.compositeRoutes.endpoints.videos") },
   { value: "gemini", label: t("admin.groups.compositeRoutes.endpoints.gemini") },
 ]);
 
@@ -4780,7 +4802,7 @@ const invalidRequestFallbackOptionsForEdit = computed(() => {
 });
 
 const canCopyAccountsFromGroup = (targetPlatform: GroupPlatform, sourcePlatform: GroupPlatform) =>
-  (targetPlatform === "composite" && sourcePlatform !== "grsai") || sourcePlatform === targetPlatform;
+  targetPlatform === "composite" || sourcePlatform === targetPlatform;
 
 const copyAccountsGroupLabel = (g: AdminGroup) => {
   const count = g.account_count || 0;
@@ -4887,6 +4909,7 @@ type CompositeRouteFormState = {
   match_type: CompositeRouteMatchType;
   target_platform: ConcreteGroupPlatform;
   upstream_model: string;
+  capability_model: string;
   endpoint: CompositeRouteEndpoint;
   priority: number;
   enabled: boolean;
@@ -4908,6 +4931,7 @@ const compositeRouteForm = reactive<CompositeRouteFormState>({
   match_type: "exact",
   target_platform: "openai",
   upstream_model: "",
+  capability_model: "",
   endpoint: "any",
   priority: 100,
   enabled: true,
@@ -6518,6 +6542,7 @@ const resetCompositeRouteForm = () => {
   compositeRouteForm.match_type = "exact";
   compositeRouteForm.target_platform = "openai";
   compositeRouteForm.upstream_model = "";
+  compositeRouteForm.capability_model = "";
   compositeRouteForm.endpoint = "any";
   compositeRouteForm.priority = 100;
   compositeRouteForm.enabled = true;
@@ -6529,6 +6554,7 @@ const toCompositeRouteInput = (): CompositeModelRouteInput => ({
   match_type: compositeRouteForm.match_type,
   target_platform: compositeRouteForm.target_platform,
   upstream_model: compositeRouteForm.upstream_model.trim(),
+  capability_model: ["images", "videos"].includes(compositeRouteForm.endpoint) ? compositeRouteForm.capability_model.trim() : "",
   endpoint: compositeRouteForm.endpoint,
   priority: Number(compositeRouteForm.priority) || 100,
   enabled: compositeRouteForm.enabled,
@@ -6582,6 +6608,7 @@ const editCompositeRoute = (route: CompositeModelRoute) => {
   compositeRouteForm.match_type = route.match_type;
   compositeRouteForm.target_platform = route.target_platform;
   compositeRouteForm.upstream_model = route.upstream_model;
+  compositeRouteForm.capability_model = route.capability_model || "";
   compositeRouteForm.endpoint = route.endpoint;
   compositeRouteForm.priority = route.priority || 100;
   compositeRouteForm.enabled = route.enabled;
@@ -6589,7 +6616,7 @@ const editCompositeRoute = (route: CompositeModelRoute) => {
 };
 
 const saveCompositeRoute = async () => {
-  if (!compositeRoutesGroup.value) return;
+  if (!compositeRoutesGroup.value || compositeRouteSaving.value) return;
   if (!compositeRouteForm.public_model.trim()) {
     appStore.showError(t("admin.groups.compositeRoutes.publicModelRequired"));
     return;

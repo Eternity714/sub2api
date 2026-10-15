@@ -1,0 +1,383 @@
+{
+  "checked_at": "2026-10-15",
+  "timezone": "Asia/Shanghai",
+  "scope": "公开官方目录与文档；未调用真实生成接口",
+  "counts": {
+    "catalog_all": 33,
+    "catalog_image": 16,
+    "catalog_video": 2,
+    "catalog_media": 18,
+    "catalog_media_maintenance": 4,
+    "catalog_media_not_marked_maintenance": 14,
+    "new_native_generation_families": 4,
+    "additional_native_document_only_models": 2,
+    "catalog_and_new_native_docs_union": 20
+  },
+  "current_catalog": [
+    {
+      "id": "nano-banana-2.1",
+      "catalog_type": "image",
+      "family": "Nano",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "nano-banana-pro",
+      "catalog_type": "image",
+      "family": "Nano",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "nano-banana-2",
+      "catalog_type": "image",
+      "family": "Nano",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "nano-banana-2-lite",
+      "catalog_type": "image",
+      "family": "Nano",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录登记，但原生族 OpenAPI 的型号枚举未列；公告称与 nano-banana-fast 底层相同，不能据此默认任意参数兼容",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "nano-banana-fast",
+      "catalog_type": "image",
+      "family": "Nano",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "nano-banana-pro-cl",
+      "catalog_type": "image",
+      "family": "Nano",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "nano-banana-2-cl",
+      "catalog_type": "image",
+      "family": "Nano",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "nano-banana-2-2k-cl",
+      "catalog_type": "image",
+      "family": "Nano",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "nano-banana-pro-vip",
+      "catalog_type": "image",
+      "family": "Nano",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "nano-banana-pro-4k-vip",
+      "catalog_type": "image",
+      "family": "Nano",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "nano-banana-2-4k-cl",
+      "catalog_type": "image",
+      "family": "Nano",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "gpt-image-2",
+      "catalog_type": "image",
+      "family": "GPT",
+      "availability_note": "当前官方目录登记，标记维护中；不据此启用调度",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452409160e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "gpt-image-2-vip",
+      "catalog_type": "image",
+      "family": "GPT",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452409160e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "gpt-image-2.5",
+      "catalog_type": "image",
+      "family": "GPT",
+      "availability_note": "当前官方目录登记，标记维护中；不据此启用调度",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452409160e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "gpt-image-2.5-flare",
+      "catalog_type": "image",
+      "family": "GPT",
+      "availability_note": "当前官方目录登记，标记维护中；不据此启用调度",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452409160e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "gpt-image-2.5-sunburst",
+      "catalog_type": "image",
+      "family": "GPT",
+      "availability_note": "当前官方目录登记，标记维护中；不据此启用调度",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/452409160e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "minimax-h3",
+      "catalog_type": "video",
+      "family": "MiniMax",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/514679297e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    },
+    {
+      "id": "agnes-video-2.5",
+      "catalog_type": "video",
+      "family": "Agnes",
+      "availability_note": "当前官方目录登记，未标维护；未实测",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+      "docs": [
+        "https://grsai.com/zh/dashboard/models",
+        "https://qmy27nhsd9.apifox.cn/523334530e0.md",
+        "https://qmy27nhsd9.apifox.cn/452409577e0.md"
+      ]
+    }
+  ],
+  "additional_native_document_only_models": [
+    {
+      "id": "nano-banana",
+      "catalog_type": "image",
+      "availability_note": "未列当前目录；2026-07-01官方公告已下架，原生文档残留",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "文档和公告冲突；不得作为当前可用模板",
+      "docs": [
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md https://grsai.com/zh/dashboard/announcements"
+      ]
+    },
+    {
+      "id": "nano-banana-pro-vt",
+      "catalog_type": "image",
+      "availability_note": "未列当前目录，当前可用性和逐型号规格未证实",
+      "documented_endpoints": [
+        "POST /v1/api/generate",
+        "GET /v1/api/result?id={upstream_task_id}"
+      ],
+      "evidence_status": "仅原生文档枚举，不足以自动启用",
+      "docs": [
+        "https://qmy27nhsd9.apifox.cn/452392911e0.md https://grsai.com/zh/dashboard/models"
+      ]
+    }
+  ],
+  "older_document_families": [
+    {
+      "family": "Veo",
+      "catalog_type": "video",
+      "availability_note": "旧页面仍存在，未列当前目录；精确可用型号未确认",
+      "documented_endpoints": [
+        "POST /v1/video/veo",
+        "POST /v1/draw/result"
+      ],
+      "evidence_status": "历史族文档，不计入当前18模型",
+      "docs": [
+        "https://grsai.com/zh/dashboard/documents/veo"
+      ]
+    },
+    {
+      "family": "Sora 2",
+      "catalog_type": "video",
+      "availability_note": "旧页面仍存在，未列当前目录；不构成新原生异步协议支持证明",
+      "documented_endpoints": [
+        "POST /v1/video/sora-video",
+        "POST /v1/draw/result",
+        "POST /v1/video/sora-upload-character",
+        "POST /v1/video/sora-create-character"
+      ],
+      "evidence_status": "历史族文档；角色资源管理为非生成操作",
+      "docs": [
+        "https://grsai.com/zh/dashboard/documents/sora-2"
+      ]
+    },
+    {
+      "family": "Imagen",
+      "catalog_type": "image",
+      "availability_note": "旧页面仍存在，未列当前目录；精确可用型号未确认",
+      "documented_endpoints": [
+        "POST /v1/draw/imagen",
+        "POST /v1/draw/result"
+      ],
+      "evidence_status": "历史族文档，不计入当前18模型",
+      "docs": [
+        "https://grsai.com/zh/dashboard/documents/imagen"
+      ]
+    }
+  ],
+  "code_support_note": "当前客户端可复用新原生 POST /v1/api/generate + GET /v1/api/result 的鉴权、HTTP传输和结果解析；不能复用这些固定路径来假装适配旧 /v1/draw/*、/v1/video/* 族。当前代码宽松透传没有全模型schema或逐模型完整适配。",
+  "sources": [
+    "https://grsai.com/zh/dashboard/models",
+    "https://grsai.com/zh/dashboard/announcements",
+    "https://qmy27nhsd9.apifox.cn/llms.txt"
+  ]
+}

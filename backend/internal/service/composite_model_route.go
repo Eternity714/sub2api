@@ -19,6 +19,7 @@ const (
 	CompositeRouteEndpointChatCompletions = "chat_completions"
 	CompositeRouteEndpointEmbeddings      = "embeddings"
 	CompositeRouteEndpointImages          = "images"
+	CompositeRouteEndpointVideos          = "videos"
 	CompositeRouteEndpointGemini          = "gemini"
 
 	CompositeRouteSourceExplicit = "route"
@@ -44,18 +45,19 @@ var (
 // CompositeModelRoute maps one public model identifier in a composite group to
 // the concrete provider/model that should handle the request.
 type CompositeModelRoute struct {
-	ID             int64     `json:"id"`
-	GroupID        int64     `json:"group_id"`
-	PublicModel    string    `json:"public_model"`
-	MatchType      string    `json:"match_type"`
-	TargetPlatform string    `json:"target_platform"`
-	UpstreamModel  string    `json:"upstream_model"`
-	Endpoint       string    `json:"endpoint"`
-	Priority       int       `json:"priority"`
-	Enabled        bool      `json:"enabled"`
-	Notes          string    `json:"notes"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID              int64     `json:"id"`
+	GroupID         int64     `json:"group_id"`
+	PublicModel     string    `json:"public_model"`
+	MatchType       string    `json:"match_type"`
+	TargetPlatform  string    `json:"target_platform"`
+	UpstreamModel   string    `json:"upstream_model"`
+	CapabilityModel string    `json:"capability_model,omitempty"`
+	Endpoint        string    `json:"endpoint"`
+	Priority        int       `json:"priority"`
+	Enabled         bool      `json:"enabled"`
+	Notes           string    `json:"notes"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 type CompositeRoutePreviewRequest struct {
@@ -64,26 +66,28 @@ type CompositeRoutePreviewRequest struct {
 }
 
 type CompositeRouteDecision struct {
-	Matched        bool                 `json:"matched"`
-	Source         string               `json:"source"`
-	GroupID        int64                `json:"group_id"`
-	PublicModel    string               `json:"public_model"`
-	TargetPlatform string               `json:"target_platform"`
-	UpstreamModel  string               `json:"upstream_model"`
-	Endpoint       string               `json:"endpoint"`
-	Route          *CompositeModelRoute `json:"route,omitempty"`
-	Reason         string               `json:"reason,omitempty"`
+	Matched        bool                     `json:"matched"`
+	Source         string                   `json:"source"`
+	GroupID        int64                    `json:"group_id"`
+	PublicModel    string                   `json:"public_model"`
+	TargetPlatform string                   `json:"target_platform"`
+	UpstreamModel  string                   `json:"upstream_model"`
+	Endpoint       string                   `json:"endpoint"`
+	Route          *CompositeModelRoute     `json:"route,omitempty"`
+	Reason         string                   `json:"reason,omitempty"`
+	Candidates     []CompositeRouteDecision `json:"candidates,omitempty"`
 }
 
 type CompositeRouteInput struct {
-	PublicModel    string
-	MatchType      string
-	TargetPlatform string
-	UpstreamModel  string
-	Endpoint       string
-	Priority       int
-	Enabled        bool
-	Notes          string
+	PublicModel     string
+	MatchType       string
+	TargetPlatform  string
+	UpstreamModel   string
+	CapabilityModel string
+	Endpoint        string
+	Priority        int
+	Enabled         bool
+	Notes           string
 }
 
 type CompositeModelRouteRepository interface {
@@ -106,6 +110,7 @@ func normalizeCompositeRouteEndpoint(endpoint string) string {
 		CompositeRouteEndpointChatCompletions,
 		CompositeRouteEndpointEmbeddings,
 		CompositeRouteEndpointImages,
+		CompositeRouteEndpointVideos,
 		CompositeRouteEndpointGemini:
 		return endpoint
 	default:
@@ -128,6 +133,7 @@ func normalizeCompositeRouteInput(input CompositeRouteInput) CompositeRouteInput
 	input.MatchType = normalizeCompositeRouteMatchType(input.MatchType)
 	input.TargetPlatform = strings.TrimSpace(input.TargetPlatform)
 	input.UpstreamModel = strings.TrimSpace(input.UpstreamModel)
+	input.CapabilityModel = strings.TrimSpace(input.CapabilityModel)
 	input.Endpoint = normalizeCompositeRouteEndpoint(input.Endpoint)
 	// 仅对 exact 路由把空 upstream_model 回填成 public_model：exact 命中时请求模型
 	// 恒等于 public_model，回填只影响持久化/后台展示，保留原有契约不变。

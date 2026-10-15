@@ -48,7 +48,7 @@ func (CompositeModelRoute) Fields() []ent.Field {
 			MaxLen(50).
 			Default(domain.PlatformOpenAI).
 			Validate(func(s string) error {
-				// 目标平台须已接入组合路由；原生媒体平台仍不支持组合路由。
+				// 目标平台须在统一平台目录中登记；媒体端点限制由管理服务校验。
 				if !domain.IsCompositeTargetPlatform(s) {
 					return fmt.Errorf("target_platform %q is not supported by composite routing", s)
 				}
@@ -59,6 +59,10 @@ func (CompositeModelRoute) Fields() []ent.Field {
 			MaxLen(200).
 			Default("").
 			Comment("Provider model identifier; empty means public_model."),
+		field.String("capability_model").
+			MaxLen(200).
+			Default("").
+			Comment("Optional media candidate capability alias; empty uses public_model."),
 		field.String("endpoint").
 			MaxLen(50).
 			Default("any").

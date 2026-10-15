@@ -1211,6 +1211,10 @@ export default {
         selectAtLeastOne: 'Select at least one account after enabling pinned accounts'
       },
       compositeRoutes: {
+        capabilityModel: 'Candidate capability model (optional)',
+        capabilityModelHint: 'Leave blank to use the public model capability, or reference a separate candidate capability such as toapis/gpt-image.',
+        mediaCandidatesHint: 'Add multiple GRS.AI / ToAPIs candidates for the same model and media endpoint. Candidates follow priority, then record ID.',
+        mediaPreviewHint: 'This preview shows enabled explicit route order. Validate full parameter support on the media capabilities page.',
         action: 'Routes',
         title: 'Composite Routes',
         titleWithGroup: 'Composite Routes: {name}',
@@ -1249,6 +1253,7 @@ export default {
           chatCompletions: 'Chat Completions',
           embeddings: 'Embeddings',
           images: 'Images',
+          videos: 'Video generations',
           gemini: 'Gemini Native'
         },
         match: {

@@ -42,6 +42,8 @@
       </div>
 
       <!-- Grok: mode first, then optional model / mode params -->
+      <p v-if="isToAPIsAccount" class="rounded-lg bg-primary-50 p-3 text-sm text-primary-800 dark:bg-primary-900/20 dark:text-primary-200">{{ t('admin.accounts.toapis.connectionTestHint') }}</p>
+
       <div v-if="isGrokAccount" class="space-y-1.5">
         <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
           {{ t('admin.accounts.grok.testMode') }}
@@ -423,6 +425,7 @@ const uploadAudioName = ref('')
 const imageFileInput = ref<HTMLInputElement | null>(null)
 const audioFileInput = ref<HTMLInputElement | null>(null)
 const isOpenAIAccount = computed(() => props.account?.platform === 'openai')
+const isToAPIsAccount = computed(() => props.account?.platform === 'toapis')
 const isGrokAccount = computed(() => props.account?.platform === 'grok')
 const openAITestModeOptions = computed(() => [
   { value: 'default', label: t('admin.accounts.openai.testModeDefault') },
@@ -478,6 +481,7 @@ const supportsImageTest = computed(
 
 // Model select only when the mode needs a model.
 const showModelSelect = computed(() => {
+  if (isToAPIsAccount.value) return false
   if (!isGrokAccount.value) return true
   return grokTestMode.value === 'text' || grokTestMode.value === 'image' || grokTestMode.value === 'video'
 })
@@ -675,6 +679,7 @@ const testModeSummary = computed(() => {
 
 const canStartTest = computed(() => {
   if (status.value === 'connecting') return false
+  if (isToAPIsAccount.value) return Boolean(props.account)
   if (isGrokAccount.value) {
     if (
       grokTestMode.value === 'search' ||
@@ -741,7 +746,8 @@ watch(
       testMode.value = 'default'
       grokTestMode.value = 'text'
       resetState()
-      await loadAvailableModels()
+      if (isToAPIsAccount.value) { availableModels.value = []; selectedModelId.value = '' }
+      else await loadAvailableModels()
       if (isGrokAccount.value) {
         pickDefaultModelForMode()
         applyDefaultPromptForMode()

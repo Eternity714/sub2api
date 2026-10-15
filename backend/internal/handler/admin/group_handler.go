@@ -335,19 +335,20 @@ type UpdateGroupRequest struct {
 }
 
 type CompositeRouteRequest struct {
-	PublicModel    string `json:"public_model" binding:"required"`
-	MatchType      string `json:"match_type" binding:"omitempty,oneof=exact prefix"`
-	TargetPlatform string `json:"target_platform" binding:"required,concrete_platform"`
-	UpstreamModel  string `json:"upstream_model"`
-	Endpoint       string `json:"endpoint" binding:"omitempty,oneof=any messages count_tokens responses chat_completions embeddings images gemini"`
-	Priority       int    `json:"priority"`
-	Enabled        *bool  `json:"enabled"`
-	Notes          string `json:"notes"`
+	PublicModel     string `json:"public_model" binding:"required"`
+	MatchType       string `json:"match_type" binding:"omitempty,oneof=exact prefix"`
+	TargetPlatform  string `json:"target_platform" binding:"required,concrete_platform"`
+	UpstreamModel   string `json:"upstream_model"`
+	CapabilityModel string `json:"capability_model" binding:"max=200"`
+	Endpoint        string `json:"endpoint" binding:"omitempty,oneof=any messages count_tokens responses chat_completions embeddings images videos gemini"`
+	Priority        int    `json:"priority"`
+	Enabled         *bool  `json:"enabled"`
+	Notes           string `json:"notes"`
 }
 
 type CompositeRoutePreviewRequest struct {
 	Model    string `json:"model" binding:"required"`
-	Endpoint string `json:"endpoint" binding:"omitempty,oneof=any messages count_tokens responses chat_completions embeddings images gemini"`
+	Endpoint string `json:"endpoint" binding:"omitempty,oneof=any messages count_tokens responses chat_completions embeddings images videos gemini"`
 }
 
 // List handles listing all groups with pagination
@@ -519,14 +520,15 @@ func compositeRouteRequestToInput(req CompositeRouteRequest, defaultEnabled bool
 		enabled = *req.Enabled
 	}
 	return service.CompositeRouteInput{
-		PublicModel:    req.PublicModel,
-		MatchType:      req.MatchType,
-		TargetPlatform: req.TargetPlatform,
-		UpstreamModel:  req.UpstreamModel,
-		Endpoint:       req.Endpoint,
-		Priority:       req.Priority,
-		Enabled:        enabled,
-		Notes:          req.Notes,
+		PublicModel:     req.PublicModel,
+		MatchType:       req.MatchType,
+		TargetPlatform:  req.TargetPlatform,
+		UpstreamModel:   req.UpstreamModel,
+		CapabilityModel: req.CapabilityModel,
+		Endpoint:        req.Endpoint,
+		Priority:        req.Priority,
+		Enabled:         enabled,
+		Notes:           req.Notes,
 	}
 }
 

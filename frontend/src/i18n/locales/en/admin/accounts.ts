@@ -1,5 +1,11 @@
 export default {
     accounts: {
+      toapis: {
+        connectionTestHint: 'Checks connection and credentials using GET /v1/models?type=all. No generation task or generation charge.',
+        baseUrlHint: 'Global: https://toapis.com. Mainland China: https://toapis.cn. Configure the endpoint explicitly; saved endpoints are never switched automatically.',
+        apiKeyHint: 'Enter a ToAPIs API key. Administrator account limits are shared by all users. Connection tests only read the model catalog and do not generate media.',
+        baseUrlRequired: 'An explicit ToAPIs base URL is required.',
+      },
       title: 'Account Management',
       description: 'Manage AI platform accounts and credentials',
       createAccount: 'Create Account',
@@ -118,6 +124,7 @@ export default {
         minimax: 'MiniMax',
         opencode_go: 'OpenCode',
         typesafe: 'TypeSafe / Jev',
+        toapis: 'ToAPIs',
         grsai: 'GRS.AI',
       },
       cnProviders: {

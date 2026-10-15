@@ -2102,3 +2102,50 @@ describe('EditAccountModal temp-unschedulable rule scope', () => {
     wrapper.unmount()
   })
 })
+
+
+describe('ToAPIs account editing', () => {
+  it('preserves redacted credentials and requires an explicit endpoint', async () => {
+    const account = { ...buildAccount(), platform: 'toapis', credentials: { base_url: 'https://toapis.cn' }, credentials_status: { has_api_key: true } }
+    updateAccountMock.mockReset().mockResolvedValue(account)
+    checkMixedChannelRiskMock.mockReset().mockResolvedValue({ has_risk: false })
+    const wrapper = mountModal(account)
+    const base = wrapper.findAll('input').find(input => input.attributes('placeholder') === 'https://toapis.com')!
+    expect(base).toBeDefined()
+    expect(base.element).toHaveProperty('value', 'https://toapis.cn')
+    await base.setValue('')
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+    expect(updateAccountMock).not.toHaveBeenCalled()
+    await base.setValue('https://toapis.com')
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+    expect(updateAccountMock).toHaveBeenCalledWith(account.id, expect.objectContaining({ credentials: expect.objectContaining({ base_url: 'https://toapis.com' }) }))
+    expect(updateAccountMock.mock.calls[0]?.[1]?.credentials).not.toHaveProperty('api_key')
+    wrapper.unmount()
+  })
+})
+
+describe('原生媒体账号不使用旧上游账单探测', () => {
+  it.each(['grsai', 'toapis'])('编辑 %s 隐藏探测和倍率同步并忽略旧开关残留', async (platform) => {
+    const account = {
+      ...buildAccount(), platform,
+      credentials: { api_key: 'native-media-key', base_url: platform === 'toapis' ? 'https://toapis.com' : 'https://grsaiapi.com' },
+      extra: { upstream_billing_probe_enabled: true, upstream_billing_rate_sync_enabled: true },
+    }
+    authIsSimpleMode.value = true
+    updateAccountMock.mockReset().mockResolvedValue(account)
+    checkMixedChannelRiskMock.mockReset().mockResolvedValue({ has_risk: false })
+    const wrapper = mountModal(account)
+    expect(wrapper.find('[data-testid="upstream-billing-auto-probe"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="upstream-billing-rate-sync"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="account-rate-multiplier"]').attributes('disabled')).toBeUndefined()
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+    expect(updateAccountMock).toHaveBeenCalledTimes(1)
+    const payload = updateAccountMock.mock.calls[0]?.[1]
+    expect(payload?.upstream_billing_probe_enabled).toBeUndefined()
+    expect(payload?.upstream_billing_rate_sync_enabled).toBeUndefined()
+    expect(payload?.extra).not.toHaveProperty('upstream_billing_probe_enabled')
+    expect(payload?.extra).not.toHaveProperty('upstream_billing_rate_sync_enabled')
+    expect(payload?.rate_multiplier).toBe(1)
+    wrapper.unmount()
+  })
+})

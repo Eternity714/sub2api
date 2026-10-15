@@ -74,6 +74,10 @@ func RegisterGatewayRoutes(
 		return getGroupPlatform(c) == service.PlatformOpenAI
 	}
 	imagesHandler := func(c *gin.Context) {
+		if enabled, _ := c.Get("unified_media_protocol"); enabled == true && h.UnifiedMedia != nil {
+			h.UnifiedMedia.CreateImage(c)
+			return
+		}
 		switch getGroupPlatform(c) {
 		case service.PlatformOpenAI:
 			h.OpenAIGateway.Images(c)
@@ -90,6 +94,10 @@ func RegisterGatewayRoutes(
 		}
 	}
 	videoGenerationHandler := func(c *gin.Context) {
+		if enabled, _ := c.Get("unified_media_protocol"); enabled == true && h.UnifiedMedia != nil {
+			h.UnifiedMedia.CreateVideo(c)
+			return
+		}
 		// Video status/content lookups below already allow Composite groups; keep
 		// task creation aligned so composite keys that route to Grok accounts can
 		// submit video generation jobs.
@@ -106,6 +114,10 @@ func RegisterGatewayRoutes(
 		})
 	}
 	videoStatusHandler := func(c *gin.Context) {
+		if c.FullPath() == "/v1/videos/generations/:request_id" && strings.HasPrefix(c.Param("request_id"), "media_") && getGroupPlatform(c) == service.PlatformComposite && h.UnifiedMedia != nil {
+			h.UnifiedMedia.GetVideo(c)
+			return
+		}
 		// Video status requests do not carry a model, so composite groups cannot
 		// be resolved by compositeTargetPlatformMiddleware. Route them through
 		// the Grok handler and let scheduler/account selection enforce capacity.
@@ -259,11 +271,13 @@ func RegisterGatewayRoutes(
 		})
 		gateway.POST("/images/generations", imagesHandler)
 		gateway.POST("/images/edits", imagesHandler)
+		if h.UnifiedMedia != nil {
+			gateway.GET("/images/generations/:task_id", h.UnifiedMedia.GetImage)
+		}
 		// GRS.AI uses its own native request/response protocol. This route is
 		// deliberately scoped to /v1: do not add a root alias.
-		gateway.POST("/api/generate", h.GrsaiGateway.Generate)
-		gateway.GET("/api/result", h.GrsaiGateway.Result)
-		gateway.GET("/api/tasks", h.GrsaiGateway.Tasks)
+		// The three former standalone GRS delivery endpoints are retired.
+
 		gateway.POST("/images/generations/async", h.AsyncImage.Submit)
 		gateway.POST("/images/edits/async", h.AsyncImage.Submit)
 		gateway.GET("/images/tasks/:task_id", h.AsyncImage.Get)
@@ -567,6 +581,24 @@ func compositeTargetPlatformMiddleware(resolver *service.CompositeRouteResolver)
 		if !ok || apiKey == nil || apiKey.Group == nil || apiKey.Group.Platform != service.PlatformComposite {
 			c.Next()
 			return
+		}
+		// Canonical media requests preserve the public model and all route candidates.
+		if c.Request != nil && c.Request.Method == http.MethodPost &&
+			(c.FullPath() == "/v1/images/generations" || c.FullPath() == "/v1/videos/generations") {
+			imageMedia, routeErr := resolver.HasMediaRoutes(c.Request.Context(), apiKey.Group.ID, service.CompositeRouteEndpointImages)
+			videoMedia := false
+			if routeErr == nil && !imageMedia {
+				videoMedia, routeErr = resolver.HasMediaRoutes(c.Request.Context(), apiKey.Group.ID, service.CompositeRouteEndpointVideos)
+			}
+			if routeErr != nil {
+				c.AbortWithStatusJSON(503, gin.H{"error": gin.H{"type": "api_error", "message": "Media routing is unavailable"}})
+				return
+			}
+			if imageMedia || videoMedia {
+				c.Set("unified_media_protocol", true)
+				c.Next()
+				return
+			}
 		}
 		if c.Request == nil || c.Request.Method == http.MethodGet {
 			c.Next()

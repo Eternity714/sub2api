@@ -29,7 +29,8 @@ const concretePlatforms = [
   'typesafe',
   'command_code',
   'cline',
-  'grsai'
+  'grsai',
+  'toapis'
 ]
 
 describe('platform option catalogs', () => {
@@ -44,7 +45,7 @@ describe('platform option catalogs', () => {
     expect(platformLabel('media')).toBe('Media API')
     expect(platformDisplayValue('grsai')).toBe('Media API')
     expect(platformDisplayValue('media')).toBe('Media API')
-    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).not.toContain('grsai')
+    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis']))
   })
 
   it('adds composite for group-backed filters', () => {
@@ -72,11 +73,11 @@ describe('platform catalog with a newly registered platform', () => {
     expect(listPlatformIds()).toEqual(concretePlatforms)
     expect(compositePrecedencePlatformIds()).toEqual([
       'anthropic', 'gemini', 'openai', 'antigravity', 'grok',
-      'kimi', 'zhipu', 'deepseek', 'minimax', 'opencode_go', 'typesafe', 'command_code', 'cline'
+      'kimi', 'zhipu', 'deepseek', 'minimax', 'opencode_go', 'typesafe', 'command_code', 'cline', 'grsai', 'toapis'
     ])
     expect(CONCRETE_PLATFORM_OPTIONS.map((option) => option.label)).toEqual([
       'Anthropic', 'OpenAI', 'Gemini', 'Antigravity', 'Grok',
-      'Kimi', 'Zhipu GLM', 'DeepSeek', 'MiniMax', 'OpenCode', 'TypeSafe / Jev', 'Command Code', 'Cline', 'GRS.AI'
+      'Kimi', 'Zhipu GLM', 'DeepSeek', 'MiniMax', 'OpenCode', 'TypeSafe / Jev', 'Command Code', 'Cline', 'GRS.AI', 'ToAPIs'
     ])
     expect(platformLabel('zhipu')).toBe('Zhipu GLM')
     expect(platformLabel('composite')).toBe('Composite')
@@ -101,8 +102,9 @@ describe('platform catalog with a newly registered platform', () => {
     expect(platformLabel('unregistered')).toBe('unregistered')
     expect(platformQuotaPlatforms()).toContain('acme_router')
     expect(platformQuotaPlatforms()).not.toContain('grsai')
-    expect(quotaPlatformIds()).toEqual([...concretePlatforms.filter(platform => platform !== 'grsai'), 'acme_router'])
-    expect(Object.keys(normalizePlatformQuotasMap())).toEqual([...concretePlatforms.filter(platform => platform !== 'grsai'), 'acme_router'])
+    expect(platformQuotaPlatforms()).not.toContain('toapis')
+    expect(quotaPlatformIds()).toEqual([...concretePlatforms.filter(platform => !['grsai', 'toapis'].includes(platform)), 'acme_router'])
+    expect(Object.keys(normalizePlatformQuotasMap())).toEqual([...concretePlatforms.filter(platform => !['grsai', 'toapis'].includes(platform)), 'acme_router'])
     expect(sanitizePlatformQuotasMap({ acme_router: { daily: 5, weekly: -1, monthly: null } }).acme_router).toEqual({
       daily: 5,
       weekly: null,

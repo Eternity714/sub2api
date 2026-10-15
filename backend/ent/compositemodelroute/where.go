@@ -95,6 +95,11 @@ func UpstreamModel(v string) predicate.CompositeModelRoute {
 	return predicate.CompositeModelRoute(sql.FieldEQ(FieldUpstreamModel, v))
 }
 
+// CapabilityModel applies equality check predicate on the "capability_model" field. It's identical to CapabilityModelEQ.
+func CapabilityModel(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldEQ(FieldCapabilityModel, v))
+}
+
 // Endpoint applies equality check predicate on the "endpoint" field. It's identical to EndpointEQ.
 func Endpoint(v string) predicate.CompositeModelRoute {
 	return predicate.CompositeModelRoute(sql.FieldEQ(FieldEndpoint, v))
@@ -523,6 +528,71 @@ func UpstreamModelEqualFold(v string) predicate.CompositeModelRoute {
 // UpstreamModelContainsFold applies the ContainsFold predicate on the "upstream_model" field.
 func UpstreamModelContainsFold(v string) predicate.CompositeModelRoute {
 	return predicate.CompositeModelRoute(sql.FieldContainsFold(FieldUpstreamModel, v))
+}
+
+// CapabilityModelEQ applies the EQ predicate on the "capability_model" field.
+func CapabilityModelEQ(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldEQ(FieldCapabilityModel, v))
+}
+
+// CapabilityModelNEQ applies the NEQ predicate on the "capability_model" field.
+func CapabilityModelNEQ(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldNEQ(FieldCapabilityModel, v))
+}
+
+// CapabilityModelIn applies the In predicate on the "capability_model" field.
+func CapabilityModelIn(vs ...string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldIn(FieldCapabilityModel, vs...))
+}
+
+// CapabilityModelNotIn applies the NotIn predicate on the "capability_model" field.
+func CapabilityModelNotIn(vs ...string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldNotIn(FieldCapabilityModel, vs...))
+}
+
+// CapabilityModelGT applies the GT predicate on the "capability_model" field.
+func CapabilityModelGT(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldGT(FieldCapabilityModel, v))
+}
+
+// CapabilityModelGTE applies the GTE predicate on the "capability_model" field.
+func CapabilityModelGTE(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldGTE(FieldCapabilityModel, v))
+}
+
+// CapabilityModelLT applies the LT predicate on the "capability_model" field.
+func CapabilityModelLT(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldLT(FieldCapabilityModel, v))
+}
+
+// CapabilityModelLTE applies the LTE predicate on the "capability_model" field.
+func CapabilityModelLTE(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldLTE(FieldCapabilityModel, v))
+}
+
+// CapabilityModelContains applies the Contains predicate on the "capability_model" field.
+func CapabilityModelContains(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldContains(FieldCapabilityModel, v))
+}
+
+// CapabilityModelHasPrefix applies the HasPrefix predicate on the "capability_model" field.
+func CapabilityModelHasPrefix(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldHasPrefix(FieldCapabilityModel, v))
+}
+
+// CapabilityModelHasSuffix applies the HasSuffix predicate on the "capability_model" field.
+func CapabilityModelHasSuffix(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldHasSuffix(FieldCapabilityModel, v))
+}
+
+// CapabilityModelEqualFold applies the EqualFold predicate on the "capability_model" field.
+func CapabilityModelEqualFold(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldEqualFold(FieldCapabilityModel, v))
+}
+
+// CapabilityModelContainsFold applies the ContainsFold predicate on the "capability_model" field.
+func CapabilityModelContainsFold(v string) predicate.CompositeModelRoute {
+	return predicate.CompositeModelRoute(sql.FieldContainsFold(FieldCapabilityModel, v))
 }
 
 // EndpointEQ applies the EQ predicate on the "endpoint" field.

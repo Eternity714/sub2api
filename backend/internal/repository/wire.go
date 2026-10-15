@@ -98,6 +98,7 @@ var ProviderSet = wire.NewSet(
 	NewGroupRepository,
 	NewAdminGroupRepository,
 	NewCompositeModelRouteRepository,
+	NewMediaCapabilityRepository,
 	NewAccountRepository,
 	NewAdminAccountRepository,
 	NewScheduledTestPlanRepository,   // 定时测试计划仓储
@@ -111,6 +112,7 @@ var ProviderSet = wire.NewSet(
 	NewUsageBillingRepository,
 	ProvideGrsaiUsageBillingRepository,
 	ProvideGrsaiSettlementRepository,
+	NewUnifiedMediaTaskRepository,
 	ProvideGrsaiV2TaskRepository,
 	ProvideGrsaiTaskPayloadRepository,
 	ProvideGrsaiBalanceHoldRepository,

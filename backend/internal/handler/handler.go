@@ -43,6 +43,7 @@ type AdminHandlers struct {
 	Affiliate              *admin.AffiliateHandler
 	Compliance             *admin.ComplianceHandler
 	AuditLog               *admin.AuditLogHandler
+	MediaCapability        *admin.MediaCapabilityHandler
 }
 
 // Handlers contains all HTTP handlers
@@ -60,6 +61,7 @@ type Handlers struct {
 	Gateway          *GatewayHandler
 	OpenAIGateway    *OpenAIGatewayHandler
 	GrsaiGateway     *GrsaiGatewayHandler
+	UnifiedMedia     *UnifiedMediaHandler
 	Setting          *SettingHandler
 	Totp             *TotpHandler
 	Passkey          *PasskeyHandler

@@ -47,6 +47,7 @@ func ProvideAdminHandlers(
 	affiliateHandler *admin.AffiliateHandler,
 	complianceHandler *admin.ComplianceHandler,
 	auditLogHandler *admin.AuditLogHandler,
+	mediaCapabilityHandler *admin.MediaCapabilityHandler,
 	upstreamBillingProbe *service.UpstreamBillingProbeService,
 	ollamaCloudUsage *service.OllamaCloudUsageService,
 	opencodeGoUsage *service.OpenCodeGoUsageService,
@@ -93,6 +94,7 @@ func ProvideAdminHandlers(
 		Affiliate:              affiliateHandler,
 		Compliance:             complianceHandler,
 		AuditLog:               auditLogHandler,
+		MediaCapability:        mediaCapabilityHandler,
 	}
 }
 
@@ -210,6 +212,7 @@ func ProvideHandlers(
 	gatewayHandler *GatewayHandler,
 	openaiGatewayHandler *OpenAIGatewayHandler,
 	grsaiGatewayHandler *GrsaiGatewayHandler,
+	unifiedMediaHandler *UnifiedMediaHandler,
 	settingHandler *SettingHandler,
 	totpHandler *TotpHandler,
 	passkeyHandler *PasskeyHandler,
@@ -238,6 +241,7 @@ func ProvideHandlers(
 		Gateway:          gatewayHandler,
 		OpenAIGateway:    openaiGatewayHandler,
 		GrsaiGateway:     grsaiGatewayHandler,
+		UnifiedMedia:     unifiedMediaHandler,
 		Setting:          settingHandler,
 		Totp:             totpHandler,
 		Passkey:          passkeyHandler,
@@ -266,6 +270,7 @@ var ProviderSet = wire.NewSet(
 	ProvideGatewayHandler,
 	ProvideOpenAIGatewayHandler,
 	ProvideGrsaiGatewayHandler,
+	NewUnifiedMediaHandler,
 	NewTotpHandler,
 	NewPasskeyHandler,
 	ProvideSettingHandler,
@@ -313,6 +318,7 @@ var ProviderSet = wire.NewSet(
 	admin.NewAffiliateHandler,
 	admin.NewComplianceHandler,
 	admin.NewAuditLogHandler,
+	admin.NewMediaCapabilityHandler,
 
 	// AdminHandlers and Handlers constructors
 	ProvideAdminHandlers,

@@ -1,5 +1,11 @@
 export default {
     accounts: {
+      toapis: {
+        connectionTestHint: '仅通过 GET /v1/models?type=all 检查连接和凭证，不创建生成任务，不产生生成费用。',
+        baseUrlHint: '全球节点 https://toapis.com，中国大陆节点 https://toapis.cn。按账号接入地址明确配置；保存后不会自动切换节点。',
+        apiKeyHint: '填写 ToAPIs API Key。账号额度由管理员配置，所有使用者共享。连接测试仅读取模型目录，不发起生成。',
+        baseUrlRequired: '请明确填写 ToAPIs 接入地址，不能留空。',
+      },
       title: '账号管理',
       description: '管理 AI 平台账号和 Cookie',
       createAccount: '添加账号',
@@ -321,6 +327,7 @@ export default {
         minimax: 'MiniMax',
         opencode_go: 'OpenCode',
         typesafe: 'TypeSafe / Jev',
+        toapis: 'ToAPIs',
         grsai: 'GRS.AI',
       },
       cnProviders: {

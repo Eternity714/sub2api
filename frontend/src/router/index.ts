@@ -451,6 +451,30 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/media-capabilities',
+    name: 'AdminMediaCapabilities',
+    component: () => import('@/views/admin/MediaCapabilitiesView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Media Capabilities',
+      titleKey: 'nav.mediaCapabilities',
+      descriptionKey: 'nav.mediaCapabilitiesDescription'
+    }
+  },
+  {
+    path: '/admin/media-tasks',
+    name: 'AdminMediaTasks',
+    component: () => import('@/views/admin/MediaTasksView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Media Tasks',
+      titleKey: 'nav.mediaTasks',
+      descriptionKey: 'nav.mediaTasksDescription'
+    }
+  },
+  {
     path: '/admin/groups',
     name: 'AdminGroups',
     component: () => import('@/views/admin/GroupsView.vue'),

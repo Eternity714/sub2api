@@ -214,6 +214,10 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 		// ── 6. 计费执行（skipBilling 时整块跳过） ────────────────────
 
 		if !skipBilling {
+			if apiKey.MediaReservationReadFailed {
+				AbortWithError(c, http.StatusServiceUnavailable, "BILLING_SERVICE_ERROR", "Billing service temporarily unavailable. Please retry later.")
+				return
+			}
 			// Key 状态检查
 			switch apiKey.Status {
 			case service.StatusAPIKeyQuotaExhausted:
@@ -339,6 +343,12 @@ func isAsyncImageTaskRead(method, path string) bool {
 	}
 	if path == "/v1/api/result" || path == "/v1/api/tasks" {
 		return true
+	}
+	for _, prefix := range []string{"/v1/images/generations/", "/v1/videos/generations/"} {
+		if strings.HasPrefix(path, prefix) {
+			id := strings.TrimPrefix(path, prefix)
+			return strings.HasPrefix(id, "media_") && !strings.Contains(id, "/")
+		}
 	}
 	return strings.HasPrefix(path, "/v1/images/tasks/") || strings.HasPrefix(path, "/images/tasks/")
 }
