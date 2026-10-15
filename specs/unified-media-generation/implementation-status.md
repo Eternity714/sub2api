@@ -150,3 +150,15 @@ ToAPIs 官方只读检查确认当前令牌为无限额度，用户余额从本�
 当前生产状态为 blue 稳定 `661b4ba3613c3e225301f8600d045eb677bee40f`、green 候选 `e21790385`、候选流量 0%。按照 AGENTS.md 的失败回滚后续规则，等待用户明确指示后，才上传修复镜像、替换 0% 候选并重新执行分阶段验证和晋升。生产仍缺新 ToAPIs 账号、能力／媒体路由及关联渠道价格配置，本轮未复制本地测试用户、Key 或余额，也没有新增付费生成。
 
 脱敏检查与可重试镜像归档在 `%TEMP%/sub2api-media-fulltest-20261015T101939Z/release-70bd1d208/`。生产现场在 `/opt/sub2api/gray/releases/unified-media-20261015/`；原候选镜像标签不会覆盖。
+
+## 修复镜像生产灰度与晋升完成（2026-10-15）
+
+用户明确授权“继续灰度发布并晋升”后，修复镜像 `ghcr.io/eternity714/sub2api:sha-f40d427e789521d34d813b2db7976c4942aa66e0` 已上传 GHCR，摘要为 `sha256:c007c70a926d7f9f02e357b60a408f78bf1e877f1fc8e0f3852bafb9b8bc7ab0`。服务器通过现有灰度脚本替换 green 0% 候选，175 项实际 HTTP 静态资源全部通过，包含媒体能力与渠道管理页面。原失败产物与诊断证据保留，没有覆盖旧不可变镜像标签。
+
+分阶段流量切换均通过脚本完成：北京时间 22:35:56 切至 10%，22:40:43 切至 50%，22:43:52 切至 100%。100% 流量经过超过 3 分钟观察，三轮探针与独立账务检查均通过，于 **22:47:25 晋升成功**。最终稳定槽为 **green / f40d427e7**，候选槽为 **blue / 661b4ba36 / 0%**；新请求由稳定 green 承接，旧 blue 健康保留。
+
+晋升后再次验证 Nginx 配置、两槽容器健康、公开 `/health`、真实 Key 的只读 `/v1/models`、未认证管理 API 保护和 175 项前端资源。分阶段窗口未发现 5xx、超时或容器 error／panic／数据库异常；8 份独立快照的 6 项账务不变量违规均为 0。Nginx 当前日志不包含槽位和上游耗时，结论基于聚合访问日志、分槽容器日志和数据库快照，不代表按槽统计的延迟或长期稳定性结论。此次没有发起付费生成，没有复制测试用户、Key、余额或本地媒体配置。
+
+**代码发布已完成，生产统一媒体业务尚未开放。** 生产尚无 ToAPIs 账号、新媒体能力与路由，以及相应的分组渠道关联和媒体价格；现有 GRS 账号与 S3 配置没有替换。管理员完成这些生产配置并验收后，才能让下游调用新协议。价格需按本站余额单位配置，ToAPIs USD 单价乘以 7；GRS GPT Image 系列继续不提供服务。
+
+本次是在 Docker Compose 门禁通过后发布；GitHub Actions 仍因仓库禁用而未执行，不能记为 CI 通过。最终记录与探针保存在上述临时证据目录：`f40-production-promotion.log`、`f40-production-probe-post-promotion*.json`、`f40-production-http-assets-post-promotion.log`、`production-f40-independent-monitoring-complete.json` 和 `fixed-release-review-receipt.json`。前一节的“待确认”描述保留为首次 0% 故障后的历史状态，以本节最终结果为准。
