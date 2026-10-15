@@ -37,10 +37,8 @@
         </section>
         <section class="space-y-3">
           <h4 class="font-semibold">{{ label('统一字段与参数限制', 'Fields and constraints') }}</h4>
-          <p class="text-xs text-gray-500">{{ label('model 始终必填。仅勾选实际支持的字段；metadata 的子字段同样实行白名单。图片尺寸使用 size + metadata.resolution。', 'model is always required. Enable only supported fields. Metadata properties are also allowlisted. Image sizes use size + metadata.resolution.') }}</p>
-          <div class="grid items-start gap-3 lg:grid-cols-2">
-            <MediaFieldEditor v-for="name in fieldNames" :key="`${form.media_type}-${name}-${editorGeneration}`" :path="name" :field="form.schema.fields[name]" :default-type="fieldTypes[name] || 'string'" @update="setField(name, $event)" @invalid="setFieldError" />
-          </div>
+          <p class="text-xs text-gray-500">{{ label('model 始终必填。直接编辑参数行，展开对象可维护子字段；删除后该参数不再被接受。图片尺寸使用 size + metadata.resolution。', 'model is always required. Edit parameters in place and expand objects to manage child fields. Deleted parameters are no longer accepted. Image sizes use size + metadata.resolution.') }}</p>
+          <MediaFieldTable :key="`${form.media_type}-${editorGeneration}`" :fields="form.schema.fields" :media-type="form.media_type" @update="setFields" @invalid="setFieldError" @clear-errors="clearFieldErrors" @rename="renameField" />
         </section>
         <section class="space-y-3 border-t border-gray-200 pt-5 dark:border-dark-700">
           <div class="flex items-center justify-between gap-2"><h4 class="font-semibold">{{ label('输入模式', 'Input modes') }}</h4><button type="button" class="btn btn-secondary btn-sm" data-testid="add-mode" @click="addMode">{{ label('添加模式', 'Add mode') }}</button></div>
@@ -56,9 +54,9 @@
         </section>
         <section v-if="form.media_type === 'image'" class="space-y-3 border-t border-gray-200 pt-5 dark:border-dark-700">
           <div class="flex items-center justify-between gap-2"><h4 class="font-semibold">{{ label('已验证的像素规格映射', 'Verified pixel mappings') }}</h4><button type="button" class="btn btn-secondary btn-sm" data-testid="add-image-spec" @click="addImageSpec">{{ label('添加规格', 'Add mapping') }}</button></div>
-          <p class="text-xs text-gray-500">{{ label('只填写已有依据的 ratio + resolution → 像素尺寸；不使用全局推算或静默降规格。', 'Only configure documented ratio + resolution pixel mappings. No global approximation or silent downgrade.') }}</p>
+          <p class="text-xs text-gray-500">{{ label('只填写已有依据的比例 + resolution → 像素尺寸；不使用全局推算或静默降规格。', 'Only configure documented aspect ratio + resolution pixel mappings. No global approximation or silent downgrade.') }}</p>
           <div v-for="(spec, index) in form.schema.image_specs" :key="index" class="grid items-end gap-2 rounded-xl border border-gray-200 p-3 sm:grid-cols-5 dark:border-dark-700">
-            <label class="input-label">{{ label('比例', 'Ratio') }}<input v-model.trim="spec.ratio" :data-testid="`spec-${index}-ratio`" class="input mt-1" placeholder="1:1" /></label>
+            <label class="input-label">{{ label('比例', 'Ratio') }}<input v-model.trim="spec.aspect_ratio" :data-testid="`spec-${index}-ratio`" class="input mt-1" placeholder="1:1" /></label>
             <label class="input-label">resolution<input v-model.trim="spec.resolution" :data-testid="`spec-${index}-resolution`" class="input mt-1" placeholder="1K" /></label>
             <label class="input-label">{{ label('宽(px)', 'Width(px)') }}<input v-model.number="spec.width" :data-testid="`spec-${index}-width`" type="number" min="1" step="1" class="input mt-1" /></label>
             <label class="input-label">{{ label('高(px)', 'Height(px)') }}<input v-model.number="spec.height" :data-testid="`spec-${index}-height`" type="number" min="1" step="1" class="input mt-1" /></label>
@@ -103,8 +101,9 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import { mediaCapabilitiesAPI } from '@/api/admin/mediaCapabilities'
 import { extractApiErrorMessage } from '@/utils/apiError'
-import type { MediaCapability, MediaCapabilityField, MediaCapabilityInput, MediaCapabilitySchema, MediaCapabilityTemplate, MediaCondition, MediaFieldType, MediaValidationError, MediaValidationResult } from '@/types/mediaCapability'
-import MediaFieldEditor from './MediaFieldEditor.vue'
+import type { MediaCapability, MediaCapabilityField, MediaCapabilityInput, MediaCapabilitySchema, MediaCapabilityTemplate, MediaCondition, MediaValidationError, MediaValidationResult } from '@/types/mediaCapability'
+import MediaFieldTable from './MediaFieldTable.vue'
+import { findSchemaReferenceErrors, renameSchemaReferences } from './mediaSchemaEditing'
 import { useMediaLabels } from './mediaLabels'
 const props = defineProps<{ show: boolean; capability: MediaCapability | null; templates: MediaCapabilityTemplate[] }>()
 const emit = defineEmits<{ close: []; saved: [capability: MediaCapability] }>()
@@ -112,8 +111,6 @@ const label = useMediaLabels()
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 const blankSchema = (): MediaCapabilitySchema => ({ version: 1, fields: {}, modes: [], rules: [], image_specs: [], batch: { native_max_results: 1, allow_split: false, semantically_linked: false } })
 const form = reactive<MediaCapabilityInput>({ public_model: '', media_type: 'image', enabled: false, schema: blankSchema(), notes: '' })
-const fieldTypes: Record<string, MediaFieldType> = { prompt: 'string', size: 'string', n: 'integer', duration: 'number', aspect_ratio: 'string', image_urls: 'array', metadata: 'object' }
-const fieldNames = computed(() => form.media_type === 'image' ? ['prompt', 'size', 'n', 'image_urls', 'metadata'] : ['prompt', 'duration', 'aspect_ratio', 'image_urls', 'metadata'])
 const compatibleTemplates = computed(() => props.templates.filter(item => item.media_type === form.media_type))
 const templateSelection = ref('')
 const selectedTemplate = computed(() => compatibleTemplates.value.find(item => item.id === templateSelection.value))
@@ -163,9 +160,16 @@ function applyTemplate() {
   requestJSON.value = item.example ? JSON.stringify({ ...clone(item.example), model: form.public_model }, null, 2) : ''
   error.value = ''; validationErrors.value = []; syncEditors()
 }
-function setField(name: string, field?: MediaCapabilityField) {
-  if (field) form.schema.fields[name] = field
-  else { delete form.schema.fields[name]; for (const key of Object.keys(fieldErrors)) if (key === name || key.startsWith(`${name}.`) || key.startsWith(`${name}[`)) delete fieldErrors[key] }
+function setFields(fields: Record<string, MediaCapabilityField>) {
+  form.schema.fields = fields
+  validationResult.value = null
+}
+function clearFieldErrors(path: string) {
+  for (const key of Object.keys(fieldErrors)) if (key === path || key.startsWith(`${path}.`) || key.startsWith(`${path}[`)) delete fieldErrors[key]
+}
+function renameField(from: string, to: string) {
+  renameSchemaReferences(form.schema, from, to)
+  modeConditions.value = (form.schema.modes || []).map((mode, index) => fieldErrors[`modes.${index}.when`] ? modeConditions.value[index]! : JSON.stringify(mode.when || [], null, 2))
   validationResult.value = null
 }
 function setFieldError(path: string, message: string) { if (message) fieldErrors[path] = message; else delete fieldErrors[path] }
@@ -181,7 +185,7 @@ function setModeConditions(index: number, text: string) {
     delete fieldErrors[`modes.${index}.when`]
   } catch { fieldErrors[`modes.${index}.when`] = label('条件必须是 JSON 数组。', 'Conditions must be a JSON array.') }
 }
-function addImageSpec() { form.schema.image_specs?.push({ ratio: '', resolution: '', width: 0, height: 0 }) }
+function addImageSpec() { form.schema.image_specs?.push({ aspect_ratio: '', resolution: '', width: 0, height: 0 }) }
 function openAdvanced(event: Event) { if ((event.target as HTMLDetailsElement).open) advancedSchema.value = JSON.stringify(form.schema, null, 2) }
 function applyAdvanced() {
   try {
@@ -195,13 +199,16 @@ function checkDraft(): boolean {
   error.value = ''; validationErrors.value = []
   if (!form.public_model.trim()) { error.value = label('请填写公开模型标识。', 'Public model is required.'); return false }
   const errors: MediaValidationError[] = Object.entries(fieldErrors).map(([path, message]) => ({ path, message, code: 'invalid_field' }))
-  function checkFields(fields: Record<string, MediaCapabilityField>, prefix: string) {
+  errors.push(...findSchemaReferenceErrors(form.schema))
+  function checkFields(fields: Record<string, MediaCapabilityField>, prefix: string, depth = 1) {
     for (const [name, field] of Object.entries(fields)) {
       const path = prefix ? `${prefix}.${name}` : name
+      if (depth > 8) { errors.push({ path, code: 'depth_limit', message: label('参数嵌套最多支持 8 层，请减少嵌套。', 'Fields support at most 8 nesting levels. Reduce the nesting depth.') }); continue }
       for (const [minKey, maxKey] of [['minimum', 'maximum'], ['min_length', 'max_length'], ['min_items', 'max_items']] as const) {
         if (field[minKey] !== undefined && field[maxKey] !== undefined && field[minKey]! > field[maxKey]!) errors.push({ path, code: 'invalid_range', message: label('最小值不能大于最大值。', 'Minimum cannot exceed maximum.') })
       }
-      if (field.properties) checkFields(field.properties, path)
+      if (field.properties) checkFields(field.properties, path, depth + 1)
+      if (field.items) checkFields({ [`${name}[]`]: field.items }, prefix, depth + 1)
     }
   }
   checkFields(form.schema.fields, '')
