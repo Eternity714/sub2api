@@ -96,7 +96,7 @@ func (r *mediaCapabilityRepository) List(ctx context.Context, filter service.Med
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]service.MediaCapability, 0)
 	for rows.Next() {
 		row, err := scanMediaCapability(rows)

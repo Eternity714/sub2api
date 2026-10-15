@@ -1065,7 +1065,7 @@ func (r *apiKeyRepository) GetReservedMediaAmount(ctx context.Context, keyID int
 	if err != nil {
 		return 0, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	if !rows.Next() {
 		if err := rows.Err(); err != nil {
 			return 0, err
