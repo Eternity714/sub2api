@@ -226,15 +226,19 @@
 
         <!-- Image/video mode -->
         <div v-else-if="entry.billing_mode === 'image' || entry.billing_mode === 'video'">
-          <!-- Default image price (per-request, same as per_request mode) -->
+          <!-- Video prices are per second; image prices are per generated image. -->
           <label class="mt-3 block text-xs font-medium text-gray-500 dark:text-gray-400">
             {{ entry.billing_mode === 'video' ? t('admin.channels.form.defaultVideoPrice') : t('admin.channels.form.defaultImagePrice') }}
-            <span class="ml-1 font-normal text-gray-400">$</span>
+            <span class="ml-1 font-normal text-gray-400">{{ t(entry.billing_mode === 'video' ? 'admin.channels.form.priceUnitSecond' : 'admin.channels.form.priceUnitImage') }}</span>
           </label>
           <div class="mt-1 w-48">
             <input :value="entry.per_request_price" @input="emitField('per_request_price', ($event.target as HTMLInputElement).value)"
               type="number" step="any" min="0" class="input text-sm" :placeholder="t('admin.channels.form.pricePlaceholder')" />
           </div>
+
+          <p v-if="platform === 'grsai' || platform === 'toapis'" class="mt-2 text-xs text-gray-400">
+            {{ t('admin.channels.form.unifiedMediaPricingHint') }}
+          </p>
 
           <!-- Image tiers -->
           <div class="mt-3 flex items-center justify-between">

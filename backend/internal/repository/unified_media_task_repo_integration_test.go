@@ -157,15 +157,6 @@ func (a *unifiedMediaIntegrationAccounts) GetByID(context.Context, int64) (*serv
 	return &copy, nil
 }
 
-type unifiedMediaIntegrationPrice struct{}
-
-func (unifiedMediaIntegrationPrice) GrsaiUnitPrice(context.Context, string, *service.Group) (float64, error) {
-	return 0.5, nil
-}
-func (unifiedMediaIntegrationPrice) ResolveGrsaiTaskPrice(context.Context, string, *service.Group, string) (service.GrsaiTaskPrice, error) {
-	return service.GrsaiTaskPrice{Mode: service.BillingModeImage, UnitPrice: 0.5}, nil
-}
-
 type unifiedMediaIntegrationStorage struct{ saved int }
 
 func (s *unifiedMediaIntegrationStorage) Save(ctx context.Context, key, contentType string, data []byte) (string, error) {
@@ -252,11 +243,19 @@ func TestUnifiedMediaRepositoryHTTPWorkerEndToEnd(t *testing.T) {
 			account := service.Account{ID: accountID, Platform: "grsai", Type: service.AccountTypeAPIKey, Status: service.StatusActive, Schedulable: true, Credentials: map[string]any{"base_url": upstream.URL, "api_key": "synthetic-key"}}
 			storage := &unifiedMediaIntegrationStorage{}
 			persister := unifiedMediaIntegrationPersister{uploader: service.NewImageResultUploader(storage, "media/", 1024, upstream.Client())}
-			svc := service.NewUnifiedMediaTaskService(repo, caps, service.NewCompositeMediaRouteService(service.NewCompositeRouteResolver(routeRepo), capRepo), &unifiedMediaIntegrationAccounts{account: account}, unifiedMediaIntegrationPrice{}, service.NewUnifiedMediaUpstream(upstream.Client()), persister)
+			channels := service.NewChannelService(NewChannelRepository(integrationDB), nil, nil, nil, nil)
+			channelPrice := .5
+			prices := []service.ChannelModelPricing{{Platform: service.PlatformToAPIs, Models: []string{model}, BillingMode: service.BillingModeImage, PerRequestPrice: &channelPrice}}
+			channel, err := channels.Create(ctx, &service.CreateChannelInput{Name: "media-pricing-" + uuid.NewString(), GroupIDs: []int64{fixture.GroupID}, ModelPricing: prices})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, channels.Delete(ctx, channel.ID)) })
+			pricing := &service.UnifiedMediaPricingResolver{Resolver: service.NewModelPricingResolver(channels, nil)}
+			svc := service.NewUnifiedMediaTaskService(repo, caps, service.NewCompositeMediaRouteService(service.NewCompositeRouteResolver(routeRepo), capRepo), &unifiedMediaIntegrationAccounts{account: account}, pricing, service.NewUnifiedMediaUpstream(upstream.Client()), persister)
 			svc.PollInterval = time.Millisecond
 			now := time.Now().UTC()
 			svc.Now = func() time.Time { return now }
-			group := &service.Group{ID: fixture.GroupID, Platform: service.PlatformComposite, RateMultiplier: 1, SubscriptionType: service.SubscriptionTypeStandard}
+			groupOverride := 99.0
+			group := &service.Group{ID: fixture.GroupID, Platform: service.PlatformComposite, RateMultiplier: 1, SubscriptionType: service.SubscriptionTypeStandard, ModelPricing: []service.ChannelModelPricing{{Models: []string{model}, BillingMode: service.BillingModeImage, PerRequestPrice: &groupOverride}}}
 			key := &service.APIKey{ID: fixture.APIKeyID, UserID: fixture.UserID, GroupID: &fixture.GroupID, Group: group}
 			task, err := svc.Create(ctx, service.UnifiedMediaTaskCreateInput{APIKey: key, MediaType: "image", Body: []byte(fmt.Sprintf(`{"model":%q,"prompt":"synthetic cat","n":%d}`, model, count))})
 			require.NoError(t, err)
@@ -268,6 +267,19 @@ func TestUnifiedMediaRepositoryHTTPWorkerEndToEnd(t *testing.T) {
 				require.Equal(t, 1, unit.Count, "native_max_results=1 must split the requested count")
 			}
 			require.Equal(t, float64(count)*0.5, task.HeldAmount)
+			var reservedBalance, reservedFrozen float64
+			require.NoError(t, integrationDB.QueryRowContext(ctx, `SELECT balance,frozen_balance FROM users WHERE id=$1`, fixture.UserID).Scan(&reservedBalance, &reservedFrozen))
+			require.Equal(t, 10-float64(count)*.5, reservedBalance)
+			require.Equal(t, float64(count)*.5, reservedFrozen)
+			// A channel edit changes new quotations while accepted work retains the
+			// price that funded its reservation and final settlement.
+			updatedPrice := .9
+			prices[0].PerRequestPrice = &updatedPrice
+			_, err = channels.Update(ctx, channel.ID, &service.UpdateChannelInput{ModelPricing: &prices})
+			require.NoError(t, err)
+			updated, err := pricing.ResolveGrsaiTaskPrice(ctx, model, group, "")
+			require.NoError(t, err)
+			require.Equal(t, updatedPrice, updated.UnitPrice)
 			var result *service.UnifiedMediaTask
 			for i := 0; i < 8; i++ {
 				require.NoError(t, svc.RunOnce(ctx))

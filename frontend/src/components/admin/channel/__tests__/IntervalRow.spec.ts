@@ -27,3 +27,28 @@ describe('pricing interval token bounds', () => {
     expect(wrapper.emitted('update')?.[1]?.[0]).toMatchObject({ max_tokens: max })
   })
 })
+
+describe('media tier price units', () => {
+  it.each([
+    ['image', 'perImagePrice', 'priceUnitImage', '1K / 2K / 4K'],
+    ['video', 'perSecondPrice', 'priceUnitSecond', '480p / 720p / 1080p'],
+  ] as const)('edits %s prices without token bounds', async (mode, priceLabel, unitLabel, placeholder) => {
+    const tier = { ...interval, tier_label: mode === 'video' ? '720p' : '2K', per_request_price: 0.35 }
+    const wrapper = mount(IntervalRow, { props: { interval: tier, mode } })
+
+    expect(wrapper.text()).toContain(`admin.channels.form.${priceLabel}`)
+    expect(wrapper.text()).toContain(`admin.channels.form.${unitLabel}`)
+    expect(wrapper.text()).toContain('admin.channels.form.resolution')
+    expect(wrapper.text()).not.toContain('admin.channels.form.minTokens')
+    expect(wrapper.get('input[type="text"]').attributes('placeholder')).toBe(placeholder)
+    expect(wrapper.findAll('input[type="number"]')).toHaveLength(1)
+    await wrapper.get('input[type="number"]').setValue('0.7007')
+    expect(wrapper.emitted('update')?.[0]?.[0]).toEqual({ ...tier, per_request_price: '0.7007' })
+  })
+
+  it('keeps context bounds available for per-request tiers', () => {
+    const wrapper = mount(IntervalRow, { props: { interval, mode: 'per_request' } })
+    expect(wrapper.findAll('input[type="number"]')).toHaveLength(3)
+    expect(wrapper.text()).toContain('admin.channels.form.priceUnitRequest')
+  })
+})
