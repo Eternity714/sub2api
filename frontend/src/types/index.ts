@@ -695,6 +695,7 @@ export type CompositeRouteEndpoint =
   | 'chat_completions'
   | 'embeddings'
   | 'images'
+  | 'videos'
   | 'gemini'
 
 export type CompositeRouteSource = 'route' | 'detector' | string
@@ -706,6 +707,7 @@ export interface CompositeModelRoute {
   match_type: CompositeRouteMatchType
   target_platform: Exclude<GroupPlatform, 'composite'>
   upstream_model: string
+  capability_model?: string
   endpoint: CompositeRouteEndpoint
   priority: number
   enabled: boolean
@@ -719,6 +721,7 @@ export interface CompositeModelRouteInput {
   match_type: CompositeRouteMatchType
   target_platform: Exclude<GroupPlatform, 'composite'>
   upstream_model?: string
+  capability_model?: string
   endpoint: CompositeRouteEndpoint
   priority?: number
   enabled?: boolean
@@ -739,6 +742,7 @@ export interface CompositeRouteDecision {
   upstream_model: string
   endpoint: CompositeRouteEndpoint
   route?: CompositeModelRoute
+  candidates?: CompositeRouteDecision[]
   reason?: string
 }
 
@@ -937,7 +941,7 @@ export interface UpdateGroupRequest {
 // ==================== Account & Proxy Types ====================
 
 /** 前端内置专属界面（图标、配色、表单等）的平台。 */
-export type KnownAccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grok' | 'kimi' | 'zhipu' | 'deepseek' | 'minimax' | 'opencode_go' | 'typesafe' | 'command_code' | 'cline' | 'grsai'
+export type KnownAccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grok' | 'kimi' | 'zhipu' | 'deepseek' | 'minimax' | 'opencode_go' | 'typesafe' | 'command_code' | 'cline' | 'grsai' | 'toapis'
 /**
  * 账号平台：内置平台，或后端平台清单中新登记的平台（任意字符串）。
  * `string & {}` 保留内置平台的字面量补全。

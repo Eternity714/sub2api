@@ -34,6 +34,8 @@ type CompositeModelRoute struct {
 	TargetPlatform string `json:"target_platform,omitempty"`
 	// Provider model identifier; empty means public_model.
 	UpstreamModel string `json:"upstream_model,omitempty"`
+	// Optional media candidate capability alias; empty uses public_model.
+	CapabilityModel string `json:"capability_model,omitempty"`
 	// Endpoint scope such as any, messages, responses, chat_completions.
 	Endpoint string `json:"endpoint,omitempty"`
 	// Lower values win within the same match strength.
@@ -77,7 +79,7 @@ func (*CompositeModelRoute) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case compositemodelroute.FieldID, compositemodelroute.FieldGroupID, compositemodelroute.FieldPriority:
 			values[i] = new(sql.NullInt64)
-		case compositemodelroute.FieldPublicModel, compositemodelroute.FieldMatchType, compositemodelroute.FieldTargetPlatform, compositemodelroute.FieldUpstreamModel, compositemodelroute.FieldEndpoint, compositemodelroute.FieldNotes:
+		case compositemodelroute.FieldPublicModel, compositemodelroute.FieldMatchType, compositemodelroute.FieldTargetPlatform, compositemodelroute.FieldUpstreamModel, compositemodelroute.FieldCapabilityModel, compositemodelroute.FieldEndpoint, compositemodelroute.FieldNotes:
 			values[i] = new(sql.NullString)
 		case compositemodelroute.FieldCreatedAt, compositemodelroute.FieldUpdatedAt, compositemodelroute.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -150,6 +152,12 @@ func (_m *CompositeModelRoute) assignValues(columns []string, values []any) erro
 				return fmt.Errorf("unexpected type %T for field upstream_model", values[i])
 			} else if value.Valid {
 				_m.UpstreamModel = value.String
+			}
+		case compositemodelroute.FieldCapabilityModel:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field capability_model", values[i])
+			} else if value.Valid {
+				_m.CapabilityModel = value.String
 			}
 		case compositemodelroute.FieldEndpoint:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -242,6 +250,9 @@ func (_m *CompositeModelRoute) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("upstream_model=")
 	builder.WriteString(_m.UpstreamModel)
+	builder.WriteString(", ")
+	builder.WriteString("capability_model=")
+	builder.WriteString(_m.CapabilityModel)
 	builder.WriteString(", ")
 	builder.WriteString("endpoint=")
 	builder.WriteString(_m.Endpoint)

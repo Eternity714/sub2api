@@ -265,6 +265,14 @@
           </button>
           <button
             type="button"
+            data-testid="platform-button-toapis"
+            @click="form.platform = 'toapis'; accountCategory = 'apikey'"
+            :class="['flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-all', form.platform === 'toapis' ? 'bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-300' : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200']"
+          >
+            <PlatformIcon platform="toapis" size="sm" /> ToAPIs
+          </button>
+          <button
+            type="button"
             @click="form.platform = 'grsai'; accountCategory = 'apikey'"
             :class="[
               'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-all',
@@ -1586,8 +1594,9 @@
           <p v-if="apiKeyHint" class="input-hint">{{ apiKeyHint }}</p>
         </div>
 
-        <!-- 上游倍率自动探测：全部 API-key 平台可用（所在区块已限定 apikey 类型） -->
+        <!-- 原生媒体账号不参与旧的上游账单与倍率探测。 -->
         <div
+          v-if="supportsUpstreamBillingProbe"
           class="flex items-center justify-between gap-4 border-t border-gray-200 pt-4 dark:border-dark-600"
         >
           <div>
@@ -4205,6 +4214,7 @@ import {
   defaultProviderProtocolRules,
   GRSAI_BASE_URL_PRESETS,
   GRSAI_GLOBAL_BASE_URL,
+  TOAPIS_GLOBAL_BASE_URL,
   isCNProviderPlatform,
   isHeaderOverrideCapable,
   isMultiProtocolApiKeyPlatform,
@@ -4282,6 +4292,7 @@ const baseUrlHint = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.openai.baseUrlHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
   if (form.platform === 'grok') return ''
+  if (form.platform === 'toapis') return t('admin.accounts.toapis.baseUrlHint')
   if (form.platform === 'grsai') return t('admin.accounts.grsai.baseUrlHint')
   return t('admin.accounts.baseUrlHint')
 })
@@ -4289,6 +4300,7 @@ const baseUrlHint = computed(() => {
 const apiKeyHint = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.openai.apiKeyHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.apiKeyHint')
+  if (form.platform === 'toapis') return t('admin.accounts.toapis.apiKeyHint')
   if (form.platform === 'grsai') return t('admin.accounts.grsai.apiKeyHint')
   // Grok 与多协议供应商没有对应的说明文案；通用文案指 Claude Console Key。
   if (form.platform === 'grok' || isMultiProtocolPlatform.value) return ''
@@ -4310,6 +4322,8 @@ const apiKeyBaseUrlPlaceholder = computed(() => {
       return 'https://api.x.ai/v1'
     case 'typesafe':
       return 'https://api.typesafe.ai'
+    case 'toapis':
+      return TOAPIS_GLOBAL_BASE_URL
     case 'grsai':
       return GRSAI_GLOBAL_BASE_URL
     default:
@@ -4334,6 +4348,7 @@ const apiKeyValuePlaceholder = computed(() => {
     case 'minimax':
     case 'opencode_go':
     case 'grsai':
+    case 'toapis':
       return 'sk-...'
     case 'typesafe':
       return 'ts-...'
@@ -5064,6 +5079,10 @@ const form = reactive({
   expires_at: null as number | null
 })
 
+const supportsUpstreamBillingProbe = computed(() =>
+  form.platform !== 'grsai' && form.platform !== 'toapis'
+)
+
 // Helper to check if current type needs OAuth flow
 const isOAuthFlow = computed(() => {
   // Antigravity upstream 类型不需要 OAuth 流程
@@ -5179,7 +5198,9 @@ watch(
               ? 'https://api.x.ai/v1'
               : newPlatform === 'typesafe'
                 ? 'https://api.typesafe.ai'
-                : newPlatform === 'grsai'
+                : newPlatform === 'toapis'
+                  ? TOAPIS_GLOBAL_BASE_URL
+                  : newPlatform === 'grsai'
                   ? GRSAI_GLOBAL_BASE_URL
                   : 'https://api.anthropic.com'
     }
@@ -6138,6 +6159,11 @@ const handleSubmit = async () => {
     return
   }
 
+  if (form.platform === 'toapis' && !apiKeyBaseUrl.value.trim()) {
+    appStore.showError(t('admin.accounts.toapis.baseUrlRequired'))
+    return
+  }
+
   // Determine default base URL based on platform
   const defaultBaseUrl =
     form.platform === 'openai'
@@ -6148,7 +6174,9 @@ const handleSubmit = async () => {
           ? 'https://api.x.ai/v1'
           : form.platform === 'typesafe'
             ? 'https://api.typesafe.ai'
-            : form.platform === 'grsai'
+            : form.platform === 'toapis'
+              ? TOAPIS_GLOBAL_BASE_URL
+              : form.platform === 'grsai'
               ? GRSAI_GLOBAL_BASE_URL
               : 'https://api.anthropic.com'
 
@@ -6256,7 +6284,7 @@ const handleSubmit = async () => {
     ...form,
     group_ids: form.group_ids,
     extra: withUpstreamRequestIdHeader(extra),
-    upstream_billing_probe_enabled: upstreamBillingAutoProbeEnabled.value,
+    upstream_billing_probe_enabled: supportsUpstreamBillingProbe.value ? upstreamBillingAutoProbeEnabled.value : undefined,
     auto_pause_on_expired: autoPauseOnExpired.value
   })
 }
@@ -6385,9 +6413,8 @@ const createAccountAndFinish = async (
     rate_multiplier: form.rate_multiplier,
     group_ids: form.group_ids,
     expires_at: form.expires_at,
-    // 上游倍率探测对全部 API-key 平台开放（antigravity upstream 走本 helper）；
-    // 非 apikey 类型（bedrock/oauth）不传，后端不动作。
-    upstream_billing_probe_enabled: type === 'apikey' ? upstreamBillingAutoProbeEnabled.value : undefined,
+    // 原生媒体账号与非 API-key 类型不参与旧的上游账单探测。
+    upstream_billing_probe_enabled: type === 'apikey' && platform !== 'grsai' && platform !== 'toapis' ? upstreamBillingAutoProbeEnabled.value : undefined,
     auto_pause_on_expired: autoPauseOnExpired.value
   })
 }

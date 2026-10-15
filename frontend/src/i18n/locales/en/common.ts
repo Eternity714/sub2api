@@ -163,6 +163,10 @@ export default {
 
   // Navigation
   nav: {
+    mediaCapabilities: 'Media capabilities',
+    mediaTasks: 'Media tasks',
+    mediaTasksDescription: 'Inspect media task progress, charges, and upstream execution states',
+    mediaCapabilitiesDescription: 'Manage image and video model parameters and validation rules',
     dashboard: 'Dashboard',
     announcements: 'Announcements',
     apiKeys: 'API Keys',

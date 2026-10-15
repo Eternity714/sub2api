@@ -1053,3 +1053,28 @@ func derefString(s *string) string {
 	}
 	return *s
 }
+
+// GetReservedMediaAmount supplies uncached admission state without changing the
+// meaning of quota_used. Holds count in every configured monetary window until
+// their task is captured or released, including holds created in an earlier window.
+func (r *apiKeyRepository) GetReservedMediaAmount(ctx context.Context, keyID int64) (float64, error) {
+	if r.sql == nil {
+		return 0, errors.New("media reservation lookup unavailable")
+	}
+	rows, err := r.sql.QueryContext(ctx, `SELECT COALESCE((SELECT SUM(held_amount) FROM unified_media_tasks WHERE api_key_id=$1 AND hold_status='reserved'),0)+COALESCE((SELECT SUM(amount) FROM grsai_balance_holds WHERE api_key_id=$1 AND status='reserved'),0)`, keyID)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return 0, err
+		}
+		return 0, errors.New("media reservation lookup returned no aggregate")
+	}
+	var amount float64
+	if err := rows.Scan(&amount); err != nil {
+		return 0, err
+	}
+	return amount, rows.Err()
+}

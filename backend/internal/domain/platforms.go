@@ -21,6 +21,8 @@ const (
 	PlatformGatewayAntigravity PlatformGateway = "antigravity"
 	// PlatformGatewayGrsai 由 GRS.AI 原生图片与视频网关处理。
 	PlatformGatewayGrsai PlatformGateway = "grsai"
+	// PlatformGatewayToAPIs 由统一异步媒体网关处理。
+	PlatformGatewayToAPIs PlatformGateway = "toapis"
 )
 
 // PlatformSpec 描述一个具体（非 composite）平台。
@@ -51,6 +53,7 @@ var platformList = []PlatformSpec{
 	{ID: PlatformCommandCode, DisplayName: "Command Code", Gateway: PlatformGatewayOpenAI},
 	{ID: PlatformCline, DisplayName: "Cline", Gateway: PlatformGatewayOpenAI},
 	{ID: PlatformGrsai, DisplayName: "GRS.AI", Gateway: PlatformGatewayGrsai},
+	{ID: PlatformToAPIs, DisplayName: "ToAPIs", Gateway: PlatformGatewayToAPIs},
 }
 
 var platformIndex = func() map[string]int {
@@ -83,15 +86,15 @@ func IsConcretePlatform(id string) bool {
 	return ok
 }
 
-// IsCompositeTargetPlatform 排除尚未接入组合路由的原生媒体平台。
+// IsCompositeTargetPlatform 报告平台是否可以作为组合分组的路由目标。
 func IsCompositeTargetPlatform(id string) bool {
-	return IsConcretePlatform(id) && id != PlatformGrsai
+	return IsConcretePlatform(id)
 }
 
 // IsQuotaPlatform 报告平台是否已接入 user × platform 额度计量。
-// GRS.AI 原生媒体结算尚未累计平台用量，保持不允许设置平台额度。
+// GRS.AI / ToAPIs 的共享额度仅由管理员在账号管理中配置，不加入用户平台额度。
 func IsQuotaPlatform(id string) bool {
-	return IsConcretePlatform(id) && id != PlatformGrsai
+	return IsConcretePlatform(id) && id != PlatformGrsai && id != PlatformToAPIs
 }
 
 // IsGroupPlatform 报告 id 是否可作为分组平台（具体平台或 composite）。

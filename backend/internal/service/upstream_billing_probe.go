@@ -1009,8 +1009,8 @@ func decodeUpstreamBillingProbeSnapshot(extra map[string]any) *UpstreamBillingPr
 // type=apikey by the admin form, so only pre-existing type=upstream rows
 // cannot turn the probe on.
 func IsUpstreamBillingProbeIdentity(platform, accountType string) bool {
-	// GRS.AI uses native media endpoints and does not support this billing probe.
-	return accountType == AccountTypeAPIKey && platform != PlatformGrsai && domain.IsConcretePlatform(platform)
+	// Native media providers do not expose the Sub2API relay billing protocol.
+	return accountType == AccountTypeAPIKey && platform != PlatformGrsai && platform != PlatformToAPIs && domain.IsConcretePlatform(platform)
 }
 
 func isUpstreamBillingProbeAccount(account *Account) bool {

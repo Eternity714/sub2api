@@ -1208,6 +1208,10 @@ export default {
         selectAtLeastOne: '开启固定账号后至少选择一个账号'
       },
       compositeRoutes: {
+        capabilityModel: '候选能力模型（可选）',
+        capabilityModelHint: '留空使用公开模型的能力；填写后引用独立候选能力配置，例如 toapis/gpt-image。',
+        mediaCandidatesHint: '同一公开模型和媒体端点可添加多条 GRS.AI / ToAPIs 候选，按优先级及记录 ID 顺序尝试。',
+        mediaPreviewHint: '此处展示已启用显式路由的候选顺序；完整参数支持情况请在媒体模型能力页面校验。',
         action: '路由',
         title: 'Composite 路由',
         titleWithGroup: 'Composite 路由：{name}',
@@ -1246,6 +1250,7 @@ export default {
           chatCompletions: 'Chat Completions',
           embeddings: 'Embeddings',
           images: 'Images',
+          videos: '视频生成',
           gemini: 'Gemini 原生'
         },
         match: {

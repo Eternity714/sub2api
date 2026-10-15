@@ -660,7 +660,7 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     const labels = (testid: string) =>
       wrapper.get(`[data-testid="${testid}"]`).findAll('button').map(button => button.text().trim())
     expect(labels('platform-row-cn')).toEqual(['Kimi', 'Zhipu GLM', 'DeepSeek', 'MiniMax'])
-    expect(labels('platform-row-aggregators')).toEqual(['OpenCode', 'Command Code', 'Cline', 'GRS.AI'])
+    expect(labels('platform-row-aggregators')).toEqual(['OpenCode', 'Command Code', 'Cline', 'ToAPIs', 'GRS.AI'])
   })
 
   it('creates a Cline account without an account type and with only the Chat Completions endpoint', async () => {
@@ -1075,5 +1075,58 @@ describe('CreateAccountModal Vertex API key auth', () => {
     await selectButtonByText(wrapper, 'admin.accounts.vertexLabel')
     expect(wrapper.find('[data-testid="vertex-auth-mode-apikey"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="vertex-api-key-input"]').exists()).toBe(false)
+  })
+})
+
+
+describe('ToAPIs account creation', () => {
+  beforeEach(() => {
+    authIsSimpleMode.value = true
+    createAccountMock.mockReset().mockResolvedValue({ id: 97, platform: 'toapis', type: 'apikey' })
+    probeUpstreamBillingMock.mockReset().mockResolvedValue({})
+  })
+  it('saves ToAPIs API key with the explicitly configured regional endpoint', async () => {
+    const wrapper = mountModal()
+    await wrapper.get('[data-testid="platform-button-toapis"]').trigger('click')
+    await wrapper.get('form#create-account-form input[type="text"]').setValue('ToAPIs account')
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('toapis-test-key')
+    const base = wrapper.findAll('input').find(input => input.attributes('placeholder') === 'https://toapis.com')!
+    expect(base).toBeDefined()
+    await base.setValue('https://toapis.cn')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+    expect(createAccountMock).toHaveBeenCalledWith(expect.objectContaining({ platform: 'toapis', type: 'apikey', credentials: expect.objectContaining({ api_key: 'toapis-test-key', base_url: 'https://toapis.cn' }) }))
+    wrapper.unmount()
+  })
+  it('rejects an explicitly cleared ToAPIs endpoint rather than falling back to another provider', async () => {
+    const wrapper = mountModal()
+    await wrapper.get('[data-testid="platform-button-toapis"]').trigger('click')
+    await wrapper.get('form#create-account-form input[type="text"]').setValue('ToAPIs account')
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('toapis-test-key')
+    const base = wrapper.findAll('input').find(input => input.attributes('placeholder') === 'https://toapis.com')!
+    await base.setValue('')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+    expect(createAccountMock).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+})
+
+describe('原生媒体账号不使用旧上游账单探测', () => {
+  it.each([['toapis', 'ToAPIs'], ['grsai', 'GRS.AI']])('创建 %s 隐藏开关且不触发旧探测', async (platform, label) => {
+    authIsSimpleMode.value = true
+    createAccountMock.mockReset().mockResolvedValue({ id: 97, platform, type: 'apikey' })
+    probeUpstreamBillingMock.mockReset().mockResolvedValue({})
+    const wrapper = mountModal()
+    await selectButtonByText(wrapper, label)
+    expect(wrapper.find('[data-testid="upstream-billing-auto-probe"]').exists()).toBe(false)
+    await wrapper.get('form#create-account-form input[type="text"]').setValue(`${platform} account`)
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('native-media-key')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+    expect(createAccountMock).toHaveBeenCalledTimes(1)
+    expect(createAccountMock.mock.calls[0]?.[0]?.upstream_billing_probe_enabled).toBeUndefined()
+    expect(probeUpstreamBillingMock).not.toHaveBeenCalled()
+    wrapper.unmount()
   })
 })

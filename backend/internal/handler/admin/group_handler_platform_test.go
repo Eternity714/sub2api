@@ -75,7 +75,7 @@ func TestGroupPlatformBinding_RejectsInvalidPlatforms(t *testing.T) {
 }
 
 func TestCompositeRouteTargetPlatform_AllowsConcreteProviders(t *testing.T) {
-	for _, platform := range []string{"kimi", "zhipu", "deepseek", "minimax", "opencode_go", "typesafe", "command_code", "cline"} {
+	for _, platform := range []string{"kimi", "zhipu", "deepseek", "minimax", "opencode_go", "typesafe", "command_code", "cline", "grsai", "toapis"} {
 		var req CompositeRouteRequest
 		body := fmt.Sprintf(`{"public_model":"m","target_platform":%q}`, platform)
 		require.NoError(t, bindGroupPlatformJSON(t, &req, body))
@@ -88,7 +88,7 @@ func TestCompositeRouteTargetPlatform_RejectsComposite(t *testing.T) {
 	require.Error(t, bindGroupPlatformJSON(t, &req, `{"public_model":"m","target_platform":"composite"}`))
 }
 
-func TestCompositeRouteTargetPlatform_RejectsGrsai(t *testing.T) {
+func TestCompositeRouteTargetPlatform_AllowsGrsai(t *testing.T) {
 	var req CompositeRouteRequest
-	require.Error(t, bindGroupPlatformJSON(t, &req, `{"public_model":"m","target_platform":"grsai"}`))
+	require.NoError(t, bindGroupPlatformJSON(t, &req, `{"public_model":"m","target_platform":"grsai"}`))
 }

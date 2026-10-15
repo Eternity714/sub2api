@@ -772,7 +772,7 @@ const selectablePlatforms = computed(() => selectableChannelPlatforms(
   editingChannel.value ? form.platforms.map((section) => section.platform) : [],
 ))
 // Composite pricing/mapping may target every concrete schedulable provider.
-const compositePlatforms = computed(() => platformOrder.value.filter(platform => platform !== 'grsai'))
+const compositePlatforms = computed(() => platformOrder.value)
 
 // ── Helpers ──
 function formatDate(value: string): string {

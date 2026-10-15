@@ -109,6 +109,7 @@ func provideCleanup(
 	batchImageWorker *service.BatchImageWorkerRuntime,
 	grsaiSettlementRecovery *service.GrsaiSettlementRecoveryRuntime,
 	grsaiTaskRuntime *service.GrsaiTaskRuntime,
+	unifiedMediaTasks *service.UnifiedMediaTaskService,
 	pricing *service.PricingService,
 	emailQueue *service.EmailQueueService,
 	billingCache *service.BillingCacheService,
@@ -271,6 +272,7 @@ func provideCleanup(
 				}
 				return nil
 			}},
+			{"UnifiedMediaTasks", func() error { unifiedMediaTasks.Stop(); return nil }},
 			{"GrsaiTaskRuntime", func() error {
 				if grsaiTaskRuntime != nil {
 					grsaiTaskRuntime.Stop()

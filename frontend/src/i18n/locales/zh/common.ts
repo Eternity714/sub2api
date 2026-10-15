@@ -163,6 +163,10 @@ export default {
 
   // Navigation
   nav: {
+    mediaCapabilities: '媒体模型能力',
+    mediaTasks: '媒体任务',
+    mediaTasksDescription: '查看媒体任务进度、额度与上游执行状态',
+    mediaCapabilitiesDescription: '维护图片与视频模型的参数和校验规则',
     dashboard: '仪表盘',
     announcements: '公告',
     apiKeys: 'API 密钥',

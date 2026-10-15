@@ -9,7 +9,7 @@ import builtinCatalog from './platformCatalog.builtin.json'
  * 生成并校验与后端一致；前端随后端一同构建发布，无需运行时拉取。
  */
 
-export type PlatformGateway = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grsai'
+export type PlatformGateway = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grsai' | 'toapis'
 export type ProviderRouting = 'by_inbound' | 'by_model'
 export type ProviderNativeProtocol = 'chat_completions' | 'anthropic' | 'responses'
 
@@ -76,9 +76,9 @@ export function listPlatformIds(): string[] {
   return listPlatforms().map(spec => spec.id)
 }
 
-/** 与后端 domain.IsQuotaPlatform 一致：GRS.AI 原生媒体尚未接入平台额度计量。 */
+/** 与后端 domain.IsQuotaPlatform 一致：媒体上游仅使用管理员账号共享额度。 */
 export function isQuotaPlatform(platform: string | null | undefined): boolean {
-  return isKnownPlatform(platform) && platform !== 'grsai'
+  return isKnownPlatform(platform) && platform !== 'grsai' && platform !== 'toapis'
 }
 
 /** 支持 user × platform 额度的平台，按展示顺序。 */

@@ -221,3 +221,30 @@ describe('AccountTestModal', () => {
     })
   })
 })
+
+
+describe('ToAPIs read-only connection test', () => {
+  it('does not require or fetch a generation model and sends no generation prompt', async () => {
+    getAvailableModels.mockClear()
+    getAvailableModels.mockRejectedValue(new Error('generation model catalog not needed'))
+    global.fetch = vi.fn().mockResolvedValue(createStreamResponse([
+      'data: {"type":"test_start","model":"ToAPIs model catalog"}\n',
+      'data: {"type":"content","text":"credentials verified; no generation"}\n',
+      'data: {"type":"test_complete","success":true}\n'
+    ])) as any
+    const wrapper = mountModal({ id: 97, name: 'ToAPIs', platform: 'toapis', type: 'apikey', status: 'active' })
+    await wrapper.setProps({ show: true })
+    await flushPromises()
+    expect(getAvailableModels).not.toHaveBeenCalled()
+    expect(wrapper.find('.select-stub').exists()).toBe(false)
+    const start = wrapper.findAll('button').find(button => button.text().includes('admin.accounts.startTest'))!
+    expect(start.attributes('disabled')).toBeUndefined()
+    await start.trigger('click')
+    await flushPromises()
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+    const [, request] = (global.fetch as any).mock.calls[0]
+    expect(JSON.parse(request.body)).toEqual({ model_id: '', prompt: '' })
+    expect(wrapper.text()).toContain('credentials verified; no generation')
+    wrapper.unmount()
+  })
+})

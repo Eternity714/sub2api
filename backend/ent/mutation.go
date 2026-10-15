@@ -19709,27 +19709,28 @@ func (m *ChannelMonitorRequestTemplateMutation) ResetEdge(name string) error {
 // CompositeModelRouteMutation represents an operation that mutates the CompositeModelRoute nodes in the graph.
 type CompositeModelRouteMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *int64
-	created_at      *time.Time
-	updated_at      *time.Time
-	deleted_at      *time.Time
-	public_model    *string
-	match_type      *string
-	target_platform *string
-	upstream_model  *string
-	endpoint        *string
-	priority        *int
-	addpriority     *int
-	enabled         *bool
-	notes           *string
-	clearedFields   map[string]struct{}
-	group           *int64
-	clearedgroup    bool
-	done            bool
-	oldValue        func(context.Context) (*CompositeModelRoute, error)
-	predicates      []predicate.CompositeModelRoute
+	op               Op
+	typ              string
+	id               *int64
+	created_at       *time.Time
+	updated_at       *time.Time
+	deleted_at       *time.Time
+	public_model     *string
+	match_type       *string
+	target_platform  *string
+	upstream_model   *string
+	capability_model *string
+	endpoint         *string
+	priority         *int
+	addpriority      *int
+	enabled          *bool
+	notes            *string
+	clearedFields    map[string]struct{}
+	group            *int64
+	clearedgroup     bool
+	done             bool
+	oldValue         func(context.Context) (*CompositeModelRoute, error)
+	predicates       []predicate.CompositeModelRoute
 }
 
 var _ ent.Mutation = (*CompositeModelRouteMutation)(nil)
@@ -20131,6 +20132,42 @@ func (m *CompositeModelRouteMutation) ResetUpstreamModel() {
 	m.upstream_model = nil
 }
 
+// SetCapabilityModel sets the "capability_model" field.
+func (m *CompositeModelRouteMutation) SetCapabilityModel(s string) {
+	m.capability_model = &s
+}
+
+// CapabilityModel returns the value of the "capability_model" field in the mutation.
+func (m *CompositeModelRouteMutation) CapabilityModel() (r string, exists bool) {
+	v := m.capability_model
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapabilityModel returns the old "capability_model" field's value of the CompositeModelRoute entity.
+// If the CompositeModelRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CompositeModelRouteMutation) OldCapabilityModel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCapabilityModel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCapabilityModel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapabilityModel: %w", err)
+	}
+	return oldValue.CapabilityModel, nil
+}
+
+// ResetCapabilityModel resets all changes to the "capability_model" field.
+func (m *CompositeModelRouteMutation) ResetCapabilityModel() {
+	m.capability_model = nil
+}
+
 // SetEndpoint sets the "endpoint" field.
 func (m *CompositeModelRouteMutation) SetEndpoint(s string) {
 	m.endpoint = &s
@@ -20369,7 +20406,7 @@ func (m *CompositeModelRouteMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CompositeModelRouteMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.created_at != nil {
 		fields = append(fields, compositemodelroute.FieldCreatedAt)
 	}
@@ -20393,6 +20430,9 @@ func (m *CompositeModelRouteMutation) Fields() []string {
 	}
 	if m.upstream_model != nil {
 		fields = append(fields, compositemodelroute.FieldUpstreamModel)
+	}
+	if m.capability_model != nil {
+		fields = append(fields, compositemodelroute.FieldCapabilityModel)
 	}
 	if m.endpoint != nil {
 		fields = append(fields, compositemodelroute.FieldEndpoint)
@@ -20430,6 +20470,8 @@ func (m *CompositeModelRouteMutation) Field(name string) (ent.Value, bool) {
 		return m.TargetPlatform()
 	case compositemodelroute.FieldUpstreamModel:
 		return m.UpstreamModel()
+	case compositemodelroute.FieldCapabilityModel:
+		return m.CapabilityModel()
 	case compositemodelroute.FieldEndpoint:
 		return m.Endpoint()
 	case compositemodelroute.FieldPriority:
@@ -20463,6 +20505,8 @@ func (m *CompositeModelRouteMutation) OldField(ctx context.Context, name string)
 		return m.OldTargetPlatform(ctx)
 	case compositemodelroute.FieldUpstreamModel:
 		return m.OldUpstreamModel(ctx)
+	case compositemodelroute.FieldCapabilityModel:
+		return m.OldCapabilityModel(ctx)
 	case compositemodelroute.FieldEndpoint:
 		return m.OldEndpoint(ctx)
 	case compositemodelroute.FieldPriority:
@@ -20535,6 +20579,13 @@ func (m *CompositeModelRouteMutation) SetField(name string, value ent.Value) err
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpstreamModel(v)
+		return nil
+	case compositemodelroute.FieldCapabilityModel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapabilityModel(v)
 		return nil
 	case compositemodelroute.FieldEndpoint:
 		v, ok := value.(string)
@@ -20666,6 +20717,9 @@ func (m *CompositeModelRouteMutation) ResetField(name string) error {
 		return nil
 	case compositemodelroute.FieldUpstreamModel:
 		m.ResetUpstreamModel()
+		return nil
+	case compositemodelroute.FieldCapabilityModel:
+		m.ResetCapabilityModel()
 		return nil
 	case compositemodelroute.FieldEndpoint:
 		m.ResetEndpoint()

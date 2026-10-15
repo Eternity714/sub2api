@@ -58,10 +58,12 @@ func (r *CompositeRouteResolver) ListExactPublicModels(ctx context.Context, grou
 		return nil, err
 	}
 	models := make([]string, 0, len(routes))
+	seen := make(map[string]bool, len(routes))
 	for _, route := range routes {
 		if route.Enabled && route.MatchType == CompositeRouteMatchExact &&
 			(endpoint == "" || normalizeCompositeRouteEndpoint(route.Endpoint) == CompositeRouteEndpointAny || normalizeCompositeRouteEndpoint(route.Endpoint) == endpoint) {
-			if model := strings.TrimSpace(route.PublicModel); model != "" {
+			if model := strings.TrimSpace(route.PublicModel); model != "" && !seen[model] {
+				seen[model] = true
 				models = append(models, model)
 			}
 		}

@@ -1,0 +1,13 @@
+backend/internal/pkg/mediacapability/capability_test.go
+backend/internal/service/media_capability_test.go
+backend/internal/service/media_capability_catalog_test.go
+backend/internal/service/media_capability_docs_test.go
+backend/internal/service/composite_media_routes_test.go
+backend/internal/service/unified_media_task_test.go
+backend/internal/service/unified_media_upstream_test.go
+backend/internal/handler/unified_media_handler_test.go
+backend/internal/handler/unified_media_validation_test.go
+backend/internal/repository/unified_media_task_repo_integration_test.go
+backend/internal/server/routes/gateway_test.go
+backend/internal/server/routes/unified_media_test.go
+frontend/src/components/admin/media/__tests__/MediaCapabilityEditorDialog.spec.ts

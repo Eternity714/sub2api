@@ -76,9 +76,10 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		idempotencyCleanupSvc,
 		service.NewGeminiCachedContentService(nil, nil, cfg),
 		&service.BatchImageCleanupService{},
-		nil, // batchImageWorker
-		nil, // grsaiSettlementRecovery
-		nil, // grsaiTaskRuntime
+		nil,                                // batchImageWorker
+		nil,                                // grsaiSettlementRecovery
+		nil,                                // grsaiTaskRuntime
+		&service.UnifiedMediaTaskService{}, // unifiedMediaTasks
 		pricingSvc,
 		emailQueueSvc,
 		billingCacheSvc,

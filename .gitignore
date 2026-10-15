@@ -141,6 +141,8 @@ docs/*
 !docs/MEDIA_UPLOADS.md
 !docs/BATCH_IMAGE_MVP.md
 !docs/COMPOSITE_GROUPS.md
+!docs/UNIFIED_MEDIA_MODEL_PARAMETERS.md
+!docs/UNIFIED_MEDIA_API.md
 !docs/PLUGIN_DEVELOPMENT.md
 !docs/channel-monitor-v2-safe-defaults.md
 !docs/codex-credits.md
@@ -164,3 +166,6 @@ issues/
 .vite/
 # 本地闭源插件开发目录及构建产物不进入 Sub2API 仓库
 /plugins/
+
+# Local media validation logs
+.media-*-results.jsonl

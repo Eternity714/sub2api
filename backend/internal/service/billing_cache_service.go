@@ -579,6 +579,9 @@ func (s *BillingCacheService) checkAPIKeyRateLimits(ctx context.Context, apiKey 
 
 // checkAPIKeyRateLimitsWithPending 在窗口用量上叠加 pending（即将扣除的金额）后检查限速窗口。
 func (s *BillingCacheService) checkAPIKeyRateLimitsWithPending(ctx context.Context, apiKey *APIKey, pending float64) error {
+	if apiKey.MediaReservationReadFailed {
+		return ErrBillingServiceUnavailable
+	}
 	if s.cache == nil {
 		// No cache: fall back to reading from DB directly
 		if s.apiKeyRateLimitLoader == nil {
@@ -639,6 +642,9 @@ func (s *BillingCacheService) checkAPIKeyRateLimitsWithPending(ctx context.Conte
 
 // evaluateRateLimits checks usage (plus pending) against limits, triggering async resets for expired windows.
 func (s *BillingCacheService) evaluateRateLimits(ctx context.Context, apiKey *APIKey, usage5h, usage1d, usage7d float64, w5h, w1d, w7d *time.Time, pending float64) error {
+	if apiKey.MediaReservationReadFailed {
+		return ErrBillingServiceUnavailable
+	}
 	needsReset := false
 
 	// Reset expired windows in-memory for check purposes
@@ -680,6 +686,10 @@ func (s *BillingCacheService) evaluateRateLimits(ctx context.Context, apiKey *AP
 		}()
 	}
 
+	// Durable media holds reduce every window until settlement.
+	usage5h += apiKey.ReservedMediaAmount
+	usage1d += apiKey.ReservedMediaAmount
+	usage7d += apiKey.ReservedMediaAmount
 	// Check limits
 	exceeds := func(usage, limit float64) bool {
 		return limit > 0 && (usage >= limit || usage+pending > limit)
@@ -750,6 +760,12 @@ func (s *BillingCacheService) CheckBillingEligibility(ctx context.Context, user 
 			return s.checkSimpleModeAPIKeyRateLimits(ctx, apiKey)
 		}
 		return nil
+	}
+	if apiKey != nil && apiKey.MediaReservationReadFailed {
+		return ErrBillingServiceUnavailable
+	}
+	if apiKey != nil && apiKey.IsQuotaExhausted() {
+		return ErrAPIKeyQuotaExhausted
 	}
 	if s.circuitBreaker != nil && !s.circuitBreaker.Allow() {
 		return ErrBillingServiceUnavailable
@@ -862,11 +878,15 @@ func (s *BillingCacheService) checkFixedChargeSubscription(ctx context.Context, 
 
 // checkFixedChargeAPIKey 按库中 Key 用量校验总额度与限速窗口覆盖 pending；未接入仓储时使用请求上下文与限速缓存中的用量。
 func (s *BillingCacheService) checkFixedChargeAPIKey(ctx context.Context, apiKey *APIKey, pending float64) error {
+	if apiKey.MediaReservationReadFailed {
+		return ErrBillingServiceUnavailable
+	}
+	committedPending := pending + apiKey.ReservedMediaAmount
 	if apiKey.Quota <= 0 && !apiKey.HasRateLimits() {
 		return nil
 	}
 	if s.apiKeyRateLimitLoader == nil {
-		if apiKey.Quota > 0 && apiKey.QuotaUsed+pending > apiKey.Quota {
+		if apiKey.Quota > 0 && apiKey.QuotaUsed+committedPending > apiKey.Quota {
 			return ErrAPIKeyQuotaExhausted
 		}
 		if apiKey.HasRateLimits() {
@@ -879,7 +899,7 @@ func (s *BillingCacheService) checkFixedChargeAPIKey(ctx context.Context, apiKey
 		return ErrBillingServiceUnavailable.WithCause(err)
 	}
 	exceeds := func(usage, limit float64) bool {
-		return limit > 0 && usage+pending > limit
+		return limit > 0 && usage+committedPending > limit
 	}
 	switch {
 	case exceeds(data.QuotaUsed, apiKey.Quota):
@@ -903,6 +923,9 @@ func (s *BillingCacheService) checkSimpleModeAPIKeyRateLimits(ctx context.Contex
 	if apiKey == nil || !apiKey.HasRateLimits() {
 		return nil
 	}
+	if apiKey.MediaReservationReadFailed {
+		return ErrBillingServiceUnavailable
+	}
 	if s.apiKeyRateLimitLoader == nil {
 		return ErrBillingServiceUnavailable
 	}
@@ -910,13 +933,13 @@ func (s *BillingCacheService) checkSimpleModeAPIKeyRateLimits(ctx context.Contex
 	if err != nil || data == nil {
 		return ErrBillingServiceUnavailable
 	}
-	if apiKey.RateLimit5h > 0 && data.EffectiveUsage5h() >= apiKey.RateLimit5h {
+	if apiKey.RateLimit5h > 0 && data.EffectiveUsage5h()+apiKey.ReservedMediaAmount >= apiKey.RateLimit5h {
 		return ErrAPIKeyRateLimit5hExceeded
 	}
-	if apiKey.RateLimit1d > 0 && data.EffectiveUsage1d() >= apiKey.RateLimit1d {
+	if apiKey.RateLimit1d > 0 && data.EffectiveUsage1d()+apiKey.ReservedMediaAmount >= apiKey.RateLimit1d {
 		return ErrAPIKeyRateLimit1dExceeded
 	}
-	if apiKey.RateLimit7d > 0 && data.EffectiveUsage7d() >= apiKey.RateLimit7d {
+	if apiKey.RateLimit7d > 0 && data.EffectiveUsage7d()+apiKey.ReservedMediaAmount >= apiKey.RateLimit7d {
 		return ErrAPIKeyRateLimit7dExceeded
 	}
 	return nil
