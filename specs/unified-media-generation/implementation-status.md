@@ -1,6 +1,6 @@
 # 统一媒体生成测试交付记录
 
-日期：2026-10-15。分支：`codex/unified-media-generation`。实施目录：`C:/Users/Administrator/.codex/worktrees/unified-media-generation/sub2api`。用户已将当前实测范围收缩为 GPT Image 与 Nano Banana，其他型号暂停新增测试。两平台这两个系列的 8 个已启用型号均已有成功生成记录；新增 10 个重点场景中 9 项成功，GRS GPT 的 2K 参考图场景仍失败且根因未知。未部署生产或合并主分支。最新结论见末节；前面的分阶段记录保留其当时的验证范围。
+日期：2026-10-15。分支：`codex/unified-media-generation`。实施目录：`C:/Users/Administrator/.codex/worktrees/unified-media-generation/sub2api`。用户已将当前实测范围收缩为 GPT Image 与 Nano Banana，其他型号暂停新增测试。此前 8 个目标型号均有成功生成记录，新增 10 个重点场景中 9 项成功；此后按用户指令，GRS 的全部 GPT Image 型号已停止下游服务，公开 `gpt-image-2-vip` 仅保留 ToAPIs 候选。未部署生产或合并主分支。最新结论见末节；前面的分阶段记录保留其当时的验证范围。
 
 ## 已实现
 
@@ -90,11 +90,11 @@ ToAPIs 经本机 HTTP 代理完成只读模型目录连接测试；GRS 凭据已
 
 修复版本已构建并重载到本地 18084，健康检查通过。当前结论是**代码修复及已覆盖链路回归通过，全部上游型号可用性验收受阻**；不得把已提交测试或数据库终态视为所有生成模型已可交付。
 
-## GPT Image 与 Nano Banana 重点实测（最新）
+## GPT Image 与 Nano Banana 重点实测（GRS GPT 停用前）
 
 按用户最新要求，只继续这两个系列，其他型号不再新增测试；用户此前指定停用的缺价、Token 计费及未核实能力保持停用。所有执行和媒体完整解码均通过 Docker Compose，新增证据保存在同一 `%TEMP%/sub2api-media-fulltest-20261015T101939Z/`，重点报告为 `PRIORITY_REPORT.md` 和 `PRIORITY_SUMMARY.json`，不覆盖前一阶段完整报告。
 
-两平台合计 8 个已启用目标型号均已有成功生成记录：GRS 的 `gpt-image-2-vip`、`nano-banana-2.1`；ToAPIs 的 `gpt-image-2`、`gpt-image-2-vip`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`、`gemini-nano-banana-2.1`、`gemini-nano-banana-2.1-vip`。复用既有成功证据，没有重新提交已受理失败或受理不明的旧任务。
+停用前的两平台合计 8 个目标型号均已有成功生成记录：GRS 的 `gpt-image-2-vip`、`nano-banana-2.1`；ToAPIs 的 `gpt-image-2`、`gpt-image-2-vip`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`、`gemini-nano-banana-2.1`、`gemini-nano-banana-2.1-vip`。复用既有成功证据，没有重新提交已受理失败或受理不明的旧任务。
 
 新增三轮合计 10 个重点场景，9 项成功、1 项失败，得到 13 张可完整解码的图片：
 
@@ -116,3 +116,11 @@ Nano 图片观察到 1K 方图 1024×1024、2K 横图 2752×1536、4K 竖图 307
 ToAPIs 官方只读检查确认当前令牌为无限额度，用户余额从本轮前 $1.010178 降至 $0.882928，差额 $0.127250 与本轮两个 ToAPIs 场景的计价一致。165 条能力、128 条路由及分组价格与冻结配置一致，账号原地址／代理和额度配置保留、累计用量未清零。专用测试 Key 的总额及各窗口仍为 $15；本地 `/health` 为 200。
 
 当前可使用两个公开模型名继续验收已通过的普通生成场景。**GRS GPT 2K 参考图仍需上游针对既有失败任务提供详细诊断**；本次没有重投该任务、没有放宽失败断言，也不能宣称全部型号、规格或视觉参考能力已全部通过。
+
+## GRS GPT Image 停止下游服务（最新）
+
+用户确认 GRS 的 GPT Image 系列全部停止服务。本地 `18084` 已禁用全部 5 条 `grsai/gpt-image*` 专属能力，并关闭此前仍启用的专属路由 124 与共享路由 125；其中新增停用能力为 100，其余 4 条能力原已停用。公开 `gpt-image-2-vip` 及 ToAPIs 的 GPT 型号保留，当前共享 GPT 路由只选择 ToAPIs。GRS Nano Banana 配置不变。
+
+全站 Composite 分组扫描仅发现分组 2。当前能力记录仍为 165 条，其中启用 124 条；路由记录仍为 128 条，其中启用 126 条。停用的 5 个 GRS GPT 模型请求全部在创建前返回 4xx，没有新增任务、冻结或费用；公开模型列表中不再出现 `grsai/gpt-image*`，共享 GPT 与 Nano 仍可发现。路由预览确认共享 GPT 仅剩 ToAPIs 候选。本次没有重新执行付费生成。
+
+配置变更前后快照、拒绝请求和模型列表证据保存在 `%TEMP%/sub2api-media-fulltest-20261015T101939Z/priority/grs-gpt-stop/`。之前的真实测试报告和费用记录保持原样，描述的是停用前的测试结果，不代表 GRS GPT 当前仍开放。
