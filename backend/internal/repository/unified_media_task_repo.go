@@ -85,7 +85,7 @@ func (r *unifiedMediaTaskRepository) Create(ctx context.Context, task *service.U
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var balance float64
 	var userStatus string
 	if err = tx.QueryRowContext(ctx, `SELECT balance,status FROM users WHERE id=$1 AND deleted_at IS NULL FOR UPDATE`, task.UserID).Scan(&balance, &userStatus); err != nil {
@@ -158,7 +158,7 @@ func (r *unifiedMediaTaskRepository) ClaimDue(ctx context.Context, now time.Time
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]*service.UnifiedMediaTask, 0)
 	for rows.Next() {
 		task, err := r.scan(rows, true)
@@ -202,7 +202,7 @@ func (r *unifiedMediaTaskRepository) ReserveAccount(ctx context.Context, task *s
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if err = lockUnifiedMediaTask(ctx, tx, task); err != nil {
 		return err
 	}
@@ -268,7 +268,7 @@ func (r *unifiedMediaTaskRepository) SettleAccount(ctx context.Context, task *se
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if err = lockUnifiedMediaTask(ctx, tx, task); err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (r *unifiedMediaTaskRepository) Finalize(ctx context.Context, task *service
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var status, holdStatus string
 	var fence, userID, keyID int64
 	var held float64
@@ -364,13 +364,13 @@ func (r *unifiedMediaTaskRepository) Finalize(ctx context.Context, task *service
 	for rows.Next() {
 		var key holdKey
 		if err = rows.Scan(&key.index, &key.attempt); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		pending = append(pending, key)
 	}
 	if err = rows.Err(); err != nil {
-		rows.Close()
+		_ = rows.Close()
 		return err
 	}
 	if err = rows.Close(); err != nil {
@@ -483,11 +483,6 @@ func writeUnifiedMediaUsage(ctx context.Context, tx *sql.Tx, task *service.Unifi
 	return nil
 }
 
-type unifiedMediaAdminQuerier interface {
-	AdminList(context.Context, int, int, string) ([]*service.UnifiedMediaTask, int64, error)
-	GetAdmin(context.Context, string) (*service.UnifiedMediaTask, error)
-}
-
 func (r *unifiedMediaTaskRepository) GetAdmin(ctx context.Context, id string) (*service.UnifiedMediaTask, error) {
 	return r.scan(r.db.QueryRowContext(ctx, `SELECT `+unifiedMediaTaskColumns+` FROM unified_media_tasks WHERE id=$1`, id), false)
 }
@@ -516,7 +511,7 @@ func (r *unifiedMediaTaskRepository) AdminList(ctx context.Context, page, size i
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	tasks := make([]*service.UnifiedMediaTask, 0)
 	for rows.Next() {
 		task, err := r.scan(rows, false)

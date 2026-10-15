@@ -344,7 +344,7 @@ func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, met
 	if err != nil {
 		return result, errors.New("upstream media connection failed; submission acceptance is unknown")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	result.HTTPStatus = resp.StatusCode
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, grsaiMaxResponseBodyLen+1))
 	if err != nil || len(raw) > grsaiMaxResponseBodyLen {

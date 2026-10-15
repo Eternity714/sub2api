@@ -8,7 +8,10 @@ import (
 func ProvideUnifiedMediaTaskService(repo UnifiedMediaTaskRepository, caps *MediaCapabilityService,
 	routes *CompositeMediaRouteService, accounts AccountRepository, pricing *ModelPricingResolver,
 	storage *ImageStorageSettingService, billing *BillingCacheService, auth APIKeyAuthCacheInvalidator, transport HTTPUpstream, cfg *config.Config) *UnifiedMediaTaskService {
-	upstream := NewUnifiedMediaUpstream(nil).(*unifiedMediaHTTPUpstream)
+	upstream, ok := NewUnifiedMediaUpstream(nil).(*unifiedMediaHTTPUpstream)
+	if !ok {
+		panic("unified media HTTP upstream constructor returned an unexpected implementation")
+	}
 	upstream.transport = transport
 	svc := NewUnifiedMediaTaskService(repo, caps, routes, accounts, &UnifiedMediaPricingResolver{Resolver: pricing}, upstream, NewUnifiedMediaS3Persister(storage))
 	svc.AfterSettlement = func(ctx context.Context, userID int64) {
