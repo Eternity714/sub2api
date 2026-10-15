@@ -23,7 +23,7 @@
 | AC-015 | `handler/unified_media_validation_test.go::TestUnifiedMediaInvalidRequestsCannotCreateOrFreeze/video_model_on_image_path`、`image_model_on_video_path` | 通过真实能力服务执行错误路径／媒体拒绝，任务仓储创建调用为 0；故无冻结事务及后续上游提交。 |
 | AC-016 | `service/media_capability_test.go::TestMediaCapabilityServiceDualMediaAndCAS`；`repository/media_capability_repo_integration_test.go::TestMediaCapabilityRepositoryIntegration` | 同名双媒体持久化与按模型＋媒体读取。尚缺同名模型分别经过两条公开创建路径同时成功的请求级场景。 |
 | AC-017 | `handler/unified_media_validation_test.go::TestUnifiedMediaInvalidRequestsCannotCreateOrFreeze/missing_schema`；`service/media_capability_test.go::TestMediaCapabilityServiceActiveSnapshotIsIndependent` | 缺失或禁用能力返回 400；请求级测试确认不创建、不冻结，不进入后续上游阶段。 |
-| AC-018 | `frontend/src/components/admin/media/__tests__/MediaCapabilityEditorDialog.spec.ts::从模板复制后用结构化控件修改规则并保存独立配置`；`service/media_capability_test.go::TestMediaCapabilityTemplatesAreCompileableCopies` | 模板复制、字段差异、独立保存与可编译副本；尚未以浏览器＋数据库＋新路由生成联合证明管理员新增同协议型号全过程。 |
+| AC-018 | `frontend/src/components/admin/media/__tests__/MediaCapabilityEditorDialog.spec.ts`；`frontend/src/components/admin/media/__tests__/mediaSchemaEditing.spec.ts`；`service/media_capability_test.go::TestMediaCapabilityTemplatesAreCompileableCopies` | 模板复制、列表增删改、嵌套默认值与引用迁移、删除依赖保护、像素规格契约、独立保存与可编译副本；尚未以浏览器＋数据库＋新路由生成联合证明管理员新增同协议型号全过程。 |
 | AC-019 | `pkg/mediacapability/capability_test.go::TestValidateStrictJSONAndFieldRules`、`TestValidatePromptDependsOnInputModeAndVideoDoesNotAcceptImageFields`；`handler/unified_media_validation_test.go::TestUnifiedMediaInvalidRequestsCannotCreateOrFreeze` | 图片／视频外来顶层字段严格拒绝、定位字段，公开 HTTP 不创建任务或冻结资金。 |
 | AC-020 | `pkg/mediacapability/capability_test.go::TestValidateStrictJSONAndFieldRules`、`TestValidateModesRulesAndDefaultsAreRechecked`；公开 HTTP 非法请求用例 | 元数据未知字段、类型、枚举、范围、必填和组合约束；HTTP 层确认不进入任务创建。 |
 | AC-021 | `service/composite_media_routes_test.go::TestCompositeMediaCandidatesFilterCompleteCapabilitiesAndSnapshot`；无账号任务用例 | 4K 请求排除 2K 候选；合格候选消失返回 400；没有账号的后续终结由 AC-007 分层覆盖。尚未在同一个带不合格账号的 worker 场景断言禁止降级。 |
@@ -48,7 +48,7 @@ python D:/work/个人/sub2api/.agents/skills/ai-product-dev-pack/scripts/traceab
 
 最终应以本特性明确列举的后端与前端测试文件集运行该脚本，并保留范围清单；不得把其他特性的同名 ID 算作覆盖，也不得仅增加注释而省略行为断言。即使机械检查通过，上表的“部分覆盖”和外部服务未实测边界仍然有效。
 
-最终已对 [traceability-tests.txt](traceability-tests.txt) 列明的 13 个源文件运行限定校验。临时目录只包含这些源文件的静态副本，保留仓库相对路径，排除支付与原文档特性，避免同名 ID 串号。结果：**27 条 AC 声明、27 条测试引用，0 个孤儿、0 个幽灵，退出码 0**。这仅表示逐条可追溯，不能替代用例通过记录和上表的覆盖边界。
+最终已对 [traceability-tests.txt](traceability-tests.txt) 列明的 14 个源文件运行限定校验。临时目录只包含这些源文件的静态副本，保留仓库相对路径，排除支付与原文档特性，避免同名 ID 串号。结果：**27 条 AC 声明、27 条测试引用，0 个孤儿、0 个幽灵，退出码 0**。这仅表示逐条可追溯，不能替代用例通过记录和上表的覆盖边界。
 
 复现方式（在仓库根目录）：
 
