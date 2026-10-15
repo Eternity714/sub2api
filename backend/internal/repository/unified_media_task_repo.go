@@ -233,7 +233,7 @@ func (r *unifiedMediaTaskRepository) ReserveAccount(ctx context.Context, task *s
 	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM unified_media_account_holds WHERE account_id=$1 AND status='reserved'", account.ID).Scan(&active); err != nil {
 		return err
 	}
-	if concurrency <= 0 || active >= concurrency {
+	if concurrency <= 0 {
 		return service.ErrUnifiedMediaAccountUnavailable
 	}
 	var held float64
@@ -244,6 +244,9 @@ func (r *unifiedMediaTaskRepository) ReserveAccount(ctx context.Context, task *s
 		if unifiedMediaQuotaExceeded(pair[0], pair[1], held, amount) {
 			return service.ErrUnifiedMediaAccountUnavailable
 		}
+	}
+	if active >= concurrency {
+		return service.ErrUnifiedMediaAccountBusy
 	}
 	unit := task.Units[index]
 	_, err = tx.ExecContext(ctx, `INSERT INTO unified_media_account_holds(task_id,unit_index,attempt,account_id,amount) VALUES($1,$2,$3,$4,$5)`, task.ID, index, unit.Attempt, account.ID, amount)

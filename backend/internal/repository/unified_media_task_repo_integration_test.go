@@ -393,7 +393,20 @@ func TestUnifiedMediaRepositoryAccountLimitsAreShared(t *testing.T) {
 				claim.Units[0].Attempt = 1
 			}
 			require.NoError(t, repo.ReserveAccount(ctx, a, 0, account, 0.4))
-			require.ErrorIs(t, repo.ReserveAccount(ctx, b, 0, account, 0.4), service.ErrUnifiedMediaAccountUnavailable)
+			reserveErr := repo.ReserveAccount(ctx, b, 0, account, 0.4)
+			if mode == "concurrency" {
+				require.ErrorIs(t, reserveErr, service.ErrUnifiedMediaAccountBusy)
+			} else {
+				require.ErrorIs(t, reserveErr, service.ErrUnifiedMediaAccountUnavailable)
+			}
+			denied, err := repo.GetOwned(ctx, b.UserID, b.APIKeyID, b.MediaType, b.ID)
+			require.NoError(t, err)
+			require.Equal(t, "queued", denied.Units[0].State, "denied reservation must not persist a submitting intent")
+			require.Zero(t, denied.Units[0].Attempt)
+			require.Zero(t, denied.Units[0].AccountID)
+			var deniedHolds int
+			require.NoError(t, integrationDB.QueryRowContext(ctx, `SELECT count(*) FROM unified_media_account_holds WHERE task_id=$1`, b.ID).Scan(&deniedHolds))
+			require.Zero(t, deniedHolds)
 			require.NoError(t, repo.SettleAccount(ctx, a, 0, false))
 			require.NoError(t, repo.ReserveAccount(ctx, b, 0, account, 0.4))
 			require.NoError(t, repo.SettleAccount(ctx, b, 0, true))
@@ -404,6 +417,35 @@ func TestUnifiedMediaRepositoryAccountLimitsAreShared(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUnifiedMediaRepositoryQuotaOrDisabledAccountIsUnavailableEvenWhenBusy(t *testing.T) {
+	ctx := context.Background()
+	repo, first, accountID := unifiedMediaIntegrationFixture(t)
+	second := *first
+	second.ID = "media_" + uuid.NewString()
+	require.NoError(t, repo.Create(ctx, first))
+	a := claimUnifiedMediaIntegrationTask(t, repo, first.ID)
+	require.NoError(t, repo.Create(ctx, &second))
+	b := claimUnifiedMediaIntegrationTask(t, repo, second.ID)
+	for _, task := range []*service.UnifiedMediaTask{a, b} {
+		task.Units[0].State = "submitting"
+		task.Units[0].AccountID = accountID
+		task.Units[0].Attempt = 1
+	}
+	_, err := integrationDB.ExecContext(ctx, `UPDATE accounts SET extra='{"quota_limit":0.5}'::jsonb,concurrency=1 WHERE id=$1`, accountID)
+	require.NoError(t, err)
+	account := &service.Account{ID: accountID, Platform: "grsai"}
+	require.NoError(t, repo.ReserveAccount(ctx, a, 0, account, 0.4))
+	err = repo.ReserveAccount(ctx, b, 0, account, 0.4)
+	require.ErrorIs(t, err, service.ErrUnifiedMediaAccountUnavailable, "monetary quota refusal retains terminal semantics even when all slots are occupied")
+	require.NotErrorIs(t, err, service.ErrUnifiedMediaAccountBusy)
+	require.NoError(t, repo.SettleAccount(ctx, a, 0, false))
+	_, err = integrationDB.ExecContext(ctx, `UPDATE accounts SET extra='{"quota_limit":100}'::jsonb,concurrency=0 WHERE id=$1`, accountID)
+	require.NoError(t, err)
+	err = repo.ReserveAccount(ctx, b, 0, account, 0.4)
+	require.ErrorIs(t, err, service.ErrUnifiedMediaAccountUnavailable)
+	require.NotErrorIs(t, err, service.ErrUnifiedMediaAccountBusy)
 }
 
 type unifiedMediaIntegrationNoSubmit struct{ submits int }

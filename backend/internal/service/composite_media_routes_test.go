@@ -74,13 +74,30 @@ func TestCompositeMediaCandidatesFilterCompleteCapabilitiesAndSnapshot(t *testin
 
 func TestCompositeMediaRouteConfigurationRequiresExplicitMediaEndpoint(t *testing.T) {
 	for _, platform := range []string{"grsai", "toapis"} {
-		route, err := compositeRouteFromInput(7, CompositeRouteInput{PublicModel: "shared", TargetPlatform: platform, Endpoint: "videos", CapabilityModel: "candidate-profile", Enabled: true})
-		require.NoError(t, err)
-		require.Equal(t, "videos", route.Endpoint)
-		require.Equal(t, "candidate-profile", route.CapabilityModel)
-		_, err = compositeRouteFromInput(7, CompositeRouteInput{PublicModel: "shared", TargetPlatform: platform, Endpoint: "any"})
-		require.Error(t, err)
-		_, err = compositeRouteFromInput(7, CompositeRouteInput{PublicModel: "shared", TargetPlatform: platform, Endpoint: "images", MatchType: "prefix"})
-		require.Error(t, err)
+		for _, endpoint := range []string{"images", "videos"} {
+			t.Run(platform+"/accept_"+endpoint, func(t *testing.T) {
+				route, err := compositeRouteFromInput(7, CompositeRouteInput{PublicModel: "shared", TargetPlatform: platform, Endpoint: endpoint, CapabilityModel: "candidate-profile", Enabled: true})
+				require.NoError(t, err)
+				require.Equal(t, endpoint, route.Endpoint)
+				require.Equal(t, "exact", route.MatchType)
+				require.Equal(t, "candidate-profile", route.CapabilityModel)
+			})
+		}
+		for _, endpoint := range []string{"any", "messages", "count_tokens", "responses", "chat_completions", "embeddings", "gemini"} {
+			t.Run(platform+"/reject_"+endpoint, func(t *testing.T) {
+				_, err := compositeRouteFromInput(7, CompositeRouteInput{PublicModel: "shared", TargetPlatform: platform, Endpoint: endpoint})
+				require.ErrorContains(t, err, "require an exact images or videos route")
+			})
+		}
+		t.Run(platform+"/reject_prefix", func(t *testing.T) {
+			_, err := compositeRouteFromInput(7, CompositeRouteInput{PublicModel: "shared", TargetPlatform: platform, Endpoint: "images", MatchType: "prefix"})
+			require.ErrorContains(t, err, "require an exact images or videos route")
+		})
+	}
+	for _, platform := range []string{"bogus", PlatformComposite} {
+		t.Run("reject_platform_"+platform, func(t *testing.T) {
+			_, err := compositeRouteFromInput(7, CompositeRouteInput{PublicModel: "shared", TargetPlatform: platform, Endpoint: "images"})
+			require.ErrorContains(t, err, "concrete provider")
+		})
 	}
 }
