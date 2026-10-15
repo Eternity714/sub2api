@@ -2119,7 +2119,7 @@
 
 官方来源：[MiniMax-Hailuo-2.3-Fast](https://docs.toapis.com/docs/cn/api-reference/videos/minimax-hailuo-2.3/generation)
 
-基础普通生成模板；未覆盖的高级模式不在白名单内。复制后核对账号、定价和渠道能力再启用。 当前基础模板仅开放768P，1080P的6秒组合另行配置。
+基础普通生成模板；未覆盖的高级模式不在白名单内。复制后核对账号、定价和渠道能力再启用。 当前基础模板仅开放768P，1080P的6秒组合另行配置。 Fast 仅支持图生视频，必须提供恰好一张首帧图片。
 
 建议公开别名：`toapis/MiniMax-Hailuo-2.3-Fast`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
 
@@ -2133,7 +2133,7 @@
 | `metadata.prompt_optimizer` | boolean | 否 | — | — |
 | `metadata.fast_pretreatment` | boolean | 否 | — | — |
 | `metadata.aigc_watermark` | boolean | 否 | — | — |
-| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 1 |
+| `image_urls` | array<string> | 是 | — | 最少项 1；最多项 1 |
 
 请求示例：
 
@@ -2144,7 +2144,10 @@
   "metadata": {
     "resolution": "768P"
   },
-  "duration": 6
+  "duration": 6,
+  "image_urls": [
+    "https://example.com/reference.png"
+  ]
 }
 ```
 

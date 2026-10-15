@@ -20,12 +20,14 @@ var (
 	ErrUnifiedMediaTaskNotFound        = infraerrors.NotFound("MEDIA_TASK_NOT_FOUND", "media task not found")
 	ErrUnifiedMediaClaimLost           = errors.New("media task claim lost")
 	ErrUnifiedMediaAccountUnavailable  = errors.New("media account or shared quota unavailable")
+	ErrUnifiedMediaAccountBusy         = errors.New("media account concurrency is full")
 	ErrUnifiedMediaInsufficientBalance = infraerrors.BadRequest("INSUFFICIENT_BALANCE", "insufficient available balance for media reservation")
 	ErrUnifiedMediaKeyQuota            = infraerrors.New(429, "MEDIA_KEY_QUOTA_EXCEEDED", "API Key quota or rate limit cannot cover this media reservation")
 )
 
 type UnifiedMediaUpstreamResult struct {
 	Disposition string
+	HTTPStatus  int
 	TaskID      string
 	Status      string
 	URLs        []string
@@ -71,6 +73,7 @@ type UnifiedMediaUnit struct {
 	Platform              string                     `json:"platform,omitempty"`
 	UpstreamModel         string                     `json:"upstream_model,omitempty"`
 	UpstreamTaskID        string                     `json:"upstream_task_id,omitempty"`
+	LastHTTPStatus        int                        `json:"last_http_status,omitempty"`
 	Attempt               int                        `json:"attempt"`
 	TriedCandidates       []string                   `json:"tried_candidates,omitempty"`
 	URLs                  []string                   `json:"urls,omitempty"`
@@ -500,6 +503,7 @@ func (s *UnifiedMediaTaskService) submit(ctx context.Context, task *UnifiedMedia
 		}
 		return accounts[i].ID < accounts[j].ID
 	})
+	sawBusy := false
 	for _, candidate := range task.Payload.Candidates {
 		if candidate.NativeMaxResults > 0 && unit.Count > candidate.NativeMaxResults {
 			continue
@@ -527,6 +531,7 @@ func (s *UnifiedMediaTaskService) submit(ctx context.Context, task *UnifiedMedia
 			if !grsaiFiniteNonNegative(accountRate) {
 				continue
 			}
+			beforeReservation := *unit
 			unit.AccountID = account.ID
 			unit.AccountRateMultiplier = &accountRate
 			unit.Platform = account.Platform
@@ -536,13 +541,22 @@ func (s *UnifiedMediaTaskService) submit(ctx context.Context, task *UnifiedMedia
 			unit.TriedCandidates = append(unit.TriedCandidates, candidateKey)
 			amount, _ := decimal.NewFromFloat(task.AccountUnitPrice).Mul(decimal.NewFromFloat(accountRate)).Mul(decimal.NewFromInt(int64(unit.Count))).Round(8).Float64()
 			if err := s.Repo.ReserveAccount(ctx, task, index, &account, amount); err != nil {
-				unit.State = "queued"
-				if errors.Is(err, ErrUnifiedMediaAccountUnavailable) {
+				if errors.Is(err, ErrUnifiedMediaAccountBusy) || errors.Is(err, ErrUnifiedMediaAccountUnavailable) {
+					// A definite reservation refusal committed neither a hold nor
+					// a submission intent. Keep this candidate eligible for later.
+					*unit = beforeReservation
+					if errors.Is(err, ErrUnifiedMediaAccountBusy) {
+						sawBusy = true
+					}
 					continue
 				}
+				unit.State = "queued"
 				return err
 			}
 			result, callErr := s.Upstream.Submit(ctx, &account, task.MediaType, candidate.Model, candidateRequest, unit.Count)
+			if result != nil {
+				unit.LastHTTPStatus = result.HTTPStatus
+			}
 			if result != nil && result.Disposition == "rejected" {
 				if err := s.Repo.SettleAccount(ctx, task, index, false); err != nil {
 					return err
@@ -574,8 +588,15 @@ func (s *UnifiedMediaTaskService) submit(ctx context.Context, task *UnifiedMedia
 			return s.Repo.Save(ctx, task, s.Now().Add(s.interval()))
 		}
 	}
+	if sawBusy {
+		unit.State = "queued"
+		unit.NextAttemptAt = s.Now().Add(s.interval())
+		return nil
+	}
 	unit.State = "failed"
-	unit.Error = "no_available_media_account"
+	if unit.Error != "upstream_submission_rejected" {
+		unit.Error = "no_available_media_account"
+	}
 	return nil
 }
 func (s *UnifiedMediaTaskService) acceptResult(ctx context.Context, task *UnifiedMediaTask, index int, result *UnifiedMediaUpstreamResult) error {
