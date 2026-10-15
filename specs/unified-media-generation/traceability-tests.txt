@@ -12,3 +12,4 @@ backend/internal/server/routes/gateway_test.go
 backend/internal/server/routes/unified_media_test.go
 frontend/src/components/admin/media/__tests__/MediaCapabilityEditorDialog.spec.ts
 frontend/src/components/admin/media/__tests__/mediaSchemaEditing.spec.ts
+backend/internal/service/unified_media_pricing_test.go

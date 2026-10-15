@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,6 +21,24 @@ import (
 
 func float64Ptr(v float64) *float64 { return &v }
 func intPtr(v int) *int             { return &v }
+
+func TestChannelPricingRequestAcceptsMediaBillingModes(t *testing.T) {
+	for _, mode := range []string{"image", "video", "per_request"} {
+		t.Run(mode, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(recorder)
+			ctx.Request = httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"platform":"toapis","models":["public-media"],"billing_mode":"`+mode+`","per_request_price":0.7}`))
+			ctx.Request.Header.Set("Content-Type", "application/json")
+			var request channelModelPricingRequest
+			require.NoError(t, ctx.ShouldBindJSON(&request))
+			prices := pricingRequestToService([]channelModelPricingRequest{request}, true)
+			require.Len(t, prices, 1)
+			require.Equal(t, service.BillingMode(mode), prices[0].BillingMode)
+			require.Equal(t, "toapis", prices[0].Platform)
+			require.Equal(t, float64Ptr(.7), prices[0].PerRequestPrice)
+		})
+	}
+}
 
 // ---------------------------------------------------------------------------
 // 1. channelToResponse
