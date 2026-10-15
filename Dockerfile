@@ -41,7 +41,8 @@ RUN --mount=type=cache,id=sub2api-pnpm-store,target=/root/.local/share/pnpm/stor
 # Copy only that subtree to keep the build dependency minimal.
 COPY frontend/ ./
 COPY docs/legal/ /app/docs/legal/
-RUN pnpm run build
+COPY deploy/verify-embedded-frontend.mjs /app/deploy/verify-embedded-frontend.mjs
+RUN pnpm run build && node /app/deploy/verify-embedded-frontend.mjs /app/backend/internal/web/dist
 
 # -----------------------------------------------------------------------------
 # Stage 2: Backend Builder
