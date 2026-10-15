@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import MediaCapabilityEditorDialog from '../MediaCapabilityEditorDialog.vue'
+import type { MediaCapability, MediaCapabilityField } from '@/types/mediaCapability'
 
 const { create, update, validate } = vi.hoisted(() => ({ create: vi.fn(), update: vi.fn(), validate: vi.fn() }))
 vi.mock('@/api/admin/mediaCapabilities', () => ({ mediaCapabilitiesAPI: { create, update, validate } }))
@@ -25,7 +26,7 @@ const record = () => ({
   enabled: true, schema: schema(), template_id: 'base-image', template_version: 1,
   notes: '', created_at: '2026-10-15T00:00:00Z', updated_at: '2026-10-15T00:00:00Z',
 })
-const mountEditor = (capability: ReturnType<typeof record> | null = null) => mount(MediaCapabilityEditorDialog, {
+const mountEditor = (capability: MediaCapability | null = null) => mount(MediaCapabilityEditorDialog, {
   props: { show: true, capability, templates: [template()] },
   global: { stubs: { teleport: true } },
 })
@@ -45,6 +46,7 @@ describe('媒体能力编辑', () => {
     await wrapper.get('[data-testid="template-select"]').setValue('base-image')
     await wrapper.get('[data-testid="apply-template"]').trigger('click')
     await wrapper.get('[data-testid="field-size-enum"]').setValue('1:1\n16:9')
+    await wrapper.get('[data-testid="field-n-constraints"]').trigger('click')
     await wrapper.get('[data-testid="field-n-maximum"]').setValue('5')
     await wrapper.get('[data-testid="field-prompt-required"]').setValue(false)
     await wrapper.get('[data-testid="capability-enabled"]').setValue(true)
@@ -90,6 +92,7 @@ describe('媒体能力编辑', () => {
 
   it('无效范围在界面定位且阻止保存', async () => {
     const wrapper = mountEditor(record())
+    await wrapper.get('[data-testid="field-n-constraints"]').trigger('click')
     await wrapper.get('[data-testid="field-n-minimum"]').setValue('6')
     await wrapper.get('[data-testid="field-n-maximum"]').setValue('3')
     await wrapper.get('form').trigger('submit')
@@ -123,7 +126,7 @@ describe('媒体能力编辑', () => {
     await flushPromises()
     expect(update).toHaveBeenCalledWith(7, expect.objectContaining({ schema: expect.objectContaining({
       modes: [expect.objectContaining({ id: 'reference', required: ['image_urls'] })],
-      image_specs: [{ ratio: '1:1', resolution: '1K', width: 1024, height: 1024 }],
+      image_specs: [{ aspect_ratio: '1:1', resolution: '1K', width: 1024, height: 1024 }],
     }) }))
     expect(JSON.stringify(update.mock.calls[0])).not.toContain('output_size')
   })
@@ -165,5 +168,131 @@ describe('媒体能力编辑', () => {
     await flushPromises()
     expect(wrapper.get('[role="alert"]').text()).toContain('重新加载')
     expect(wrapper.emitted('saved')).toBeUndefined()
+  })
+
+  // AC-018: table editing preserves the schema contract while allowing real field CRUD.
+  it('以紧凑参数表展示已有字段并真正删除顶层字段', async () => {
+    const wrapper = mountEditor(record())
+    const table = wrapper.get('[data-testid="media-fields-table"]')
+    expect(table.element.tagName).toBe('TABLE')
+    expect(table.findAll('th').map(cell => cell.text())).toEqual(expect.arrayContaining(['参数名', '类型', '必填', '枚举值', '默认值', '约束', '操作']))
+    await wrapper.get('[data-testid="field-size-remove"]').trigger('click')
+    expect(wrapper.find('[data-testid="field-size-row"]').exists()).toBe(false)
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(update.mock.calls[0]![1].schema.fields).not.toHaveProperty('size')
+    expect(record().schema.fields).toHaveProperty('size')
+  })
+
+  it('删除的标准参数可从白名单重新添加，不开放视频专用顶层字段', async () => {
+    const wrapper = mountEditor(record())
+    await wrapper.get('[data-testid="field-size-remove"]').trigger('click')
+    const select = wrapper.get('[data-testid="top-add-select"]')
+    expect(select.findAll('option').map(option => option.attributes('value'))).toContain('size')
+    expect(select.findAll('option').map(option => option.attributes('value'))).not.toContain('duration')
+    await select.setValue('size')
+    await wrapper.get('[data-testid="top-add-field"]').trigger('click')
+    expect(wrapper.find('[data-testid="field-size-row"]').exists()).toBe(true)
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(update.mock.calls[0]![1].schema.fields.size.type).toBe('string')
+  })
+
+  it('行内新增、改名、修改类型并保存 metadata 参数', async () => {
+    const wrapper = mountEditor(record())
+    await wrapper.get('[data-testid="field-metadata-new-name"]').setValue('seed')
+    await wrapper.get('[data-testid="field-metadata-add"]').trigger('click')
+    await wrapper.get('[data-testid="field-metadata.seed-type"]').setValue('integer')
+    await wrapper.get('[data-testid="field-metadata.seed-default"]').setValue('42')
+    await wrapper.get('[data-testid="field-metadata.seed-default"]').trigger('change')
+    await wrapper.get('[data-testid="field-metadata.seed-name"]').setValue('random_seed')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    const fields = update.mock.calls[0]![1].schema.fields.metadata.properties
+    expect(fields.random_seed).toMatchObject({ type: 'integer', default: 42 })
+    expect(fields).not.toHaveProperty('seed')
+    expect(fields.resolution.enum).toEqual(['1K', '2K'])
+  })
+
+  it('子字段重命名同步模式和规则引用，删除被引用字段时阻止保存', async () => {
+    const capability: MediaCapability = record()
+    capability.schema.modes = [{ id: 'high', when: [{ path: 'metadata.resolution', op: 'equals', value: '2K' }], required: ['metadata.resolution'], forbidden: [] }]
+    capability.schema.rules = [{ kind: 'at_least_one', paths: ['metadata.resolution', 'prompt'] }]
+    const wrapper = mountEditor(capability)
+    await wrapper.get('[data-testid="field-metadata.resolution-name"]').setValue('quality')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(update.mock.calls[0]![1].schema.modes[0]).toMatchObject({ when: [{ path: 'metadata.quality', op: 'equals', value: '2K' }], required: ['metadata.quality'] })
+    expect(update.mock.calls[0]![1].schema.rules[0].paths).toEqual(['metadata.quality', 'prompt'])
+    update.mockClear()
+    await wrapper.get('[data-testid="field-metadata.quality-remove"]').trigger('click')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(update).not.toHaveBeenCalled()
+    expect(wrapper.get('[role="alert"]').text()).toContain('metadata.quality')
+  })
+
+  it('像素映射按后端 aspect_ratio 字段往返，删除依赖参数会提示修正映射', async () => {
+    const capability: MediaCapability = record()
+    capability.schema.image_specs = [{ aspect_ratio: '1:1', resolution: '1K', width: 1024, height: 1024 }]
+    const wrapper = mountEditor(capability)
+    expect(wrapper.get('[data-testid="spec-0-ratio"]').element).toHaveProperty('value', '1:1')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(update.mock.calls[0]![1].schema.image_specs).toEqual(capability.schema.image_specs)
+    update.mockClear()
+    await wrapper.get('[data-testid="field-metadata.resolution-remove"]').trigger('click')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(update).not.toHaveBeenCalled()
+    expect(wrapper.get('[role="alert"]').text()).toContain('metadata.resolution')
+  })
+
+  it('删除含无效JSON草稿的子字段后可保存，折叠不会丢弃其它字段', async () => {
+    const wrapper = mountEditor(record())
+    await wrapper.get('[data-testid="field-metadata.resolution-default"]').setValue('invalid-json')
+    await wrapper.get('[data-testid="field-metadata.resolution-default"]').trigger('change')
+    await wrapper.get('[data-testid="field-metadata-expand"]').trigger('click')
+    await wrapper.get('form').trigger('submit')
+    expect(update).not.toHaveBeenCalled()
+    await wrapper.get('[data-testid="field-metadata-expand"]').trigger('click')
+    expect(wrapper.get('[data-testid="field-metadata.resolution-default"]').element).toHaveProperty('value', 'invalid-json')
+    await wrapper.get('[data-testid="field-metadata.resolution-remove"]').trigger('click')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(update.mock.calls[0]![1].schema.fields.metadata.properties).not.toHaveProperty('resolution')
+    expect(update.mock.calls[0]![1].schema.fields.prompt).toMatchObject({ type: 'string', required: true })
+  })
+
+  it('参数名按回车应用当前改名，数组对象的结构和默认值随之保留', async () => {
+    const capability: MediaCapability = record()
+    capability.schema.fields.metadata = { type: 'object', default: { refs: [{ seed: 42 }] }, properties: {
+      refs: { type: 'array', max_items: 3, items: { type: 'object', default: { seed: 43 }, properties: { seed: { type: 'integer', minimum: 0 } } } },
+    } }
+    const wrapper = mountEditor(capability)
+    const name = wrapper.get('[data-testid="field-metadata.refs[].seed-name"]')
+    ;(name.element as HTMLInputElement).value = 'random_seed'
+    await name.trigger('input')
+    await name.trigger('keydown', { key: 'Enter' })
+    expect(update).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="field-metadata.refs[].random_seed-row"]').exists()).toBe(true)
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    const metadata = update.mock.calls[0]![1].schema.fields.metadata
+    expect(metadata.default).toEqual({ refs: [{ random_seed: 42 }] })
+    expect(metadata.properties.refs).toMatchObject({ type: 'array', max_items: 3, items: { type: 'object', default: { random_seed: 43 }, properties: { random_seed: { type: 'integer', minimum: 0 } } } })
+  })
+
+  it('达到八层限制的参数不能再创建数组元素，参考图元素保持 URL 字符串', () => {
+    const capability: MediaCapability = record()
+    let field: MediaCapabilityField = { type: 'string' }
+    for (let index = 7; index >= 1; index--) field = { type: 'object', properties: { [`level${index}`]: field } }
+    capability.schema.fields.metadata = field
+    const wrapper = mountEditor(capability)
+    const deepestType = wrapper.get('[data-testid="field-metadata.level1.level2.level3.level4.level5.level6.level7-type"]')
+    expect(deepestType.findAll('option').map(option => option.attributes('value'))).not.toContain('array')
+    expect(wrapper.find('[data-testid="field-image_urls[]-type"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="field-image_urls[]-remove"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="field-image_urls[]-format"]').attributes('disabled')).toBeDefined()
   })
 })

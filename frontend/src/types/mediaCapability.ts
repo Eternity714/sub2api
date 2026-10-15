@@ -27,7 +27,7 @@ export interface MediaCapabilityRule {
   paths: string[]
   when?: MediaCondition[]
 }
-export interface MediaImageSpec { ratio: string; resolution: string; width: number; height: number }
+export interface MediaImageSpec { aspect_ratio: string; resolution: string; width: number; height: number }
 export interface MediaCapabilitySchema {
   version: number
   fields: Record<string, MediaCapabilityField>
