@@ -1112,7 +1112,11 @@ function accountStatsRulesToAPI(): AccountStatsPricingRule[] {
 
 // ── Form ↔ API conversion ──
 function formToAPI(): { group_ids: number[], model_pricing: ChannelModelPricing[], model_mapping: Record<string, Record<string, string>>, features_config: Record<string, unknown> } {
-  const group_ids: number[] = []
+  // A legacy Composite-only binding has no section to carry its group IDs.
+  // Once sections exist, collect current selections so users can still unbind it.
+  const group_ids: number[] = form.platforms.length === 0
+    ? (editingChannel.value?.group_ids || []).filter(gid => allGroups.value.some(g => g.id === gid && g.platform === 'composite'))
+    : []
   const model_pricing: ChannelModelPricing[] = []
   const model_mapping: Record<string, Record<string, string>> = {}
   // Preserve existing features_config fields not managed by the form
@@ -1124,10 +1128,8 @@ function formToAPI(): { group_ids: number[], model_pricing: ChannelModelPricing[
     if (!section.enabled) continue
     group_ids.push(...section.group_ids)
 
-    // Model mapping per platform
-    if (Object.keys(section.model_mapping).length > 0) {
-      model_mapping[section.platform] = { ...section.model_mapping }
-    }
+    // Keep empty keys to persist an enabled platform without pricing or mappings.
+    model_mapping[section.platform] = { ...section.model_mapping }
 
     // Model pricing with platform tag
     for (const entry of section.model_pricing) {
@@ -1183,17 +1185,11 @@ function formToAPI(): { group_ids: number[], model_pricing: ChannelModelPricing[
     delete featuresConfig.codex_image_generation_bridge
   }
 
-  const bedrockCCCompat: Record<string, boolean> = {}
-  for (const section of form.platforms) {
-    if (!section.enabled) continue
-    if (section.platform === 'anthropic') {
-      bedrockCCCompat[section.platform] = !!section.bedrock_cc_compat
-    }
-  }
-  if (Object.keys(bedrockCCCompat).length > 0) {
-    featuresConfig.bedrock_cc_compat = bedrockCCCompat
-  } else {
-    delete featuresConfig.bedrock_cc_compat
+  // Bedrock compatibility is a global boolean. Its control lives in the
+  // Anthropic section; editing another platform must preserve the stored flag.
+  const bedrockSection = form.platforms.find(section => section.enabled && section.platform === 'anthropic')
+  if (bedrockSection) {
+    featuresConfig.bedrock_cc_compat = !!bedrockSection.bedrock_cc_compat
   }
 
   return { group_ids: uniqueGroupIds, model_pricing, model_mapping, features_config: featuresConfig }
@@ -1205,22 +1201,33 @@ function apiToForm(channel: Channel): PlatformSection[] {
   for (const g of allGroups.value) {
     groupPlatformMap.set(g.id, g.platform)
   }
+  const fc = channel.features_config
+  const wsEmulation = fc?.web_search_emulation as Record<string, boolean> | undefined
+  const codexImageGenerationBridge = fc?.codex_image_generation_bridge as Record<string, boolean> | undefined
 
-  // Determine which platforms are active (from groups + pricing + mapping)
+  // Infer concrete platforms from their configuration, never from Composite alone.
   const activePlatforms = new Set<GroupPlatform>()
   for (const gid of channel.group_ids || []) {
     const p = groupPlatformMap.get(gid)
-    if (p === 'composite') {
-      compositePlatforms.value.forEach(platform => activePlatforms.add(platform))
-    } else if (p) {
+    if (p && p !== 'composite') {
       activePlatforms.add(p)
     }
   }
   for (const p of channel.model_pricing || []) {
-    if (p.platform) activePlatforms.add(p.platform as GroupPlatform)
+    activePlatforms.add((p.platform || 'anthropic') as GroupPlatform)
   }
   for (const p of Object.keys(channel.model_mapping || {})) {
     if (platformOrder.value.includes(p as GroupPlatform)) activePlatforms.add(p as GroupPlatform)
+  }
+  for (const rule of channel.account_stats_pricing_rules || []) {
+    for (const pricing of rule.pricing || []) {
+      activePlatforms.add((pricing.platform || 'anthropic') as GroupPlatform)
+    }
+  }
+  for (const platform of platformOrder.value) {
+    if (wsEmulation?.[platform] === true || codexImageGenerationBridge?.[platform] === true) {
+      activePlatforms.add(platform)
+    }
   }
 
   // Build sections in platform order
@@ -1255,10 +1262,7 @@ function apiToForm(channel: Channel): PlatformSection[] {
       } as PricingFormEntry))
 
     // Read web_search_emulation from features_config
-    const fc = channel.features_config
-    const wsEmulation = fc?.web_search_emulation as Record<string, boolean> | undefined
     const webSearchEnabled = wsEmulation?.[platform] === true
-    const codexImageGenerationBridge = fc?.codex_image_generation_bridge as Record<string, boolean> | undefined
     const codexImageGenerationBridgeEnabled = codexImageGenerationBridge?.[platform] === true
     const bedrockCCCompatEnabled = fc?.bedrock_cc_compat === true
 
@@ -1417,7 +1421,7 @@ function distributeRulesToPlatforms(apiRules: AccountStatsPricingRule[]) {
     }
     // If pricing has a platform field, use that as fallback
     if (platforms.size === 0 && apiRule.pricing?.length > 0) {
-      const p = apiRule.pricing[0].platform as GroupPlatform | undefined
+      const p = (apiRule.pricing[0].platform || 'anthropic') as GroupPlatform
       if (p) platforms.add(p)
     }
     const targetPlatform = platforms.size >= 1 ? [...platforms][0] : null
@@ -1612,7 +1616,7 @@ async function handleSubmit() {
     if (editingChannel.value) {
       const req: UpdateChannelRequest = {
         name: form.name.trim(),
-        description: form.description.trim() || undefined,
+        description: form.description.trim(),
         status: form.status,
         group_ids,
         model_pricing,
