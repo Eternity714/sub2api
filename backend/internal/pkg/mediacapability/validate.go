@@ -186,7 +186,7 @@ func validateValue(field Field, value any, path string) []FieldError {
 		return []FieldError{fieldError(path, "type", "null is not allowed")}
 	}
 	var errs []FieldError
-	validType := true
+	var validType bool
 	switch field.Type {
 	case "string":
 		text, ok := value.(string)

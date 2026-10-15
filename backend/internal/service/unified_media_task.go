@@ -734,10 +734,6 @@ func UnifiedMediaTaskResultExpiry(task *UnifiedMediaTask) *time.Time {
 	}
 	return earliest
 }
-func unifiedMediaSafeError(err error) error {
-	return fmt.Errorf("unified media task persistence: %w", err)
-}
-
 func unifiedMediaCandidateRequest(original *mediacapability.NormalizedRequest, candidate UnifiedMediaCandidateSnapshot) (*mediacapability.NormalizedRequest, error) {
 	if original == nil {
 		return nil, errors.New("media normalized payload is unavailable")

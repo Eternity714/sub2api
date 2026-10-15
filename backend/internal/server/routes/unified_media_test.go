@@ -40,6 +40,7 @@ func TestUnifiedMediaCompositePreservesPublicModelAndCandidates(t *testing.T) {
 		require.Equal(t, 204, w.Code)
 	}
 }
+
 // AC-013 (retirement scope): the three standalone GRS routes return 404 without a drain precondition.
 func TestUnifiedMediaLegacyGRSEndpointsRetired(t *testing.T) {
 	r := newGatewayRoutesTestRouter(service.PlatformGrsai)

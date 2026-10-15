@@ -96,11 +96,12 @@ func (s unifiedMediaValidatedImageStorage) Save(ctx context.Context, key, conten
 	m, err := s.SaveWithMetadata(ctx, key, contentType, data)
 	return m.URL, err
 }
-func (s unifiedMediaValidatedImageStorage) SaveWithMetadata(ctx context.Context, key, contentType string, data []byte) (ImageStorageSaveMetadata, error) {
+func (s unifiedMediaValidatedImageStorage) SaveWithMetadata(ctx context.Context, key, _ string, data []byte) (ImageStorageSaveMetadata, error) {
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil || cfg.Width < 1 || cfg.Height < 1 || int64(cfg.Width)*int64(cfg.Height) > 100000000 {
 		return ImageStorageSaveMetadata{}, errors.New("upstream result is not a valid supported raster image")
 	}
+	var contentType string
 	switch format {
 	case "png", "jpeg", "gif", "webp":
 		contentType = "image/" + format
