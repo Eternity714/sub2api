@@ -174,3 +174,15 @@ ToAPIs 官方只读检查确认当前令牌为无限额度，用户余额从本�
 独立核对确认旧分组 18／20／21、渠道 3／5 及价目关联、原账号及凭据、现有 Key 的分组／额度／累计、用户权限与旧人工审核冻结均未改变，新统一媒体任务为 0。启用后公开 `/health`、Nginx、容器健康、已有 Key 只读鉴权通过，观察窗口无 5xx／超时／容器错误。本次结论为**生产配置已启用并通过零付费验收**，不扩大为所有模型和规格均已在生产付费生成验证。
 
 脱敏证据：`%TEMP%/sub2api-production-media-config-20261015/` 的 `activation-result.json`、`preflight-result.json`、`preflight-details.json`、`old-configuration-preserved.json`、`new-media-connections.json` 与 `post-configuration-service-probe.json`。服务器备份与配置操作记录位于 `/opt/sub2api/gray/releases/unified-media-config-20261015/`，私有凭据与快照只保存在受限目录，不提交仓库。前述“生产统一媒体业务尚未开放”为配置前历史状态，以本节为准。
+
+## 渠道描述与平台编辑修复上线（2026-10-16）
+
+渠道 6 的保存请求实际返回 200，但编辑页将清空描述转换为未提交字段，后端因此保留原值；回填时又把 Composite 可支持的全部平台当成渠道已配置的平台，导致取消后重开全部勾选。修复提交 `237f07b2bda968bd7f726475dd32e0100908a9b3`：编辑清空描述明确发送空字符串，平台从实际价格、映射、统计价及相关功能配置回填，并用空的平台映射键保留已启用但尚无映射的编辑区。兼容只有 Composite 关联的旧渠道，同时保留主动解绑能力；全局 Bedrock 开关维持后端布尔契约，不再用于凭空推断平台。
+
+生产渠道 6「媒体渠道」已清空描述，仅保存 `grsai`、`toapis` 两个平台键；60 条价格规则、129 个价位及其余设置语义不变。现有仓库更新渠道时会重建价目行，因此校验忽略价目行 ID 与更新时间，逐项比对真实价格和规格。没有修改其他旧渠道、账号、用户、Key 或历史费用，没有调用付费生成。
+
+验证通过 Docker Compose 执行：完整前端 lint／类型／关键 667 项与额外 337 项回归通过（集合有交叉）；最后兼容修正后，24 项渠道专项、变更文件 lint、类型检查再次通过。干净发布源码 4607 个 Git blob 全部一致，完整前端构建、两次资源 guard 与 175 项实际 HTTP 资源检查通过。真实浏览器 7 项检查覆盖清空描述、真正点击更新返回 200、60 价／129 档读回及重新打开仍只勾选两平台；临时组和渠道均清理，生成请求为 0。
+
+镜像 `ghcr.io/eternity714/sub2api:sha-237f07b2bda968bd7f726475dd32e0100908a9b3`（digest `sha256:bd6885c90b01a391f13c65cc0d664b2481a6db726cc6ca9beab036e2bb1c856d`）通过 0%／10%／50%／100% 检查；100% 观察约两分钟后，于北京时间 **00:12:32 晋升**。最终稳定槽为 **blue / 237f07b2b**，候选为 **green / f40d427e7 / 0%**，两槽健康。晋升后健康、鉴权、Nginx、独立账务及渠道价格检查均通过，观察窗口无 5xx／超时／容器错误；公网 ChannelsView 资源与本次构建哈希精确一致。
+
+证据目录：`%TEMP%/sub2api-channel-save-20261015/` 与服务器 `/opt/sub2api/gray/releases/channel-save-20261015/`。包含 `frontend-gates.log`、`build-receipt.json`、`browser-evidence/result.json`、`production-promotion.log`、分阶段探针和独立监控记录。此前 green / f40 的稳定槽记录为上一轮历史状态，以本节为准。
