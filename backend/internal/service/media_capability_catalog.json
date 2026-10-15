@@ -3941,7 +3941,11 @@
     "enabled": false,
     "source": "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-1.1-flash-preview-official/generation",
     "evidence": "documented_generation",
-    "profile": {},
+    "profile": {
+      "top_level_metadata": [
+        "resolution"
+      ]
+    },
     "notes": "基础普通生成模板；未覆盖的高级模式不在白名单内。复制后核对账号、定价和渠道能力再启用。",
     "schema": {
       "version": 1,
@@ -5550,7 +5554,7 @@
         "resolution"
       ]
     },
-    "notes": "基础普通生成模板；未覆盖的高级模式不在白名单内。复制后核对账号、定价和渠道能力再启用。 当前基础模板仅开放768P，1080P的6秒组合另行配置。",
+    "notes": "基础普通生成模板；未覆盖的高级模式不在白名单内。复制后核对账号、定价和渠道能力再启用。 当前基础模板仅开放768P，1080P的6秒组合另行配置。 Fast 仅支持图生视频，必须提供恰好一张首帧图片。",
     "schema": {
       "version": 1,
       "fields": {
@@ -5595,7 +5599,8 @@
             "format": "http_url"
           },
           "max_items": 1,
-          "min_items": 1
+          "min_items": 1,
+          "required": true
         }
       },
       "batch": {
@@ -5610,7 +5615,10 @@
       "metadata": {
         "resolution": "768P"
       },
-      "duration": 6
+      "duration": 6,
+      "image_urls": [
+        "https://example.com/reference.png"
+      ]
     }
   },
   {

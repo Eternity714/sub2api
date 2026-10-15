@@ -61,6 +61,7 @@ func TestUnifiedMediaUpstreamNoRepostOnUncertain(t *testing.T) {
 	result, _ := NewUnifiedMediaUpstream(srv.Client()).Submit(context.Background(), account, "image", "model", &mediacapability.NormalizedRequest{Values: map[string]any{"prompt": "x"}}, 1)
 	require.Equal(t, 1, posts)
 	require.Equal(t, "unknown", result.Disposition)
+	require.Equal(t, http.StatusBadGateway, result.HTTPStatus)
 }
 
 func TestUnifiedMediaUpstreamQueryToAPIsAndMidjourney(t *testing.T) {
@@ -98,6 +99,7 @@ func TestUnifiedMediaUpstreamAcceptedFailureMustNotFailOver(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "accepted", result.Disposition)
 	require.Equal(t, "completed", result.Status)
+	require.Equal(t, http.StatusBadRequest, result.HTTPStatus)
 	require.NotContains(t, result.Error, "secret")
 }
 func TestUnifiedMediaUpstreamPollMalformedOrHTTPFailureRetries(t *testing.T) {

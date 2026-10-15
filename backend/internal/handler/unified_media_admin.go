@@ -89,7 +89,7 @@ func unifiedMediaAdminView(task *service.UnifiedMediaTask) gin.H {
 	}
 	units := make([]any, 0, len(task.Units))
 	for index, unit := range task.Units {
-		units = append(units, gin.H{"index": index, "state": unit.State, "account_id": unit.AccountID, "platform": unit.Platform, "upstream_model": unit.UpstreamModel, "upstream_task_id": unit.UpstreamTaskID, "attempt": unit.Attempt, "count": unit.Count, "stored_count": len(unit.Stored), "error": unit.Error})
+		units = append(units, gin.H{"index": index, "state": unit.State, "account_id": unit.AccountID, "platform": unit.Platform, "upstream_model": unit.UpstreamModel, "upstream_task_id": unit.UpstreamTaskID, "attempt": unit.Attempt, "count": unit.Count, "stored_count": len(unit.Stored), "last_http_status": unit.LastHTTPStatus, "error": unit.Error})
 	}
 	out["units"] = units
 	return out

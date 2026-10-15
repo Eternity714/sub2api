@@ -136,13 +136,34 @@ func TestCompositeModelRouteRepository_RejectsUnregisteredTargetPlatform(t *test
 	route.TargetPlatform = service.PlatformComposite
 	require.Error(t, repo.Update(txCtx, route))
 
-	bad.TargetPlatform = service.PlatformGrsai
-	require.Error(t, repo.Create(txCtx, bad))
-	route.TargetPlatform = service.PlatformGrsai
-	require.Error(t, repo.Update(txCtx, route))
+	// GRS.AI / ToAPIs 已登记为 Composite 媒体路由目标，仓储层应允许持久化。
+	// exact + images/videos 的入口限制由管理服务校验，不能恢复旧的整个平台禁用断言。
+	for _, platform := range []string{service.PlatformGrsai, service.PlatformToAPIs} {
+		mediaRoute := &service.CompositeModelRoute{
+			GroupID: group.ID, PublicModel: platform + "-media-model", MatchType: "exact", TargetPlatform: platform,
+			UpstreamModel: "media-model", Endpoint: service.CompositeRouteEndpointImages, Priority: 100, Enabled: true,
+		}
+		require.NoError(t, repo.Create(txCtx, mediaRoute))
+		require.Positive(t, mediaRoute.ID)
+		mediaRoute.Endpoint = service.CompositeRouteEndpointVideos
+		require.NoError(t, repo.Update(txCtx, mediaRoute))
+		require.Equal(t, platform, mediaRoute.TargetPlatform)
+		require.Equal(t, service.CompositeRouteEndpointVideos, mediaRoute.Endpoint)
+	}
 
 	routes, err := repo.ListByGroup(txCtx, group.ID, true)
 	require.NoError(t, err)
-	require.Len(t, routes, 1)
-	require.Equal(t, service.PlatformZhipu, routes[0].TargetPlatform)
+	require.Len(t, routes, 3)
+	wantPlatforms := map[string]string{
+		service.PlatformZhipu:  service.CompositeRouteEndpointAny,
+		service.PlatformGrsai:  service.CompositeRouteEndpointVideos,
+		service.PlatformToAPIs: service.CompositeRouteEndpointVideos,
+	}
+	for _, got := range routes {
+		wantEndpoint, registered := wantPlatforms[got.TargetPlatform]
+		require.True(t, registered, "unexpected persisted platform %q", got.TargetPlatform)
+		require.Equal(t, wantEndpoint, got.Endpoint)
+		delete(wantPlatforms, got.TargetPlatform)
+	}
+	require.Empty(t, wantPlatforms)
 }
