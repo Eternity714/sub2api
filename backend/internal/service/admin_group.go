@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/config"
@@ -222,6 +223,17 @@ func (s *adminServiceImpl) PreviewCompositeRoute(ctx context.Context, groupID in
 	if resolver == nil {
 		resolver = NewCompositeRouteResolver(s.compositeRouteRepo)
 	}
+	if isMediaRouteEndpoint(input.Endpoint) {
+		candidates, err := resolver.ResolveMediaCandidates(ctx, groupID, input.Model, input.Endpoint)
+		if err != nil {
+			return nil, err
+		}
+		if len(candidates) > 0 {
+			decision := candidates[0]
+			decision.Candidates = candidates
+			return &decision, nil
+		}
+	}
 	decision, err := resolver.Resolve(ctx, groupID, input.Model, input.Endpoint)
 	if err != nil {
 		return nil, err
@@ -261,19 +273,30 @@ func compositeRouteFromInput(groupID int64, input CompositeRouteInput) (*Composi
 	if !isConcreteRequestPlatform(input.TargetPlatform) {
 		return nil, fmt.Errorf("target_platform must be a concrete provider")
 	}
+	if utf8.RuneCountInString(input.PublicModel) > 200 || utf8.RuneCountInString(input.UpstreamModel) > 200 || utf8.RuneCountInString(input.CapabilityModel) > 200 {
+		return nil, fmt.Errorf("model identifiers must contain at most 200 characters")
+	}
+	if isMediaRoutePlatform(input.TargetPlatform) {
+		if !isMediaRouteEndpoint(input.Endpoint) || input.MatchType != CompositeRouteMatchExact {
+			return nil, fmt.Errorf("GRS.AI and ToAPIs require an exact images or videos route")
+		}
+	} else if input.CapabilityModel != "" {
+		return nil, fmt.Errorf("capability_model is only supported by GRS.AI or ToAPIs media routes")
+	}
 	if input.Priority == 0 {
 		input.Priority = 100
 	}
 	return &CompositeModelRoute{
-		GroupID:        groupID,
-		PublicModel:    input.PublicModel,
-		MatchType:      input.MatchType,
-		TargetPlatform: input.TargetPlatform,
-		UpstreamModel:  input.UpstreamModel,
-		Endpoint:       input.Endpoint,
-		Priority:       input.Priority,
-		Enabled:        input.Enabled,
-		Notes:          input.Notes,
+		GroupID:         groupID,
+		PublicModel:     input.PublicModel,
+		MatchType:       input.MatchType,
+		TargetPlatform:  input.TargetPlatform,
+		UpstreamModel:   input.UpstreamModel,
+		CapabilityModel: input.CapabilityModel,
+		Endpoint:        input.Endpoint,
+		Priority:        input.Priority,
+		Enabled:         input.Enabled,
+		Notes:           input.Notes,
 	}, nil
 }
 

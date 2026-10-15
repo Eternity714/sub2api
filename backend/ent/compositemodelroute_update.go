@@ -125,6 +125,20 @@ func (_u *CompositeModelRouteUpdate) SetNillableUpstreamModel(v *string) *Compos
 	return _u
 }
 
+// SetCapabilityModel sets the "capability_model" field.
+func (_u *CompositeModelRouteUpdate) SetCapabilityModel(v string) *CompositeModelRouteUpdate {
+	_u.mutation.SetCapabilityModel(v)
+	return _u
+}
+
+// SetNillableCapabilityModel sets the "capability_model" field if the given value is not nil.
+func (_u *CompositeModelRouteUpdate) SetNillableCapabilityModel(v *string) *CompositeModelRouteUpdate {
+	if v != nil {
+		_u.SetCapabilityModel(*v)
+	}
+	return _u
+}
+
 // SetEndpoint sets the "endpoint" field.
 func (_u *CompositeModelRouteUpdate) SetEndpoint(v string) *CompositeModelRouteUpdate {
 	_u.mutation.SetEndpoint(v)
@@ -274,6 +288,11 @@ func (_u *CompositeModelRouteUpdate) check() error {
 			return &ValidationError{Name: "upstream_model", err: fmt.Errorf(`ent: validator failed for field "CompositeModelRoute.upstream_model": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CapabilityModel(); ok {
+		if err := compositemodelroute.CapabilityModelValidator(v); err != nil {
+			return &ValidationError{Name: "capability_model", err: fmt.Errorf(`ent: validator failed for field "CompositeModelRoute.capability_model": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Endpoint(); ok {
 		if err := compositemodelroute.EndpointValidator(v); err != nil {
 			return &ValidationError{Name: "endpoint", err: fmt.Errorf(`ent: validator failed for field "CompositeModelRoute.endpoint": %w`, err)}
@@ -317,6 +336,9 @@ func (_u *CompositeModelRouteUpdate) sqlSave(ctx context.Context) (_node int, er
 	}
 	if value, ok := _u.mutation.UpstreamModel(); ok {
 		_spec.SetField(compositemodelroute.FieldUpstreamModel, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.CapabilityModel(); ok {
+		_spec.SetField(compositemodelroute.FieldCapabilityModel, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Endpoint(); ok {
 		_spec.SetField(compositemodelroute.FieldEndpoint, field.TypeString, value)
@@ -477,6 +499,20 @@ func (_u *CompositeModelRouteUpdateOne) SetUpstreamModel(v string) *CompositeMod
 func (_u *CompositeModelRouteUpdateOne) SetNillableUpstreamModel(v *string) *CompositeModelRouteUpdateOne {
 	if v != nil {
 		_u.SetUpstreamModel(*v)
+	}
+	return _u
+}
+
+// SetCapabilityModel sets the "capability_model" field.
+func (_u *CompositeModelRouteUpdateOne) SetCapabilityModel(v string) *CompositeModelRouteUpdateOne {
+	_u.mutation.SetCapabilityModel(v)
+	return _u
+}
+
+// SetNillableCapabilityModel sets the "capability_model" field if the given value is not nil.
+func (_u *CompositeModelRouteUpdateOne) SetNillableCapabilityModel(v *string) *CompositeModelRouteUpdateOne {
+	if v != nil {
+		_u.SetCapabilityModel(*v)
 	}
 	return _u
 }
@@ -643,6 +679,11 @@ func (_u *CompositeModelRouteUpdateOne) check() error {
 			return &ValidationError{Name: "upstream_model", err: fmt.Errorf(`ent: validator failed for field "CompositeModelRoute.upstream_model": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CapabilityModel(); ok {
+		if err := compositemodelroute.CapabilityModelValidator(v); err != nil {
+			return &ValidationError{Name: "capability_model", err: fmt.Errorf(`ent: validator failed for field "CompositeModelRoute.capability_model": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Endpoint(); ok {
 		if err := compositemodelroute.EndpointValidator(v); err != nil {
 			return &ValidationError{Name: "endpoint", err: fmt.Errorf(`ent: validator failed for field "CompositeModelRoute.endpoint": %w`, err)}
@@ -703,6 +744,9 @@ func (_u *CompositeModelRouteUpdateOne) sqlSave(ctx context.Context) (_node *Com
 	}
 	if value, ok := _u.mutation.UpstreamModel(); ok {
 		_spec.SetField(compositemodelroute.FieldUpstreamModel, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.CapabilityModel(); ok {
+		_spec.SetField(compositemodelroute.FieldCapabilityModel, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Endpoint(); ok {
 		_spec.SetField(compositemodelroute.FieldEndpoint, field.TypeString, value)

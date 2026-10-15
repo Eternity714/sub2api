@@ -284,6 +284,12 @@
       "display_name": "GRS.AI",
       "gateway": "grsai",
       "cn_provider": false
+    },
+    {
+      "id": "toapis",
+      "display_name": "ToAPIs",
+      "gateway": "toapis",
+      "cn_provider": false
     }
   ],
   "composite_precedence": [
@@ -299,6 +305,8 @@
     "opencode_go",
     "typesafe",
     "command_code",
-    "cline"
+    "cline",
+    "grsai",
+    "toapis"
   ]
 }

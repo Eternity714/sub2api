@@ -22,14 +22,14 @@ describe('Composite channel platform options', () => {
 
   it('includes the CN concrete providers for pricing and model mapping', () => {
     const source = readFileSync(resolve('src/views/admin/ChannelsView.vue'), 'utf8')
-    // 平台列表来自平台清单（后端 domain/platforms.go），组合分组排除原生媒体平台。
+    // 平台列表来自平台清单（后端 domain/platforms.go），组合分组允许原生媒体平台用于定价与模型映射。
     expect(source).toMatch(/const platformOrder = computed<GroupPlatform\[\]>\(\(\) => listPlatformIds\(\)\)/)
-    expect(source).toContain("const compositePlatforms = computed(() => platformOrder.value.filter(platform => platform !== 'grsai'))")
+    expect(source).toContain("const compositePlatforms = computed(() => platformOrder.value)")
 
     expect(listPlatformIds()).toEqual(
       expect.arrayContaining(['kimi', 'zhipu', 'deepseek', 'minimax', 'opencode_go'])
     )
-    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).not.toContain('grsai')
+    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis']))
   })
 
   it('updates channel and composite options when the platform catalog changes', () => {
@@ -44,6 +44,6 @@ describe('Composite channel platform options', () => {
     expect(channelPlatformOrder).toContain('acme_router')
     expect(selectableChannelPlatforms()).toContain('acme_router')
     expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toContain('acme_router')
-    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).not.toContain('grsai')
+    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis']))
   })
 })

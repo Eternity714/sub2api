@@ -21,6 +21,7 @@ const PROVIDER_BY_PLATFORM: Record<GroupPlatform, KeyGroupProvider> = {
   command_code: 'other',
   cline: 'other',
   grsai: 'other',
+  toapis: 'other',
   media: 'other'
 }
 

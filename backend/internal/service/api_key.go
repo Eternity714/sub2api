@@ -52,6 +52,10 @@ type APIKey struct {
 	QuotaUsed float64    // Used quota amount
 	ExpiresAt *time.Time // Expiration time (nil = never expires)
 
+	// Reserved media is read from durable holds for this request only; it is not consumed usage or an auth-cache field.
+	ReservedMediaAmount        float64 `json:"-"`
+	MediaReservationReadFailed bool    `json:"-"`
+
 	// Rate limit fields
 	RateLimit5h   float64    // Rate limit in USD per 5h (0 = unlimited)
 	RateLimit1d   float64    // Rate limit in USD per 1d (0 = unlimited)
@@ -86,7 +90,7 @@ func (k *APIKey) IsQuotaExhausted() bool {
 	if k.Quota <= 0 {
 		return false // unlimited
 	}
-	return k.QuotaUsed >= k.Quota
+	return k.QuotaUsed+k.ReservedMediaAmount >= k.Quota
 }
 
 // GetQuotaRemaining returns remaining quota (-1 for unlimited)
@@ -94,7 +98,7 @@ func (k *APIKey) GetQuotaRemaining() float64 {
 	if k.Quota <= 0 {
 		return -1 // unlimited
 	}
-	remaining := k.Quota - k.QuotaUsed
+	remaining := k.Quota - k.QuotaUsed - k.ReservedMediaAmount
 	if remaining < 0 {
 		return 0
 	}

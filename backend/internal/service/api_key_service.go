@@ -749,7 +749,7 @@ func (s *APIKeyService) GetByKey(ctx context.Context, key string) (*APIKey, erro
 				return nil, fmt.Errorf("get api key: %w", err)
 			}
 			s.compileAPIKeyIPRules(apiKey)
-			return apiKey, nil
+			return s.withReservedMediaAmount(ctx, apiKey), nil
 		}
 	}
 
@@ -766,7 +766,7 @@ func (s *APIKeyService) GetByKey(ctx context.Context, key string) (*APIKey, erro
 				return nil, fmt.Errorf("get api key: %w", err)
 			}
 			s.compileAPIKeyIPRules(apiKey)
-			return apiKey, nil
+			return s.withReservedMediaAmount(ctx, apiKey), nil
 		}
 	} else {
 		entry, err := s.loadAuthCacheEntry(ctx, key, cacheKey)
@@ -778,7 +778,7 @@ func (s *APIKeyService) GetByKey(ctx context.Context, key string) (*APIKey, erro
 				return nil, fmt.Errorf("get api key: %w", err)
 			}
 			s.compileAPIKeyIPRules(apiKey)
-			return apiKey, nil
+			return s.withReservedMediaAmount(ctx, apiKey), nil
 		}
 	}
 
@@ -788,7 +788,37 @@ func (s *APIKeyService) GetByKey(ctx context.Context, key string) (*APIKey, erro
 	}
 	apiKey.Key = key
 	s.compileAPIKeyIPRules(apiKey)
-	return apiKey, nil
+	return s.withReservedMediaAmount(ctx, apiKey), nil
+}
+
+// apiKeyMediaReservationReader is optional to keep older test and repository adapters compatible.
+type apiKeyMediaReservationReader interface {
+	GetReservedMediaAmount(context.Context, int64) (float64, error)
+}
+
+// Reservations must never be cached: another request can create or settle one
+// while the authentication snapshot remains valid. Read failures stay attached
+// to this request so read-only task polling can still authenticate.
+func (s *APIKeyService) withReservedMediaAmount(ctx context.Context, key *APIKey) *APIKey {
+	if key == nil {
+		return nil
+	}
+	copy := *key
+	copy.ReservedMediaAmount = 0
+	copy.MediaReservationReadFailed = false
+	reader, ok := s.apiKeyRepo.(apiKeyMediaReservationReader)
+	if !ok {
+		return &copy
+	}
+	readCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	amount, err := reader.GetReservedMediaAmount(readCtx, key.ID)
+	if err != nil || amount < 0 || math.IsNaN(amount) || math.IsInf(amount, 0) {
+		copy.MediaReservationReadFailed = true
+		return &copy
+	}
+	copy.ReservedMediaAmount = amount
+	return &copy
 }
 
 // Update 更新API Key

@@ -1379,6 +1379,7 @@ function generateRoutedCodexFiles(
     command_code: 'Command Code',
     cline: 'Cline',
     grsai: t('admin.groups.platforms.grsai'),
+    toapis: 'ToAPIs',
     media: t('admin.groups.platforms.media'),
     composite: 'Composite'
   }

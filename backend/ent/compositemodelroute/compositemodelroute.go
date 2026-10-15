@@ -31,6 +31,8 @@ const (
 	FieldTargetPlatform = "target_platform"
 	// FieldUpstreamModel holds the string denoting the upstream_model field in the database.
 	FieldUpstreamModel = "upstream_model"
+	// FieldCapabilityModel holds the string denoting the capability_model field in the database.
+	FieldCapabilityModel = "capability_model"
 	// FieldEndpoint holds the string denoting the endpoint field in the database.
 	FieldEndpoint = "endpoint"
 	// FieldPriority holds the string denoting the priority field in the database.
@@ -63,6 +65,7 @@ var Columns = []string{
 	FieldMatchType,
 	FieldTargetPlatform,
 	FieldUpstreamModel,
+	FieldCapabilityModel,
 	FieldEndpoint,
 	FieldPriority,
 	FieldEnabled,
@@ -107,6 +110,10 @@ var (
 	DefaultUpstreamModel string
 	// UpstreamModelValidator is a validator for the "upstream_model" field. It is called by the builders before save.
 	UpstreamModelValidator func(string) error
+	// DefaultCapabilityModel holds the default value on creation for the "capability_model" field.
+	DefaultCapabilityModel string
+	// CapabilityModelValidator is a validator for the "capability_model" field. It is called by the builders before save.
+	CapabilityModelValidator func(string) error
 	// DefaultEndpoint holds the default value on creation for the "endpoint" field.
 	DefaultEndpoint string
 	// EndpointValidator is a validator for the "endpoint" field. It is called by the builders before save.
@@ -163,6 +170,11 @@ func ByTargetPlatform(opts ...sql.OrderTermOption) OrderOption {
 // ByUpstreamModel orders the results by the upstream_model field.
 func ByUpstreamModel(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpstreamModel, opts...).ToFunc()
+}
+
+// ByCapabilityModel orders the results by the capability_model field.
+func ByCapabilityModel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCapabilityModel, opts...).ToFunc()
 }
 
 // ByEndpoint orders the results by the endpoint field.

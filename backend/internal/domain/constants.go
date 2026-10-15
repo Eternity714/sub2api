@@ -31,6 +31,8 @@ const (
 	PlatformTypeSafe = "typesafe" // TypeSafe AI System One (Jev)
 	// PlatformGrsai 是 GRS.AI 原生图片平台，不走 OpenAI 兼容传输层。
 	PlatformGrsai = "grsai"
+	// PlatformToAPIs 是通过统一媒体任务接入的 ToAPIs 平台。
+	PlatformToAPIs = "toapis"
 	// PlatformOpenCodeGo 是 OpenCode 平台（账号类型 Zen 按量 / Go 订阅）。
 	// 值保持 opencode_go 以兼容已落库的账号、分组、配额与 Composite 路由。
 	PlatformOpenCodeGo = "opencode_go"

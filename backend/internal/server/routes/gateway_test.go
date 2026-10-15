@@ -82,8 +82,8 @@ func TestGrsaiTaskQueryRoutesAreV1Only(t *testing.T) {
 	for _, route := range router.Routes() {
 		routes[route.Method+" "+route.Path] = true
 	}
-	require.True(t, routes["GET /v1/api/result"])
-	require.True(t, routes["GET /v1/api/tasks"])
+	require.False(t, routes["GET /v1/api/result"])
+	require.False(t, routes["GET /v1/api/tasks"])
 	require.False(t, routes["GET /api/result"])
 	require.False(t, routes["GET /api/tasks"])
 }
@@ -118,6 +118,7 @@ func TestGatewayRoutesAlphaSearchRejectsUnsupportedGroup(t *testing.T) {
 	require.Contains(t, w.Body.String(), "only available for OpenAI and Composite groups")
 }
 
+// AC-012 (legacy-platform scope): OpenAI image paths still dispatch to the existing image handler.
 func TestGatewayRoutesOpenAIImagesPathsAreRegistered(t *testing.T) {
 	router := newGatewayRoutesTestRouter()
 

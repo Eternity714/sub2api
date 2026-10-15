@@ -14,13 +14,13 @@ var (
 		PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo, PlatformTypeSafe,
 		PlatformCommandCode,
 		PlatformCline,
-		PlatformGrsai,
+		PlatformGrsai, PlatformToAPIs,
 	}
 	legacyCompositePrecedence = []string{
 		PlatformAnthropic, PlatformGemini, PlatformOpenAI, PlatformAntigravity, PlatformGrok,
 		PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo, PlatformTypeSafe,
 		PlatformCommandCode,
-		PlatformCline,
+		PlatformCline, PlatformGrsai, PlatformToAPIs,
 	}
 	legacyOpenAIGateway = []string{
 		PlatformOpenAI, PlatformGrok, PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo,
@@ -61,7 +61,9 @@ func TestPlatformListPredicates(t *testing.T) {
 	}
 	require.False(t, IsConcretePlatform(PlatformComposite))
 	require.True(t, IsGroupPlatform(PlatformComposite))
-	require.False(t, IsCompositeTargetPlatform(PlatformGrsai))
+	require.True(t, IsCompositeTargetPlatform(PlatformGrsai))
+	require.True(t, IsCompositeTargetPlatform(PlatformToAPIs))
+	require.False(t, IsQuotaPlatform(PlatformToAPIs))
 	require.False(t, IsQuotaPlatform(PlatformGrsai))
 	require.NotContains(t, QuotaPlatformIDs(), PlatformGrsai)
 	for _, invalid := range []string{"", "moonshot", "Kimi", "openai ", "glm", "bogus"} {

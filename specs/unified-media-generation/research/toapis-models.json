@@ -1,0 +1,1506 @@
+{
+  "checked_at": "2026-10-15",
+  "catalog_snapshot": "2026-09-30",
+  "catalog_source": "https://docs.toapis.com/docs/cn/api-reference/models",
+  "scope_note": "Only public documentation checked; no authenticated account availability or generation verified.",
+  "counts": {
+    "image": 41,
+    "video": 49
+  },
+  "models": [
+    {
+      "id": "doubao-seedream-4-0",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/seedream-4.0/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/seedream-4.0/generation"
+    },
+    {
+      "id": "doubao-seedream-4-5",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/seedream-4.5/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/seedream-4.5/generation"
+    },
+    {
+      "id": "doubao-seedream-5-0",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/seedream-5.0/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/seedream-5.0/generation"
+    },
+    {
+      "id": "doubao-seedream-5-0-pro",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/seedream-5.0-pro/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/seedream-5.0-pro/generation"
+    },
+    {
+      "id": "flux-2-flex",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/flux-2/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/flux-2/generation"
+    },
+    {
+      "id": "flux-2-pro",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/flux-2/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/flux-2/generation"
+    },
+    {
+      "id": "flux-kontext-max",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/flux-kontext/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/flux-kontext/generation"
+    },
+    {
+      "id": "flux-kontext-pro",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/flux-kontext/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/flux-kontext/generation"
+    },
+    {
+      "id": "gemini-2.5-flash-image-official",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gemini-2.5-flash-official/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-2.5-flash-official/generation"
+    },
+    {
+      "id": "gemini-2.5-flash-image-preview",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gemini-2.5-flash/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-2.5-flash/generation"
+    },
+    {
+      "id": "gemini-2.5-flash-image-preview-vip",
+      "catalog_type": "image",
+      "documented_endpoints": [],
+      "evidence_status": "catalog_only_schema_unverified",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/models"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/models"
+    },
+    {
+      "id": "gemini-3-pro-image-official",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3-pro-image-official/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3-pro-image-official/generation"
+    },
+    {
+      "id": "gemini-3-pro-image-preview",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3-pro-image/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3-pro-image/generation"
+    },
+    {
+      "id": "gemini-3-pro-image-preview-vip",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3-pro-image-vip/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3-pro-image-vip/generation"
+    },
+    {
+      "id": "gemini-3.1-flash-image-official",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3.1-flash-official/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3.1-flash-official/generation"
+    },
+    {
+      "id": "gemini-3.1-flash-image-preview",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3.1-flash/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3.1-flash/generation"
+    },
+    {
+      "id": "gemini-3.1-flash-image-preview-vip",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3.1-flash-vip/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-3.1-flash-vip/generation"
+    },
+    {
+      "id": "gemini-3.1-flash-lite-image-official",
+      "catalog_type": "image",
+      "documented_endpoints": [],
+      "evidence_status": "catalog_only_schema_unverified",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/models"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/models"
+    },
+    {
+      "id": "gemini-nano-banana-2.1",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1/generation"
+    },
+    {
+      "id": "gemini-nano-banana-2.1-vip",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1/generation"
+    },
+    {
+      "id": "gemini-nano-banana-2.1-official",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1-official/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1-official/generation"
+    },
+    {
+      "id": "gpt-image-2",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2-vip/generation",
+        "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2/generation"
+    },
+    {
+      "id": "gpt-image-2-official",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2/official"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2/official"
+    },
+    {
+      "id": "gpt-image-2-vip",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2-vip/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2-vip/generation"
+    },
+    {
+      "id": "gpt-image-2.5-flare",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5/generation"
+    },
+    {
+      "id": "gpt-image-2.5-flare-official",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5-official/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5-official/generation"
+    },
+    {
+      "id": "gpt-image-2.5-flare-vip",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5-vip/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5-vip/generation"
+    },
+    {
+      "id": "gpt-image-2.5-sunburst",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5/generation"
+    },
+    {
+      "id": "gpt-image-2.5-sunburst-official",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5-official/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5-official/generation"
+    },
+    {
+      "id": "gpt-image-2.5-sunburst-vip",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5-vip/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.5-vip/generation"
+    },
+    {
+      "id": "grok-imagine-1.0",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/grok-imagine-1.0/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/grok-imagine-1.0/generation"
+    },
+    {
+      "id": "grok-imagine-1.0-edit",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/edits"
+      ],
+      "evidence_status": "documented_edit_operation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/grok-imagine-1.0/edits"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/grok-imagine-1.0/edits"
+    },
+    {
+      "id": "nano_banana",
+      "catalog_type": "image",
+      "documented_endpoints": [],
+      "evidence_status": "catalog_only_schema_unverified",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/models"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/models"
+    },
+    {
+      "id": "nano_banana_2",
+      "catalog_type": "image",
+      "documented_endpoints": [],
+      "evidence_status": "catalog_only_schema_unverified",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/models"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/models"
+    },
+    {
+      "id": "nano_banana_pro",
+      "catalog_type": "image",
+      "documented_endpoints": [],
+      "evidence_status": "catalog_only_schema_unverified",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/models"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/models"
+    },
+    {
+      "id": "qwen-image-3.0",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/qwen-image-3.0/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/qwen-image-3.0/generation"
+    },
+    {
+      "id": "qwen-image-3.0-pro",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/qwen-image-3.0/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/qwen-image-3.0/generation"
+    },
+    {
+      "id": "vidu-image",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/vidu-image/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/vidu-image/generation"
+    },
+    {
+      "id": "viduq2-fast",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/vidu-image/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/vidu-image/generation"
+    },
+    {
+      "id": "viduq2-pro",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/vidu-image/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/vidu-image/generation"
+    },
+    {
+      "id": "viduq3-fast",
+      "catalog_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/vidu-image/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "image-generation"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/images/vidu-image/generation"
+    },
+    {
+      "id": "doubao-seedance-1-0-pro-fast",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/doubao-seedance/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/doubao-seedance/generation"
+    },
+    {
+      "id": "doubao-seedance-1-0-pro-quality",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/doubao-seedance/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/doubao-seedance/generation"
+    },
+    {
+      "id": "doubao-seedance-1-5-pro",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/doubao-seedance-1-5/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/doubao-seedance-1-5/generation"
+    },
+    {
+      "id": "gemini_omni",
+      "catalog_type": "video",
+      "documented_endpoints": [],
+      "evidence_status": "catalog_only_schema_unverified",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/models"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/models"
+    },
+    {
+      "id": "gemini_omni_flash",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash-preview-official/generation",
+        "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash/generation"
+    },
+    {
+      "id": "gemini-omni-1.1-flash-preview",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash/generation-1-1"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash/generation-1-1"
+    },
+    {
+      "id": "gemini-omni-1.1-flash-preview-official",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-1.1-flash-preview-official/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-1.1-flash-preview-official/generation"
+    },
+    {
+      "id": "gemini-omni-1.1-flash-preview-vip",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash/generation-1-1-vip"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash/generation-1-1-vip"
+    },
+    {
+      "id": "gemini-omni-flash-preview-official",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash-preview-official/generation",
+        "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash-preview-official/generation"
+    },
+    {
+      "id": "grok-video-1.0",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/grok-video/extend",
+        "https://docs.toapis.com/docs/cn/api-reference/videos/grok-video/generation",
+        "https://docs.toapis.com/docs/cn/api-reference/videos/grok-video/remix"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/grok-video/generation"
+    },
+    {
+      "id": "grok-video-1.5",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/grok-video-1.5/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/grok-video-1.5/generation"
+    },
+    {
+      "id": "happyhorse-1.1",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/happyhorse/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/happyhorse/generation"
+    },
+    {
+      "id": "kling-3.0-turbo",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/kling-3.0-turbo/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/kling-3.0-turbo/generation"
+    },
+    {
+      "id": "kling-v2-6",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/kling-2-6/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/kling-2-6/generation"
+    },
+    {
+      "id": "kling-v3",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/kling-v3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/kling-v3/generation"
+    },
+    {
+      "id": "kling-v3-omni",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/kling-v3-omni/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/kling-v3-omni/generation"
+    },
+    {
+      "id": "kling-video-o1",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/kling-video-o1/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/kling-video-o1/generation"
+    },
+    {
+      "id": "MiniMax-H3",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-h3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-h3/generation"
+    },
+    {
+      "id": "MiniMax-H3-Max",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-h3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-h3/generation"
+    },
+    {
+      "id": "MiniMax-H3-Max-Turbo",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-h3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-h3/generation"
+    },
+    {
+      "id": "MiniMax-Hailuo-02",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-hailuo/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-hailuo/generation"
+    },
+    {
+      "id": "MiniMax-Hailuo-2.3",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-hailuo-2.3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-hailuo-2.3/generation"
+    },
+    {
+      "id": "MiniMax-Hailuo-2.3-Fast",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-hailuo-2.3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/minimax-hailuo-2.3/generation"
+    },
+    {
+      "id": "seedance-2",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/private-assets",
+        "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2/generation"
+    },
+    {
+      "id": "seedance-2-5",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-5-ext/generation",
+        "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-5/draft",
+        "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-5/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-5/generation"
+    },
+    {
+      "id": "seedance-2-ext",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-ext/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-ext/generation"
+    },
+    {
+      "id": "seedance-2-fast",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2/generation"
+    },
+    {
+      "id": "seedance-2-fast-ext",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-fast-ext/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-fast-ext/generation"
+    },
+    {
+      "id": "seedance-2-mini",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2/generation"
+    },
+    {
+      "id": "seedance-2.5-ext",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-5-ext/generation",
+        "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-ext/generation",
+        "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-fast-ext/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/seedance-2-5-ext/generation"
+    },
+    {
+      "id": "sora-2-official",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/sora-2-official/generation",
+        "https://docs.toapis.com/docs/cn/api-reference/videos/sora-2-official/remix"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/sora-2-official/generation"
+    },
+    {
+      "id": "veo3.1-fast",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/veo3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/veo3/generation"
+    },
+    {
+      "id": "Veo3.1-fast-official",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/veo3-official/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/veo3-official/generation"
+    },
+    {
+      "id": "veo3.1-lite",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/veo3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/veo3/generation"
+    },
+    {
+      "id": "Veo3.1-lite-official",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/veo3-official/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/veo3-official/generation"
+    },
+    {
+      "id": "veo3.1-quality",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/veo3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/veo3/generation"
+    },
+    {
+      "id": "Veo3.1-quality-official",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/veo3-official/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/veo3-official/generation"
+    },
+    {
+      "id": "viduq3",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/viduq3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/viduq3/generation"
+    },
+    {
+      "id": "viduq3-ad",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/vidu-ali/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/vidu-ali/generation"
+    },
+    {
+      "id": "viduq3-drama",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/vidu-ali/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/vidu-ali/generation"
+    },
+    {
+      "id": "viduq3-mix",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/vidu-ali/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/vidu-ali/generation"
+    },
+    {
+      "id": "viduq3-pro",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/viduq3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/viduq3/generation"
+    },
+    {
+      "id": "viduq3-pro-fast",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/vidu-ali/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/vidu-ali/generation"
+    },
+    {
+      "id": "viduq3-turbo",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/viduq3/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/viduq3/generation"
+    },
+    {
+      "id": "viduq4-preview",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/viduq4-preview/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/viduq4-preview/generation"
+    },
+    {
+      "id": "wan2.6",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/wan2.6/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/wan2.6/generation"
+    },
+    {
+      "id": "wan2.6-flash",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/wan2.6-flash/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/wan2.6-flash/generation"
+    },
+    {
+      "id": "wan3.0-video",
+      "catalog_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/wan3.0/generation"
+      ],
+      "catalog_endpoint_labels": [
+        "openai",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/videos/wan3.0/generation"
+    },
+    {
+      "id": "wan3.0-video-prime",
+      "catalog_type": "video",
+      "documented_endpoints": [],
+      "evidence_status": "catalog_only_schema_unverified",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/models"
+      ],
+      "catalog_endpoint_labels": [
+        "openai",
+        "openai-video"
+      ],
+      "primary_doc": "https://docs.toapis.com/docs/cn/api-reference/models"
+    }
+  ],
+  "extra_candidates": [
+    {
+      "id": "gpt-4o-image",
+      "catalog_type": "extra",
+      "media_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation_outside_media_catalog_section",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/gpt-4o/generation"
+      ]
+    },
+    {
+      "id": "grok-4-1-image",
+      "catalog_type": "extra",
+      "media_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation_outside_media_catalog_section",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/grok-image/generation"
+      ]
+    },
+    {
+      "id": "grok-4-2-image",
+      "catalog_type": "extra",
+      "media_type": "image",
+      "documented_endpoints": [
+        "/v1/images/generations"
+      ],
+      "evidence_status": "documented_generation_outside_media_catalog_section",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/grok-image/generation"
+      ]
+    },
+    {
+      "id": "midjourney",
+      "catalog_type": "extra",
+      "media_type": "image",
+      "documented_endpoints": [
+        "/v1/midjourney/generations/imagine"
+      ],
+      "evidence_status": "documented_generation_outside_media_catalog_section",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/midjourney/generation",
+        "https://docs.toapis.com/docs/cn/api-reference/images/midjourney/imagine"
+      ]
+    },
+    {
+      "id": "sora-2-vvip",
+      "catalog_type": "extra",
+      "media_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation_outside_media_catalog_section",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/sora2/generation"
+      ]
+    },
+    {
+      "id": "gemini-omni-flash",
+      "catalog_type": "extra",
+      "media_type": "video",
+      "documented_endpoints": [
+        "/v1/videos/generations"
+      ],
+      "evidence_status": "documented_generation_outside_media_catalog_section",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash-preview-official/generation",
+        "https://docs.toapis.com/docs/cn/api-reference/videos/gemini-omni-flash/generation"
+      ]
+    },
+    {
+      "id": "midjourney",
+      "catalog_type": "extra",
+      "media_type": "video",
+      "documented_endpoints": [
+        "/v1/midjourney/generations/video"
+      ],
+      "evidence_status": "documented_generation_outside_media_catalog_section",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/images/midjourney/generation",
+        "https://docs.toapis.com/docs/cn/api-reference/images/midjourney/imagine"
+      ]
+    },
+    {
+      "id": "gemini-3.1-pro",
+      "catalog_type": "text",
+      "media_type": "image_candidate",
+      "documented_endpoints": [],
+      "evidence_status": "catalog_endpoint_label_only_schema_unverified",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/models"
+      ]
+    },
+    {
+      "id": "gemini-3.5-flash",
+      "catalog_type": "text",
+      "media_type": "image_candidate",
+      "documented_endpoints": [],
+      "evidence_status": "catalog_endpoint_label_only_schema_unverified",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/models"
+      ]
+    },
+    {
+      "id": "gemini-3.5-thinking",
+      "catalog_type": "text",
+      "media_type": "image_candidate",
+      "documented_endpoints": [],
+      "evidence_status": "catalog_endpoint_label_only_schema_unverified",
+      "docs": [
+        "https://docs.toapis.com/docs/cn/api-reference/models"
+      ]
+    }
+  ]
+}

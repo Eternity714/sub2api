@@ -19,7 +19,7 @@ export const CONCRETE_PLATFORM_OPTIONS: PlatformOption<AccountPlatform>[] = reac
 /** Platforms available for new groups; native media uses its public capability label. */
 export const GROUP_PLATFORM_OPTIONS: PlatformOption<GroupPlatform>[] = reactive([])
 
-/** Native media uses its own endpoint and cannot target a composite route. */
+/** Concrete platforms eligible as explicit Composite route targets. */
 export const COMPOSITE_ROUTE_PLATFORM_OPTIONS: PlatformOption<AccountPlatform>[] = reactive([])
 
 watchSyncEffect(() => {
@@ -33,6 +33,6 @@ watchSyncEffect(() => {
     value: 'composite',
     label: 'Composite'
   })
-  const composite = concrete.filter(option => option.value !== 'grsai')
+  const composite = concrete
   COMPOSITE_ROUTE_PLATFORM_OPTIONS.splice(0, COMPOSITE_ROUTE_PLATFORM_OPTIONS.length, ...composite)
 })

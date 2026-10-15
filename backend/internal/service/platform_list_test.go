@@ -10,7 +10,7 @@ import (
 )
 
 // 以下为重构前各处手写的平台列表 / switch，作为平台清单派生结果的等价基准；
-// 重构后新登记的平台（Command Code、Cline）按同类平台（OpenCode）的位置补入。
+// 重构后新登记的平台按同类平台的位置补入；媒体平台参与组合路由与快照，仍不进入用户平台额度。
 var (
 	legacyAllPlatforms = []string{
 		PlatformAnthropic, PlatformOpenAI, PlatformGemini, PlatformAntigravity, PlatformGrok,
@@ -23,15 +23,15 @@ var (
 		PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo, PlatformTypeSafe,
 		PlatformCommandCode,
 		PlatformCline,
-		PlatformGrsai,
+		PlatformGrsai, PlatformToAPIs,
 	}
 	legacyCompositeMatchingPlatforms = []string{
 		PlatformAnthropic, PlatformGemini, PlatformOpenAI, PlatformAntigravity, PlatformGrok,
 		PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo, PlatformTypeSafe,
-		PlatformCommandCode, PlatformCline,
+		PlatformCommandCode, PlatformCline, PlatformGrsai, PlatformToAPIs,
 	}
 	legacyMultiProtocolProviders = []string{PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo, PlatformCommandCode, PlatformCline}
-	platformProbeValues          = append(append([]string{}, legacyAllPlatforms...), PlatformGrsai, PlatformComposite, "", "moonshot", "Kimi", "openai ", "glm", "bogus")
+	platformProbeValues          = append(append([]string{}, legacyAllPlatforms...), PlatformGrsai, PlatformToAPIs, PlatformComposite, "", "moonshot", "Kimi", "openai ", "glm", "bogus")
 	platformProbeAccountTypes    = []string{AccountTypeAPIKey, AccountTypeOAuth, AccountTypeSetupToken, AccountTypeUpstream, ""}
 )
 
@@ -79,6 +79,9 @@ func legacyIsHeaderOverrideEligible(platform, accountType string) bool {
 }
 
 func legacyIsConcreteRequestPlatform(platform string) bool {
+	if platform == PlatformGrsai || platform == PlatformToAPIs {
+		return true
+	}
 	for _, p := range legacyAllPlatforms {
 		if p == platform {
 			return true

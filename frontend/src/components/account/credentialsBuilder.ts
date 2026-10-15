@@ -250,6 +250,10 @@ export const GROK_BASE_URL_PRESETS: GrokBaseUrlPreset[] = [
   { label: 'eu-west-1', url: 'https://eu-west-1.api.x.ai/v1' }
 ]
 
+/** ToAPIs 官方节点。账号始终保存管理员明确配置的地址。 */
+export const TOAPIS_GLOBAL_BASE_URL = 'https://toapis.com'
+export const TOAPIS_DOMESTIC_BASE_URL = 'https://toapis.cn'
+
 /** GRS.AI 官方节点。创建 GRS.AI 账号时默认使用全球节点。 */
 export const GRSAI_GLOBAL_BASE_URL = 'https://grsaiapi.com'
 export const GRSAI_DOMESTIC_BASE_URL = 'https://grsai.dakka.com.cn'

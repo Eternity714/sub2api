@@ -119,6 +119,20 @@ func (_c *CompositeModelRouteCreate) SetNillableUpstreamModel(v *string) *Compos
 	return _c
 }
 
+// SetCapabilityModel sets the "capability_model" field.
+func (_c *CompositeModelRouteCreate) SetCapabilityModel(v string) *CompositeModelRouteCreate {
+	_c.mutation.SetCapabilityModel(v)
+	return _c
+}
+
+// SetNillableCapabilityModel sets the "capability_model" field if the given value is not nil.
+func (_c *CompositeModelRouteCreate) SetNillableCapabilityModel(v *string) *CompositeModelRouteCreate {
+	if v != nil {
+		_c.SetCapabilityModel(*v)
+	}
+	return _c
+}
+
 // SetEndpoint sets the "endpoint" field.
 func (_c *CompositeModelRouteCreate) SetEndpoint(v string) *CompositeModelRouteCreate {
 	_c.mutation.SetEndpoint(v)
@@ -243,6 +257,10 @@ func (_c *CompositeModelRouteCreate) defaults() error {
 		v := compositemodelroute.DefaultUpstreamModel
 		_c.mutation.SetUpstreamModel(v)
 	}
+	if _, ok := _c.mutation.CapabilityModel(); !ok {
+		v := compositemodelroute.DefaultCapabilityModel
+		_c.mutation.SetCapabilityModel(v)
+	}
 	if _, ok := _c.mutation.Endpoint(); !ok {
 		v := compositemodelroute.DefaultEndpoint
 		_c.mutation.SetEndpoint(v)
@@ -299,6 +317,14 @@ func (_c *CompositeModelRouteCreate) check() error {
 	if v, ok := _c.mutation.UpstreamModel(); ok {
 		if err := compositemodelroute.UpstreamModelValidator(v); err != nil {
 			return &ValidationError{Name: "upstream_model", err: fmt.Errorf(`ent: validator failed for field "CompositeModelRoute.upstream_model": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.CapabilityModel(); !ok {
+		return &ValidationError{Name: "capability_model", err: errors.New(`ent: missing required field "CompositeModelRoute.capability_model"`)}
+	}
+	if v, ok := _c.mutation.CapabilityModel(); ok {
+		if err := compositemodelroute.CapabilityModelValidator(v); err != nil {
+			return &ValidationError{Name: "capability_model", err: fmt.Errorf(`ent: validator failed for field "CompositeModelRoute.capability_model": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Endpoint(); !ok {
@@ -372,6 +398,10 @@ func (_c *CompositeModelRouteCreate) createSpec() (*CompositeModelRoute, *sqlgra
 	if value, ok := _c.mutation.UpstreamModel(); ok {
 		_spec.SetField(compositemodelroute.FieldUpstreamModel, field.TypeString, value)
 		_node.UpstreamModel = value
+	}
+	if value, ok := _c.mutation.CapabilityModel(); ok {
+		_spec.SetField(compositemodelroute.FieldCapabilityModel, field.TypeString, value)
+		_node.CapabilityModel = value
 	}
 	if value, ok := _c.mutation.Endpoint(); ok {
 		_spec.SetField(compositemodelroute.FieldEndpoint, field.TypeString, value)
@@ -545,6 +575,18 @@ func (u *CompositeModelRouteUpsert) SetUpstreamModel(v string) *CompositeModelRo
 // UpdateUpstreamModel sets the "upstream_model" field to the value that was provided on create.
 func (u *CompositeModelRouteUpsert) UpdateUpstreamModel() *CompositeModelRouteUpsert {
 	u.SetExcluded(compositemodelroute.FieldUpstreamModel)
+	return u
+}
+
+// SetCapabilityModel sets the "capability_model" field.
+func (u *CompositeModelRouteUpsert) SetCapabilityModel(v string) *CompositeModelRouteUpsert {
+	u.Set(compositemodelroute.FieldCapabilityModel, v)
+	return u
+}
+
+// UpdateCapabilityModel sets the "capability_model" field to the value that was provided on create.
+func (u *CompositeModelRouteUpsert) UpdateCapabilityModel() *CompositeModelRouteUpsert {
+	u.SetExcluded(compositemodelroute.FieldCapabilityModel)
 	return u
 }
 
@@ -755,6 +797,20 @@ func (u *CompositeModelRouteUpsertOne) SetUpstreamModel(v string) *CompositeMode
 func (u *CompositeModelRouteUpsertOne) UpdateUpstreamModel() *CompositeModelRouteUpsertOne {
 	return u.Update(func(s *CompositeModelRouteUpsert) {
 		s.UpdateUpstreamModel()
+	})
+}
+
+// SetCapabilityModel sets the "capability_model" field.
+func (u *CompositeModelRouteUpsertOne) SetCapabilityModel(v string) *CompositeModelRouteUpsertOne {
+	return u.Update(func(s *CompositeModelRouteUpsert) {
+		s.SetCapabilityModel(v)
+	})
+}
+
+// UpdateCapabilityModel sets the "capability_model" field to the value that was provided on create.
+func (u *CompositeModelRouteUpsertOne) UpdateCapabilityModel() *CompositeModelRouteUpsertOne {
+	return u.Update(func(s *CompositeModelRouteUpsert) {
+		s.UpdateCapabilityModel()
 	})
 }
 
@@ -1141,6 +1197,20 @@ func (u *CompositeModelRouteUpsertBulk) SetUpstreamModel(v string) *CompositeMod
 func (u *CompositeModelRouteUpsertBulk) UpdateUpstreamModel() *CompositeModelRouteUpsertBulk {
 	return u.Update(func(s *CompositeModelRouteUpsert) {
 		s.UpdateUpstreamModel()
+	})
+}
+
+// SetCapabilityModel sets the "capability_model" field.
+func (u *CompositeModelRouteUpsertBulk) SetCapabilityModel(v string) *CompositeModelRouteUpsertBulk {
+	return u.Update(func(s *CompositeModelRouteUpsert) {
+		s.SetCapabilityModel(v)
+	})
+}
+
+// UpdateCapabilityModel sets the "capability_model" field to the value that was provided on create.
+func (u *CompositeModelRouteUpsertBulk) UpdateCapabilityModel() *CompositeModelRouteUpsertBulk {
+	return u.Update(func(s *CompositeModelRouteUpsert) {
+		s.UpdateCapabilityModel()
 	})
 }
 

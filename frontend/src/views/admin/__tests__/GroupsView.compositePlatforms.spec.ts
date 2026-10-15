@@ -8,7 +8,7 @@ describe('GroupsView Composite route options', () => {
     )
   })
 
-  it('keeps native media endpoints out of composite routes', () => {
-    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map((option) => option.value)).not.toContain('grsai')
+  it('allows GRS.AI and ToAPIs as media composite route candidates', () => {
+    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map((option) => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis']))
   })
 })

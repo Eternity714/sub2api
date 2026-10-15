@@ -827,7 +827,7 @@ func (s *SchedulerSnapshotService) rebuildByAccount(ctx context.Context, account
 
 // schedulerSnapshotPlatforms 返回需要维护调度快照的全部具体平台（平台清单）。
 func schedulerSnapshotPlatforms() []string {
-	return append(domain.CompositePrecedencePlatformIDs(), PlatformGrsai)
+	return domain.CompositePrecedencePlatformIDs()
 }
 
 // 生命周期辅助函数有意排除 group0；full rebuild 构造 group0 canonical 集时必须显式调用 canonical helper。
