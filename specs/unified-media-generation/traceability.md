@@ -1,6 +1,6 @@
 # 统一媒体 PRD 验收追溯
 
-更新日期：2026-10-15。范围为 [PRD](prd.md) 的 27 条验收标准。
+更新日期：2026-10-15。范围为 [PRD](prd.md) 的 28 条验收标准。
 
 本表记录实际存在的测试断言，不把“函数存在”“模板列入目录”或“某个下层校验通过”当作整条验收已完成。运行结果与覆盖范围是两件事：F01 已执行证据见 [validation.md](../001-media-capabilities/validation.md)，F02—F08 的最终串行验证记录由整体交付记录维护。新增测试未获得最终执行结果前均视为待验证。
 
@@ -33,6 +33,7 @@
 | AC-025 | `service/media_capability_docs_test.go::TestMediaCatalogDocumentationMatchesSchemasAndExamples` | 检查全部内置目录章节、字段类型／必填／默认／枚举／范围／格式、模式、组合约束、像素映射及可通过 schema 的示例。**管理员后续修改数据库能力后的文档发布同步不由静态目录测试保证。该新增测试已在最终全量容器回归通过。** |
 | AC-026 | `pkg/mediacapability/capability_test.go::TestValidatePromptDependsOnInputModeAndVideoDoesNotAcceptImageFields`；`TestValidateStrictJSONAndFieldRules/no_prompt_for_text`；HTTP required_prompt 场景 | 素材模式允许省略且不虚构 prompt；文字模式缺失被拒绝，HTTP 侧不创建任务或冻结。 |
 | AC-027 | `service/media_capability_catalog_test.go::TestMediaCatalogTemplatesCompileAndExamplesMatch`、`TestMediaCatalogSpecificConstraintsDoNotLeakAcrossModels` | Seedream 5 Pro 普通示例通过，图层分解被对应 schema 拒绝；公开创建路径无副作用的该特定型号场景尚需补充。 |
+| AC-028 | `service/unified_media_pricing_test.go::TestUnifiedMediaPricingUsesChannelInsteadOfGroupOverride`、`TestUnifiedMediaPricingRequiresActiveMatchingChannel`；`repository/unified_media_task_repo_integration_test.go::TestUnifiedMediaRepositoryHTTPWorkerEndToEnd`；`frontend/src/views/admin/__tests__/ChannelsView.mediaPricing.spec.ts` | 关联渠道、拒绝分组覆盖和缺价、真库预留与调价快照、前端视频价格保存；60 条规则／129 价位的 ×7 换算由本地迁移前后证据逐档复核。 |
 
 上述后端路径均相对 `backend/internal/`；前端路径相对仓库根目录。子测试名称展示为 Go 对空格归一后的名称。
 
@@ -62,3 +63,5 @@ foreach ($mediaTraceSource in (Get-Content specs/unified-media-generation/tracea
 }
 python D:/work/个人/sub2api/.agents/skills/ai-product-dev-pack/scripts/traceability_check.py specs/unified-media-generation $mediaTraceRoot
 ```
+
+2026-10-15 渠道定价更正后，限定清单新增 `unified_media_pricing_test.go`，再次通过 Docker Compose 执行机械检查：**28 条 AC 声明、28 条测试引用，0 个孤儿、0 个幽灵，退出码 0**。AC-028 的行为验证包括实际 ChannelService 真库调价快照回归、本地 60 条规则／129 个价位逐档 ×7 迁移校验，以及渠道停用时创建前 400 且资金和任务数不变。历史 27 条检查记录保留其当时范围。
