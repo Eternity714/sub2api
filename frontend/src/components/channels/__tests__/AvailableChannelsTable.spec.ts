@@ -87,22 +87,24 @@ const baseProps = {
   userGroupRates: { 1: 0.8 },
 }
 
-function mountTable(props = {}) {
+function mountTable(props = {}, warnHandler?: (message: string) => void) {
   return mount(AvailableChannelsTable, {
     props: { ...baseProps, ...props },
     global: {
+      config: { warnHandler },
       plugins: [createPinia()],
       stubs: {
         Icon: { props: ['name'], template: '<i :data-icon="name" />' },
-        PlatformIcon: { template: '<i data-platform-icon />' },
+        PlatformIcon: { props: ['platform'], template: '<i :data-platform-icon="platform" />' },
         GroupBadge: {
           props: ['name', 'rateMultiplier', 'userRateMultiplier'],
           template:
             '<span data-group-badge>{{ name }}:{{ rateMultiplier }}:{{ userRateMultiplier }}</span>',
         },
         SupportedModelChip: {
+          name: 'SupportedModelChip',
           props: ['model', 'noPricingLabel'],
-          template: '<span data-model-chip>{{ model.name }}:{{ noPricingLabel }}</span>',
+          template: '<span data-model-chip>{{ model.name }}:{{ noPricingLabel }}<span v-if="model.pricing">:{{ model.pricing.per_request_price }}</span></span>',
         },
       },
     },
@@ -110,6 +112,51 @@ function mountTable(props = {}) {
 }
 
 describe('AvailableChannelsTable responsive surfaces', () => {
+  it('retains same-name media models with different prices and unique keys on both surfaces', async () => {
+    const warnings: string[] = []
+    const supportedModels = [0.1, 0.2].map(price => ({
+      name: 'public-image-model', platform: 'media',
+      pricing: {
+        billing_mode: 'image' as const, per_request_price: price, intervals: [],
+        input_price: null, output_price: null, cache_write_price: null, cache_read_price: null,
+        image_input_price: null, image_output_price: null,
+      },
+    }))
+    const channelRows = [{ name: 'Media', description: '', platforms: [{ platform: 'media', groups: [], supported_models: supportedModels }] }]
+    const wrapper = mountTable({ rows: channelRows }, message => warnings.push(message))
+    try {
+      const keys = wrapper.findAllComponents({ name: 'SupportedModelChip' }).map(chip => chip.vm.$.vnode.key)
+      expect(keys).toHaveLength(4)
+      expect(new Set(keys).size).toBe(4)
+      await wrapper.setProps({ rows: [{ ...channelRows[0], platforms: [{ ...channelRows[0].platforms[0], supported_models: [...supportedModels].reverse() }] }] })
+      for (const surface of ['desktop-channels', 'mobile-channels']) {
+        const chips = wrapper.get(`[data-testid="${surface}"]`).findAll('[data-model-chip]')
+        expect(chips).toHaveLength(2)
+        expect(chips.map(chip => chip.text())).toEqual(['public-image-model:No pricing:0.2', 'public-image-model:No pricing:0.1'])
+      }
+      expect(warnings.some(message => /duplicate keys/i.test(message))).toBe(false)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  // AC-029: downstream media identity hides provider labels and icons on both surfaces.
+  it.each(['media', 'grsai', 'toapis'])('uses a public media label and icon for %s on desktop and mobile', platform => {
+    const wrapper = mountTable({
+      rows: [{
+        name: 'Images and videos', description: '',
+        platforms: [{ platform, groups: [], supported_models: [{ name: 'image-model', platform, pricing: null }] }],
+      }],
+    })
+    for (const surface of ['desktop-channels', 'mobile-channels']) {
+      const rendered = wrapper.get(`[data-testid="${surface}"]`)
+      expect(rendered.text()).toContain('admin.groups.platforms.media')
+      expect(rendered.text()).not.toMatch(/grsai|toapis|GRS\.AI/i)
+      expect(rendered.get('[data-platform-icon]').attributes('data-platform-icon')).toBe('media')
+    }
+    wrapper.unmount()
+  })
+
   it('keeps the five-column table as the desktop-only surface', () => {
     const wrapper = mountTable()
     const desktop = wrapper.get('[data-testid="desktop-channels"]')

@@ -72,6 +72,7 @@ import PlazaFilterBar from './PlazaFilterBar.vue'
 import PlazaGroupSection from './PlazaGroupSection.vue'
 import type { ModelPlazaGroup, ModelPlazaResponse } from '@/api/modelPlaza'
 import { useAuthStore } from '@/stores/auth'
+import { publicPlatformId } from '@/utils/publicPlatform'
 
 const props = defineProps<{
   response: ModelPlazaResponse | null
@@ -104,14 +105,14 @@ function effectiveRate(g: ModelPlazaGroup): number {
 }
 
 const platforms = computed(() =>
-  [...new Set((props.response?.groups ?? []).map((g) => g.platform).filter(Boolean))].sort()
+  [...new Set((props.response?.groups ?? []).map((g) => publicPlatformId(g.platform)).filter(Boolean))].sort()
 )
 
 const groupOptions = computed(() =>
   (props.response?.groups ?? []).map((g) => ({
     id: g.id,
     name: g.name,
-    platform: g.platform,
+    platform: publicPlatformId(g.platform),
     rate: effectiveRate(g)
   }))
 )
@@ -131,7 +132,7 @@ watch(rates, (list) => {
 const filteredGroups = computed(() => {
   let groups = props.response?.groups ?? []
   if (selectedPlatform.value !== 'all') {
-    groups = groups.filter((g) => g.platform === selectedPlatform.value)
+    groups = groups.filter((g) => publicPlatformId(g.platform) === selectedPlatform.value)
   }
   if (selectedGroupId.value !== 'all') {
     groups = groups.filter((g) => g.id === selectedGroupId.value)

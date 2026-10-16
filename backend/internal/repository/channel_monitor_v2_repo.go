@@ -311,7 +311,7 @@ func (r *channelMonitorV2Repository) GetModels(ctx context.Context, filter servi
 			if model == "" {
 				continue
 			}
-			key := platform + "\x00" + model
+			key := channelMonitorV2ViewerPlatform(platform, admin) + "\x00" + model
 			if accs[key] == nil {
 				accs[key] = newMetricAccumulator()
 			}
@@ -322,7 +322,7 @@ func (r *channelMonitorV2Repository) GetModels(ctx context.Context, filter servi
 			continue
 		}
 		model := channelMonitorV2DisplayModel(cfg, fact.Platform, fact.Model)
-		key := fact.Platform + "\x00" + model
+		key := channelMonitorV2ViewerPlatform(fact.Platform, admin) + "\x00" + model
 		if accs[key] == nil {
 			accs[key] = newMetricAccumulator()
 		}
@@ -332,7 +332,7 @@ func (r *channelMonitorV2Repository) GetModels(ctx context.Context, filter servi
 		if !channelMonitorV2ModelSelected(filter, cfg, h.Platform, h.Model) {
 			continue
 		}
-		key := h.Platform + "\x00" + channelMonitorV2DisplayModel(cfg, h.Platform, h.Model)
+		key := channelMonitorV2ViewerPlatform(h.Platform, admin) + "\x00" + channelMonitorV2DisplayModel(cfg, h.Platform, h.Model)
 		if accs[key] != nil {
 			accs[key].addHistogram(h)
 		}
@@ -341,6 +341,14 @@ func (r *channelMonitorV2Repository) GetModels(ctx context.Context, filter servi
 	ignoredByPM, _, err := r.loadIgnoredErrorCountsByPlatformModel(ctx, effectiveFilter, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("load ignored error counts by platform/model: %w", err)
+	}
+	if !admin {
+		merged := make(map[string]int64, len(ignoredByPM))
+		for key, count := range ignoredByPM {
+			platform, model, _ := strings.Cut(key, "\x00")
+			merged[channelMonitorV2ViewerPlatform(platform, false)+"\x00"+model] += count
+		}
+		ignoredByPM = merged
 	}
 	items := make([]service.ChannelMonitorV2ModelRow, 0, len(accs))
 	minutes := channelMonitorV2CoveredMinutes(filter, *coverage)
@@ -398,7 +406,14 @@ func (r *channelMonitorV2Repository) GetMatrix(ctx context.Context, filter servi
 	if err != nil {
 		return nil, err
 	}
-	accs := seedChannelMonitorV2MatrixAccumulators(filter, cfg, groupBy, groupInfo)
+	seeded := seedChannelMonitorV2MatrixAccumulators(filter, cfg, groupBy, groupInfo)
+	accs := make(map[channelMonitorV2MatrixKey]*channelMonitorV2MatrixAccumulator, len(seeded))
+	for key, acc := range seeded {
+		key.platform = channelMonitorV2ViewerPlatform(key.platform, admin)
+		if accs[key] == nil {
+			accs[key] = acc
+		}
+	}
 	for _, fact := range facts {
 		if !channelMonitorV2ModelSelected(filter, cfg, fact.Platform, fact.Model) {
 			continue
@@ -409,6 +424,7 @@ func (r *channelMonitorV2Repository) GetMatrix(ctx context.Context, filter servi
 			continue
 		}
 		key := channelMonitorV2MatrixDimensionKey(groupBy, cfg, fact.Platform, fact.GroupID, fact.Model)
+		key.platform = channelMonitorV2ViewerPlatform(key.platform, admin)
 		acc := accs[key]
 		if acc == nil {
 			acc = &channelMonitorV2MatrixAccumulator{total: newMetricAccumulator(), buckets: make(map[string]*metricAccumulator)}
@@ -434,6 +450,7 @@ func (r *channelMonitorV2Repository) GetMatrix(ctx context.Context, filter servi
 			continue
 		}
 		key := channelMonitorV2MatrixDimensionKey(groupBy, cfg, histogram.Platform, histogram.GroupID, histogram.Model)
+		key.platform = channelMonitorV2ViewerPlatform(key.platform, admin)
 		acc := accs[key]
 		if acc == nil {
 			continue
@@ -449,6 +466,24 @@ func (r *channelMonitorV2Repository) GetMatrix(ctx context.Context, filter servi
 	ignoredByDimBucket, ignoredByDim, err := r.loadIgnoredErrorCountsByMatrixKey(ctx, effectiveFilter, cfg, groupBy)
 	if err != nil {
 		return nil, fmt.Errorf("load ignored error counts by matrix key: %w", err)
+	}
+	if !admin {
+		merged := make(map[channelMonitorV2MatrixKey]int64, len(ignoredByDim))
+		mergedBuckets := make(map[channelMonitorV2MatrixKey]map[string]int64, len(ignoredByDimBucket))
+		for key, count := range ignoredByDim {
+			key.platform = channelMonitorV2ViewerPlatform(key.platform, false)
+			merged[key] += count
+		}
+		for key, buckets := range ignoredByDimBucket {
+			key.platform = channelMonitorV2ViewerPlatform(key.platform, false)
+			if mergedBuckets[key] == nil {
+				mergedBuckets[key] = make(map[string]int64, len(buckets))
+			}
+			for bucket, count := range buckets {
+				mergedBuckets[key][bucket] += count
+			}
+		}
+		ignoredByDim, ignoredByDimBucket = merged, mergedBuckets
 	}
 	for key, acc := range accs {
 		// platform_group views only emit rows with a real group_id.
@@ -493,6 +528,15 @@ func (r *channelMonitorV2Repository) GetMatrix(ctx context.Context, filter servi
 		return a.Model < b.Model
 	})
 	return result, nil
+}
+
+// Project only aggregation identities. Scope, configured model selection and SQL
+// retain the real provider; facts and histograms merge before rates and health.
+func channelMonitorV2ViewerPlatform(platform string, admin bool) string {
+	if !admin && (platform == service.PlatformGrsai || platform == service.PlatformToAPIs) {
+		return "media"
+	}
+	return platform
 }
 
 func channelMonitorV2MatrixDimensionKey(groupBy service.ChannelMonitorV2GroupBy, cfg service.ChannelMonitorV2Config, platform string, groupID int64, model string) channelMonitorV2MatrixKey {

@@ -82,14 +82,14 @@ function cardPlatforms(w: VueWrapper): string[] {
 }
 
 describe('UserDashboardStats 按平台拆分', () => {
-  it('shows public media usage and quota together with a generic label', () => {
+  it.each(['media', 'grsai', 'toapis'])('shows %s media usage and quota together with a generic label', platform => {
     const w = mountStats(
-      makeStats({ total_actual_cost: 0.01, today_actual_cost: 0.01, by_platform: [usage('media', 0.01)] }),
-      [quota({ platform: 'media', daily_limit_usd: 1, daily_usage_usd: 0.01 })]
+      makeStats({ total_actual_cost: 0.01, today_actual_cost: 0.01, by_platform: [usage(platform, 0.01)] }),
+      [quota({ platform, daily_limit_usd: 1, daily_usage_usd: 0.01 })]
     )
-    expect(cardPlatforms(w)).toEqual(['media'])
+    expect(cardPlatforms(w)).toEqual([platform])
     expect(w.text()).toContain('Media API')
-    expect(w.text()).not.toMatch(/grsai|GRS\.AI/)
+    expect(w.text()).not.toMatch(/grsai|toapis|GRS\.AI/i)
     expect(w.text()).toContain('dashboard.platformQuota.title')
     w.unmount()
   })

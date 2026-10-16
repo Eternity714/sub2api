@@ -59,6 +59,7 @@ import userChannelsAPI, { type UserAvailableChannel } from '@/api/channels'
 import userGroupsAPI from '@/api/groups'
 import { useAppStore } from '@/stores/app'
 import { extractApiErrorMessage } from '@/utils/apiError'
+import { publicPlatformId, publicPlatformLabel } from '@/utils/publicPlatform'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -92,7 +93,8 @@ const filteredChannels = computed(() => {
       if (nameHit || descHit) return ch
       const matchingSections = ch.platforms.filter(
         (p) =>
-          p.platform.toLowerCase().includes(q) ||
+          publicPlatformId(p.platform).toLowerCase().includes(q) ||
+          publicPlatformLabel(p.platform, t('admin.groups.platforms.media')).toLowerCase().includes(q) ||
           p.groups.some((g) => g.name.toLowerCase().includes(q)) ||
           p.supported_models.some((m) => m.name.toLowerCase().includes(q)),
       )

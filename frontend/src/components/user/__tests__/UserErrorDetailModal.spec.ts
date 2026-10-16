@@ -26,6 +26,15 @@ async function open() {
 }
 
 describe('user error detail requests', () => {
+  it.each(['grsai', 'toapis'])('shows a public media platform for legacy %s error records', async platform => {
+    getDetail.mockResolvedValue({ ...detail('public-model-id'), platform })
+    const wrapper = await open()
+    await flushPromises()
+    expect(wrapper.text()).toContain('Media API')
+    expect(wrapper.text()).toContain('public-model-id')
+    expect(wrapper.text()).not.toMatch(/grsai|toapis|GRS\.AI/i)
+  })
+
   it('keeps the newer detail when an earlier request finishes last', async () => {
     const old = deferred(); const current = deferred()
     getDetail.mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise)

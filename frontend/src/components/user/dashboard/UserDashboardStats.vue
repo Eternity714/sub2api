@@ -230,7 +230,7 @@ import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import type { PlatformDashboardStats, UserDashboardStats as UserStatsType } from '@/api/usage'
 import type { PlatformQuotaItem } from '@/types'
-import { platformDisplayValue } from '@/utils/platformColors'
+import { publicPlatformLabel as platformDisplayValue } from '@/utils/publicPlatform'
 
 interface FusedPlatformCard {
   platform: string

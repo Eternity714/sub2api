@@ -68,11 +68,11 @@
             <span
               :class="[
                 'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium uppercase',
-                platformBadgeClass(section.platform),
+                platformBadgeClass(publicPlatformId(section.platform)),
               ]"
             >
-              <PlatformIcon :platform="section.platform as GroupPlatform" size="xs" />
-              {{ platformDisplayValue(section.platform) }}
+              <PlatformIcon :platform="publicPlatformId(section.platform) as GroupPlatform" size="xs" />
+              {{ displayPlatformLabel(section.platform) }}
             </span>
           </td>
 
@@ -97,7 +97,7 @@
                 >
                   <GroupBadge
                     :name="g.name"
-                    :platform="g.platform as GroupPlatform"
+                    :platform="publicPlatformId(g.platform) as GroupPlatform"
                     :subscription-type="(g.subscription_type || 'standard') as SubscriptionType"
                     :rate-multiplier="g.rate_multiplier"
                     :user-rate-multiplier="userGroupRates[g.id] ?? null"
@@ -131,7 +131,7 @@
                 >
                   <GroupBadge
                     :name="g.name"
-                    :platform="g.platform as GroupPlatform"
+                    :platform="publicPlatformId(g.platform) as GroupPlatform"
                     :subscription-type="(g.subscription_type || 'standard') as SubscriptionType"
                     :rate-multiplier="g.rate_multiplier"
                     :user-rate-multiplier="userGroupRates[g.id] ?? null"
@@ -155,8 +155,8 @@
           <td class="align-top px-4 py-3">
             <div class="flex flex-wrap gap-1">
               <SupportedModelChip
-                v-for="m in section.supported_models"
-                :key="`${section.platform}-${m.name}`"
+                v-for="(m, modelIdx) in section.supported_models"
+                :key="`${section.platform}-${m.name}-${modelIdx}`"
                 :model="m"
                 :pricing-key-prefix="pricingKeyPrefix"
                 :no-pricing-label="noPricingLabel"
@@ -204,11 +204,11 @@
             <span
               :class="[
                 'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium uppercase',
-                platformBadgeClass(section.platform),
+                platformBadgeClass(publicPlatformId(section.platform)),
               ]"
             >
-              <PlatformIcon :platform="section.platform as GroupPlatform" size="xs" />
-              {{ platformDisplayValue(section.platform) }}
+              <PlatformIcon :platform="publicPlatformId(section.platform) as GroupPlatform" size="xs" />
+              {{ displayPlatformLabel(section.platform) }}
             </span>
 
             <dl class="mt-3 space-y-3">
@@ -236,7 +236,7 @@
                       <GroupBadge
                         class="max-w-full"
                         :name="g.name"
-                        :platform="g.platform as GroupPlatform"
+                        :platform="publicPlatformId(g.platform) as GroupPlatform"
                         :subscription-type="(g.subscription_type || 'standard') as SubscriptionType"
                         :rate-multiplier="g.rate_multiplier"
                         :user-rate-multiplier="userGroupRates[g.id] ?? null"
@@ -271,7 +271,7 @@
                       <GroupBadge
                         class="max-w-full"
                         :name="g.name"
-                        :platform="g.platform as GroupPlatform"
+                        :platform="publicPlatformId(g.platform) as GroupPlatform"
                         :subscription-type="(g.subscription_type || 'standard') as SubscriptionType"
                         :rate-multiplier="g.rate_multiplier"
                         :user-rate-multiplier="userGroupRates[g.id] ?? null"
@@ -297,8 +297,8 @@
                 </dt>
                 <dd class="flex min-w-0 flex-wrap gap-1">
                   <SupportedModelChip
-                    v-for="m in section.supported_models"
-                    :key="`mobile-${section.platform}-${m.name}`"
+                    v-for="(m, modelIdx) in section.supported_models"
+                    :key="`mobile-${section.platform}-${m.name}-${modelIdx}`"
                     class="max-w-full [&>span]:max-w-full [&>span]:truncate"
                     :model="m"
                     :pricing-key-prefix="pricingKeyPrefix"
@@ -327,7 +327,8 @@ import GroupBadge from '@/components/common/GroupBadge.vue'
 import SupportedModelChip from './SupportedModelChip.vue'
 import type { UserAvailableChannel, UserAvailableGroup, UserChannelPlatformSection } from '@/api/channels'
 import type { GroupPlatform, SubscriptionType } from '@/types'
-import { platformBadgeClass, platformDisplayValue } from '@/utils/platformColors'
+import { platformBadgeClass } from '@/utils/platformColors'
+import { publicPlatformId, publicPlatformLabel } from '@/utils/publicPlatform'
 import { useAppStore } from '@/stores/app'
 import { hasPeakRate as groupHasPeakRate, formatPeakRateWindow, serverTimezoneLabel } from '@/utils/peak-rate'
 
@@ -354,6 +355,7 @@ const props = defineProps<{
 void props.userGroupRates
 
 const { t } = useI18n()
+const displayPlatformLabel = (platform: string) => publicPlatformLabel(platform, t('admin.groups.platforms.media'))
 
 function exclusiveGroups(section: UserChannelPlatformSection): UserAvailableGroup[] {
   return section.groups.filter((g) => g.is_exclusive)

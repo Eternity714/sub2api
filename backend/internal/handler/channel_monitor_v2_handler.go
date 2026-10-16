@@ -116,10 +116,7 @@ func (h *ChannelMonitorV2Handler) snapshot(c *gin.Context, admin bool) {
 	}
 	if !admin && result != nil {
 		out := *result
-		out.Config.Platforms = append([]service.ChannelMonitorV2PlatformConfig(nil), result.Config.Platforms...)
-		for i := range out.Config.Platforms {
-			out.Config.Platforms[i].Platform = dto.UserVisiblePlatform(out.Config.Platforms[i].Platform)
-		}
+		out.Config.Platforms = userMonitorV2PlatformConfig(result.Config.Platforms)
 		result = &out
 	}
 	response.Success(c, result)
@@ -235,18 +232,8 @@ func (h *ChannelMonitorV2Handler) scopeFilter(c *gin.Context, filter *service.Ch
 		return false
 	}
 	filter.RestrictGroups = true
-	filter.Platforms = append([]string(nil), filter.Platforms...)
-	for i := range filter.Platforms {
-		if filter.Platforms[i] == "media" {
-			filter.Platforms[i] = "grsai"
-		}
-	}
-	filter.Models = append([]string(nil), filter.Models...)
-	for i := range filter.Models {
-		if model, ok := strings.CutPrefix(filter.Models[i], "media\x00"); ok {
-			filter.Models[i] = "grsai\x00" + model
-		}
-	}
+	filter.Platforms = expandUserMonitorV2MediaFilter(filter.Platforms, "")
+	filter.Models = expandUserMonitorV2MediaFilter(filter.Models, "\x00")
 	filter.AllowedGroupIDs = make([]int64, 0, len(groups))
 	for i := range groups {
 		filter.AllowedGroupIDs = append(filter.AllowedGroupIDs, groups[i].ID)
@@ -286,30 +273,84 @@ func userMonitorV2Dimensions(src *service.ChannelMonitorV2Dimensions) *service.C
 		return nil
 	}
 	out := *src
-	out.Platforms = append([]service.ChannelMonitorV2Dimension(nil), src.Platforms...)
+	out.Platforms = make([]service.ChannelMonitorV2Dimension, 0, len(src.Platforms))
 	out.Groups = append([]service.ChannelMonitorV2GroupDimension(nil), src.Groups...)
-	out.Models = append([]service.ChannelMonitorV2Dimension(nil), src.Models...)
-	for i := range out.Platforms {
-		if out.Platforms[i].Value == "grsai" {
-			out.Platforms[i].Value = "media"
-			out.Platforms[i].Label = "Media API"
+	out.Models = make([]service.ChannelMonitorV2Dimension, 0, len(src.Models))
+	platforms := make(map[string]int, len(src.Platforms))
+	for _, dimension := range src.Platforms {
+		if dto.UserVisiblePlatform(dimension.Value) == "media" {
+			dimension.Value = "media"
+			dimension.Label = "Media API"
+			dimension.Platform = "media"
 		}
-		out.Platforms[i].Platform = dto.UserVisiblePlatform(out.Platforms[i].Platform)
+		dimension.Platform = dto.UserVisiblePlatform(dimension.Platform)
+		if index, exists := platforms[dimension.Value]; exists {
+			out.Platforms[index].RequestCount += dimension.RequestCount
+		} else {
+			platforms[dimension.Value] = len(out.Platforms)
+			out.Platforms = append(out.Platforms, dimension)
+		}
 	}
 	for i := range out.Groups {
 		out.Groups[i].Platform = dto.UserVisiblePlatform(out.Groups[i].Platform)
 	}
-	for i := range out.Models {
-		if model, ok := strings.CutPrefix(out.Models[i].Value, "grsai\x00"); ok {
-			out.Models[i].Value = "media\x00" + model
-			out.Models[i].Label = model
+	models := make(map[string]int, len(src.Models))
+	for _, dimension := range src.Models {
+		if platform, model, ok := strings.Cut(dimension.Value, "\x00"); ok && dto.UserVisiblePlatform(platform) == "media" {
+			dimension.Value = "media\x00" + model
+			dimension.Label = model
+			dimension.Platform = "media"
 			if model == service.ChannelMonitorV2OtherModel {
-				out.Models[i].Label = "Other models"
+				dimension.Label = "Other models"
 			}
 		}
-		out.Models[i].Platform = dto.UserVisiblePlatform(out.Models[i].Platform)
+		dimension.Platform = dto.UserVisiblePlatform(dimension.Platform)
+		if index, exists := models[dimension.Value]; exists {
+			out.Models[index].RequestCount += dimension.RequestCount
+		} else {
+			models[dimension.Value] = len(out.Models)
+			out.Models = append(out.Models, dimension)
+		}
 	}
 	return &out
+}
+
+func expandUserMonitorV2MediaFilter(src []string, separator string) []string {
+	out := make([]string, 0, len(src))
+	seen := make(map[string]bool, len(src))
+	appendValue := func(value string) {
+		if !seen[value] {
+			seen[value] = true
+			out = append(out, value)
+		}
+	}
+	for _, value := range src {
+		model, media := strings.CutPrefix(value, "media"+separator)
+		if media && (separator != "" || model == "") {
+			appendValue("grsai" + separator + model)
+			appendValue("toapis" + separator + model)
+		} else {
+			appendValue(value)
+		}
+	}
+	return out
+}
+
+func userMonitorV2PlatformConfig(src []service.ChannelMonitorV2PlatformConfig) []service.ChannelMonitorV2PlatformConfig {
+	out := make([]service.ChannelMonitorV2PlatformConfig, 0, len(src))
+	indexes := make(map[string]int, len(src))
+	for _, platform := range src {
+		platform.Platform = dto.UserVisiblePlatform(platform.Platform)
+		// Public snapshots expose availability only; the service strips model allow-lists.
+		platform.Models = nil
+		if index, exists := indexes[platform.Platform]; exists {
+			out[index].Enabled = out[index].Enabled || platform.Enabled
+		} else {
+			indexes[platform.Platform] = len(out)
+			out = append(out, platform)
+		}
+	}
+	return out
 }
 
 func parseChannelMonitorV2GroupIDs(values []string) ([]int64, error) {
