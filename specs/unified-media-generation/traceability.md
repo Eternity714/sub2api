@@ -34,6 +34,7 @@
 | AC-026 | `pkg/mediacapability/capability_test.go::TestValidatePromptDependsOnInputModeAndVideoDoesNotAcceptImageFields`；`TestValidateStrictJSONAndFieldRules/no_prompt_for_text`；HTTP required_prompt 场景 | 素材模式允许省略且不虚构 prompt；文字模式缺失被拒绝，HTTP 侧不创建任务或冻结。 |
 | AC-027 | `service/media_capability_catalog_test.go::TestMediaCatalogTemplatesCompileAndExamplesMatch`、`TestMediaCatalogSpecificConstraintsDoNotLeakAcrossModels` | Seedream 5 Pro 普通示例通过，图层分解被对应 schema 拒绝；公开创建路径无副作用的该特定型号场景尚需补充。 |
 | AC-028 | `service/unified_media_pricing_test.go::TestUnifiedMediaPricingUsesChannelInsteadOfGroupOverride`、`TestUnifiedMediaPricingRequiresActiveMatchingChannel`；`repository/unified_media_task_repo_integration_test.go::TestUnifiedMediaRepositoryHTTPWorkerEndToEnd`；`frontend/src/views/admin/__tests__/ChannelsView.mediaPricing.spec.ts` | 关联渠道、拒绝分组覆盖和缺价、真库预留与调价快照、前端视频价格保存；60 条规则／129 价位的 ×7 换算由本地迁移前后证据逐档复核。 |
+| AC-029 | `handler/user_media_toapis_projection_test.go`、`handler/channel_monitor_media_projection_test.go`、`repository/channel_monitor_media_projection_test.go`、`handler/gateway_media_discovery_test.go`；`frontend/src/components/channels/__tests__/AvailableChannelsTable.spec.ts`、`frontend/src/components/modelPlaza/__tests__/publicPlatformDisplay.spec.ts` | 两媒体平台的用户 DTO、单区块与分组去重、同价模型别名安全隐藏、不同价保留、管理员真实平台与源对象不变；媒体筛选展开及分组权限、原始指标／直方图合并后算比例和分位数；桌面／移动／提示／筛选图标统一。模型发现隐藏不改变旧名称的路由解析，allowlist 过滤先于别名隐藏。 |
 
 上述后端路径均相对 `backend/internal/`；前端路径相对仓库根目录。子测试名称展示为 Go 对空格归一后的名称。
 

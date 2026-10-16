@@ -96,8 +96,8 @@ func TestUserMediaMonitorV2ResponsesPreserveInternalPlatforms(t *testing.T) {
 			require.Contains(t, w.Body.String(), "media")
 			require.NotContains(t, w.Body.String(), "grsai")
 			require.NotContains(t, w.Body.String(), "GRS.AI")
-			require.Equal(t, []string{"grsai"}, repo.filter.Platforms)
-			require.Equal(t, []string{"grsai\x00image-model", "openai\x00image-model"}, repo.filter.Models)
+			require.Equal(t, []string{"grsai", "toapis"}, repo.filter.Platforms)
+			require.Equal(t, []string{"grsai\x00image-model", "toapis\x00image-model", "openai\x00image-model"}, repo.filter.Models)
 			if call.name == "dimensions" {
 				var body struct {
 					Data service.ChannelMonitorV2Dimensions `json:"data"`
@@ -230,8 +230,8 @@ func TestUserMediaMonitorFilterUsesInternalPlatform(t *testing.T) {
 	models := []string{"media\x00image-model", "openai\x00image-model", "plain-model"}
 	filter := service.ChannelMonitorV2Filter{Platforms: []string{"media", "openai"}, Models: models}
 	require.True(t, h.scopeFilter(c, &filter, false))
-	require.Equal(t, []string{"grsai", "openai"}, filter.Platforms)
-	require.Equal(t, []string{"grsai\x00image-model", "openai\x00image-model", "plain-model"}, filter.Models)
+	require.Equal(t, []string{"grsai", "toapis", "openai"}, filter.Platforms)
+	require.Equal(t, []string{"grsai\x00image-model", "toapis\x00image-model", "openai\x00image-model", "plain-model"}, filter.Models)
 	require.Equal(t, []string{"media\x00image-model", "openai\x00image-model", "plain-model"}, models)
 	admin := service.ChannelMonitorV2Filter{Platforms: []string{"grsai"}, Models: []string{"grsai\x00image-model"}}
 	require.True(t, h.scopeFilter(nil, &admin, true))

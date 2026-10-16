@@ -23,7 +23,7 @@
         v-if="showPlatform && model.platform"
         class="rounded bg-gray-200/60 px-1 text-[10px] uppercase text-gray-600 dark:bg-dark-700 dark:text-gray-400"
       >
-        {{ platformDisplayValue(model.platform) }}
+        {{ displayPlatformLabel(model.platform) }}
       </span>
       {{ model.name }}
     </span>
@@ -50,7 +50,7 @@
             v-if="model.platform"
             class="flex-shrink-0 rounded bg-white/70 px-1.5 py-0.5 text-[10px] uppercase tracking-wide dark:bg-dark-900/60"
           >
-            {{ platformDisplayValue(model.platform) }}
+            {{ displayPlatformLabel(model.platform) }}
           </span>
         </div>
 
@@ -185,7 +185,8 @@ import {
 import type { UserPricingInterval, UserSupportedModel, UserSupportedModelPricing } from '@/api/channels'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import type { GroupPlatform } from '@/types'
-import { platformBadgeClass, platformBorderClass, platformBadgeLightClass, platformDisplayValue } from '@/utils/platformColors'
+import { platformBadgeClass, platformBorderClass, platformBadgeLightClass } from '@/utils/platformColors'
+import { publicPlatformId, publicPlatformLabel } from '@/utils/publicPlatform'
 
 const props = withDefaults(
   defineProps<{
@@ -208,9 +209,10 @@ const props = withDefaults(
   }
 )
 
-const effectivePlatform = computed<string>(() => props.model.platform || props.platformHint || '')
+const effectivePlatform = computed<string>(() => publicPlatformId(props.model.platform || props.platformHint || ''))
 
 const { t } = useI18n()
+const displayPlatformLabel = (platform: string) => publicPlatformLabel(platform, t('admin.groups.platforms.media'))
 
 /** 按 token 定价展示时的换算单位：每百万 token。 */
 const perMillionScale = 1_000_000

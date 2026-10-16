@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"reflect"
 	"sort"
+	"strings"
 
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
@@ -243,19 +245,84 @@ func buildPlatformSections(
 	sort.Strings(platforms)
 
 	sections := make([]userChannelPlatformSection, 0, len(platforms))
+	sectionIndex := make(map[string]int, len(platforms))
 	for _, platform := range platforms {
 		platformSet := map[string]struct{}{platform: {}}
 		groups := append([]userAvailableGroup(nil), groupsByPlatform[platform]...)
 		for i := range groups {
 			groups[i].Platform = dto.UserVisiblePlatform(groups[i].Platform)
 		}
-		sections = append(sections, userChannelPlatformSection{
-			Platform:        dto.UserVisiblePlatform(platform),
-			Groups:          groups,
-			SupportedModels: toUserSupportedModels(ch.SupportedModels, platformSet),
-		})
+		publicPlatform := dto.UserVisiblePlatform(platform)
+		models := toUserSupportedModels(ch.SupportedModels, platformSet)
+		if index, exists := sectionIndex[publicPlatform]; exists {
+			section := &sections[index]
+			for _, group := range groups {
+				found := false
+				for _, existing := range section.Groups {
+					if existing.ID == group.ID {
+						found = true
+						break
+					}
+				}
+				if !found {
+					section.Groups = append(section.Groups, group)
+				}
+			}
+			section.SupportedModels = append(section.SupportedModels, models...)
+			continue
+		}
+		sectionIndex[publicPlatform] = len(sections)
+		sections = append(sections, userChannelPlatformSection{Platform: publicPlatform, Groups: groups, SupportedModels: models})
 	}
+	for index := range sections {
+		sections[index].SupportedModels = projectUserSupportedModels(sections[index].SupportedModels)
+	}
+	sort.SliceStable(sections, func(i, j int) bool { return sections[i].Platform < sections[j].Platform })
 	return sections
+}
+
+// projectUserSupportedModels merges identical public entries after access filtering.
+// A provider alias is omitted only when the same visible collection contains an
+// unprefixed model with the same price; accepted model identifiers stay unchanged.
+func projectUserSupportedModels(src []userSupportedModel) []userSupportedModel {
+	out := make([]userSupportedModel, 0, len(src))
+	for _, model := range src {
+		if publicName, alias := userMediaAliasName(model.Platform, model.Name); alias {
+			hidden := false
+			for _, candidate := range src {
+				if candidate.Platform == model.Platform && strings.EqualFold(candidate.Name, publicName) && reflect.DeepEqual(candidate.Pricing, model.Pricing) {
+					hidden = true
+					break
+				}
+			}
+			if hidden {
+				continue
+			}
+		}
+		duplicate := false
+		for _, existing := range out {
+			if reflect.DeepEqual(existing, model) {
+				duplicate = true
+				break
+			}
+		}
+		if !duplicate {
+			out = append(out, model)
+		}
+	}
+	return out
+}
+
+func userMediaAliasName(platform, name string) (string, bool) {
+	if platform != "media" {
+		return "", false
+	}
+	for _, prefix := range []string{service.PlatformGrsai + "/", service.PlatformToAPIs + "/"} {
+		if strings.HasPrefix(strings.ToLower(name), prefix) && len(name) > len(prefix) {
+			return name[len(prefix):], true
+		}
+	}
+	return "", false
 }
 
 // filterUserVisibleGroups 仅保留用户可访问的分组。

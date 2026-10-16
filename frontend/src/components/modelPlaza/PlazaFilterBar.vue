@@ -12,11 +12,11 @@
           type="button"
           class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 disabled:grayscale"
           :class="p === 'all' ? chipClass(platform === 'all') : platform === p ? 'chip-tinted-active' : 'chip-tinted'"
-          :style="p === 'all' ? undefined : { '--chip-accent': platformAccentColor(p) }"
+          :style="p === 'all' ? undefined : { '--chip-accent': platformAccentColor(publicPlatformId(p)) }"
           :disabled="p !== 'all' && !platformEnabled(p)"
           @click="$emit('update:platform', p)"
         >
-          <PlatformIcon v-if="p !== 'all'" :platform="p as GroupPlatform" size="xs" />
+          <PlatformIcon v-if="p !== 'all'" :platform="publicPlatformId(p) as GroupPlatform" size="xs" />
           {{ p === 'all' ? t('modelPlaza.filters.all') : displayPlatformLabel(p) }}
         </button>
       </div>
@@ -42,7 +42,7 @@
           type="button"
           class="rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 disabled:grayscale"
           :class="groupId === g.id ? 'chip-tinted-active' : 'chip-tinted'"
-          :style="{ '--chip-accent': platformAccentColor(g.platform) }"
+          :style="{ '--chip-accent': platformAccentColor(publicPlatformId(g.platform)) }"
           :disabled="!groupEnabled(g)"
           @click="$emit('update:groupId', g.id)"
         >
@@ -115,6 +115,7 @@ import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import { platformAccentColor } from '@/utils/platformColors'
+import { publicPlatformId, publicPlatformLabel } from '@/utils/publicPlatform'
 import type { GroupPlatform } from '@/types'
 
 const props = defineProps<{
@@ -141,7 +142,7 @@ defineEmits<{
 const { t } = useI18n()
 
 const displayPlatformLabel = (platform: string) =>
-  platform === 'media' || platform === 'grsai' ? t('admin.groups.platforms.media') : platform
+  publicPlatformLabel(platform, t('admin.groups.platforms.media'))
 
 /**
  * 三个维度互为约束(faceted):某选项可点 ⟺ 在「其他两维」当前选择下仍有分组命中。
@@ -150,7 +151,7 @@ const displayPlatformLabel = (platform: string) =>
 function platformEnabled(p: string): boolean {
   return props.groups.some(
     (g) =>
-      g.platform === p &&
+      publicPlatformId(g.platform) === publicPlatformId(p) &&
       (props.groupId === 'all' || g.id === props.groupId) &&
       (props.rate === 'all' || g.rate === props.rate)
   )
@@ -158,7 +159,7 @@ function platformEnabled(p: string): boolean {
 
 function groupEnabled(g: { platform: string; rate: number }): boolean {
   return (
-    (props.platform === 'all' || g.platform === props.platform) &&
+    (props.platform === 'all' || publicPlatformId(g.platform) === publicPlatformId(props.platform)) &&
     (props.rate === 'all' || g.rate === props.rate)
   )
 }
@@ -167,7 +168,7 @@ function rateEnabled(r: number): boolean {
   return props.groups.some(
     (g) =>
       g.rate === r &&
-      (props.platform === 'all' || g.platform === props.platform) &&
+      (props.platform === 'all' || publicPlatformId(g.platform) === publicPlatformId(props.platform)) &&
       (props.groupId === 'all' || g.id === props.groupId)
   )
 }

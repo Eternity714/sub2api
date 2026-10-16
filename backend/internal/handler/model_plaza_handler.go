@@ -2,6 +2,8 @@ package handler
 
 import (
 	"log/slog"
+	"reflect"
+	"strings"
 
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
@@ -211,6 +213,7 @@ func toModelPlazaGroupDTO(g *service.PlazaGroup, userRates map[int64]float64) mo
 			TimePricing:      toModelPlazaTimePricing(m.TimePricing),
 		})
 	}
+	models = projectUserPlazaModels(models)
 	dto := modelPlazaGroup{
 		ID:                        g.ID,
 		Name:                      g.Name,
@@ -234,6 +237,40 @@ func toModelPlazaGroupDTO(g *service.PlazaGroup, userRates map[int64]float64) mo
 		dto.UserRateMultiplier = &rate
 	}
 	return dto
+}
+
+func projectUserPlazaModels(src []modelPlazaModel) []modelPlazaModel {
+	out := make([]modelPlazaModel, 0, len(src))
+	for _, model := range src {
+		if publicName, alias := userMediaAliasName(model.Platform, model.Name); alias {
+			hidden := false
+			for _, candidate := range src {
+				if candidate.Platform != model.Platform || !strings.EqualFold(candidate.Name, publicName) {
+					continue
+				}
+				// Compare all displayed price semantics, including official tiers and schedules.
+				candidate.Name = model.Name
+				if reflect.DeepEqual(candidate, model) {
+					hidden = true
+					break
+				}
+			}
+			if hidden {
+				continue
+			}
+		}
+		duplicate := false
+		for _, existing := range out {
+			if reflect.DeepEqual(existing, model) {
+				duplicate = true
+				break
+			}
+		}
+		if !duplicate {
+			out = append(out, model)
+		}
+	}
+	return out
 }
 
 // toModelPlazaTimePricing 转换分时倍率；nil 透传（JSON 省略）。

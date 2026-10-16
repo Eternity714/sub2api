@@ -166,7 +166,7 @@ func GroupFromService(g *service.Group) *Group {
 
 // UserVisiblePlatform exposes a neutral platform name at user and public exits.
 func UserVisiblePlatform(platform string) string {
-	if platform == "grsai" {
+	if platform == service.PlatformGrsai || platform == service.PlatformToAPIs {
 		return "media"
 	}
 	return platform

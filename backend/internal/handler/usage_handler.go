@@ -463,13 +463,33 @@ func (h *UsageHandler) DashboardStats(c *gin.Context) {
 
 	if stats != nil {
 		out := *stats
-		out.ByPlatform = append([]usagestats.PlatformDashboardStats(nil), stats.ByPlatform...)
-		for i := range out.ByPlatform {
-			out.ByPlatform[i].Platform = dto.UserVisiblePlatform(out.ByPlatform[i].Platform)
-		}
+		out.ByPlatform = userDashboardPlatforms(stats.ByPlatform)
 		stats = &out
 	}
 	response.Success(c, stats)
+}
+
+func userDashboardPlatforms(src []usagestats.PlatformDashboardStats) []usagestats.PlatformDashboardStats {
+	if src == nil {
+		return nil
+	}
+	out := make([]usagestats.PlatformDashboardStats, 0, len(src))
+	index := make(map[string]int, len(src))
+	for _, row := range src {
+		row.Platform = dto.UserVisiblePlatform(row.Platform)
+		if i, exists := index[row.Platform]; exists {
+			out[i].TotalRequests += row.TotalRequests
+			out[i].TotalTokens += row.TotalTokens
+			out[i].TotalActualCost += row.TotalActualCost
+			out[i].TodayRequests += row.TodayRequests
+			out[i].TodayTokens += row.TodayTokens
+			out[i].TodayActualCost += row.TodayActualCost
+			continue
+		}
+		index[row.Platform] = len(out)
+		out = append(out, row)
+	}
+	return out
 }
 
 // DashboardTrend handles getting user usage trend data

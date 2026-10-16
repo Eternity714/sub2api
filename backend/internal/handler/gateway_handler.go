@@ -1174,11 +1174,11 @@ func (h *GatewayHandler) Models(c *gin.Context) {
 			if len(source) == 0 {
 				source = defaultModelIDsForPlatform(service.PlatformComposite)
 			}
-			writeAllowlistedModelsList(c, service.PlatformComposite, apiKey.Group.ModelAllowlist.FilterForListing(source))
+			writeAllowlistedModelsList(c, service.PlatformComposite, h.gatewayService.FilterCompositeMediaDiscoveryModels(c.Request.Context(), groupID, apiKey.Group.ModelAllowlist.FilterForListing(source)))
 			return
 		}
 		if len(availableModels) > 0 {
-			writeModelsList(c, service.PlatformComposite, availableModels)
+			writeModelsList(c, service.PlatformComposite, h.gatewayService.FilterCompositeMediaDiscoveryModels(c.Request.Context(), groupID, availableModels))
 			return
 		}
 		writeModelsList(c, service.PlatformComposite, defaultModelIDsForPlatform(service.PlatformComposite))

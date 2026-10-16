@@ -76,7 +76,7 @@ import { useI18n } from 'vue-i18n'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import { getMyErrorDetail } from '@/api/usage'
 import { formatDateTime } from '@/utils/format'
-import { platformDisplayValue } from '@/utils/platformColors'
+import { publicPlatformLabel as platformDisplayValue } from '@/utils/publicPlatform'
 import type { UserErrorRequestDetail } from '@/types'
 
 const props = defineProps<{

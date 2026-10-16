@@ -21,4 +21,14 @@ describe('media platform display', () => {
     expect(wrapper.text()).toContain('GRS.AI')
     expect(wrapper.find('img[alt="GRS.AI"]').exists()).toBe(true)
   })
+
+  it('keeps ToAPIs visible on administrator account badges', () => {
+    const wrapper = mount(PlatformTypeBadge, {
+      props: { platform: 'toapis', type: 'apikey' },
+      global: { plugins: [createI18n({ legacy: false, locale: 'en', messages: { en: { admin: { accounts: { apiKey: 'API Key' } } } } })] },
+    })
+    expect(wrapper.text()).toContain('ToAPIs')
+    expect(wrapper.text()).not.toContain('Media API')
+    wrapper.unmount()
+  })
 })
