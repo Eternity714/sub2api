@@ -78,10 +78,10 @@
                 {{ formatTimeWindow(period) }}
               </span>
               <span
-                v-if="platform && m.platform !== platform"
+                v-if="platform && publicPlatformId(m.platform) !== publicPlatformId(platform)"
                 :class="[
                   'inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium',
-                  platformBadgeLightClass(m.platform)
+                  platformBadgeLightClass(publicPlatformId(m.platform))
                 ]"
               >
                 {{ displayPlatformLabel(m.platform) }}
@@ -310,6 +310,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatScaled, resolveIntervalPrices } from '@/utils/pricing'
 import { platformAccentColor, platformBadgeLightClass, platformLabel } from '@/utils/platformColors'
+import { publicPlatformId, publicPlatformLabel } from '@/utils/publicPlatform'
 import {
   BILLING_MODE_TOKEN,
   BILLING_MODE_IMAGE,
@@ -356,10 +357,10 @@ const props = defineProps<{
 const { t } = useI18n()
 
 const displayPlatformLabel = (platform: string) =>
-  platform === 'media' || platform === 'grsai' ? t('admin.groups.platforms.media') : platformLabel(platform)
+  publicPlatformLabel(platform, t('admin.groups.platforms.media'), platformLabel)
 
 /** 实付分区只从平台拿一个主色,浅底/标题/下划线全部由 scoped CSS 用 color-mix 派生。 */
-const accentStyle = computed(() => ({ '--plaza-accent': platformAccentColor(props.platform ?? '') }))
+const accentStyle = computed(() => ({ '--plaza-accent': platformAccentColor(publicPlatformId(props.platform ?? '')) }))
 
 const PER_MILLION = 1_000_000
 
@@ -409,12 +410,12 @@ interface PlazaRow {
 }
 
 const rows = computed<PlazaRow[]>(() =>
-  sortedModels.value.flatMap((m) => {
-    const base: PlazaRow = { model: m, period: null, key: `${m.platform}:${m.name}` }
+  sortedModels.value.flatMap((m, modelIdx) => {
+    const base: PlazaRow = { model: m, period: null, key: `${m.platform}:${m.name}:${modelIdx}` }
     const periodRows = timePeriods(m).map<PlazaRow>((p, idx) => ({
       model: m,
       period: p,
-      key: `${m.platform}:${m.name}:${idx}`
+      key: `${base.key}:period:${idx}`
     }))
     return [base, ...periodRows]
   })

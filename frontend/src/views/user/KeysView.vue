@@ -165,7 +165,7 @@
                 <GroupBadge
                   v-if="row.group"
                   :name="row.group.name"
-                  :platform="row.group.platform"
+                  :platform="publicPlatformId(row.group.platform) as GroupPlatform"
                   :subscription-type="row.group.subscription_type"
                   :rate-multiplier="row.group.rate_multiplier"
                   :user-rate-multiplier="userGroupRates[row.group.id]"
@@ -1229,6 +1229,7 @@ import type { BatchApiKeyUsageStats } from '@/api/usage'
 import { formatDateTime } from '@/utils/format'
 import { maskApiKey } from '@/utils/maskApiKey'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
+import { publicPlatformId } from '@/utils/publicPlatform'
 import { platformBadgeLightClass } from '@/utils/platformColors'
 import { KEY_GROUP_PROVIDERS, KEY_GROUP_PROVIDER_ICONS, getKeyGroupProvider, type KeyGroupProvider } from '@/utils/keyGroupProviders'
 import {
@@ -1523,7 +1524,7 @@ const groupOptions = computed(() =>
     peakEnd: group.peak_end,
     peakRateMultiplier: group.peak_rate_multiplier,
     subscriptionType: group.subscription_type,
-    platform: group.platform
+    platform: publicPlatformId(group.platform) as GroupPlatform
   }))
 )
 
@@ -2010,7 +2011,7 @@ const resetRateLimitUsage = async () => {
 }
 
 const supportsCcsImport = (row: ApiKey) =>
-  row.group?.platform !== 'media' && row.group?.platform !== 'grsai'
+  publicPlatformId(row.group?.platform || '') !== 'media'
 
 const importToCcswitch = (row: ApiKey) => {
   if (!supportsCcsImport(row)) return

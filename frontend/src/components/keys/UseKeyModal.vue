@@ -275,6 +275,7 @@ import Icon from '@/components/icons/Icon.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { buildCodexModelCatalogUrl, fetchCodexModelsManifest } from '@/api/codex'
 import type { GroupPlatform } from '@/types'
+import { publicPlatformId } from '@/utils/publicPlatform'
 import {
   findCodexCatalogModel,
   formatCodexReasoningEffortTomlLine,
@@ -313,7 +314,7 @@ const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
 const { copyToClipboard: clipboardCopy } = useClipboard()
-const isNativeMediaPlatform = computed(() => props.platform === 'media' || props.platform === 'grsai')
+const isNativeMediaPlatform = computed(() => publicPlatformId(props.platform || '') === 'media')
 
 const copiedIndex = ref<number | null>(null)
 const activeTab = ref<string>('unix')
@@ -884,15 +885,16 @@ function generateMediaFiles(baseUrl: string, apiKey: string): FileConfig[] {
   const content = [
     `const baseUrl = ${JSON.stringify(baseUrl)};`,
     `const apiKey = ${JSON.stringify(apiKey)};`,
+    'const generationPath = "/v1/images/generations";',
+    '// For videos, use /v1/videos/generations and the model\'s duration/aspect_ratio parameters.',
     'const headers = { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" };',
     '',
-    'const response = await fetch(baseUrl + "/v1/api/generate", {',
+    'const response = await fetch(baseUrl + generationPath, {',
     '  method: "POST",',
     '  headers,',
     '  body: JSON.stringify({',
     '    model: "YOUR_IMAGE_MODEL",',
-    '    prompt: "Your image prompt",',
-    '    replyType: "async"',
+    '    prompt: "Your image prompt"',
     '  })',
     '});',
     'if (!response.ok) throw new Error("Generation HTTP " + response.status);',
@@ -900,11 +902,12 @@ function generateMediaFiles(baseUrl: string, apiKey: string): FileConfig[] {
     '',
     'for (;;) {',
     '  await new Promise(resolve => setTimeout(resolve, 1000));',
-    '  const resultResponse = await fetch(baseUrl + "/v1/api/result?id=" + encodeURIComponent(id), { headers });',
+    '  const resultResponse = await fetch(baseUrl + generationPath + "/" + encodeURIComponent(id), { headers });',
     '  if (!resultResponse.ok) throw new Error("Result HTTP " + resultResponse.status);',
     '  const task = await resultResponse.json();',
-    '  if (["succeeded", "failed", "manual_review"].includes(task.status)) {',
-    '    console.log(task);',
+    '  if (task.status === "completed") {',
+    '    console.log(task.result?.data ?? []);',
+    '    if (task.error) console.error(task.error);',
     '    break;',
     '  }',
     '}'
@@ -1378,8 +1381,8 @@ function generateRoutedCodexFiles(
     typesafe: 'TypeSafe / Jev',
     command_code: 'Command Code',
     cline: 'Cline',
-    grsai: t('admin.groups.platforms.grsai'),
-    toapis: 'ToAPIs',
+    grsai: t('admin.groups.platforms.media'),
+    toapis: t('admin.groups.platforms.media'),
     media: t('admin.groups.platforms.media'),
     composite: 'Composite'
   }

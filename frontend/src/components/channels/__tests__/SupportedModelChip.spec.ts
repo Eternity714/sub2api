@@ -12,6 +12,25 @@ vi.mock('vue-i18n', async () => {
 })
 
 describe('SupportedModelChip', () => {
+  it.each(['media', 'grsai', 'toapis'])('hides the %s source in the model label, icon and pricing tooltip', async platform => {
+    const wrapper = mount(SupportedModelChip, {
+      attachTo: document.body,
+      props: { model: { name: 'image-model', platform, pricing: null }, noPricingLabel: 'No pricing' },
+    })
+    try {
+      expect(wrapper.text()).toContain('admin.groups.platforms.media')
+      expect(wrapper.find('img').exists()).toBe(false)
+      expect(wrapper.findComponent({ name: 'PlatformIcon' }).props('platform')).toBe('media')
+      await wrapper.find('[tabindex="0"]').trigger('mouseenter')
+      await nextTick()
+      const tooltip = document.body.querySelector('[role="tooltip"]')
+      expect(tooltip?.textContent).toContain('admin.groups.platforms.media')
+      expect(tooltip?.textContent).not.toMatch(/grsai|toapis|GRS\.AI/i)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   describe.each(['availableChannels.pricing', 'admin.availableChannels.pricing'])(
     'image pricing using %s translations',
     (pricingKeyPrefix) => {

@@ -297,7 +297,7 @@ describe('user KeysView column settings', () => {
     isCurrentStep.mockReturnValue(false)
   })
 
-  it.each(['media', 'grsai'] as const)('keeps the native guide and hides CC Switch import for %s keys', async (platform) => {
+  it.each(['media', 'grsai', 'toapis'] as const)('keeps the native guide and hides CC Switch import for %s keys', async (platform) => {
     const key = {
       ...createApiKey(),
       group_id: 13,

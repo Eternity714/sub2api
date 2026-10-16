@@ -130,7 +130,7 @@ import UserErrorDetailModal from '@/components/user/UserErrorDetailModal.vue'
 import IpGeoCell from '@/components/common/IpGeoCell.vue'
 import IpGeoBatchToolbar from '@/components/common/IpGeoBatchToolbar.vue'
 import { formatDateTime } from '@/utils/format'
-import { platformDisplayValue } from '@/utils/platformColors'
+import { publicPlatformLabel as platformDisplayValue } from '@/utils/publicPlatform'
 import {
   mapErrorSortKey,
   numericRequestTypeKind,
