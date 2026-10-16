@@ -44,6 +44,16 @@ Claude Code 地址不含 `/v1`，其配置使用 `ANTHROPIC_AUTH_TOKEN`。Codex 
 
 修改接口或工具配置时同步核对相关教程、页面元数据和导航配置。外部安装命令以文章链接的官方资料为准，避免固化过时的依赖版本或安装界面。
 
+### 逐模型媒体 API 文档
+
+公开入口为 `/docs/media-api`、`/docs/media-models/` 及各模型独立页面。`docs/media-api-catalog.json` 保存经过脱敏、审核的已开放公开能力快照；它不是运行时路由配置，不会改变生产能力。当前快照核对时间为 2026-10-16 09:38:29（UTC+8），含 62 个模型（25 图片、37 视频）、89 个创建示例及 27 种输入模式。
+
+后台调整模型能力或启停时，必须同步更新快照、示例与文档。公开快照只允许真实模型 ID、请求 schema、样例及计费方式／档位，不包含账号、内部路由、适配器、来源平台或凭证；实际价格引导至控制台。模型 ID 区分大小写，`MiniMax-H3` 与 `minimax-h3` 的 schema 不同，页面 slug 分别为 `minimax-h3-uppercase` 和 `minimax-h3`。
+
+`deploy/generate-media-api-docs.py` 根据快照生成完整模型目录、逐模型 Markdown 和 `.vitepress/media-models.generated.ts`。中文字段用途说明在生成器中维护；新增字段未补用途时生成失败。生成命令为 `docker compose -f deploy/docker-compose.test.yml run --rm --no-deps media-docs-check python deploy/generate-media-api-docs.py`；省略命令覆盖时默认执行 `--check`，拒绝过期文件。不要手改生成页。文档构建仍通过现有 `frontend-test` Compose 服务执行 `pnpm --dir frontend docs:build`（先启用 Corepack）。
+
+本轮快照 SHA256：`0259c74caf441b3a3e20bebc429a4bcfc3fefb2c6c1585159b2813c174239caf`。发布前除了生成一致性和完整 VitePress 构建，还须在 Compose 中使用实际 `mediacapability.Compile`、`Validate` 和 `MatchCandidate` 离线核对所有示例及每种模式，确认当前至少一个有效候选完整支持请求。无需向上游发送生成请求。内部管理员模板文档不作为用户公开文档，也不能替代实际已开放能力快照。
+
 本地文档开发命令为 `pnpm --dir frontend docs:dev`，静态预览为 `pnpm --dir frontend docs:preview`。文档开发服务器仅用于单独编写页面，生产入口始终是主站 `/docs`。
 
 `pnpm --dir frontend build` 先构建主应用，再运行 `docs:build` 将 VitePress 产物写入 `backend/internal/web/dist/docs`。现有 Dockerfile 会把整个 dist 嵌入同一个 Go 二进制。构建顺序不能反过来，否则主应用构建清空 dist 时会删除文档产物。

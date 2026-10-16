@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { mediaModelSidebar } from './media-models.generated'
 
 export default defineConfig({
   lang: 'zh-CN',
@@ -45,10 +46,15 @@ export default defineConfig({
         { text: '国内模型接入', link: '/domestic-models' },
       ] },
       { text: '图片与视频', items: [
-        { text: '图像生成 API', link: '/image-generate' },
-        { text: 'Grok 视频生成', link: '/video-generation' },
-        { text: 'Seedance API', link: '/seedance-api' },
-        { text: '图片转视频', link: '/image-to-video' },
+        { text: '媒体 API 接入指南', link: '/media-api' },
+        { text: '媒体模型目录', link: '/media-models/' },
+        ...mediaModelSidebar,
+        { text: '其它媒体协议', collapsed: true, items: [
+          { text: '图像生成 API', link: '/image-generate' },
+          { text: 'Grok 视频生成', link: '/video-generation' },
+          { text: 'Seedance API', link: '/seedance-api' },
+          { text: '图片转视频', link: '/image-to-video' },
+        ] },
       ] },
       { text: '使用场景', collapsed: false, items: [
         { text: '使用场景总览', link: '/scenarios/' },

@@ -4,6 +4,10 @@ description: 使用 Gkotta 的 OpenAI 兼容与 Gemini 原生接口生成、编�
 
 # 图片生成与编辑
 
+::: warning 媒体 API 分组请使用新的统一协议
+如果密钥使用“媒体 API”分组，请转到[媒体 API 接入指南](/media-api)和[图片模型参数目录](/media-models/)。该分组的 `POST /v1/images/generations` 固定返回 `202` 异步任务，`size` 是 `1:1` 等宽高比，分辨率放在 `metadata.resolution`，结果通过 `GET /v1/images/generations/{task_id}` 查询。下文的像素 `size`、同步响应和原生编辑示例适用于其它对应协议分组。
+:::
+
 Gkotta 提供 OpenAI 兼容 Images 接口和 Gemini 原生图片接口。先确认密钥的分组、图片模型和协议，再选择下方对应的请求格式。
 
 ## 准备密钥与模型
@@ -39,6 +43,7 @@ curl --fail-with-body "https://www.gkotta.bid/v1/models" \
 
 | 接口 | 请求格式 | 支持条件 |
 | --- | --- | --- |
+| `/v1/images/generations`、`/v1/images/generations/{task_id}` | [媒体 API 异步 JSON](/media-api) | 媒体 API 分组；逐模型字段见[模型目录](/media-models/) |
 | `/v1/images/generations` | OpenAI Images JSON | OpenAI 或 Grok 图片分组，或路由到相应平台的组合分组 |
 | `/v1/images/edits` | OpenAI Images multipart 或受支持的 JSON | 分组和上游支持图片编辑 |
 | `/v1beta/models/{model}:generateContent` | Gemini `contents` | Gemini 分组，或路由到 Gemini 的组合分组；所选模型支持图片输出 |
