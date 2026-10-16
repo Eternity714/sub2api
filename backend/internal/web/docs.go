@@ -58,11 +58,13 @@ func serveDocumentation(c *gin.Context, distFS fs.FS) bool {
 	var candidates []string
 	if pagePath == "" {
 		candidates = []string{"docs/index.html"}
-	} else if path.Ext(pagePath) == "" {
-		// VitePress cleanUrls emits foo.html while exposing /docs/foo.
-		candidates = []string{"docs/" + pagePath + ".html", "docs/" + pagePath + "/index.html"}
 	} else {
 		candidates = []string{"docs/" + pagePath}
+		// Preserve direct resource paths before resolving VitePress clean URLs.
+		// Page names may contain version dots; assets never use page fallbacks.
+		if path.Ext(pagePath) != ".html" && !strings.HasPrefix(pagePath, "assets/") {
+			candidates = append(candidates, "docs/"+pagePath+".html", "docs/"+pagePath+"/index.html")
+		}
 	}
 	for _, filename := range candidates {
 		content, err := fs.ReadFile(distFS, filename)
