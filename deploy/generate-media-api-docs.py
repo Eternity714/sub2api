@@ -175,9 +175,10 @@ def model_page(model, date):
               f'| GET | {code(endpoint + "/{task_id}")} | 使用创建响应的 id 查询状态和结果 |', "",
               "根地址为 " + code("https://www.gkotta.bid") + "；请求头使用 " + code("Authorization: Bearer sk-YOUR_API_KEY") + "。API Key 必须关联已开放本模型的媒体 API 分组。可用性与实际价格以[可用渠道](https://www.gkotta.bid/available-channels)为准。", "",
               "## 请求参数", "", "以下为本模型当前开放的完整字段。顶层或嵌套对象中未列出的字段均不能传入；类型、枚举、范围或组合不符时返回 " + code("400") + "，不创建任务、不预留额度。", "",
+              '<div class="media-parameters">', "",
               "| 字段 | 类型 | 必填性 | 默认值 | 用途 | 约束 |", "| --- | --- | --- | --- | --- | --- |",
               f'| {code("model")} | {code("string")} | 必填 | 无 | {DESCRIPTIONS["model"]} | 仅限 {literal(name)} |']
-    lines += field_rows(fields) + ["", "表中必填性按默认值填充后的请求判断。模式附加的必填和禁止字段见下节；嵌套字段的必填性仅在父对象存在时判断。默认值不代表任意扩展参数都会自动补齐。", ""]
+    lines += field_rows(fields) + ["", "</div>", "", "参数较多时可在表格内左右滚动查看。表中必填性按默认值填充后的请求判断。模式附加的必填和禁止字段见下节；嵌套字段的必填性仅在父对象存在时判断。默认值不代表任意扩展参数都会自动补齐。", ""]
     meta = fields.get("metadata")
     if meta:
         lines += [(f'省略 {code("metadata")} 时，本模型先采用默认 {literal(meta["default"])}，再补入其已声明的子字段默认值。' if "default" in meta else "本模型未声明 " + code("metadata") + " 父对象默认值；省略整个对象时，不会应用其子字段的默认值。需要相关选项时请显式传入对象。"), ""]
