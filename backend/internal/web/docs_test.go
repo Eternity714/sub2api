@@ -46,6 +46,114 @@ func documentationTestRouter(fsys fs.FS) *gin.Engine {
 	return router
 }
 
+// Version dots are part of a clean page name, not necessarily an asset extension.
+// Exercise the same routing and security contract for both complete site sources.
+func TestDocumentationVersionedCleanURLs(t *testing.T) {
+	for _, mounted := range []bool{false, true} {
+		source := "embedded"
+		if mounted {
+			source = "mounted"
+		}
+		t.Run(source, func(t *testing.T) {
+			pages := map[string]string{
+				"media-models/nano-banana-2.1.html":     `<html><head><script>window.versioned = true;</script></head><body>versioned-banana</body></html>`,
+				"media-models/gpt-image-2.5-flare.html": `<html><head><script>window.versioned = true;</script></head><body>versioned-gpt</body></html>`,
+				"releases/v2.1/index.html":              `<html><head><script>window.versioned = true;</script></head><body>versioned-directory</body></html>`,
+				"assets/version.2.1.AbCd1234.js":        "export const versionedResource = true;",
+				"assets/version.2.1.AbCd1234.js.html":   "must-not-shadow-direct-asset",
+				"assets/missing.2.1.js.html":            "must-not-resolve-missing-asset-as-page",
+				"logo.svg":                              `<svg xmlns="http://www.w3.org/2000/svg"><title>versioned-logo</title></svg>`,
+				"logo.svg.html":                         "must-not-shadow-direct-logo",
+			}
+			fsys := documentationTestFS()
+			if mounted {
+				directory := t.TempDir()
+				files := mountedDocumentationFiles()
+				for name, content := range pages {
+					files[name] = content
+				}
+				writeDocumentationFiles(t, directory, files)
+				t.Setenv("DOCUMENTATION_DIR", directory)
+			} else {
+				t.Setenv("DOCUMENTATION_DIR", "")
+				for name, content := range pages {
+					fsys["docs/"+name] = &fstest.MapFile{Data: []byte(content)}
+				}
+			}
+			router := documentationTestRouter(fsys)
+			for _, tc := range []struct {
+				path   string
+				status int
+				body   string
+			}{
+				{"/docs/media-models/nano-banana-2.1", http.StatusOK, "versioned-banana"},
+				{"/docs/media-models/nano-banana-2.1/", http.StatusOK, "versioned-banana"},
+				{"/docs/media-models/nano-banana-2.1?from=index", http.StatusOK, "versioned-banana"},
+				{"/docs/media-models/nano-banana-2.1.html", http.StatusOK, "versioned-banana"},
+				{"/docs/media-models/gpt-image-2.5-flare", http.StatusOK, "versioned-gpt"},
+				{"/docs/media-models/gpt-image-2.5-flare.html", http.StatusOK, "versioned-gpt"},
+				{"/docs/releases/v2.1", http.StatusOK, "versioned-directory"},
+				{"/docs/releases/v2.1/", http.StatusOK, "versioned-directory"},
+				{"/docs/releases/v2.1/index.html", http.StatusOK, "versioned-directory"},
+				{"/docs/media-models/missing-2.1", http.StatusNotFound, "docs-not-found"},
+				{"/docs/assets/missing.2.1.js", http.StatusNotFound, "docs-not-found"},
+				{"/docs/missing.svg", http.StatusNotFound, "docs-not-found"},
+				{"/docs/media-models/../index.html", http.StatusNotFound, "docs-not-found"},
+				{"/docs/media-models/%2e%2e/index.html", http.StatusNotFound, "docs-not-found"},
+			} {
+				t.Run(tc.path, func(t *testing.T) {
+					var previousPolicy string
+					for range 2 {
+						w := httptest.NewRecorder()
+						req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+						req.Header.Set("If-None-Match", `"stale-page"`)
+						router.ServeHTTP(w, req)
+						require.Equal(t, tc.status, w.Code)
+						assert.Contains(t, w.Body.String(), tc.body)
+						assert.NotContains(t, w.Body.String(), "main-spa")
+						assert.Equal(t, "no-store", w.Header().Get("Cache-Control"))
+						policy := w.Header().Get("Content-Security-Policy")
+						_, rest, found := strings.Cut(policy, "'nonce-")
+						require.True(t, found)
+						nonce, _, found := strings.Cut(rest, "'")
+						require.True(t, found)
+						assert.Contains(t, w.Body.String(), `nonce="`+nonce+`"`)
+						assert.NotEqual(t, previousPolicy, policy)
+						previousPolicy = policy
+					}
+					w := httptest.NewRecorder()
+					router.ServeHTTP(w, httptest.NewRequest(http.MethodHead, tc.path, nil))
+					assert.Equal(t, tc.status, w.Code)
+					if tc.status == http.StatusOK {
+						assert.Empty(t, w.Body.String())
+					}
+					assert.NotEmpty(t, w.Header().Get("Content-Length"))
+					assert.Equal(t, "no-store", w.Header().Get("Cache-Control"))
+				})
+			}
+			for _, tc := range []struct {
+				path  string
+				body  string
+				cache string
+				mime  string
+			}{
+				{"/docs/assets/version.2.1.AbCd1234.js", "export const versionedResource", staticAssetsCacheControl, "javascript"},
+				{"/docs/logo.svg", "versioned-logo", "", "image/svg+xml"},
+			} {
+				t.Run(tc.path, func(t *testing.T) {
+					w := httptest.NewRecorder()
+					router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, tc.path, nil))
+					assert.Equal(t, http.StatusOK, w.Code)
+					assert.Contains(t, w.Body.String(), tc.body)
+					assert.NotContains(t, w.Body.String(), "must-not-")
+					assert.Equal(t, tc.cache, w.Header().Get("Cache-Control"))
+					assert.Contains(t, w.Header().Get("Content-Type"), tc.mime)
+				})
+			}
+		})
+	}
+}
+
 // AC-002 (partial): public documentation paths stay separate from the existing SPA alias.
 // AC-003 (partial): direct article routes and documentation 404s; client navigation is manual evidence.
 func TestDocumentationRoutes(t *testing.T) {
