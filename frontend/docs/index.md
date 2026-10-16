@@ -26,8 +26,8 @@ features:
     details: 查阅 OpenAI、Anthropic 与 Gemini 的接入示例。
     link: /api-manual
   - title: 图片与视频
-    details: 图片生成与编辑、Grok 视频、Seedance 和首帧图转视频。
-    link: /image-generate
+    details: 统一媒体 API、逐模型参数与示例，以及其它图片和视频协议。
+    link: /media-api
   - title: 计费与用量
     details: 了解充值、订阅、Token 计费和用量查询。
     link: /billing
@@ -47,6 +47,7 @@ API 服务地址是 **`https://www.gkotta.bid`**。OpenAI 兼容客户端通常�
 1. [快速开始](/quick-start)：注册账户，完成第一次请求。
 2. [API 密钥与分组](/api-keys)：查看可用渠道并配置密钥。
 3. [客户端接入](/clients)与[使用场景](/scenarios/)：为所用工具选择正确的协议、地址与模型。
+4. 接入图片或视频生成时，阅读[媒体 API 指南](/media-api)与[媒体模型目录](/media-models/)，确认各模型的参数与查询路径。
 
 ## 开始之前
 

@@ -1,0 +1,7610 @@
+{
+  "version": 1,
+  "platform": "media",
+  "display_name": "媒体 API",
+  "snapshot_at": "2026-10-16T01:38:29.188859+00:00",
+  "models": [
+    {
+      "model": "doubao-seedance-1-0-pro-fast",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "type": "integer",
+            "default": 5,
+            "maximum": 12,
+            "minimum": 2
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer",
+                "maximum": 4294967295,
+                "minimum": -1
+              },
+              "resolution": {
+                "enum": [
+                  "480p",
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "480p"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:3",
+              "3:4",
+              "21:9"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "b91f53dbdf91c5624afe5d30a9ff05830cd8b8ff64ff878ce4c2a9df83c4f71b",
+      "example": {
+        "model": "doubao-seedance-1-0-pro-fast",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "480p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "480p"
+          },
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "doubao-seedance-1-0-pro-fast",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480p"
+            },
+            "duration": 5
+          }
+        }
+      ]
+    },
+    {
+      "model": "doubao-seedance-1-0-pro-quality",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "type": "integer",
+            "default": 5,
+            "maximum": 12,
+            "minimum": 2
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer",
+                "maximum": 4294967295,
+                "minimum": -1
+              },
+              "resolution": {
+                "enum": [
+                  "480p",
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "480p"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:3",
+              "3:4",
+              "21:9"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "b91f53dbdf91c5624afe5d30a9ff05830cd8b8ff64ff878ce4c2a9df83c4f71b",
+      "example": {
+        "model": "doubao-seedance-1-0-pro-quality",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "480p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "480p"
+          },
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "doubao-seedance-1-0-pro-quality",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480p"
+            },
+            "duration": 5
+          }
+        }
+      ]
+    },
+    {
+      "model": "doubao-seedance-1-5-pro",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "type": "integer",
+            "default": 5,
+            "maximum": 12,
+            "minimum": 4
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer",
+                "maximum": 4294967295,
+                "minimum": -1
+              },
+              "audio": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "480p",
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "480p"
+              },
+              "camerafixed": {
+                "type": "boolean"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 2,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:3",
+              "3:4",
+              "21:9"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "dfcb0c200b7c9ebcaeda11e6b50e836987ba510be26c893737c7cae6d5650966",
+      "example": {
+        "model": "doubao-seedance-1-5-pro",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "480p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "480p"
+          },
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "doubao-seedance-1-5-pro",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480p"
+            },
+            "duration": 5
+          }
+        }
+      ]
+    },
+    {
+      "model": "doubao-seedream-4-0",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "21:9",
+              "9:21"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 1000,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string"
+              },
+              "optimize_prompt_options": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "enum": [
+                      "standard",
+                      "fast"
+                    ],
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 10,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "a338cc7039052c3d9f47525d453171322f141a09e666eb8c2384c41657f56e11",
+      "example": {
+        "model": "doubao-seedream-4-0",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "doubao-seedream-4-0",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "doubao-seedream-4-5",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "21:9",
+              "9:21"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 1000,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "2K",
+                  "4K"
+                ],
+                "type": "string"
+              },
+              "optimize_prompt_options": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "enum": [
+                      "standard",
+                      "fast"
+                    ],
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 10,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "4f0e5c9dda88016669c02c68685882df7d94d1f31ea3c97c1ceda77cd9855be6",
+      "example": {
+        "model": "doubao-seedream-4-5",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "2K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "doubao-seedream-4-5",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "2K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "doubao-seedream-5-0",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "21:9",
+              "9:21"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 1000,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "2K",
+                  "3K"
+                ],
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 10,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "f29f6c460397869a9ec58eb38afc52d9d4fda9826527d9d097e1b65a5db41f68",
+      "example": {
+        "model": "doubao-seedream-5-0",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "2K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "doubao-seedream-5-0",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "2K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "doubao-seedream-5-0-pro",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "21:9",
+              "9:21"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 1000,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "required": true,
+            "max_items": 1,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "b3a1731e9292b72a3471172027a7da2de2d95e65a776e10568d8b1883a2a76ef",
+      "example": {
+        "model": "doubao-seedream-5-0-pro",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        },
+        "image_urls": [
+          "https://example.com/reference.png"
+        ]
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "doubao-seedream-5-0-pro",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            },
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "flux-2-flex",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 8,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "2c18432fc1af73d2f89066a56608207ef6e7c3a47d5a498e5d6fcb323e49746f",
+      "example": {
+        "model": "flux-2-flex",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "flux-2-flex",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "flux-2-pro",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 8,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "2c18432fc1af73d2f89066a56608207ef6e7c3a47d5a498e5d6fcb323e49746f",
+      "example": {
+        "model": "flux-2-pro",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "flux-2-pro",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "flux-kontext-max",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "21:9",
+              "9:21"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "response_format": {
+                "enum": [
+                  "png",
+                  "jpg"
+                ],
+                "type": "string"
+              },
+              "safety_tolerance": {
+                "type": "integer",
+                "maximum": 6,
+                "minimum": 0
+              },
+              "prompt_upsampling": {
+                "type": "boolean"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "776c59742d1d92e469d263140ecd985a8bf9dcdba06a96d406c1c3577385abe0",
+      "example": {
+        "model": "flux-kontext-max",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1"
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "flux-kontext-max",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1"
+          }
+        }
+      ]
+    },
+    {
+      "model": "flux-kontext-pro",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "21:9",
+              "9:21"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "response_format": {
+                "enum": [
+                  "png",
+                  "jpg"
+                ],
+                "type": "string"
+              },
+              "safety_tolerance": {
+                "type": "integer",
+                "maximum": 6,
+                "minimum": 0
+              },
+              "prompt_upsampling": {
+                "type": "boolean"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "776c59742d1d92e469d263140ecd985a8bf9dcdba06a96d406c1c3577385abe0",
+      "example": {
+        "model": "flux-kontext-pro",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1"
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "flux-kontext-pro",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1"
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-2.5-flash-image-official",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "topP": {
+                "type": "number",
+                "maximum": 1,
+                "minimum": 0
+              },
+              "temperature": {
+                "type": "number",
+                "maximum": 2,
+                "minimum": 0
+              },
+              "safetySettings": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "category": {
+                      "enum": [
+                        "HARM_CATEGORY_HATE_SPEECH",
+                        "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        "HARM_CATEGORY_HARASSMENT"
+                      ],
+                      "type": "string"
+                    },
+                    "threshold": {
+                      "enum": [
+                        "OFF",
+                        "BLOCK_LOW_AND_ABOVE",
+                        "BLOCK_MEDIUM_AND_ABOVE",
+                        "BLOCK_ONLY_HIGH"
+                      ],
+                      "type": "string"
+                    }
+                  }
+                },
+                "max_items": 4
+              },
+              "maxOutputTokens": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "personGeneration": {
+                "enum": [
+                  "ALLOW_ALL",
+                  "ALLOW_ADULT",
+                  "ALLOW_NONE"
+                ],
+                "type": "string"
+              },
+              "imageOutputOptions": {
+                "type": "object",
+                "properties": {
+                  "mimeType": {
+                    "enum": [
+                      "image/png",
+                      "image/jpeg",
+                      "image/webp"
+                    ],
+                    "type": "string"
+                  },
+                  "compressionQuality": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 3,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "041ba12ae641f23b82efa68702c7f20fe83eee3b5c4cea33f02ebe7178a02870",
+      "example": {
+        "model": "gemini-2.5-flash-image-official",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1"
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-2.5-flash-image-official",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1"
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-2.5-flash-image-preview",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 1000,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "1K"
+                ],
+                "type": "string"
+              },
+              "orientation": {
+                "enum": [
+                  "landscape",
+                  "portrait"
+                ],
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "88f1b7e4fc8132a230291c00bc33ddb85adfd0ab35a306bfb671d87fb1dc241d",
+      "example": {
+        "model": "gemini-2.5-flash-image-preview",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-2.5-flash-image-preview",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-3-pro-image-preview",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              },
+              "orientation": {
+                "enum": [
+                  "landscape",
+                  "portrait"
+                ],
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 6,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "295937c3704e8841983d353862267714f199c3eabac13f76bc005b7a6d00fa98",
+      "example": {
+        "model": "gemini-3-pro-image-preview",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-3-pro-image-preview",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-3-pro-image-preview-vip",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "grounding": {
+                "enum": [
+                  "none",
+                  "web"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "2K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 14,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "0d5e71197e99b7fa2627a4bb06dde944e3ad021c2875714dbc8df9b836108b04",
+      "example": {
+        "model": "gemini-3-pro-image-preview-vip",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-3-pro-image-preview-vip",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.1-flash-image-preview",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "image_search_off",
+            "when": [
+              {
+                "op": "equals",
+                "path": "metadata.google_image_search",
+                "value": false
+              }
+            ]
+          },
+          {
+            "id": "image_search_on",
+            "when": [
+              {
+                "op": "equals",
+                "path": "metadata.google_image_search",
+                "value": true
+              },
+              {
+                "op": "equals",
+                "path": "metadata.google_search",
+                "value": true
+              }
+            ]
+          }
+        ],
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "1:4",
+              "4:1",
+              "1:8",
+              "8:1"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              },
+              "google_search": {
+                "type": "boolean",
+                "default": false
+              },
+              "google_image_search": {
+                "type": "boolean",
+                "default": false
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 6,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "a7154d74d89d3414c7b65c8309c93752fa7b35f7e31357aa811cb645b4d764e8",
+      "example": {
+        "model": "gemini-3.1-flash-image-preview",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K",
+          "google_image_search": false
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-3.1-flash-image-preview",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K",
+              "google_image_search": false
+            }
+          }
+        },
+        {
+          "label": "关闭图片搜索",
+          "mode": "image_search_off",
+          "request": {
+            "model": "gemini-3.1-flash-image-preview",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K",
+              "google_image_search": false
+            }
+          }
+        },
+        {
+          "label": "启用图片搜索",
+          "mode": "image_search_on",
+          "request": {
+            "model": "gemini-3.1-flash-image-preview",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K",
+              "google_image_search": true,
+              "google_search": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.1-flash-image-preview-vip",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "grounding": {
+                "enum": [
+                  "none",
+                  "web",
+                  "image",
+                  "web_image"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 14,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "9ce917a72d102783b4427f11b4fa0b6f16ef481b39cadc72ba1941b1d32e3408",
+      "example": {
+        "model": "gemini-3.1-flash-image-preview-vip",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-3.1-flash-image-preview-vip",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-nano-banana-2.1",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "1:4",
+              "4:1",
+              "1:8",
+              "8:1"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 14,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "a343b51aafb7c0c08771e2be26971df37e5f19a0a1ede8c1c072bca13076f51d",
+      "example": {
+        "model": "gemini-nano-banana-2.1",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-nano-banana-2.1",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-nano-banana-2.1-vip",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "1:4",
+              "4:1",
+              "1:8",
+              "8:1"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "grounding": {
+                "enum": [
+                  "none",
+                  "web",
+                  "image",
+                  "web_image"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 14,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "aaa97d0bc45cf9b6072a25799a1882969b5464e465e22909a5488ed45edffaed",
+      "example": {
+        "model": "gemini-nano-banana-2.1-vip",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-nano-banana-2.1-vip",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-omni-1.1-flash-preview",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              10
+            ],
+            "type": "integer",
+            "default": 10
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "720p"
+                ],
+                "type": "string",
+                "default": "720p"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 5,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "e5315c90fa122ae45c426688872024ea4b0a0906ff108302eac9f52b5a7174cd",
+      "example": {
+        "model": "gemini-omni-1.1-flash-preview",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 10
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "per_request",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-omni-1.1-flash-preview",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 10
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-omni-1.1-flash-preview-official",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "type": "integer",
+            "default": 6,
+            "maximum": 10,
+            "minimum": 3
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "task": {
+                "enum": [
+                  "text_to_video",
+                  "image_to_video",
+                  "reference_to_video"
+                ],
+                "type": "string"
+              },
+              "topP": {
+                "type": "number",
+                "maximum": 1,
+                "minimum": 0
+              },
+              "resolution": {
+                "enum": [
+                  "360p",
+                  "720p",
+                  "1080p",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "360p"
+              },
+              "temperature": {
+                "type": "number",
+                "maximum": 2,
+                "minimum": 0
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 10,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "6e5f4d3da0dd0b9297a723156c5bdb7d03173bd8ed82d27ea5b7a719215579ac",
+      "example": {
+        "model": "gemini-omni-1.1-flash-preview-official",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "360p"
+        },
+        "duration": 6
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "360p"
+          },
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-omni-1.1-flash-preview-official",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "360p"
+            },
+            "duration": 6
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-omni-1.1-flash-preview-vip",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "text",
+            "when": [
+              {
+                "op": "empty",
+                "path": "image_urls"
+              },
+              {
+                "op": "absent",
+                "path": "metadata.generation_type"
+              }
+            ]
+          },
+          {
+            "id": "frame_auto",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              },
+              {
+                "op": "absent",
+                "path": "metadata.generation_type"
+              }
+            ]
+          },
+          {
+            "id": "frame_explicit",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              },
+              {
+                "op": "equals",
+                "path": "metadata.generation_type",
+                "value": "frame"
+              }
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              6
+            ],
+            "type": "integer",
+            "default": 6
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "360p",
+                  "720p",
+                  "1080p",
+                  "4k"
+                ],
+                "type": "string",
+                "default": "360p"
+              },
+              "generation_type": {
+                "enum": [
+                  "frame"
+                ],
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "78e99bb213762cc5ee9e0a8a5065516856ef7bd517a9ea5d91877fad43c9f2b6",
+      "example": {
+        "model": "gemini-omni-1.1-flash-preview-vip",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "360p"
+        },
+        "duration": 6
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "per_request",
+        "intervals": [
+          {
+            "tier_label": "360p"
+          },
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          },
+          {
+            "tier_label": "4k"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-omni-1.1-flash-preview-vip",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "360p"
+            },
+            "duration": 6
+          }
+        },
+        {
+          "label": "文生视频",
+          "mode": "text",
+          "request": {
+            "model": "gemini-omni-1.1-flash-preview-vip",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "360p"
+            },
+            "duration": 6
+          }
+        },
+        {
+          "label": "首帧生视频（自动识别）",
+          "mode": "frame_auto",
+          "request": {
+            "model": "gemini-omni-1.1-flash-preview-vip",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "360p"
+            },
+            "duration": 6,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        },
+        {
+          "label": "首帧生视频（显式指定）",
+          "mode": "frame_explicit",
+          "request": {
+            "model": "gemini-omni-1.1-flash-preview-vip",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "360p",
+              "generation_type": "frame"
+            },
+            "duration": 6,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "gemini-omni-flash-preview-official",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              4,
+              6,
+              8,
+              10
+            ],
+            "type": "integer",
+            "default": 6,
+            "maximum": 10,
+            "minimum": 3
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "task": {
+                "enum": [
+                  "text_to_video",
+                  "image_to_video",
+                  "reference_to_video"
+                ],
+                "type": "string"
+              },
+              "topP": {
+                "type": "number",
+                "maximum": 1,
+                "minimum": 0
+              },
+              "resolution": {
+                "enum": [
+                  "720p"
+                ],
+                "type": "string",
+                "default": "720p"
+              },
+              "temperature": {
+                "type": "number",
+                "maximum": 2,
+                "minimum": 0
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 10,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "695cf7eced9368f09b02f28798ce83009608f4e9753da9032e78cbab6d105ca0",
+      "example": {
+        "model": "gemini-omni-flash-preview-official",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 6
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gemini-omni-flash-preview-official",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 6
+          }
+        }
+      ]
+    },
+    {
+      "model": "gpt-image-2",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "2:1",
+              "1:2",
+              "9:21"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 32000,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "background": {
+                "enum": [
+                  "transparent"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 14,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "8d9490d8880fcb6802c50490488fa060be03c7d6896a3d6d4db49af395dea6e7",
+      "example": {
+        "model": "gpt-image-2",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "4K"
+          },
+          {
+            "tier_label": "2K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gpt-image-2",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "gpt-image-2-vip",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "2:1",
+              "1:2",
+              "9:21"
+            ],
+            "type": "string",
+            "default": "1:1",
+            "required": true
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "required": true,
+            "properties": {
+              "quality": {
+                "enum": [
+                  "medium"
+                ],
+                "type": "string",
+                "default": "medium"
+              },
+              "background": {
+                "enum": [
+                  "transparent"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K",
+                "required": true
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 14,
+            "min_items": 1
+          }
+        },
+        "version": 1,
+        "image_specs": [
+          {
+            "width": 1024,
+            "height": 1024,
+            "resolution": "1K",
+            "aspect_ratio": "1:1"
+          },
+          {
+            "width": 2048,
+            "height": 2048,
+            "resolution": "2K",
+            "aspect_ratio": "1:1"
+          },
+          {
+            "width": 2880,
+            "height": 2880,
+            "resolution": "4K",
+            "aspect_ratio": "1:1"
+          },
+          {
+            "width": 1280,
+            "height": 720,
+            "resolution": "1K",
+            "aspect_ratio": "16:9"
+          },
+          {
+            "width": 2048,
+            "height": 1152,
+            "resolution": "2K",
+            "aspect_ratio": "16:9"
+          },
+          {
+            "width": 3840,
+            "height": 2160,
+            "resolution": "4K",
+            "aspect_ratio": "16:9"
+          },
+          {
+            "width": 720,
+            "height": 1280,
+            "resolution": "1K",
+            "aspect_ratio": "9:16"
+          },
+          {
+            "width": 1152,
+            "height": 2048,
+            "resolution": "2K",
+            "aspect_ratio": "9:16"
+          },
+          {
+            "width": 2160,
+            "height": 3840,
+            "resolution": "4K",
+            "aspect_ratio": "9:16"
+          },
+          {
+            "width": 1152,
+            "height": 864,
+            "resolution": "1K",
+            "aspect_ratio": "4:3"
+          },
+          {
+            "width": 2304,
+            "height": 1728,
+            "resolution": "2K",
+            "aspect_ratio": "4:3"
+          },
+          {
+            "width": 3264,
+            "height": 2448,
+            "resolution": "4K",
+            "aspect_ratio": "4:3"
+          },
+          {
+            "width": 864,
+            "height": 1152,
+            "resolution": "1K",
+            "aspect_ratio": "3:4"
+          },
+          {
+            "width": 1728,
+            "height": 2304,
+            "resolution": "2K",
+            "aspect_ratio": "3:4"
+          },
+          {
+            "width": 2448,
+            "height": 3264,
+            "resolution": "4K",
+            "aspect_ratio": "3:4"
+          },
+          {
+            "width": 1536,
+            "height": 1024,
+            "resolution": "1K",
+            "aspect_ratio": "3:2"
+          },
+          {
+            "width": 2048,
+            "height": 1360,
+            "resolution": "2K",
+            "aspect_ratio": "3:2"
+          },
+          {
+            "width": 3504,
+            "height": 2336,
+            "resolution": "4K",
+            "aspect_ratio": "3:2"
+          },
+          {
+            "width": 1024,
+            "height": 1536,
+            "resolution": "1K",
+            "aspect_ratio": "2:3"
+          },
+          {
+            "width": 1360,
+            "height": 2048,
+            "resolution": "2K",
+            "aspect_ratio": "2:3"
+          },
+          {
+            "width": 2336,
+            "height": 3504,
+            "resolution": "4K",
+            "aspect_ratio": "2:3"
+          },
+          {
+            "width": 1120,
+            "height": 896,
+            "resolution": "1K",
+            "aspect_ratio": "5:4"
+          },
+          {
+            "width": 2240,
+            "height": 1792,
+            "resolution": "2K",
+            "aspect_ratio": "5:4"
+          },
+          {
+            "width": 3200,
+            "height": 2560,
+            "resolution": "4K",
+            "aspect_ratio": "5:4"
+          },
+          {
+            "width": 896,
+            "height": 1120,
+            "resolution": "1K",
+            "aspect_ratio": "4:5"
+          },
+          {
+            "width": 1792,
+            "height": 2240,
+            "resolution": "2K",
+            "aspect_ratio": "4:5"
+          },
+          {
+            "width": 2560,
+            "height": 3200,
+            "resolution": "4K",
+            "aspect_ratio": "4:5"
+          },
+          {
+            "width": 1456,
+            "height": 624,
+            "resolution": "1K",
+            "aspect_ratio": "21:9"
+          },
+          {
+            "width": 2912,
+            "height": 1248,
+            "resolution": "2K",
+            "aspect_ratio": "21:9"
+          },
+          {
+            "width": 3840,
+            "height": 1648,
+            "resolution": "4K",
+            "aspect_ratio": "21:9"
+          },
+          {
+            "width": 624,
+            "height": 1456,
+            "resolution": "1K",
+            "aspect_ratio": "9:21"
+          },
+          {
+            "width": 1248,
+            "height": 2912,
+            "resolution": "2K",
+            "aspect_ratio": "9:21"
+          },
+          {
+            "width": 1648,
+            "height": 3840,
+            "resolution": "4K",
+            "aspect_ratio": "9:21"
+          },
+          {
+            "width": 1536,
+            "height": 768,
+            "resolution": "1K",
+            "aspect_ratio": "2:1"
+          },
+          {
+            "width": 3072,
+            "height": 1536,
+            "resolution": "2K",
+            "aspect_ratio": "2:1"
+          },
+          {
+            "width": 3840,
+            "height": 1920,
+            "resolution": "4K",
+            "aspect_ratio": "2:1"
+          },
+          {
+            "width": 768,
+            "height": 1536,
+            "resolution": "1K",
+            "aspect_ratio": "1:2"
+          },
+          {
+            "width": 1536,
+            "height": 3072,
+            "resolution": "2K",
+            "aspect_ratio": "1:2"
+          },
+          {
+            "width": 1920,
+            "height": 3840,
+            "resolution": "4K",
+            "aspect_ratio": "1:2"
+          }
+        ]
+      },
+      "schema_sha256": "bc2a9b479face983850eff1a7130a7825ee5b420387dc135b8973e4799df0388",
+      "example": {
+        "model": "gpt-image-2-vip",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gpt-image-2-vip",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "gpt-image-2.5-flare",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "quality": {
+                "enum": [
+                  "high"
+                ],
+                "type": "string",
+                "default": "high"
+              },
+              "background": {
+                "enum": [
+                  "transparent"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "2356373b5d4aa9eef479923f233d9abdfea8a7ddb3b5a651fde9a127e873203f",
+      "example": {
+        "model": "gpt-image-2.5-flare",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "4K"
+          },
+          {
+            "tier_label": "2K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gpt-image-2.5-flare",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "gpt-image-2.5-sunburst",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "quality": {
+                "enum": [
+                  "high"
+                ],
+                "type": "string",
+                "default": "high"
+              },
+              "background": {
+                "enum": [
+                  "transparent"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "2356373b5d4aa9eef479923f233d9abdfea8a7ddb3b5a651fde9a127e873203f",
+      "example": {
+        "model": "gpt-image-2.5-sunburst",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "4K"
+          },
+          {
+            "tier_label": "2K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "gpt-image-2.5-sunburst",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "grok-video-1.0",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              6,
+              10
+            ],
+            "type": "integer",
+            "default": 6,
+            "maximum": 15,
+            "minimum": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "480p",
+                  "720p"
+                ],
+                "type": "string",
+                "default": "480p"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 8,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "1:1"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "a015143f55fa7d3a5f5b9c3bbfdf301d2438711f6426e66b3623327aa20accb5",
+      "example": {
+        "model": "grok-video-1.0",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "480p"
+        },
+        "duration": 6
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "480p"
+          },
+          {
+            "tier_label": "720p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "grok-video-1.0",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480p"
+            },
+            "duration": 6
+          }
+        }
+      ]
+    },
+    {
+      "model": "grok-video-1.5",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "reference",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              },
+              {
+                "op": "equals",
+                "path": "metadata.video_generation_mode",
+                "value": "reference_images_to_video"
+              }
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "type": "integer",
+            "default": 8,
+            "maximum": 15,
+            "minimum": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "480p",
+                  "720p"
+                ],
+                "type": "string",
+                "default": "480p"
+              },
+              "video_generation_mode": {
+                "enum": [
+                  "reference_images_to_video"
+                ],
+                "type": "string",
+                "default": "reference_images_to_video"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "required": true,
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "1:1"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "2c707c2c94c51ce79176cad049cc74f414408861c67a614989ae95fd9dcb09d6",
+      "example": {
+        "model": "grok-video-1.5",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "480p",
+          "video_generation_mode": "reference_images_to_video"
+        },
+        "duration": 8,
+        "image_urls": [
+          "https://example.com/reference.png"
+        ]
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "480p"
+          },
+          {
+            "tier_label": "720p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "grok-video-1.5",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480p",
+              "video_generation_mode": "reference_images_to_video"
+            },
+            "duration": 8,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        },
+        {
+          "label": "参考图生视频",
+          "mode": "reference",
+          "request": {
+            "model": "grok-video-1.5",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480p",
+              "video_generation_mode": "reference_images_to_video"
+            },
+            "duration": 8,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "happyhorse-1.1",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "text_false",
+            "when": [
+              {
+                "op": "empty",
+                "path": "image_urls"
+              },
+              {
+                "op": "absent",
+                "path": "metadata.action"
+              }
+            ],
+            "required": [
+              "prompt"
+            ]
+          },
+          {
+            "id": "first_frame_false",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              },
+              {
+                "op": "absent",
+                "path": "metadata.action"
+              }
+            ],
+            "forbidden": [
+              "aspect_ratio"
+            ]
+          },
+          {
+            "id": "text_true",
+            "when": [
+              {
+                "op": "empty",
+                "path": "image_urls"
+              },
+              {
+                "op": "equals",
+                "path": "metadata.action",
+                "value": "text-to-video"
+              }
+            ],
+            "required": [
+              "prompt"
+            ]
+          },
+          {
+            "id": "first_frame_true",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              },
+              {
+                "op": "equals",
+                "path": "metadata.action",
+                "value": "image-to-video"
+              }
+            ],
+            "forbidden": [
+              "aspect_ratio"
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": false,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 15,
+            "minimum": 3
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "action": {
+                "enum": [
+                  "text-to-video",
+                  "image-to-video"
+                ],
+                "type": "string"
+              },
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "720P",
+                  "1080P"
+                ],
+                "type": "string",
+                "default": "720P"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:3",
+              "3:4"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "e6679aed0b4e1f0a478dbadbc74898c3bffb3b614516be528f732609ef8f853b",
+      "example": {
+        "model": "happyhorse-1.1",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "720P"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "720P"
+          },
+          {
+            "tier_label": "1080P"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "happyhorse-1.1",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720P"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "文生视频（自动识别）",
+          "mode": "text_false",
+          "request": {
+            "model": "happyhorse-1.1",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720P"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "首帧生视频（自动识别）",
+          "mode": "first_frame_false",
+          "request": {
+            "model": "happyhorse-1.1",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720P"
+            },
+            "duration": 5,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        },
+        {
+          "label": "文生视频（显式指定）",
+          "mode": "text_true",
+          "request": {
+            "model": "happyhorse-1.1",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720P",
+              "action": "text-to-video"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "首帧生视频（显式指定）",
+          "mode": "first_frame_true",
+          "request": {
+            "model": "happyhorse-1.1",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720P",
+              "action": "image-to-video"
+            },
+            "duration": 5,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "kling-3.0-turbo",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "text",
+            "when": [
+              {
+                "op": "empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ]
+          },
+          {
+            "id": "reference",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ],
+            "forbidden": [
+              "aspect_ratio"
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 2500,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "type": "integer",
+            "default": 5,
+            "maximum": 15,
+            "minimum": 3
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "720p"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "e48057c6419e1615d311dee05e5c6095b6ea77a4e2c5a6e503f89c3cf14e6fd3",
+      "example": {
+        "model": "kling-3.0-turbo",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "kling-3.0-turbo",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "文生视频",
+          "mode": "text",
+          "request": {
+            "model": "kling-3.0-turbo",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "参考图生视频",
+          "mode": "reference",
+          "request": {
+            "model": "kling-3.0-turbo",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 5,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "kling-v2-6",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "silent",
+            "when": [
+              {
+                "op": "equals",
+                "path": "metadata.audio",
+                "value": false
+              }
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 2500,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              5,
+              10
+            ],
+            "type": "integer",
+            "default": 5
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "mode": {
+                "enum": [
+                  "std"
+                ],
+                "type": "string",
+                "default": "std"
+              },
+              "audio": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean",
+                "default": false
+              },
+              "watermark": {
+                "type": "boolean"
+              },
+              "negative_prompt": {
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "ed0b0a946e8e6881a5d8be8b1de6b0a578e72c0296e121bdaced588147a1512b",
+      "example": {
+        "model": "kling-v2-6",
+        "prompt": "A quiet mountain lake at sunrise",
+        "duration": 5,
+        "metadata": {
+          "audio": false
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "kling-v2-6",
+            "prompt": "A quiet mountain lake at sunrise",
+            "duration": 5,
+            "metadata": {
+              "audio": false
+            }
+          }
+        },
+        {
+          "label": "静音视频",
+          "mode": "silent",
+          "request": {
+            "model": "kling-v2-6",
+            "prompt": "A quiet mountain lake at sunrise",
+            "duration": 5,
+            "metadata": {
+              "audio": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "kling-v3",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 2500,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 15,
+            "minimum": 3
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "mode": {
+                "enum": [
+                  "std"
+                ],
+                "type": "string",
+                "default": "std"
+              },
+              "audio": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean",
+                "default": false
+              },
+              "watermark": {
+                "type": "boolean"
+              },
+              "negative_prompt": {
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "0d677dde1ecc808b154392a5862bb612678c73d4daae30d2f7a8f764f64c3a0b",
+      "example": {
+        "model": "kling-v3",
+        "prompt": "A quiet mountain lake at sunrise",
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "kling-v3",
+            "prompt": "A quiet mountain lake at sunrise",
+            "duration": 5
+          }
+        }
+      ]
+    },
+    {
+      "model": "kling-v3-omni",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 2500,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 15,
+            "minimum": 3
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "mode": {
+                "enum": [
+                  "std"
+                ],
+                "type": "string",
+                "default": "std"
+              },
+              "audio": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean",
+                "default": false
+              },
+              "watermark": {
+                "type": "boolean"
+              }
+            }
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "a41b8371d837b700876c2794d53e0a56d821726da6c519db9515e5a7aea68b5e",
+      "example": {
+        "model": "kling-v3-omni",
+        "prompt": "A quiet mountain lake at sunrise",
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "kling-v3-omni",
+            "prompt": "A quiet mountain lake at sunrise",
+            "duration": 5
+          }
+        }
+      ]
+    },
+    {
+      "model": "kling-video-o1",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 2500,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 10,
+            "minimum": 3
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "mode": {
+                "enum": [
+                  "std"
+                ],
+                "type": "string",
+                "default": "std"
+              },
+              "watermark": {
+                "type": "boolean"
+              }
+            }
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "8eb1f691fba6f54dabe2a5fad25fe84dd53b6b99bdb880a8de2a0cb87619df07",
+      "example": {
+        "model": "kling-video-o1",
+        "prompt": "A quiet mountain lake at sunrise",
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "kling-video-o1",
+            "prompt": "A quiet mountain lake at sunrise",
+            "duration": 5
+          }
+        }
+      ]
+    },
+    {
+      "model": "minimax-h3",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [],
+        "rules": [],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 10,
+            "minimum": 4,
+            "required": true
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "required": true,
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "resolution": {
+                "enum": [
+                  "768p"
+                ],
+                "type": "string",
+                "default": "768p",
+                "required": true
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "required": false,
+            "max_items": 5
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string",
+            "default": "16:9",
+            "required": true
+          }
+        },
+        "version": 1,
+        "image_specs": []
+      },
+      "schema_sha256": "dfcdca7cade1df761ee4de8a75de19d9b2700c8ea9349334b42b222d0caa8ce1",
+      "example": {
+        "model": "minimax-h3",
+        "prompt": "A quiet mountain lake at sunrise",
+        "duration": 5,
+        "aspect_ratio": "16:9",
+        "metadata": {
+          "resolution": "768p"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "768p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "minimax-h3",
+            "prompt": "A quiet mountain lake at sunrise",
+            "duration": 5,
+            "aspect_ratio": "16:9",
+            "metadata": {
+              "resolution": "768p"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "MiniMax-H3",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "text",
+            "when": [
+              {
+                "op": "empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ]
+          },
+          {
+            "id": "reference",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ],
+            "forbidden": [
+              "aspect_ratio"
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 7000,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 15,
+            "minimum": 4
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "2K",
+                  "768p"
+                ],
+                "type": "string",
+                "default": "2K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 5,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "21:9",
+              "16:9",
+              "4:3",
+              "1:1",
+              "3:4",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "e1c72e2cc17d9eaac516f373b1de9e4fbe88aa56b85e345acd0271c6791ca370",
+      "example": {
+        "model": "MiniMax-H3",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "2K"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "768p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "MiniMax-H3",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "2K"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "文生视频",
+          "mode": "text",
+          "request": {
+            "model": "MiniMax-H3",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "2K"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "参考图生视频",
+          "mode": "reference",
+          "request": {
+            "model": "MiniMax-H3",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "2K"
+            },
+            "duration": 5,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "MiniMax-H3-Max",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "text",
+            "when": [
+              {
+                "op": "empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ]
+          },
+          {
+            "id": "reference",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ],
+            "forbidden": [
+              "aspect_ratio"
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 7000,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 15,
+            "minimum": 5
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "480P",
+                  "768P"
+                ],
+                "type": "string",
+                "default": "480P"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 2,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "21:9",
+              "16:9",
+              "4:3",
+              "1:1",
+              "3:4",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "38600aa33010ec35670c55cdf85e97a34d7d1caacb0ca3d2d1b591b10e45ea2d",
+      "example": {
+        "model": "MiniMax-H3-Max",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "480P"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "480P"
+          },
+          {
+            "tier_label": "768P"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "MiniMax-H3-Max",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480P"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "文生视频",
+          "mode": "text",
+          "request": {
+            "model": "MiniMax-H3-Max",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480P"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "参考图生视频",
+          "mode": "reference",
+          "request": {
+            "model": "MiniMax-H3-Max",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480P"
+            },
+            "duration": 5,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "MiniMax-H3-Max-Turbo",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "text",
+            "when": [
+              {
+                "op": "empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ]
+          },
+          {
+            "id": "reference",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ],
+            "forbidden": [
+              "aspect_ratio"
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 7000,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 15,
+            "minimum": 5
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "480P",
+                  "768P"
+                ],
+                "type": "string",
+                "default": "480P"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 2,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "21:9",
+              "16:9",
+              "4:3",
+              "1:1",
+              "3:4",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "38600aa33010ec35670c55cdf85e97a34d7d1caacb0ca3d2d1b591b10e45ea2d",
+      "example": {
+        "model": "MiniMax-H3-Max-Turbo",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "480P"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "480P"
+          },
+          {
+            "tier_label": "768P"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "MiniMax-H3-Max-Turbo",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480P"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "文生视频",
+          "mode": "text",
+          "request": {
+            "model": "MiniMax-H3-Max-Turbo",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480P"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "参考图生视频",
+          "mode": "reference",
+          "request": {
+            "model": "MiniMax-H3-Max-Turbo",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480P"
+            },
+            "duration": 5,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "MiniMax-Hailuo-02",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "text",
+            "when": [
+              {
+                "op": "empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ]
+          },
+          {
+            "id": "reference",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              }
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": false,
+            "max_length": 2000,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              6
+            ],
+            "type": "integer",
+            "default": 6
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "768P"
+                ],
+                "type": "string",
+                "default": "768P"
+              },
+              "aigc_watermark": {
+                "type": "boolean"
+              },
+              "prompt_optimizer": {
+                "type": "boolean"
+              },
+              "fast_pretreatment": {
+                "type": "boolean"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "f73954e6cceb283c1a6530303f3dcb7b1e26728b455ab910de7cc36a9d90404c",
+      "example": {
+        "model": "MiniMax-Hailuo-02",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "768P"
+        },
+        "duration": 6
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "per_request",
+        "intervals": [
+          {
+            "tier_label": "768P"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "MiniMax-Hailuo-02",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "768P"
+            },
+            "duration": 6
+          }
+        },
+        {
+          "label": "文生视频",
+          "mode": "text",
+          "request": {
+            "model": "MiniMax-Hailuo-02",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "768P"
+            },
+            "duration": 6
+          }
+        },
+        {
+          "label": "参考图生视频",
+          "mode": "reference",
+          "request": {
+            "model": "MiniMax-Hailuo-02",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "768P"
+            },
+            "duration": 6,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "MiniMax-Hailuo-2.3",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 2000,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              6
+            ],
+            "type": "integer",
+            "default": 6
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "768P"
+                ],
+                "type": "string",
+                "default": "768P"
+              },
+              "aigc_watermark": {
+                "type": "boolean"
+              },
+              "prompt_optimizer": {
+                "type": "boolean"
+              },
+              "fast_pretreatment": {
+                "type": "boolean"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "45765182056ff31f156dc546230ee409d71a681fcfb5d3baf215204be87df401",
+      "example": {
+        "model": "MiniMax-Hailuo-2.3",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "768P"
+        },
+        "duration": 6
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "per_request",
+        "intervals": [
+          {
+            "tier_label": "768P"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "MiniMax-Hailuo-2.3",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "768P"
+            },
+            "duration": 6
+          }
+        }
+      ]
+    },
+    {
+      "model": "MiniMax-Hailuo-2.3-Fast",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 2000,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              6
+            ],
+            "type": "integer",
+            "default": 6
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "768P"
+                ],
+                "type": "string",
+                "default": "768P"
+              },
+              "aigc_watermark": {
+                "type": "boolean"
+              },
+              "prompt_optimizer": {
+                "type": "boolean"
+              },
+              "fast_pretreatment": {
+                "type": "boolean"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "required": true,
+            "max_items": 1,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "ffdc7412f827a565b7a683857a17740e2007adadd61ead22fdf4ccf31e949819",
+      "example": {
+        "model": "MiniMax-Hailuo-2.3-Fast",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "768P"
+        },
+        "duration": 6,
+        "image_urls": [
+          "https://example.com/reference.png"
+        ]
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "per_request",
+        "intervals": [
+          {
+            "tier_label": "768P"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "MiniMax-Hailuo-2.3-Fast",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "768P"
+            },
+            "duration": 6,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "nano-banana-2.1",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9"
+            ],
+            "type": "string",
+            "default": "1:1"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 14,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "726a0fd6ec259b8c42031ac317546faf0cc5436658ee20c51126ccf70f3f5f2e",
+      "example": {
+        "model": "nano-banana-2.1",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "nano-banana-2.1",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "seedance-2-fast-ext",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              5,
+              10,
+              15
+            ],
+            "type": "integer",
+            "default": 5
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "enum": [
+                  "480p",
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "480p"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 9,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "4:3",
+              "1:1",
+              "3:4",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "e143f7a6bf6953f95a0bdf2ca63ddf7541ee8697dab816898d781538bbae0970",
+      "example": {
+        "model": "seedance-2-fast-ext",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "480p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "per_request",
+        "intervals": [
+          {
+            "tier_label": "480p"
+          },
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "seedance-2-fast-ext",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480p"
+            },
+            "duration": 5
+          }
+        }
+      ]
+    },
+    {
+      "model": "sora-2-official",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              4,
+              8,
+              12
+            ],
+            "type": "integer",
+            "default": 4
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "569e307cbb7114629c27d177a5f96004af7e10e7dbadf97db1c2aa7548409572",
+      "example": {
+        "model": "sora-2-official",
+        "prompt": "A quiet mountain lake at sunrise",
+        "duration": 4
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": []
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "sora-2-official",
+            "prompt": "A quiet mountain lake at sunrise",
+            "duration": 4
+          }
+        }
+      ]
+    },
+    {
+      "model": "veo3.1-fast",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              8
+            ],
+            "type": "integer",
+            "default": 8
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "enable_gif": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "720p"
+              },
+              "generation_type": {
+                "enum": [
+                  "frame"
+                ],
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "required": true,
+            "max_items": 2,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "f96050990bbbf0ea8a52935937c9d7974e25a14b0e15bf00ffc94a06d0e4bc87",
+      "example": {
+        "model": "veo3.1-fast",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 8,
+        "image_urls": [
+          "https://example.com/reference.png"
+        ]
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "per_request",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "veo3.1-fast",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 8,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "Veo3.1-fast-official",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              4,
+              6,
+              8
+            ],
+            "type": "integer",
+            "default": 8
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resizeMode": {
+                "enum": [
+                  "pad",
+                  "crop"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "720p",
+                  "1080p",
+                  "4k"
+                ],
+                "type": "string",
+                "default": "720p"
+              },
+              "generateAudio": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean",
+                "default": false
+              },
+              "negativePrompt": {
+                "type": "string"
+              },
+              "personGeneration": {
+                "enum": [
+                  "allow_adult",
+                  "dont_allow"
+                ],
+                "type": "string"
+              },
+              "compressionQuality": {
+                "enum": [
+                  "optimized",
+                  "lossless"
+                ],
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "8d99ad29966c0d27e47a60aed063e90d3d0c63544d68d5cfd1f42adabd21d673",
+      "example": {
+        "model": "Veo3.1-fast-official",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 8
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          },
+          {
+            "tier_label": "4k"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "Veo3.1-fast-official",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 8
+          }
+        }
+      ]
+    },
+    {
+      "model": "veo3.1-lite",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              8
+            ],
+            "type": "integer",
+            "default": 8
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "enable_gif": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "720p"
+                ],
+                "type": "string",
+                "default": "720p"
+              },
+              "generation_type": {
+                "enum": [
+                  "frame"
+                ],
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "29a9c6ccfd941db46d352455811df2b3924e640a60e8d3a3b3fbac80300c3631",
+      "example": {
+        "model": "veo3.1-lite",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 8
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "per_request",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "veo3.1-lite",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 8
+          }
+        }
+      ]
+    },
+    {
+      "model": "Veo3.1-lite-official",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              4,
+              6,
+              8
+            ],
+            "type": "integer",
+            "default": 8
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resizeMode": {
+                "enum": [
+                  "pad",
+                  "crop"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "720p"
+                ],
+                "type": "string",
+                "default": "720p"
+              },
+              "generateAudio": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean",
+                "default": false
+              },
+              "negativePrompt": {
+                "type": "string"
+              },
+              "personGeneration": {
+                "enum": [
+                  "allow_adult",
+                  "dont_allow"
+                ],
+                "type": "string"
+              },
+              "compressionQuality": {
+                "enum": [
+                  "optimized",
+                  "lossless"
+                ],
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "55422c05050c36ff52fd1b2b207006f8da39a58da07ffd9de5daaa825a19000f",
+      "example": {
+        "model": "Veo3.1-lite-official",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 8
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "Veo3.1-lite-official",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 8
+          }
+        }
+      ]
+    },
+    {
+      "model": "veo3.1-quality",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              8
+            ],
+            "type": "integer",
+            "default": 8
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "enable_gif": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "720p"
+              },
+              "generation_type": {
+                "enum": [
+                  "frame"
+                ],
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "68296b651503785acf230c0b7822cbaf1958833302b3bc97fcf7db95c0a49c6a",
+      "example": {
+        "model": "veo3.1-quality",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 8
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "per_request",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "veo3.1-quality",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 8
+          }
+        }
+      ]
+    },
+    {
+      "model": "Veo3.1-quality-official",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              4,
+              6,
+              8
+            ],
+            "type": "integer",
+            "default": 8
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resizeMode": {
+                "enum": [
+                  "pad",
+                  "crop"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "720p",
+                  "1080p",
+                  "4k"
+                ],
+                "type": "string",
+                "default": "720p"
+              },
+              "generateAudio": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean",
+                "default": false
+              },
+              "negativePrompt": {
+                "type": "string"
+              },
+              "personGeneration": {
+                "enum": [
+                  "allow_adult",
+                  "dont_allow"
+                ],
+                "type": "string"
+              },
+              "compressionQuality": {
+                "enum": [
+                  "optimized",
+                  "lossless"
+                ],
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "8d99ad29966c0d27e47a60aed063e90d3d0c63544d68d5cfd1f42adabd21d673",
+      "example": {
+        "model": "Veo3.1-quality-official",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 8
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          },
+          {
+            "tier_label": "4k"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "Veo3.1-quality-official",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 8
+          }
+        }
+      ]
+    },
+    {
+      "model": "vidu-image",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 7,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "2ddf2c08684354c83b5caeb591431a18481e788b0625e5cc054c47d54ad7b5ff",
+      "example": {
+        "model": "vidu-image",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "vidu-image",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "viduq2-fast",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "1K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 7,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "e21808a48cba3e749cd36f90e90dcd29bae877d12a862c89e28d3a40d4d21c76",
+      "example": {
+        "model": "viduq2-fast",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "viduq2-fast",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "viduq2-pro",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 7,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "2ddf2c08684354c83b5caeb591431a18481e788b0625e5cc054c47d54ad7b5ff",
+      "example": {
+        "model": "viduq2-pro",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "viduq2-pro",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "viduq3",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 5000,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 16,
+            "minimum": 3
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "audio": {
+                "type": "boolean"
+              },
+              "audio_type": {
+                "enum": [
+                  "all",
+                  "speech_only",
+                  "sound-effect_only"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "720p"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "required": true,
+            "max_items": 7,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "12b522d5efb5954c2881fc12e0a8747986493771297e4c442c9e6d7fb2de6299",
+      "example": {
+        "model": "viduq3",
+        "prompt": "A quiet mountain lake at sunrise",
+        "image_urls": [
+          "https://example.com/reference.png"
+        ],
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "viduq3",
+            "prompt": "A quiet mountain lake at sunrise",
+            "image_urls": [
+              "https://example.com/reference.png"
+            ],
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 5
+          }
+        }
+      ]
+    },
+    {
+      "model": "viduq3-fast",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": true,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "size": {
+            "enum": [
+              "1:1",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "3:2",
+              "2:3"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "1K"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 7,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "2ddf2c08684354c83b5caeb591431a18481e788b0625e5cc054c47d54ad7b5ff",
+      "example": {
+        "model": "viduq3-fast",
+        "prompt": "A quiet mountain lake at sunrise",
+        "n": 1,
+        "size": "1:1",
+        "metadata": {
+          "resolution": "1K"
+        }
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "image",
+        "intervals": [
+          {
+            "tier_label": "1K"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "viduq3-fast",
+            "prompt": "A quiet mountain lake at sunrise",
+            "n": 1,
+            "size": "1:1",
+            "metadata": {
+              "resolution": "1K"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "model": "viduq3-pro",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "text",
+            "when": [
+              {
+                "op": "empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ]
+          },
+          {
+            "id": "reference",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ],
+            "forbidden": [
+              "aspect_ratio"
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 5000,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 16,
+            "minimum": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "audio": {
+                "type": "boolean"
+              },
+              "audio_type": {
+                "enum": [
+                  "all",
+                  "speech_only",
+                  "sound-effect_only"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "540p",
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "540p"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 2,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:3",
+              "3:4"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "f43d22bd5fd6b92b0fb598d4ed25b53adde82ae5e703c2e984024944518458d5",
+      "example": {
+        "model": "viduq3-pro",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "540p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "540p"
+          },
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "viduq3-pro",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "540p"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "文生视频",
+          "mode": "text",
+          "request": {
+            "model": "viduq3-pro",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "540p"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "参考图生视频",
+          "mode": "reference",
+          "request": {
+            "model": "viduq3-pro",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "540p"
+            },
+            "duration": 5,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "viduq3-turbo",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "text",
+            "when": [
+              {
+                "op": "empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ]
+          },
+          {
+            "id": "reference",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ],
+            "forbidden": [
+              "aspect_ratio"
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 5000,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 16,
+            "minimum": 1
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "audio": {
+                "type": "boolean"
+              },
+              "audio_type": {
+                "enum": [
+                  "all",
+                  "speech_only",
+                  "sound-effect_only"
+                ],
+                "type": "string"
+              },
+              "resolution": {
+                "enum": [
+                  "540p",
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "540p"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 2,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:3",
+              "3:4"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "f43d22bd5fd6b92b0fb598d4ed25b53adde82ae5e703c2e984024944518458d5",
+      "example": {
+        "model": "viduq3-turbo",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "540p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "540p"
+          },
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "viduq3-turbo",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "540p"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "文生视频",
+          "mode": "text",
+          "request": {
+            "model": "viduq3-turbo",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "540p"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "参考图生视频",
+          "mode": "reference",
+          "request": {
+            "model": "viduq3-turbo",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "540p"
+            },
+            "duration": 5,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "viduq4-preview",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 16,
+            "minimum": 3
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "audio": {
+                "type": "boolean"
+              },
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "540p",
+                  "720p",
+                  "1080p",
+                  "2K",
+                  "4K"
+                ],
+                "type": "string",
+                "default": "540p"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "required": true,
+            "max_items": 1,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "0269cfdcd22cf93fe355428700b7e3fe61a79013df14a129a0842e9437d540e2",
+      "example": {
+        "model": "viduq4-preview",
+        "prompt": "A quiet mountain lake at sunrise",
+        "image_urls": [
+          "https://example.com/reference.png"
+        ],
+        "metadata": {
+          "resolution": "540p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "540p"
+          },
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          },
+          {
+            "tier_label": "2K"
+          },
+          {
+            "tier_label": "4K"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "viduq4-preview",
+            "prompt": "A quiet mountain lake at sunrise",
+            "image_urls": [
+              "https://example.com/reference.png"
+            ],
+            "metadata": {
+              "resolution": "540p"
+            },
+            "duration": 5
+          }
+        }
+      ]
+    },
+    {
+      "model": "wan2.6",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "modes": [
+          {
+            "id": "text",
+            "when": [
+              {
+                "op": "empty",
+                "path": "image_urls"
+              }
+            ],
+            "required": [
+              "prompt"
+            ]
+          },
+          {
+            "id": "reference",
+            "when": [
+              {
+                "op": "not_empty",
+                "path": "image_urls"
+              }
+            ],
+            "forbidden": [
+              "aspect_ratio"
+            ]
+          }
+        ],
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": false,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              5,
+              10,
+              15
+            ],
+            "type": "integer",
+            "default": 5
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "audio": {
+                "type": "boolean"
+              },
+              "shot_type": {
+                "enum": [
+                  "single",
+                  "multi"
+                ],
+                "type": "string"
+              },
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "720p"
+              },
+              "prompt_extend": {
+                "type": "boolean"
+              },
+              "negative_prompt": {
+                "type": "string"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 1,
+            "min_items": 1
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:3",
+              "3:4"
+            ],
+            "type": "string"
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "52212558197fd2990b78d291b14f6194dc9e20c55436be9bb21eaf50cb86224a",
+      "example": {
+        "model": "wan2.6",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "wan2.6",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "文生视频",
+          "mode": "text",
+          "request": {
+            "model": "wan2.6",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 5
+          }
+        },
+        {
+          "label": "参考图生视频",
+          "mode": "reference",
+          "request": {
+            "model": "wan2.6",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 5,
+            "image_urls": [
+              "https://example.com/reference.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "wan2.6-flash",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": false,
+            "min_length": 1
+          },
+          "duration": {
+            "enum": [
+              5,
+              10,
+              15
+            ],
+            "type": "integer",
+            "default": 5
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "audio": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean",
+                "default": false
+              },
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "720p"
+              }
+            }
+          },
+          "image_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "required": true,
+            "max_items": 1,
+            "min_items": 1
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "0e59e03b96f425e66717c4a6bd41d3316d9a9d573af9ab3ceba0465673a5c22e",
+      "example": {
+        "model": "wan2.6-flash",
+        "prompt": "A quiet mountain lake at sunrise",
+        "image_urls": [
+          "https://example.com/reference.png"
+        ],
+        "metadata": {
+          "resolution": "720p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "wan2.6-flash",
+            "prompt": "A quiet mountain lake at sunrise",
+            "image_urls": [
+              "https://example.com/reference.png"
+            ],
+            "metadata": {
+              "resolution": "720p"
+            },
+            "duration": 5
+          }
+        }
+      ]
+    },
+    {
+      "model": "wan3.0-video",
+      "media_type": "video",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 30,
+            "minimum": 2
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "seed": {
+                "type": "integer"
+              },
+              "audio": {
+                "enum": [
+                  true
+                ],
+                "type": "boolean",
+                "default": true
+              },
+              "watermark": {
+                "type": "boolean"
+              },
+              "resolution": {
+                "enum": [
+                  "480p",
+                  "720p",
+                  "1080p"
+                ],
+                "type": "string",
+                "default": "480p"
+              }
+            }
+          }
+        },
+        "version": 1
+      },
+      "schema_sha256": "15b0ae3afd16cb1a1207e78bff55e59d5f8cf42acab0e7713302aac7e51c7cf9",
+      "example": {
+        "model": "wan3.0-video",
+        "prompt": "A quiet mountain lake at sunrise",
+        "metadata": {
+          "resolution": "480p"
+        },
+        "duration": 5
+      },
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "480p"
+          },
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "aliases": [],
+      "examples": [
+        {
+          "label": "基础请求",
+          "request": {
+            "model": "wan3.0-video",
+            "prompt": "A quiet mountain lake at sunrise",
+            "metadata": {
+              "resolution": "480p"
+            },
+            "duration": 5
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,12 @@
 services:
+  media-docs-check:
+    image: python:3.12
+    working_dir: /workspace
+    network_mode: none
+    volumes:
+      - ..:/workspace
+    command: ["python", "deploy/generate-media-api-docs.py", "--check"]
+
   backend-test:
     image: golang:1.27.2
     working_dir: /workspace/backend
