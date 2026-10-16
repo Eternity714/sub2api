@@ -2,6 +2,7 @@ backend/internal/pkg/mediacapability/capability_test.go
 backend/internal/service/media_capability_test.go
 backend/internal/service/media_capability_catalog_test.go
 backend/internal/service/media_capability_docs_test.go
+backend/internal/web/docs_test.go
 backend/internal/service/composite_media_routes_test.go
 backend/internal/service/unified_media_task_test.go
 backend/internal/service/unified_media_upstream_test.go

@@ -46,7 +46,7 @@ func documentationTestRouter(fsys fs.FS) *gin.Engine {
 	return router
 }
 
-// Version dots are part of a clean page name, not necessarily an asset extension.
+// AC-025: version dots in public model documentation are part of the page name.
 // Exercise the same routing and security contract for both complete site sources.
 func TestDocumentationVersionedCleanURLs(t *testing.T) {
 	for _, mounted := range []bool{false, true} {
