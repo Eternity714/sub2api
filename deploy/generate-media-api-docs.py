@@ -286,7 +286,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    source = SOURCE.read_bytes()
+    # Match Git's LF text across Windows and Linux checkouts.
+    source = SOURCE.read_text(encoding="utf-8").encode("utf-8")
     catalog = json.loads(source)
     outputs = generate(catalog)
     import re
