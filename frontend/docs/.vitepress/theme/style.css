@@ -18,3 +18,27 @@
 .VPFeature { border-radius: 16px; }
 .VPSidebarItem.is-active > .item { border-radius: 8px; background: var(--vp-c-brand-soft); }
 .VPDoc { overflow-wrap: anywhere; }
+
+.vp-doc .media-parameters table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.vp-doc .media-parameters th,
+.vp-doc .media-parameters td {
+  min-width: 110px;
+  overflow-wrap: normal;
+}
+
+.vp-doc .media-parameters th:first-child,
+.vp-doc .media-parameters td:first-child {
+  min-width: 180px;
+}
+
+.vp-doc .media-parameters th:nth-child(5),
+.vp-doc .media-parameters td:nth-child(5),
+.vp-doc .media-parameters th:nth-child(6),
+.vp-doc .media-parameters td:nth-child(6) {
+  min-width: 240px;
+}
