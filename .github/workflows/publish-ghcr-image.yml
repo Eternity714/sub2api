@@ -6,6 +6,7 @@ on:
       - CI
     types:
       - completed
+  workflow_dispatch:
 
 permissions:
   actions: read
@@ -19,26 +20,27 @@ jobs:
   publish:
     name: Build and publish linux/amd64 image
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main'
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
 
       - name: Wait for matching security scan
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_SHA: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           deadline=$((SECONDS + 900))
           while (( SECONDS < deadline )); do
             run_json="$(gh api \
-              "repos/${GITHUB_REPOSITORY}/actions/workflows/security-scan.yml/runs?event=push&head_sha=${HEAD_SHA}&per_page=20")"
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/security-scan.yml/runs?head_sha=${HEAD_SHA}&per_page=20")"
             state="$(jq -r '
               [.workflow_runs[]
                | select(.head_sha == env.HEAD_SHA)
@@ -83,7 +85,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ steps.owner.outputs.value }}/sub2api
           tags: |
-            type=sha,prefix=sha-
+            type=sha,prefix=sha-,format=long
             type=raw,value=main,enable={{is_default_branch}}
 
       - name: Build and push image
