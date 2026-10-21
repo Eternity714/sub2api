@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -37,17 +35,12 @@ func (s *grsaiMetadataStorage) SaveWithMetadata(_ context.Context, key, contentT
 }
 
 func TestGrsaiResultPersistenceStoresAllImagesBeforeReturning(t *testing.T) {
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "image/png")
-		_, _ = w.Write(pngBytes)
-	}))
-	defer upstream.Close()
 	storage := &grsaiMetadataStorage{}
-	uploader := NewImageResultUploader(storage, "images/", 0, nil)
+	uploader := NewImageResultUploader(storage, "images/", 0, newStaticImageDownloadClient("image/png", pngBytes))
 	result, err := uploader.PersistGrsaiImages(context.Background(), "grsai_local", &GrsaiUpstreamResult{
 		TaskID: "upstream-secret", Status: GrsaiUpstreamStatusSucceeded,
 		RawBody:   []byte(`{"id":"upstream-secret","account":"private"}`),
-		ImageURLs: []string{upstream.URL + "/a", upstream.URL + "/b"},
+		ImageURLs: []string{"https://images.example.test/a", "https://images.example.test/b"},
 	})
 	require.NoError(t, err)
 	require.Len(t, storage.saved, 2)
@@ -56,23 +49,18 @@ func TestGrsaiResultPersistenceStoresAllImagesBeforeReturning(t *testing.T) {
 	require.Nil(t, result.LinkExpiresAt)
 	require.JSONEq(t, `{"results":[{"url":"https://cdn.example/images/grsai_local-0.png"},{"url":"https://cdn.example/images/grsai_local-1.png"}]}`, string(result.ResultJSON))
 	require.NotContains(t, string(result.ResultJSON), "upstream-secret")
-	require.NotContains(t, string(result.ResultJSON), upstream.URL)
+	require.NotContains(t, string(result.ResultJSON), "images.example.test")
 	require.JSONEq(t, `[{"object_key":"images/grsai_local-0.png","content_type":"image/png"},{"object_key":"images/grsai_local-1.png","content_type":"image/png"}]`, string(result.ObjectMetadata))
 }
 
 func TestGrsaiResultPersistenceDoesNotReturnPartialSuccess(t *testing.T) {
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "image/png")
-		_, _ = w.Write(pngBytes)
-	}))
-	defer upstream.Close()
 	storage := &grsaiMetadataStorage{failAt: 2}
-	uploader := NewImageResultUploader(storage, "images/", 0, nil)
-	input := &GrsaiUpstreamResult{Status: GrsaiUpstreamStatusSucceeded, ImageURLs: []string{upstream.URL + "/a", upstream.URL + "/b"}}
+	uploader := NewImageResultUploader(storage, "images/", 0, newStaticImageDownloadClient("image/png", pngBytes))
+	input := &GrsaiUpstreamResult{Status: GrsaiUpstreamStatusSucceeded, ImageURLs: []string{"https://images.example.test/a", "https://images.example.test/b"}}
 	result, err := uploader.PersistGrsaiImages(context.Background(), "grsai_local", input)
 	require.Error(t, err)
 	require.Nil(t, result)
-	require.NotContains(t, err.Error(), upstream.URL)
+	require.NotContains(t, err.Error(), "images.example.test")
 	storage.failAt = 0
 	result, err = uploader.PersistGrsaiImages(context.Background(), "grsai_local", input)
 	require.NoError(t, err)
@@ -84,14 +72,9 @@ func TestGrsaiResultPersistenceKeepsEarliestLinkExpiry(t *testing.T) {
 	first := time.Now().UTC().Add(2 * time.Hour)
 	second := first.Add(-time.Hour)
 	storage := &grsaiMetadataStorage{expiries: []*time.Time{&first, &second}}
-	uploader := NewImageResultUploader(storage, "images/", 0, nil)
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "image/png")
-		_, _ = w.Write(pngBytes)
-	}))
-	defer upstream.Close()
+	uploader := NewImageResultUploader(storage, "images/", 0, newStaticImageDownloadClient("image/png", pngBytes))
 	result, err := uploader.PersistGrsaiImages(context.Background(), "grsai_local", &GrsaiUpstreamResult{
-		Status: GrsaiUpstreamStatusSucceeded, ImageURLs: []string{upstream.URL + "/a", upstream.URL + "/b"},
+		Status: GrsaiUpstreamStatusSucceeded, ImageURLs: []string{"https://images.example.test/a", "https://images.example.test/b"},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result.LinkExpiresAt)
