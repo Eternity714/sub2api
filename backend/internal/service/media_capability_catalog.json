@@ -10174,5 +10174,235 @@
         "resolution": "720p"
       }
     }
+  },
+  {
+    "platform": "toapis",
+    "upstream_model": "gpt-image-2.6-flare",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.6/generation",
+    "evidence": "documented_generation",
+    "profile": {
+      "top_level_metadata": [
+        "background",
+        "quality",
+        "resolution",
+        "output_format"
+      ],
+      "field_map": {
+        "image_urls": "reference_images"
+      }
+    },
+    "notes": "2.6 普通版支持三档质量、1K/2K/4K 和最多 10 张参考图。PNG/JPEG/WebP 输出；GIF/SVG 高级输出暂未开放。上游每次 n=1，多个结果使用本地独立拆分。价格须按账户实时价目配置。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "min_length": 1,
+          "required": true
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 1
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "quality": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "high"
+            },
+            "background": {
+              "type": "string",
+              "enum": [
+                "transparent"
+              ]
+            },
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "default": "1K"
+            },
+            "output_format": {
+              "type": "string",
+              "enum": [
+                "png",
+                "jpeg",
+                "webp"
+              ],
+              "default": "png"
+            }
+          },
+          "default": {}
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9"
+          ],
+          "default": "1:1"
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1,
+          "max_items": 10
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": true,
+        "semantically_linked": false
+      }
+    },
+    "example": {
+      "model": "toapis/gpt-image-2.6-flare",
+      "prompt": "A quiet mountain lake at sunrise",
+      "n": 1,
+      "size": "1:1",
+      "metadata": {
+        "resolution": "1K",
+        "quality": "high"
+      }
+    }
+  },
+  {
+    "platform": "toapis",
+    "upstream_model": "gpt-image-2.6-sunburst",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.6/generation",
+    "evidence": "documented_generation",
+    "profile": {
+      "top_level_metadata": [
+        "background",
+        "quality",
+        "resolution",
+        "output_format"
+      ],
+      "field_map": {
+        "image_urls": "reference_images"
+      }
+    },
+    "notes": "2.6 普通版支持三档质量、1K/2K/4K 和最多 10 张参考图。PNG/JPEG/WebP 输出；GIF/SVG 高级输出暂未开放。上游每次 n=1，多个结果使用本地独立拆分。价格须按账户实时价目配置。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "min_length": 1,
+          "required": true
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 1
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "quality": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "high"
+            },
+            "background": {
+              "type": "string",
+              "enum": [
+                "transparent"
+              ]
+            },
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "default": "1K"
+            },
+            "output_format": {
+              "type": "string",
+              "enum": [
+                "png",
+                "jpeg",
+                "webp"
+              ],
+              "default": "png"
+            }
+          },
+          "default": {}
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9"
+          ],
+          "default": "1:1"
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1,
+          "max_items": 10
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": true,
+        "semantically_linked": false
+      }
+    },
+    "example": {
+      "model": "toapis/gpt-image-2.6-sunburst",
+      "prompt": "A quiet mountain lake at sunrise",
+      "n": 1,
+      "size": "1:1",
+      "metadata": {
+        "resolution": "1K",
+        "quality": "high"
+      }
+    }
   }
 ]
