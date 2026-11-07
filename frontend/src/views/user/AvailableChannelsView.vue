@@ -1,60 +1,58 @@
 <template>
   <AppLayout>
-    <TablePageLayout>
-      <template #filters>
-        <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-          <div class="flex flex-1 flex-wrap items-center gap-3">
-            <div class="relative w-full sm:w-80">
-              <Icon
-                name="search"
-                size="md"
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
-              />
-              <input
-                v-model="searchQuery"
-                type="text"
-                :placeholder="t('availableChannels.searchPlaceholder')"
-                class="input pl-10"
-              />
-            </div>
-          </div>
-
-          <div class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-3 lg:w-auto">
-            <button
-              @click="loadChannels"
-              :disabled="loading"
-              class="btn btn-secondary"
-              :title="t('common.refresh', 'Refresh')"
-            >
-              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-            </button>
-          </div>
-        </div>
-      </template>
-
-      <template #table>
-        <AvailableChannelsTable
-          :columns="columnLabels"
-          :rows="filteredChannels"
-          :loading="loading"
-          :user-group-rates="userGroupRates"
-          pricing-key-prefix="availableChannels.pricing"
-          :no-pricing-label="t('availableChannels.noPricing')"
-          :no-models-label="t('availableChannels.noModels')"
-          :empty-label="t('availableChannels.empty')"
+    <div class="min-w-0 space-y-5">
+      <div class="flex items-start gap-3">
+        <PlazaFilterBar
+          class="min-w-0 flex-1"
+          :platforms="platforms"
+          :groups="groupOptions"
+          :rates="rates"
+          v-model:platform="selectedPlatform"
+          v-model:group-id="selectedGroupId"
+          v-model:rate="selectedRate"
+          v-model:search="searchQuery"
+          :search-placeholder="t('availableChannels.searchPlaceholder')"
         />
-      </template>
-    </TablePageLayout>
+        <button
+          type="button"
+          @click="loadChannels"
+          :disabled="loading"
+          class="btn btn-secondary shrink-0"
+          :title="t('common.refresh')"
+          :aria-label="t('common.refresh')"
+        >
+          <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+        </button>
+      </div>
+      <p class="flex items-start gap-1.5 text-xs leading-5 text-gray-500 dark:text-dark-400">
+        <Icon name="infoCircle" size="xs" class="mt-1 shrink-0" />
+        {{ t('availableChannels.listedPriceHint') }}
+      </p>
+      <div v-if="loading" class="flex min-h-[240px] items-center justify-center" role="status" :aria-label="t('modelPlaza.loading')">
+        <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary-600/25 border-t-primary-600 dark:border-primary-400/25 dark:border-t-primary-400"></div>
+      </div>
+      <div v-else-if="filteredChannels.length" class="space-y-5">
+        <AvailableChannelSection
+          v-for="(channel, index) in filteredChannels"
+          :key="`${channel.name}-${index}`"
+          :channel="channel"
+          :user-group-rates="userGroupRates"
+        />
+      </div>
+      <div v-else class="rounded-2xl border border-dashed border-gray-300 px-5 py-12 text-center text-sm text-gray-500 dark:border-dark-600 dark:text-dark-400">
+        {{ filtersActive ? t('availableChannels.noSearchResult') : t('availableChannels.empty') }}
+      </div>
+    </div>
   </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
-import AvailableChannelsTable from '@/components/channels/AvailableChannelsTable.vue'
+import PlazaFilterBar from '@/components/modelPlaza/PlazaFilterBar.vue'
+import AvailableChannelSection from '@/components/channels/AvailableChannelSection.vue'
 import userChannelsAPI, { type UserAvailableChannel } from '@/api/channels'
 import userGroupsAPI from '@/api/groups'
 import { useAppStore } from '@/stores/app'
@@ -68,36 +66,69 @@ const channels = ref<UserAvailableChannel[]>([])
 const userGroupRates = ref<Record<number, number>>({})
 const loading = ref(false)
 const searchQuery = ref('')
+const selectedPlatform = ref('all')
+const selectedGroupId = ref<number | 'all'>('all')
+const selectedRate = ref<number | 'all'>('all')
 
-const columnLabels = computed(() => ({
-  name: t('availableChannels.columns.name'),
-  description: t('availableChannels.columns.description'),
-  platform: t('availableChannels.columns.platform'),
-  groups: t('availableChannels.columns.groups'),
-  supportedModels: t('availableChannels.columns.supportedModels'),
-}))
+const platforms = computed(() => [...new Set(channels.value.flatMap(channel =>
+  channel.platforms.map(section => publicPlatformId(section.platform))
+))].sort())
+
+const groupOptions = computed(() => {
+  const options = new Map<number, { id: number; name: string; platform: string; platforms: string[]; rate: number }>()
+  for (const channel of channels.value) {
+    for (const section of channel.platforms) {
+      const platform = publicPlatformId(section.platform)
+      for (const group of section.groups) {
+        const existing = options.get(group.id)
+        if (existing) {
+          if (!existing.platforms.includes(platform)) existing.platforms.push(platform)
+        } else {
+          options.set(group.id, {
+            id: group.id, name: group.name, platform, platforms: [platform],
+            rate: userGroupRates.value[group.id] ?? group.rate_multiplier
+          })
+        }
+      }
+    }
+  }
+  return [...options.values()]
+})
+
+const rates = computed(() => [...new Set(groupOptions.value.map(group => group.rate))].sort((a, b) => a - b))
+const filtersActive = computed(() => Boolean(searchQuery.value.trim()) || selectedPlatform.value !== 'all' || selectedGroupId.value !== 'all' || selectedRate.value !== 'all')
+
+watch([platforms, groupOptions, rates], () => {
+  if (!platforms.value.includes(selectedPlatform.value)) selectedPlatform.value = 'all'
+  if (!groupOptions.value.some(group => group.id === selectedGroupId.value)) selectedGroupId.value = 'all'
+  if (selectedRate.value !== 'all' && !rates.value.includes(selectedRate.value)) selectedRate.value = 'all'
+})
 
 /**
  * 搜索过滤：
- * - 命中渠道名/描述 → 整个渠道（所有 platforms）都保留
- * - 否则按 platform/group/model 维度在 sections 里过滤，保留有匹配的 section
- * - 所有 sections 都不匹配时，渠道本身被过滤掉
+ * 平台、分组、倍率先限制可见范围，再搜索渠道/描述/平台/分组/模型。
+ * 搜索仅命中模型名时只保留命中模型，保留渠道与平台层级。
  */
 const filteredChannels = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return channels.value
   return channels.value
     .map((ch) => {
       const nameHit = ch.name.toLowerCase().includes(q)
       const descHit = (ch.description || '').toLowerCase().includes(q)
-      if (nameHit || descHit) return ch
-      const matchingSections = ch.platforms.filter(
-        (p) =>
-          publicPlatformId(p.platform).toLowerCase().includes(q) ||
-          publicPlatformLabel(p.platform, t('admin.groups.platforms.media')).toLowerCase().includes(q) ||
-          p.groups.some((g) => g.name.toLowerCase().includes(q)) ||
-          p.supported_models.some((m) => m.name.toLowerCase().includes(q)),
-      )
+      const matchingSections = ch.platforms.flatMap(section => {
+        if (selectedPlatform.value !== 'all' && publicPlatformId(section.platform) !== selectedPlatform.value) return []
+        const groups = section.groups.filter(group =>
+          (selectedGroupId.value === 'all' || group.id === selectedGroupId.value) &&
+          (selectedRate.value === 'all' || (userGroupRates.value[group.id] ?? group.rate_multiplier) === selectedRate.value)
+        )
+        if ((selectedGroupId.value !== 'all' || selectedRate.value !== 'all') && !groups.length) return []
+        const sectionHit = !q || nameHit || descHit ||
+          publicPlatformId(section.platform).toLowerCase().includes(q) ||
+          publicPlatformLabel(section.platform, t('admin.groups.platforms.media')).toLowerCase().includes(q) ||
+          groups.some(group => group.name.toLowerCase().includes(q))
+        const models = sectionHit ? section.supported_models : section.supported_models.filter(model => model.name.toLowerCase().includes(q))
+        return sectionHit || models.length ? [{ ...section, groups, supported_models: models }] : []
+      })
       if (matchingSections.length === 0) return null
       return { ...ch, platforms: matchingSections }
     })

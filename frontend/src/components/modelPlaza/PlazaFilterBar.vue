@@ -93,7 +93,7 @@
         <input
           :value="search"
           type="text"
-          :placeholder="t('modelPlaza.filters.searchPlaceholder')"
+          :placeholder="searchPlaceholder || t('modelPlaza.filters.searchPlaceholder')"
           class="input rounded-lg py-1.5 pl-9 pr-9"
           @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
         />
@@ -122,7 +122,7 @@ const props = defineProps<{
   /** 数据中出现的平台(去重排序后)。 */
   platforms: string[]
   /** 全量分组(含平台与生效倍率),三个维度的置灰联动由此推导。 */
-  groups: Array<{ id: number; name: string; platform: string; rate: number }>
+  groups: Array<{ id: number; name: string; platform: string; platforms?: string[]; rate: number }>
   /** 全量生效倍率去重升序。 */
   rates: number[]
   platform: string
@@ -130,6 +130,7 @@ const props = defineProps<{
   rate: number | 'all'
   /** 模型名搜索词(纯前端过滤)。 */
   search: string
+  searchPlaceholder?: string
 }>()
 
 defineEmits<{
@@ -148,18 +149,24 @@ const displayPlatformLabel = (platform: string) =>
  * 三个维度互为约束(faceted):某选项可点 ⟺ 在「其他两维」当前选择下仍有分组命中。
  * 「全部」永远可点,作为解除本维约束的出口;可点项组合恒有结果,无需选择修正。
  */
+function matchesPlatform(group: { platform: string; platforms?: string[] }, platform: string): boolean {
+  return (group.platforms ?? [group.platform]).some(value => publicPlatformId(value) === publicPlatformId(platform))
+}
+
 function platformEnabled(p: string): boolean {
+  // 渠道可以缺少分组元数据；未限制分组/倍率时，数据中已有的平台仍可筛选。
+  if (props.groupId === 'all' && props.rate === 'all') return true
   return props.groups.some(
     (g) =>
-      publicPlatformId(g.platform) === publicPlatformId(p) &&
+      matchesPlatform(g, p) &&
       (props.groupId === 'all' || g.id === props.groupId) &&
       (props.rate === 'all' || g.rate === props.rate)
   )
 }
 
-function groupEnabled(g: { platform: string; rate: number }): boolean {
+function groupEnabled(g: { platform: string; platforms?: string[]; rate: number }): boolean {
   return (
-    (props.platform === 'all' || publicPlatformId(g.platform) === publicPlatformId(props.platform)) &&
+    (props.platform === 'all' || matchesPlatform(g, props.platform)) &&
     (props.rate === 'all' || g.rate === props.rate)
   )
 }
@@ -168,7 +175,7 @@ function rateEnabled(r: number): boolean {
   return props.groups.some(
     (g) =>
       g.rate === r &&
-      (props.platform === 'all' || publicPlatformId(g.platform) === publicPlatformId(props.platform)) &&
+      (props.platform === 'all' || matchesPlatform(g, props.platform)) &&
       (props.groupId === 'all' || g.id === props.groupId)
   )
 }
