@@ -58,6 +58,20 @@ function mountTable(
 }
 
 describe('PlazaModelPricingTable', () => {
+  it('shows channel list prices without a group multiplier or unavailable official columns', () => {
+    const wrapper = mount(PlazaModelPricingTable, {
+      props: { models: [tokenModel()], rateMultiplier: 2, userRateMultiplier: 0, priceMode: 'listed' },
+      global: { stubs: { SupportedModelChip: true } }
+    })
+    try {
+      expect(wrapper.get('tbody').text()).toContain('$3.00')
+      expect(wrapper.get('tbody').text()).toContain('$15.00')
+      expect(wrapper.get('tbody tr').findAll('td')).toHaveLength(4)
+      expect(wrapper.get('thead').text()).not.toContain('modelPlaza.table.officialPrice')
+      expect(wrapper.get('thead').text()).not.toContain('modelPlaza.table.rate')
+    } finally { wrapper.unmount() }
+  })
+
   it.each([
     { enabled: true, multiplier: 1, userRate: 0.05, expected: 1 },
     { enabled: true, multiplier: 0.5, userRate: null, expected: 0.5 },

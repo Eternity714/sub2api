@@ -1,7 +1,7 @@
 <template>
   <div class="plaza-pricing-table overflow-x-auto" :style="accentStyle">
-    <table class="w-full min-w-[1000px] table-auto border-collapse text-sm tabular-nums">
-      <colgroup>
+    <table class="w-full table-auto border-collapse text-sm tabular-nums" :class="isListedPrice ? 'min-w-[600px]' : 'min-w-[1000px]'">
+      <colgroup v-if="!isListedPrice">
         <col class="w-[25%]" />
         <col class="w-[11%]" />
         <col class="w-[9%]" />
@@ -23,11 +23,12 @@
           </th>
           <th colspan="3" class="pz-bg pt-2 text-center">
             <div class="pz-title border-b pb-2 font-semibold">
-              {{ t('modelPlaza.table.paidPrice') }}
+              {{ isListedPrice ? t('availableChannels.listedPrice') : t('modelPlaza.table.paidPrice') }}
               <span class="pz-unit ml-1 normal-case font-normal">{{ t('modelPlaza.table.unitPerMillion') }}</span>
             </div>
           </th>
           <th
+            v-if="!isListedPrice"
             colspan="3"
             class="border-l border-gray-100 pt-2 text-center dark:border-dark-700/60"
           >
@@ -37,6 +38,7 @@
             </div>
           </th>
           <th
+            v-if="!isListedPrice"
             rowspan="2"
             class="border-l border-gray-100 py-2.5 pl-3 pr-5 text-right align-middle dark:border-dark-700/60"
           >
@@ -49,11 +51,13 @@
           <th class="pz-bg px-3 py-2 font-medium">{{ t('modelPlaza.table.input') }}</th>
           <th class="pz-bg px-3 py-2 font-medium">{{ t('modelPlaza.table.output') }}</th>
           <th class="pz-bg px-3 py-2 font-medium">{{ t('modelPlaza.table.cache') }}</th>
-          <th class="border-l border-gray-100 px-3 py-2 font-medium dark:border-dark-700/60">
-            {{ t('modelPlaza.table.input') }}
-          </th>
-          <th class="px-3 py-2 font-medium">{{ t('modelPlaza.table.output') }}</th>
-          <th class="px-3 py-2 font-medium">{{ t('modelPlaza.table.cache') }}</th>
+          <template v-if="!isListedPrice">
+            <th class="border-l border-gray-100 px-3 py-2 font-medium dark:border-dark-700/60">
+              {{ t('modelPlaza.table.input') }}
+            </th>
+            <th class="px-3 py-2 font-medium">{{ t('modelPlaza.table.output') }}</th>
+            <th class="px-3 py-2 font-medium">{{ t('modelPlaza.table.cache') }}</th>
+          </template>
         </tr>
       </thead>
       <tbody>
@@ -65,7 +69,15 @@
           <!-- 模型名 + 非 token 计费模式徽章;分时时段行额外标注时段 -->
           <td class="border-r border-gray-100 py-2.5 pl-5 pr-4 align-middle dark:border-dark-700/60">
             <div class="flex flex-wrap items-center gap-1.5">
-              <span class="font-medium text-gray-900 dark:text-white">{{ m.name }}</span>
+              <SupportedModelChip
+                v-if="isListedPrice"
+                :model="m"
+                :show-platform="false"
+                :platform-hint="platform"
+                :no-pricing-label="t('availableChannels.noPricing')"
+              />
+              <span v-else class="font-medium text-gray-900 dark:text-white">{{ m.name }}</span>
+              <span v-if="isListedPrice && !m.pricing" class="text-xs text-gray-400">{{ t('availableChannels.noPricing') }}</span>
               <!-- 时段徽章紧跟模型名,其余徽章排在后面,空间不足时先换行的是它们 -->
               <span
                 v-if="period"
@@ -210,6 +222,7 @@
 
           <!-- 官方价格(参考价,不乘倍率;官方有阶梯时每档一行) -->
           <td
+            v-if="!isListedPrice"
             class="border-l border-gray-100 px-3 py-2.5 align-middle font-mono text-xs text-gray-500 dark:border-dark-700/60 dark:text-dark-400"
           >
             <template v-if="officialIntervals(m).length">
@@ -224,7 +237,7 @@
             </template>
             <template v-else>{{ official(m.official_pricing?.input_price) }}</template>
           </td>
-          <td class="px-3 py-2.5 align-middle font-mono text-xs text-gray-500 dark:text-dark-400">
+          <td v-if="!isListedPrice" class="px-3 py-2.5 align-middle font-mono text-xs text-gray-500 dark:text-dark-400">
             <template v-if="officialIntervals(m).length">
               <div
                 v-for="(iv, idx) in officialIntervals(m)"
@@ -237,7 +250,7 @@
             </template>
             <template v-else>{{ official(m.official_pricing?.output_price) }}</template>
           </td>
-          <td class="px-3 py-2.5 align-middle">
+          <td v-if="!isListedPrice" class="px-3 py-2.5 align-middle">
             <template v-if="hasTierCachePricing(officialIntervals(m))">
               <div
                 v-for="(iv, idx) in officialIntervals(m)"
@@ -280,6 +293,7 @@
 
           <!-- 折扣倍率(分时时段行展示 生效倍率×时段倍率;生图独立倍率行展示独立倍率;专属倍率划线展示原倍率) -->
           <td
+            v-if="!isListedPrice"
             class="border-l border-gray-100 py-2.5 pl-3 pr-5 text-right align-middle font-mono text-xs dark:border-dark-700/60"
           >
             <span
@@ -307,6 +321,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import SupportedModelChip from '@/components/channels/SupportedModelChip.vue'
 import { useI18n } from 'vue-i18n'
 import { formatScaled, resolveIntervalPrices } from '@/utils/pricing'
 import { platformAccentColor, platformBadgeLightClass, platformLabel } from '@/utils/platformColors'
@@ -333,6 +348,8 @@ function reasoningEffortMultipliers(model: PlazaModel): [string, number][] {
 
 const props = defineProps<{
   models: PlazaModel[]
+  /** 渠道仅提供标价，没有分组完整计费规则；不在此估算实付或展示官方参考价。 */
+  priceMode?: 'paid' | 'listed'
   /** 分组平台;实付分区底色随平台着色,未知平台回退品牌青。 */
   platform?: string
   /** 分组默认倍率。 */
@@ -355,6 +372,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const isListedPrice = computed(() => props.priceMode === 'listed')
 
 const displayPlatformLabel = (platform: string) =>
   publicPlatformLabel(platform, t('admin.groups.platforms.media'), platformLabel)
@@ -384,7 +402,7 @@ const sortedModels = computed(() => {
   })
 })
 
-const effectiveRate = computed(() => props.userRateMultiplier ?? props.rateMultiplier)
+const effectiveRate = computed(() => isListedPrice.value ? 1 : props.userRateMultiplier ?? props.rateMultiplier)
 const hasCustomRate = computed(
   () => props.userRateMultiplier != null && props.userRateMultiplier !== props.rateMultiplier
 )
@@ -394,6 +412,7 @@ function billingMode(m: PlazaModel): BillingMode {
 }
 
 function billingModeLabel(m: PlazaModel): string {
+  if (isListedPrice.value && billingMode(m) === BILLING_MODE_VIDEO) return t('availableChannels.pricing.billingModeVideo')
   return billingMode(m) === BILLING_MODE_IMAGE
     ? t('modelPlaza.table.perImage')
     : t('modelPlaza.table.perRequest')
@@ -441,6 +460,7 @@ function usesIndependentMediaRate(m: PlazaModel): boolean {
 
 /** 非 token 行的生效倍率，图片和视频可分别覆盖通用倍率。 */
 function requestRate(m: PlazaModel): number {
+  if (isListedPrice.value) return 1
   if (billingMode(m) === BILLING_MODE_VIDEO && props.videoRateIndependent === true) {
     return Math.max(0, props.videoRateMultiplier ?? 1)
   }
@@ -463,6 +483,7 @@ function official(value: number | null | undefined): string {
 
 /** 非 token 计费的单位后缀:按图片 → “/ 张”,按次 → “/ 次”。 */
 function perUnitSuffix(m: PlazaModel): string {
+  if (isListedPrice.value && billingMode(m) === BILLING_MODE_VIDEO) return t('availableChannels.pricing.unitPerSecond')
   return billingMode(m) === BILLING_MODE_IMAGE
     ? t('modelPlaza.table.perUnitImage')
     : t('modelPlaza.table.perUnitRequest')
