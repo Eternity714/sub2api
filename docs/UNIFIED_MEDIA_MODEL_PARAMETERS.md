@@ -734,6 +734,83 @@
 ```
 
 
+## toapis / gpt-image-2.6-flare / image
+
+官方来源：[GPT-Image-2.6 普通版](https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.6/generation)，核对日期：2026-11-07。
+
+`gpt-image-2.6` 是系列名；上游使用完整模型名 `gpt-image-2.6-flare`。建议公开别名：`toapis/gpt-image-2.6-flare`。
+
+2.6 普通版支持三档质量、1K/2K/4K 和最多 10 张参考图。PNG/JPEG/WebP 输出；GIF/SVG 高级输出暂未开放。上游每次 n=1，多个结果使用本地独立拆分。价格须按账户实时价目配置。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1 |
+| `n` | integer | 否 | `1` | 最小 1；最大 8 |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.quality` | string | 否 | `"high"` | 枚举 `["low","medium","high"]` |
+| `metadata.background` | string | 否 | — | 枚举 `["transparent"]` |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.output_format` | string | 否 | `"png"` | 枚举 `["png","jpeg","webp"]` |
+| `size` | string | 否 | `"1:1"` | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 10 |
+
+质量、分辨率、背景和输出格式由适配器转换为上游顶层字段，参考图转换为 `reference_images`。每次上游提交 `n=1`，多个结果使用本地独立任务拆分。
+
+请求示例：
+
+```json
+{
+  "model": "toapis/gpt-image-2.6-flare",
+  "prompt": "A quiet mountain lake at sunrise",
+  "n": 1,
+  "size": "1:1",
+  "metadata": {
+    "resolution": "1K",
+    "quality": "high"
+  }
+}
+```
+
+
+## toapis / gpt-image-2.6-sunburst / image
+
+官方来源：[GPT-Image-2.6 普通版](https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.6/generation)，核对日期：2026-11-07。
+
+`gpt-image-2.6` 是系列名；上游使用完整模型名 `gpt-image-2.6-sunburst`。建议公开别名：`toapis/gpt-image-2.6-sunburst`。
+
+2.6 普通版支持三档质量、1K/2K/4K 和最多 10 张参考图。PNG/JPEG/WebP 输出；GIF/SVG 高级输出暂未开放。上游每次 n=1，多个结果使用本地独立拆分。价格须按账户实时价目配置。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1 |
+| `n` | integer | 否 | `1` | 最小 1；最大 8 |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.quality` | string | 否 | `"high"` | 枚举 `["low","medium","high"]` |
+| `metadata.background` | string | 否 | — | 枚举 `["transparent"]` |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.output_format` | string | 否 | `"png"` | 枚举 `["png","jpeg","webp"]` |
+| `size` | string | 否 | `"1:1"` | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 10 |
+
+质量、分辨率、背景和输出格式由适配器转换为上游顶层字段，参考图转换为 `reference_images`。每次上游提交 `n=1`，多个结果使用本地独立任务拆分。
+
+请求示例：
+
+```json
+{
+  "model": "toapis/gpt-image-2.6-sunburst",
+  "prompt": "A quiet mountain lake at sunrise",
+  "n": 1,
+  "size": "1:1",
+  "metadata": {
+    "resolution": "1K",
+    "quality": "high"
+  }
+}
+```
+
 ## toapis / gpt-image-2 / image
 
 官方来源：[gpt-image-2](https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2/generation)
