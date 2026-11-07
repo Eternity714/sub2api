@@ -31,4 +31,16 @@ describe('media platform display', () => {
     expect(wrapper.text()).not.toContain('Media API')
     wrapper.unmount()
   })
+
+  it('keeps 快跑 API and its local icon visible on administrator badges', () => {
+    const wrapper = mount(PlatformTypeBadge, {
+      props: { platform: 'kuaipao', type: 'apikey' },
+      global: { plugins: [createI18n({ legacy: false, locale: 'en', messages: { en: {} } })] },
+    })
+    expect(wrapper.text()).toContain('快跑 API')
+    expect(wrapper.find('svg[aria-label="快跑 API"]').exists()).toBe(true)
+    expect(wrapper.find('img').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Media API')
+    wrapper.unmount()
+  })
 })

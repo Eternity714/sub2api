@@ -59,6 +59,15 @@ const billingData = {
 }
 
 describe('UpstreamBillingRateCell', () => {
+  it.each(['grsai', 'toapis', 'kuaipao'])('不为 %s 显示旧账单探测按钮或遗留倍率', platform => {
+    const wrapper = mount(UpstreamBillingRateCell, {
+      props: { account: makeAccount({ platform, extra: { upstream_billing_probe_enabled: true } }), now: Date.now() },
+    })
+    expect(wrapper.find('[data-testid="upstream-billing-probe"]').exists()).toBe(false)
+    expect(wrapper.text()).toBe('-')
+    wrapper.unmount()
+  })
+
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-07-13T00:30:00Z'))

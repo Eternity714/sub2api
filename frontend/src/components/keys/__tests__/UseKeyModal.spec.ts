@@ -8,7 +8,7 @@ const { copyToClipboardMock, saveAsMock } = vi.hoisted(() => ({
 }))
 
 describe('native media key instructions', () => {
-  it.each(['media', 'grsai', 'toapis'] as const)('shows unified async generation and owned result endpoints for a %s key', async platform => {
+  it.each(['media', 'grsai', 'toapis', 'kuaipao'] as const)('shows unified async generation and owned result endpoints for a %s key', async platform => {
     const wrapper = mount(UseKeyModal, {
       props: { show: true, apiKey: 'test-media-key', baseUrl: 'https://gateway.example.test/tenant/v1', platform },
       global: { stubs: { BaseDialog: { template: '<div><slot /><slot name="footer" /></div>' }, Icon: true } }
@@ -23,7 +23,7 @@ describe('native media key instructions', () => {
     expect(code).toContain('task.result?.data')
     expect(code).not.toContain('/v1/api/')
     expect(code).toContain('Authorization')
-    expect(code).not.toMatch(/ANTHROPIC_|OPENAI_|grsai|toapis|GRS\.AI/)
+    expect(code).not.toMatch(/ANTHROPIC_|OPENAI_|grsai|toapis|kuaipao|快跑|GRS\.AI/)
     expect(wrapper.find('nav[aria-label="Client"]').text()).not.toContain('keys.useKeyModal.cliTabs.claudeCode')
     wrapper.unmount()
   })

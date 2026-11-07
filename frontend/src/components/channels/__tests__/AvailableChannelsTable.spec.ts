@@ -141,7 +141,7 @@ describe('AvailableChannelsTable responsive surfaces', () => {
   })
 
   // AC-029: downstream media identity hides provider labels and icons on both surfaces.
-  it.each(['media', 'grsai', 'toapis'])('uses a public media label and icon for %s on desktop and mobile', platform => {
+  it.each(['media', 'grsai', 'toapis', 'kuaipao'])('uses a public media label and icon for %s on desktop and mobile', platform => {
     const wrapper = mountTable({
       rows: [{
         name: 'Images and videos', description: '',
@@ -151,7 +151,7 @@ describe('AvailableChannelsTable responsive surfaces', () => {
     for (const surface of ['desktop-channels', 'mobile-channels']) {
       const rendered = wrapper.get(`[data-testid="${surface}"]`)
       expect(rendered.text()).toContain('admin.groups.platforms.media')
-      expect(rendered.text()).not.toMatch(/grsai|toapis|GRS\.AI/i)
+      expect(rendered.text()).not.toMatch(/grsai|toapis|kuaipao|快跑|GRS\.AI/i)
       expect(rendered.get('[data-platform-icon]').attributes('data-platform-icon')).toBe('media')
     }
     wrapper.unmount()

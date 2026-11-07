@@ -8,7 +8,7 @@ describe('GroupsView Composite route options', () => {
     )
   })
 
-  it('allows GRS.AI and ToAPIs as media composite route candidates', () => {
-    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map((option) => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis']))
+  it('allows GRS.AI, ToAPIs and Kuaipao as media composite route candidates', () => {
+    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map((option) => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis', 'kuaipao']))
   })
 })

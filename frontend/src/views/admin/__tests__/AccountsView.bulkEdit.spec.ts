@@ -104,12 +104,13 @@ const ProbeDataTableStub = {
 }
 
 const AccountBulkActionsBarStub = {
-  props: ['selectedIds'],
-  emits: ['edit-filtered', 'probe-upstream-billing'],
+  props: ['selectedIds', 'canProbeUpstreamBilling'],
+  emits: ['edit-filtered', 'probe-upstream-billing', 'select-all-results'],
   template: `
-    <div>
+    <div data-test="bulk-bar" :data-can-probe="String(canProbeUpstreamBilling)">
       <button data-test="edit-filtered" @click="$emit('edit-filtered')">edit filtered</button>
       <button data-test="probe-upstream-billing" @click="$emit('probe-upstream-billing')">probe</button>
+      <button data-test="select-all-results" @click="$emit('select-all-results')">select all</button>
     </div>
   `
 }
@@ -122,6 +123,35 @@ const PaginationStub = {
 const BulkEditAccountModalStub = {
   props: ['show', 'target'],
   template: '<div data-test="bulk-edit-modal" :data-show="String(show)" :data-target-mode="target?.mode ?? \'\'"></div>'
+}
+
+function mountProbeSelectionView() {
+  return mount(AccountsView, {
+    global: {
+      stubs: {
+        AppLayout: { template: '<div><slot /></div>' },
+        TablePageLayout: { template: '<div><slot name="table" /><slot name="pagination" /></div>' },
+        DataTable: DataTableStub, Pagination: PaginationStub, ConfirmDialog: true,
+        AccountTableActions: true, AccountTableFilters: true,
+        AccountBulkActionsBar: AccountBulkActionsBarStub, AccountActionMenu: true,
+        ImportDataModal: true, ReAuthAccountModal: true, AccountTestModal: true,
+        AccountStatsModal: true, ScheduledTestsPanel: true, SyncFromCrsModal: true,
+        TempUnschedStatusModal: true, ErrorPassthroughRulesModal: true,
+        TLSFingerprintProfilesModal: true, CreateAccountModal: true, EditAccountModal: true,
+        BulkEditAccountModal: true, PlatformTypeBadge: true, AccountCapacityCell: true,
+        AccountStatusIndicator: true, AccountTodayStatsCell: true, AccountGroupsCell: true,
+        AccountUsageCell: true, Icon: true,
+      },
+    },
+  })
+}
+
+function probeAccount(id: number, platform: string) {
+  return {
+    id, name: `account-${id}`, platform, type: 'apikey', status: 'active', schedulable: true,
+    rate_multiplier: 1, extra: { upstream_billing_rate_sync_enabled: true },
+    created_at: '2026-07-13T00:00:00Z', updated_at: '2026-07-13T00:00:00Z',
+  }
 }
 
 describe('admin AccountsView bulk edit scope', () => {
@@ -163,6 +193,46 @@ describe('admin AccountsView bulk edit scope', () => {
     getAllGroups.mockResolvedValue([])
     probeUpstreamBilling.mockResolvedValue({})
     probeUpstreamBillingBatch.mockResolvedValue([])
+  })
+
+  it.each(['grsai', 'toapis', 'kuaipao'])('filters %s from cross-page billing probes and hides its stale sync indicator', async platform => {
+    listAccounts
+      .mockResolvedValueOnce({ items: [probeAccount(7, platform)], total: 2, page: 1, page_size: 1, pages: 2 })
+      .mockResolvedValueOnce({ items: [probeAccount(11, 'openai')], total: 2, page: 2, page_size: 1, pages: 2 })
+    const wrapper = mountProbeSelectionView()
+    try {
+      await flushPromises()
+      expect(wrapper.find('[data-testid="account-rate-sync-indicator"]').exists()).toBe(false)
+      await wrapper.get('[data-test="select-row"] input').trigger('change')
+      expect(wrapper.get('[data-test="bulk-bar"]').attributes('data-can-probe')).toBe('false')
+      await wrapper.get('[data-test="probe-upstream-billing"]').trigger('click')
+      await flushPromises()
+      expect(probeUpstreamBillingBatch).not.toHaveBeenCalled()
+      await wrapper.get('[data-test="next-page"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find('[data-testid="account-rate-sync-indicator"]').exists()).toBe(true)
+      await wrapper.get('[data-test="select-row"] input').trigger('change')
+      expect(wrapper.get('[data-test="bulk-bar"]').attributes('data-can-probe')).toBe('true')
+      await wrapper.get('[data-test="probe-upstream-billing"]').trigger('click')
+      await flushPromises()
+      expect(probeUpstreamBillingBatch).toHaveBeenCalledWith([11])
+    } finally { wrapper.unmount() }
+  })
+
+  it('uses eligibility from every fetched page when selecting all results', async () => {
+    listAccounts
+      .mockResolvedValueOnce({ items: [probeAccount(7, 'kuaipao')], total: 2, page: 1, page_size: 1, pages: 2 })
+      .mockResolvedValueOnce({ items: [probeAccount(7, 'kuaipao'), probeAccount(11, 'openai')], total: 2, page: 1, page_size: 1000, pages: 1 })
+    const wrapper = mountProbeSelectionView()
+    try {
+      await flushPromises()
+      await wrapper.get('[data-test="select-all-results"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.get('[data-test="bulk-bar"]').attributes('data-can-probe')).toBe('true')
+      await wrapper.get('[data-test="probe-upstream-billing"]').trigger('click')
+      await flushPromises()
+      expect(probeUpstreamBillingBatch).toHaveBeenCalledWith([11])
+    } finally { wrapper.unmount() }
   })
 
   it('opens bulk edit in filtered-results mode from the bulk actions dropdown', async () => {
@@ -348,7 +418,7 @@ describe('admin AccountsView bulk edit scope', () => {
     expect(wrapper.get('[data-test="upstream-billing-cell"]').attributes('data-global-enabled')).toBe('false')
   })
 
-  it('submits selected account IDs from every page for backend eligibility checks', async () => {
+  it('submits eligible API-key account IDs selected from every page', async () => {
     const account = (id: number) => ({
       id,
       name: `account-${id}`,

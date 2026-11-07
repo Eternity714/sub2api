@@ -12,7 +12,7 @@ vi.mock('vue-i18n', async () => {
 })
 
 describe('SupportedModelChip', () => {
-  it.each(['media', 'grsai', 'toapis'])('hides the %s source in the model label, icon and pricing tooltip', async platform => {
+  it.each(['media', 'grsai', 'toapis', 'kuaipao'])('hides the %s source in the model label, icon and pricing tooltip', async platform => {
     const wrapper = mount(SupportedModelChip, {
       attachTo: document.body,
       props: { model: { name: 'image-model', platform, pricing: null }, noPricingLabel: 'No pricing' },
@@ -25,7 +25,7 @@ describe('SupportedModelChip', () => {
       await nextTick()
       const tooltip = document.body.querySelector('[role="tooltip"]')
       expect(tooltip?.textContent).toContain('admin.groups.platforms.media')
-      expect(tooltip?.textContent).not.toMatch(/grsai|toapis|GRS\.AI/i)
+      expect(tooltip?.textContent).not.toMatch(/grsai|toapis|kuaipao|快跑|GRS\.AI/i)
     } finally {
       wrapper.unmount()
     }

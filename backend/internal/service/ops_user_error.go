@@ -9,7 +9,7 @@ import (
 
 var (
 	userMediaErrorURL   = regexp.MustCompile(`(?i)https?://[^\s"'<>]+`)
-	userMediaErrorBrand = regexp.MustCompile(`(?i)\b(?:grs\.ai|grsai)\b`)
+	userMediaErrorBrand = regexp.MustCompile(`(?i)\b(?:grs\.ai|grsai|toapis|kuaipao)\b`)
 )
 
 func userMediaErrorText(text string) string {
@@ -152,7 +152,7 @@ func ToUserErrorRequest(e *OpsErrorLog) *UserErrorRequest {
 	}
 	platform := e.Platform
 	message := e.Message
-	if platform == PlatformGrsai {
+	if platform == PlatformGrsai || platform == PlatformToAPIs || platform == PlatformKuaipao {
 		platform = "media"
 		message = userMediaErrorText(message)
 	}
@@ -191,7 +191,7 @@ func ToUserErrorRequestDetail(e *OpsErrorLogDetail) *UserErrorRequestDetail {
 	}
 	base := ToUserErrorRequest(&e.OpsErrorLog)
 	errorBody := e.ErrorBody
-	if e.Platform == PlatformGrsai {
+	if e.Platform == PlatformGrsai || e.Platform == PlatformToAPIs || e.Platform == PlatformKuaipao {
 		errorBody = userMediaErrorBody(errorBody)
 	}
 	return &UserErrorRequestDetail{

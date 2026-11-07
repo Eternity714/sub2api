@@ -54,6 +54,7 @@ const (
 	PlatformCline       = domain.PlatformCline
 	PlatformGrsai       = domain.PlatformGrsai
 	PlatformToAPIs      = domain.PlatformToAPIs
+	PlatformKuaipao     = domain.PlatformKuaipao
 	PlatformComposite   = domain.PlatformComposite
 	// PlatformKiro is retained for unsupported-platform threshold tests and legacy
 	// account rows. Scheduling-threshold evaluation never pauses kiro accounts.

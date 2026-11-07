@@ -265,6 +265,14 @@
           </button>
           <button
             type="button"
+            data-testid="platform-button-kuaipao"
+            @click="form.platform = 'kuaipao'; accountCategory = 'apikey'"
+            :class="['flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-all', form.platform === 'kuaipao' ? 'bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-300' : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200']"
+          >
+            <PlatformIcon platform="kuaipao" size="sm" /> 快跑 API
+          </button>
+          <button
+            type="button"
             data-testid="platform-button-toapis"
             @click="form.platform = 'toapis'; accountCategory = 'apikey'"
             :class="['flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-all', form.platform === 'toapis' ? 'bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-300' : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200']"
@@ -4215,6 +4223,7 @@ import {
   GRSAI_BASE_URL_PRESETS,
   GRSAI_GLOBAL_BASE_URL,
   TOAPIS_GLOBAL_BASE_URL,
+  KUAIPAO_BASE_URL,
   isCNProviderPlatform,
   isHeaderOverrideCapable,
   isMultiProtocolApiKeyPlatform,
@@ -4233,6 +4242,7 @@ import {
   type OpenCodeGoProtocolRule
 } from '@/components/account/credentialsBuilder'
 import { listPlatforms } from '@/constants/platformCatalog'
+import { isNativeMediaPlatform } from '@/utils/publicPlatform'
 import {
   formatDateTimeLocalInput,
   getBrowserTimeZone,
@@ -4293,6 +4303,7 @@ const baseUrlHint = computed(() => {
   if (form.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
   if (form.platform === 'grok') return ''
   if (form.platform === 'toapis') return t('admin.accounts.toapis.baseUrlHint')
+  if (form.platform === 'kuaipao') return t('admin.accounts.kuaipao.baseUrlHint')
   if (form.platform === 'grsai') return t('admin.accounts.grsai.baseUrlHint')
   return t('admin.accounts.baseUrlHint')
 })
@@ -4301,6 +4312,7 @@ const apiKeyHint = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.openai.apiKeyHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.apiKeyHint')
   if (form.platform === 'toapis') return t('admin.accounts.toapis.apiKeyHint')
+  if (form.platform === 'kuaipao') return t('admin.accounts.kuaipao.apiKeyHint')
   if (form.platform === 'grsai') return t('admin.accounts.grsai.apiKeyHint')
   // Grok 与多协议供应商没有对应的说明文案；通用文案指 Claude Console Key。
   if (form.platform === 'grok' || isMultiProtocolPlatform.value) return ''
@@ -4324,6 +4336,8 @@ const apiKeyBaseUrlPlaceholder = computed(() => {
       return 'https://api.typesafe.ai'
     case 'toapis':
       return TOAPIS_GLOBAL_BASE_URL
+    case 'kuaipao':
+      return KUAIPAO_BASE_URL
     case 'grsai':
       return GRSAI_GLOBAL_BASE_URL
     default:
@@ -4349,6 +4363,7 @@ const apiKeyValuePlaceholder = computed(() => {
     case 'opencode_go':
     case 'grsai':
     case 'toapis':
+    case 'kuaipao':
       return 'sk-...'
     case 'typesafe':
       return 'ts-...'
@@ -5080,7 +5095,7 @@ const form = reactive({
 })
 
 const supportsUpstreamBillingProbe = computed(() =>
-  form.platform !== 'grsai' && form.platform !== 'toapis'
+  !isNativeMediaPlatform(form.platform)
 )
 
 // Helper to check if current type needs OAuth flow
@@ -5198,11 +5213,13 @@ watch(
               ? 'https://api.x.ai/v1'
               : newPlatform === 'typesafe'
                 ? 'https://api.typesafe.ai'
-                : newPlatform === 'toapis'
-                  ? TOAPIS_GLOBAL_BASE_URL
-                  : newPlatform === 'grsai'
-                  ? GRSAI_GLOBAL_BASE_URL
-                  : 'https://api.anthropic.com'
+                : newPlatform === 'kuaipao'
+                  ? KUAIPAO_BASE_URL
+                  : newPlatform === 'toapis'
+                    ? TOAPIS_GLOBAL_BASE_URL
+                    : newPlatform === 'grsai'
+                      ? GRSAI_GLOBAL_BASE_URL
+                      : 'https://api.anthropic.com'
     }
     // Clear model-related settings
     allowedModels.value = []
@@ -6174,11 +6191,13 @@ const handleSubmit = async () => {
           ? 'https://api.x.ai/v1'
           : form.platform === 'typesafe'
             ? 'https://api.typesafe.ai'
-            : form.platform === 'toapis'
-              ? TOAPIS_GLOBAL_BASE_URL
-              : form.platform === 'grsai'
-              ? GRSAI_GLOBAL_BASE_URL
-              : 'https://api.anthropic.com'
+            : form.platform === 'kuaipao'
+              ? KUAIPAO_BASE_URL
+              : form.platform === 'toapis'
+                ? TOAPIS_GLOBAL_BASE_URL
+                : form.platform === 'grsai'
+                  ? GRSAI_GLOBAL_BASE_URL
+                  : 'https://api.anthropic.com'
 
   // Build credentials with optional model mapping
   const credentials: Record<string, unknown> = {
@@ -6414,7 +6433,7 @@ const createAccountAndFinish = async (
     group_ids: form.group_ids,
     expires_at: form.expires_at,
     // 原生媒体账号与非 API-key 类型不参与旧的上游账单探测。
-    upstream_billing_probe_enabled: type === 'apikey' && platform !== 'grsai' && platform !== 'toapis' ? upstreamBillingAutoProbeEnabled.value : undefined,
+    upstream_billing_probe_enabled: type === 'apikey' && !isNativeMediaPlatform(platform) ? upstreamBillingAutoProbeEnabled.value : undefined,
     auto_pause_on_expired: autoPauseOnExpired.value
   })
 }

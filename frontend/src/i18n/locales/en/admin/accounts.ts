@@ -1,5 +1,10 @@
 export default {
     accounts: {
+      kuaipao: {
+        baseUrlHint: 'The default Kuaipao image API endpoint is https://image.kuaipao.pro/v2. Keep the /v2 path.',
+        apiKeyHint: 'Enter a Kuaipao API Key. Administrators configure the shared account quota.',
+        imageTestHint: 'This test generates an image and may incur upstream charges.',
+      },
       toapis: {
         connectionTestHint: 'Checks connection and credentials using GET /v1/models?type=all. No generation task or generation charge.',
         baseUrlHint: 'Global: https://toapis.com. Mainland China: https://toapis.cn. Configure the endpoint explicitly; saved endpoints are never switched automatically.',
@@ -123,6 +128,7 @@ export default {
         opencode_go: 'OpenCode',
         typesafe: 'TypeSafe / Jev',
         toapis: 'ToAPIs',
+        kuaipao: '快跑 API',
         grsai: 'GRS.AI',
       },
       cnProviders: {

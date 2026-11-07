@@ -1078,6 +1078,8 @@ export default {
         opencode_go: 'OpenCode',
         typesafe: 'TypeSafe / Jev',
         grsai: 'Media API',
+        toapis: 'Media API',
+        kuaipao: 'Media API',
         media: 'Media API',
         composite: 'Composite',
       },

@@ -23,15 +23,15 @@ var (
 		PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo, PlatformTypeSafe,
 		PlatformCommandCode,
 		PlatformCline,
-		PlatformGrsai, PlatformToAPIs,
+		PlatformGrsai, PlatformToAPIs, PlatformKuaipao,
 	}
 	legacyCompositeMatchingPlatforms = []string{
 		PlatformAnthropic, PlatformGemini, PlatformOpenAI, PlatformAntigravity, PlatformGrok,
 		PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo, PlatformTypeSafe,
-		PlatformCommandCode, PlatformCline, PlatformGrsai, PlatformToAPIs,
+		PlatformCommandCode, PlatformCline, PlatformGrsai, PlatformToAPIs, PlatformKuaipao,
 	}
 	legacyMultiProtocolProviders = []string{PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo, PlatformCommandCode, PlatformCline}
-	platformProbeValues          = append(append([]string{}, legacyAllPlatforms...), PlatformGrsai, PlatformToAPIs, PlatformComposite, "", "moonshot", "Kimi", "openai ", "glm", "bogus")
+	platformProbeValues          = append(append([]string{}, legacyAllPlatforms...), PlatformGrsai, PlatformToAPIs, PlatformKuaipao, PlatformComposite, "", "moonshot", "Kimi", "openai ", "glm", "bogus")
 	platformProbeAccountTypes    = []string{AccountTypeAPIKey, AccountTypeOAuth, AccountTypeSetupToken, AccountTypeUpstream, ""}
 )
 
@@ -79,7 +79,7 @@ func legacyIsHeaderOverrideEligible(platform, accountType string) bool {
 }
 
 func legacyIsConcreteRequestPlatform(platform string) bool {
-	if platform == PlatformGrsai || platform == PlatformToAPIs {
+	if platform == PlatformGrsai || platform == PlatformToAPIs || platform == PlatformKuaipao {
 		return true
 	}
 	for _, p := range legacyAllPlatforms {

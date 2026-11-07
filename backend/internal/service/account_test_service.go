@@ -387,6 +387,9 @@ func (s *AccountTestService) TestAccountConnection(c *gin.Context, accountID int
 	if account.Platform == PlatformToAPIs {
 		return s.testToAPIsAccountConnection(c, account)
 	}
+	if account.Platform == PlatformKuaipao {
+		return s.testKuaipaoAccountConnection(c, account, modelID, prompt)
+	}
 
 	// Route to platform-specific test method
 	// 按入站协议分流的多协议供应商（国产厂商等）：按账号协议选测试路径。

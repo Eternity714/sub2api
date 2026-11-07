@@ -3940,3 +3940,41 @@
   }
 }
 ```
+
+## kuaipao / gpt-image-2.6-1k / image
+
+官方来源：[gpt-image-2.6-1k](https://kuaipao.apifox.cn/521245164e0.md)
+
+快跑 v2 同步接口使用 API Key；基础模板不自动启用。公开别名可统一为 `gpt-image-2.6`。
+每次生成一张，返回 URL；不支持本地拆分。渠道按成功交付图片计费。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `size` | string | 否 | `"1:1"` | 枚举 `["1:1","3:2","2:3"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 1 |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto"]` |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `1K` | 1024 | 1024 |
+| `3:2` | `1K` | 1536 | 1024 |
+| `2:3` | `1K` | 1024 | 1536 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.6",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "1K",
+    "quality": "auto"
+  }
+}
+```

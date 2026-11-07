@@ -2804,6 +2804,26 @@ func (h *AccountHandler) GetAvailableModels(c *gin.Context) {
 		return
 	}
 
+	// Kuaipao is a native media provider; never fall back to chat models.
+	if account.Platform == service.PlatformKuaipao {
+		ids := make([]string, 0)
+		for id := range account.GetModelMapping() {
+			if !strings.ContainsAny(id, "*?") {
+				ids = append(ids, id)
+			}
+		}
+		if len(ids) == 0 {
+			ids = append(ids, service.KuaipaoDefaultImageModel)
+		}
+		sort.Strings(ids)
+		models := make([]openai.Model, 0, len(ids))
+		for _, id := range ids {
+			models = append(models, openai.Model{ID: id, Object: "model", Type: "model", DisplayName: id})
+		}
+		response.Success(c, models)
+		return
+	}
+
 	// Handle OpenAI accounts
 	if account.IsOpenAI() {
 		// Prefer the shared, account-keyed upstream catalog. If discovery fails,

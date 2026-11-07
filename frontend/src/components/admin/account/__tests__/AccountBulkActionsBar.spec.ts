@@ -33,6 +33,7 @@ describe('AccountBulkActionsBar', () => {
     const wrapper = mount(AccountBulkActionsBar, {
       props: {
         selectedIds: [1],
+        canProbeUpstreamBilling: true,
         totalResults: 45,
         selectingAll: false,
         allResultsSelected: false
@@ -46,5 +47,13 @@ describe('AccountBulkActionsBar', () => {
     expect(button).toBeDefined()
     await button!.trigger('click')
     expect(wrapper.emitted('probe-upstream-billing')).toHaveLength(1)
+  })
+
+  it('hides the upstream billing action when no selected account is eligible', () => {
+    const wrapper = mount(AccountBulkActionsBar, {
+      props: { selectedIds: [98], totalResults: 1, selectingAll: false, allResultsSelected: false, canProbeUpstreamBilling: false },
+    })
+    expect(wrapper.findAll('button').some(button => button.text().includes('admin.accounts.bulkActions.probeUpstreamBilling'))).toBe(false)
+    wrapper.unmount()
   })
 })

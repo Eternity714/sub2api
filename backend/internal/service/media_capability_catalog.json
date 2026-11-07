@@ -10404,5 +10404,95 @@
         "quality": "high"
       }
     }
+  },
+  {
+    "platform": "kuaipao",
+    "upstream_model": "gpt-image-2.6-1k",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://kuaipao.apifox.cn/521245164e0.md",
+    "evidence": "documented_generation",
+    "notes": "快跑 v2 同步图片接口；1K 档每次生成一张，返回 URL。公开模型可统一为 gpt-image-2.6，计费由渠道配置。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "1:1",
+            "3:2",
+            "2:3"
+          ],
+          "default": "1:1"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "metadata": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto"
+              ],
+              "default": "auto"
+            }
+          }
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1536
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.6",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "1K",
+        "quality": "auto"
+      }
+    }
   }
 ]

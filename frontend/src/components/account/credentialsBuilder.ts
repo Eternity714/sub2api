@@ -254,6 +254,8 @@ export const GROK_BASE_URL_PRESETS: GrokBaseUrlPreset[] = [
 export const TOAPIS_GLOBAL_BASE_URL = 'https://toapis.com'
 export const TOAPIS_DOMESTIC_BASE_URL = 'https://toapis.cn'
 
+export const KUAIPAO_BASE_URL = 'https://image.kuaipao.pro/v2'
+
 /** GRS.AI 官方节点。创建 GRS.AI 账号时默认使用全球节点。 */
 export const GRSAI_GLOBAL_BASE_URL = 'https://grsaiapi.com'
 export const GRSAI_DOMESTIC_BASE_URL = 'https://grsai.dakka.com.cn'

@@ -50,6 +50,10 @@
   </svg>
   <!-- Administrator upstream provider brand -->
   <img v-else-if="platform === 'grsai'" src="https://grsai.com/favicon.ico" alt="GRS.AI" :class="sizeClass" />
+  <svg v-else-if="platform === 'kuaipao'" :class="sizeClass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="快跑 API" role="img">
+    <path d="m13 3-7 10h6l-1 8 7-11h-6z" />
+    <path d="M3 8h4M2 16h4" />
+  </svg>
   <!-- Public image/video API capability -->
   <svg
     v-else-if="platform === 'media'"

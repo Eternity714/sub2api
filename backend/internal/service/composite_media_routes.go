@@ -16,7 +16,7 @@ func isMediaRouteEndpoint(endpoint string) bool {
 	return endpoint == CompositeRouteEndpointImages || endpoint == CompositeRouteEndpointVideos
 }
 func isMediaRoutePlatform(platform string) bool {
-	return platform == PlatformGrsai || platform == PlatformToAPIs
+	return platform == PlatformGrsai || platform == PlatformToAPIs || platform == PlatformKuaipao
 }
 
 // OpenAI image routes opt into unified tasks through an explicit capability.

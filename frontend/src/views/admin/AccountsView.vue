@@ -180,6 +180,7 @@
           :total-results="pagination.total"
           :selecting-all="selectingAllResults"
           :all-results-selected="allResultsSelected"
+          :can-probe-upstream-billing="selectedBillingProbeAccountIds.length > 0"
           @delete="handleBulkDelete"
           @reset-status="handleBulkResetStatus"
           @refresh-token="handleBulkRefreshToken"
@@ -351,7 +352,7 @@
             <span class="inline-flex items-center gap-1 text-sm font-mono text-gray-700 dark:text-gray-300">
               <span>{{ formatMultiplier(row.rate_multiplier ?? 1) }}x</span>
               <span
-                v-if="row.extra?.upstream_billing_rate_sync_enabled === true"
+                v-if="!isNativeMediaPlatform(row.platform) && row.extra?.upstream_billing_rate_sync_enabled === true"
                 class="inline-flex cursor-help text-emerald-600 dark:text-emerald-400"
                 :aria-label="t('admin.accounts.upstreamBilling.syncedRateTooltip')"
                 :title="t('admin.accounts.upstreamBilling.syncedRateTooltip')"
@@ -537,6 +538,7 @@ import { extractApiErrorMessage } from '@/utils/apiError'
 import { sanitizeUrl } from '@/utils/url'
 import { getFloatingPanelPosition } from '@/utils/floatingPanel'
 import { formatMultiplier } from '@/utils/formatters'
+import { isNativeMediaPlatform } from '@/utils/publicPlatform'
 import type { Account, AccountListItem, AccountPlatform, AccountSchedulerGroupScore, AccountType, AccountUsageInfo, Proxy as AccountProxy, AdminGroup, WindowStats, ClaudeModel, UpstreamBillingProbeSnapshot } from '@/types'
 
 const { t } = useI18n()
@@ -1115,6 +1117,22 @@ const {
   rows: accounts,
   getId: (account) => account.id
 })
+
+// 保留跨页选择的探测资格；未知或原生媒体账号不能进入旧账单探测请求。
+const billingProbeEligibleAccountIds = reactive(new Set<number>())
+const rememberBillingProbeEligibility = (rows: Pick<AccountListItem, 'id' | 'platform' | 'type'>[]) => {
+  rows.forEach(account => {
+    if (account.type === 'apikey' && !isNativeMediaPlatform(account.platform)) {
+      billingProbeEligibleAccountIds.add(account.id)
+    } else {
+      billingProbeEligibleAccountIds.delete(account.id)
+    }
+  })
+}
+watch(accounts, rememberBillingProbeEligibility, { immediate: true, flush: 'sync' })
+const selectedBillingProbeAccountIds = computed(() =>
+  selIds.value.filter(id => billingProbeEligibleAccountIds.has(id))
+)
 
 const selectingAllResults = ref(false)
 const selectedAllResultIDs = ref<Set<number> | null>(null)
@@ -1914,7 +1932,7 @@ const handleBulkRefreshToken = async () => {
   }
 }
 const handleBulkProbeUpstreamBilling = async () => {
-  const accountIDs = [...selIds.value]
+  const accountIDs = [...selectedBillingProbeAccountIds.value]
   if (accountIDs.length === 0) {
     appStore.showError(t('admin.accounts.upstreamBilling.noEligibleAccounts'))
     return
@@ -2072,7 +2090,11 @@ const handleSelectAllResults = async () => {
   selectingAllResults.value = true
   try {
     const ids = await fetchAllAccountIds(
-      (page, pageSize, requestFilters) => adminAPI.accounts.list(page, pageSize, requestFilters),
+      async (page, pageSize, requestFilters) => {
+        const result = await adminAPI.accounts.list(page, pageSize, requestFilters)
+        rememberBillingProbeEligibility(result.items)
+        return result
+      },
       filters
     )
     if (requestVersion !== selectionRequestVersion.value) return
@@ -2238,7 +2260,7 @@ const refreshAccountsAfterUpstreamBillingProbe = async () => {
   await refreshUpstreamBillingSortedList(true)
 }
 const handleProbeUpstreamBilling = async (account: Account) => {
-  if (probingUpstreamBilling.has(account.id)) return
+  if (account.type !== 'apikey' || isNativeMediaPlatform(account.platform) || probingUpstreamBilling.has(account.id)) return
   probingUpstreamBilling.add(account.id)
   try {
     const result = await adminAPI.accounts.probeUpstreamBilling(account.id)

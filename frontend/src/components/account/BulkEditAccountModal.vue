@@ -1517,6 +1517,7 @@ import {
   resolveOpenAIWSModeHintKey
 } from '@/utils/openaiWsMode'
 import type { OpenAIWSMode } from '@/utils/openaiWsMode'
+import { isNativeMediaPlatform } from '@/utils/publicPlatform'
 interface Props {
   show: boolean
   accountIds: number[]
@@ -1592,10 +1593,10 @@ const allOpenAIAPIKey = computed(() => {
   )
 })
 
-// 上游倍率自动探测已放宽到全部 API-key 平台：只要求所选类型全为 apikey，
-// 平台不限（sub2api 上游即可应答 /v1/sub2api/billing）。
+// 原生媒体平台不提供旧的 sub2api 上游账单探测。
 const allBillingProbeCapable = computed(() => {
   return (
+    !targetSelectedPlatforms.value.some(isNativeMediaPlatform) &&
     targetSelectedTypes.value.length > 0 &&
     targetSelectedTypes.value.every(t => t === 'apikey')
   )
@@ -2070,7 +2071,7 @@ const buildUpdatePayload = (): Record<string, unknown> | null => {
     )
   }
 
-  if (enableUpstreamBillingAutoProbe.value) {
+  if (enableUpstreamBillingAutoProbe.value && allBillingProbeCapable.value) {
     updates.upstream_billing_probe_enabled = upstreamBillingAutoProbeMode.value === 'enabled'
   }
 

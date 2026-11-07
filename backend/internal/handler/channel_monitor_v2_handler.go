@@ -329,6 +329,7 @@ func expandUserMonitorV2MediaFilter(src []string, separator string) []string {
 		if media && (separator != "" || model == "") {
 			appendValue("grsai" + separator + model)
 			appendValue("toapis" + separator + model)
+			appendValue("kuaipao" + separator + model)
 		} else {
 			appendValue(value)
 		}

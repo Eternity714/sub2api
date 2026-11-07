@@ -62,7 +62,7 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 	if metadata == nil {
 		metadata = map[string]any{}
 	}
-	if platform == PlatformOpenAI {
+	if platform == PlatformOpenAI || platform == PlatformKuaipao {
 		if mediaType != "image" {
 			return nil, "", errors.New("OpenAI unified media supports synchronous images only")
 		}
@@ -275,6 +275,9 @@ func (u *unifiedMediaHTTPUpstream) Submit(ctx context.Context, account *Account,
 	if account == nil {
 		return &UnifiedMediaUpstreamResult{Disposition: "rejected"}, errors.New("media account unavailable")
 	}
+	if account.Platform == PlatformKuaipao {
+		return (&kuaipaoMediaProvider{transport: u}).Submit(ctx, account, mediaType, model, normalized, count)
+	}
 	payload, endpoint, err := BuildUnifiedMediaPayload(account.Platform, mediaType, model, normalized, count)
 	if err != nil {
 		return &UnifiedMediaUpstreamResult{Disposition: "rejected", Error: err.Error()}, err
@@ -282,6 +285,9 @@ func (u *unifiedMediaHTTPUpstream) Submit(ctx context.Context, account *Account,
 	return u.do(ctx, account, http.MethodPost, endpoint, payload, mediaType, model)
 }
 func (u *unifiedMediaHTTPUpstream) Poll(ctx context.Context, account *Account, mediaType, model, taskID string) (*UnifiedMediaUpstreamResult, error) {
+	if account != nil && account.Platform == PlatformKuaipao {
+		return (&kuaipaoMediaProvider{transport: u}).Poll(ctx, account, mediaType, model, taskID)
+	}
 	if account == nil || strings.TrimSpace(taskID) == "" || len(taskID) > 512 || strings.ContainsAny(taskID, "/?#\\%") {
 		return nil, errors.New("media task is unavailable")
 	}
@@ -301,7 +307,7 @@ func (u *unifiedMediaHTTPUpstream) Poll(ctx context.Context, account *Account, m
 }
 func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, method, endpoint string, payload []byte, mediaType, model string) (*UnifiedMediaUpstreamResult, error) {
 	result := &UnifiedMediaUpstreamResult{Disposition: "unknown", Status: "in_progress"}
-	if account.Type != AccountTypeAPIKey || (account.Platform != PlatformGrsai && account.Platform != PlatformToAPIs && !(account.Platform == PlatformOpenAI && mediaType == "image")) {
+	if account.Type != AccountTypeAPIKey || (account.Platform != PlatformGrsai && account.Platform != PlatformToAPIs && !((account.Platform == PlatformOpenAI || account.Platform == PlatformKuaipao) && mediaType == "image")) {
 		result.Disposition = "rejected"
 		return result, errors.New("invalid media account")
 	}
@@ -320,7 +326,7 @@ func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, met
 		result.Disposition = "rejected"
 		return result, err
 	}
-	if account.Platform == PlatformOpenAI {
+	if account.Platform == PlatformOpenAI || account.Platform == PlatformKuaipao {
 		// Reuse the Images gateway URL rules after validating the base URL above.
 		target = buildOpenAIEndpointURL(base, parsedEndpoint.Path)
 	}
@@ -361,7 +367,7 @@ func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, met
 		return result, errors.New("invalid upstream media response")
 	}
 	responseValid := false
-	if account.Platform == PlatformOpenAI {
+	if account.Platform == PlatformOpenAI || account.Platform == PlatformKuaipao {
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			result.URLs = parseUnifiedOpenAIImageURLs(raw)
 			if len(result.URLs) > 0 {

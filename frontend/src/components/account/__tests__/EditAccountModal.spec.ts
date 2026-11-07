@@ -2125,7 +2125,7 @@ describe('ToAPIs account editing', () => {
 })
 
 describe('原生媒体账号不使用旧上游账单探测', () => {
-  it.each(['grsai', 'toapis'])('编辑 %s 隐藏探测和倍率同步并忽略旧开关残留', async (platform) => {
+  it.each(['grsai', 'toapis', 'kuaipao'])('编辑 %s 隐藏探测和倍率同步并忽略旧开关残留', async (platform) => {
     const account = {
       ...buildAccount(), platform,
       credentials: { api_key: 'native-media-key', base_url: platform === 'toapis' ? 'https://toapis.com' : 'https://grsaiapi.com' },
@@ -2146,6 +2146,27 @@ describe('原生媒体账号不使用旧上游账单探测', () => {
     expect(payload?.extra).not.toHaveProperty('upstream_billing_probe_enabled')
     expect(payload?.extra).not.toHaveProperty('upstream_billing_rate_sync_enabled')
     expect(payload?.rate_multiplier).toBe(1)
+    wrapper.unmount()
+  })
+})
+
+describe('快跑账号编辑', () => {
+  it('为缺少地址的脱敏凭据补上官方 v2 地址且保留已保存的密钥', async () => {
+    const account = {
+      ...buildAccount(), platform: 'kuaipao', credentials: {},
+      credentials_status: { has_api_key: true },
+    }
+    updateAccountMock.mockReset().mockResolvedValue(account)
+    checkMixedChannelRiskMock.mockReset().mockResolvedValue({ has_risk: false })
+    const wrapper = mountModal(account)
+    const base = wrapper.findAll('input').find(input => input.attributes('placeholder') === 'https://image.kuaipao.pro/v2')!
+    expect(base).toBeDefined()
+    expect(base.element).toHaveProperty('value', 'https://image.kuaipao.pro/v2')
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+    expect(updateAccountMock).toHaveBeenCalledWith(account.id, expect.objectContaining({
+      credentials: expect.objectContaining({ base_url: 'https://image.kuaipao.pro/v2' }),
+    }))
+    expect(updateAccountMock.mock.calls[0]?.[1]?.credentials).not.toHaveProperty('api_key')
     wrapper.unmount()
   })
 })

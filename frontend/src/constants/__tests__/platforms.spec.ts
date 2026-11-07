@@ -30,7 +30,8 @@ const concretePlatforms = [
   'command_code',
   'cline',
   'grsai',
-  'toapis'
+  'toapis',
+  'kuaipao'
 ]
 
 describe('platform option catalogs', () => {
@@ -45,7 +46,14 @@ describe('platform option catalogs', () => {
     expect(platformLabel('media')).toBe('Media API')
     expect(platformDisplayValue('grsai')).toBe('Media API')
     expect(platformDisplayValue('media')).toBe('Media API')
-    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis']))
+    expect(CONCRETE_PLATFORM_OPTIONS.find(option => option.value === 'kuaipao')?.label).toBe('快跑 API')
+    expect(GROUP_PLATFORM_OPTIONS.find(option => option.value === 'kuaipao')?.label).toBe('Media API')
+    expect(platformLabel('kuaipao')).toBe('快跑 API')
+    expect(platformDisplayValue('kuaipao')).toBe('Media API')
+    expect(BUILTIN_PLATFORM_CATALOG.platforms.find(spec => spec.id === 'kuaipao')).toMatchObject({
+      display_name: '快跑 API', gateway: 'kuaipao',
+    })
+    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis', 'kuaipao']))
   })
 
   it('adds composite for group-backed filters', () => {
@@ -73,11 +81,11 @@ describe('platform catalog with a newly registered platform', () => {
     expect(listPlatformIds()).toEqual(concretePlatforms)
     expect(compositePrecedencePlatformIds()).toEqual([
       'anthropic', 'gemini', 'openai', 'antigravity', 'grok',
-      'kimi', 'zhipu', 'deepseek', 'minimax', 'opencode_go', 'typesafe', 'command_code', 'cline', 'grsai', 'toapis'
+      'kimi', 'zhipu', 'deepseek', 'minimax', 'opencode_go', 'typesafe', 'command_code', 'cline', 'grsai', 'toapis', 'kuaipao'
     ])
     expect(CONCRETE_PLATFORM_OPTIONS.map((option) => option.label)).toEqual([
       'Anthropic', 'OpenAI', 'Gemini', 'Antigravity', 'Grok',
-      'Kimi', 'Zhipu GLM', 'DeepSeek', 'MiniMax', 'OpenCode', 'TypeSafe / Jev', 'Command Code', 'Cline', 'GRS.AI', 'ToAPIs'
+      'Kimi', 'Zhipu GLM', 'DeepSeek', 'MiniMax', 'OpenCode', 'TypeSafe / Jev', 'Command Code', 'Cline', 'GRS.AI', 'ToAPIs', '快跑 API'
     ])
     expect(platformLabel('zhipu')).toBe('Zhipu GLM')
     expect(platformLabel('composite')).toBe('Composite')
@@ -103,8 +111,9 @@ describe('platform catalog with a newly registered platform', () => {
     expect(platformQuotaPlatforms()).toContain('acme_router')
     expect(platformQuotaPlatforms()).not.toContain('grsai')
     expect(platformQuotaPlatforms()).not.toContain('toapis')
-    expect(quotaPlatformIds()).toEqual([...concretePlatforms.filter(platform => !['grsai', 'toapis'].includes(platform)), 'acme_router'])
-    expect(Object.keys(normalizePlatformQuotasMap())).toEqual([...concretePlatforms.filter(platform => !['grsai', 'toapis'].includes(platform)), 'acme_router'])
+    expect(platformQuotaPlatforms()).not.toContain('kuaipao')
+    expect(quotaPlatformIds()).toEqual([...concretePlatforms.filter(platform => !['grsai', 'toapis', 'kuaipao'].includes(platform)), 'acme_router'])
+    expect(Object.keys(normalizePlatformQuotasMap())).toEqual([...concretePlatforms.filter(platform => !['grsai', 'toapis', 'kuaipao'].includes(platform)), 'acme_router'])
     expect(sanitizePlatformQuotasMap({ acme_router: { daily: 5, weekly: -1, monthly: null } }).acme_router).toEqual({
       daily: 5,
       weekly: null,

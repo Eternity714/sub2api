@@ -1,6 +1,10 @@
+export function isNativeMediaPlatform(platform: string | null | undefined): boolean {
+  return platform === 'grsai' || platform === 'toapis' || platform === 'kuaipao'
+}
+
 /** Public capability identity. Administrative platform IDs remain unchanged. */
 export function publicPlatformId(platform: string): string {
-  return platform === 'grsai' || platform === 'toapis' ? 'media' : platform
+  return isNativeMediaPlatform(platform) ? 'media' : platform
 }
 
 export function publicPlatformLabel(

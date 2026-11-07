@@ -248,3 +248,25 @@ describe('ToAPIs read-only connection test', () => {
     wrapper.unmount()
   })
 })
+
+describe('快跑图片账号测试', () => {
+  it('使用后端返回的真实图片模型和输入提示词，不附加 OpenAI 模式', async () => {
+    getAvailableModels.mockResolvedValue([{ id: 'gpt-image-2.6-1k', display_name: 'gpt-image-2.6-1k' }])
+    global.fetch = vi.fn().mockResolvedValue(createStreamResponse([
+      'data: {"type":"image","image_url":"https://example.com/kuaipao.png"}\n',
+      'data: {"type":"test_complete","success":true}\n',
+    ])) as any
+    const wrapper = mountModal({ id: 98, name: '快跑 API', platform: 'kuaipao', type: 'apikey', status: 'active' })
+    await wrapper.setProps({ show: true })
+    await flushPromises()
+    expect(wrapper.text()).toContain('admin.accounts.kuaipao.imageTestHint')
+    await wrapper.get('textarea').setValue('一只奔跑的猫')
+    const start = wrapper.findAll('button').find(button => button.text().includes('admin.accounts.startTest'))!
+    await start.trigger('click')
+    await flushPromises()
+    const [, request] = (global.fetch as any).mock.calls[0]
+    expect(JSON.parse(request.body)).toEqual({ model_id: 'gpt-image-2.6-1k', prompt: '一只奔跑的猫' })
+    expect(wrapper.find('img[src="https://example.com/kuaipao.png"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+})

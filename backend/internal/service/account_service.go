@@ -522,7 +522,7 @@ func (s *AccountService) TestCredentials(ctx context.Context, id int64) error {
 	case PlatformTypeSafe:
 		// TypeSafe credentials are API keys; inference failures drive health and cooldown state.
 		return nil
-	case PlatformGrsai:
+	case PlatformGrsai, PlatformToAPIs, PlatformKuaipao:
 		// API Key 平台的实际可用性由各自的探测与原生转发路径验证。
 		return nil
 	default:

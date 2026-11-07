@@ -25,8 +25,8 @@ func TestMediaMonitorFilterExpandsBothProvidersWithoutDuplicates(t *testing.T) {
 	models := []string{"media\x00shared", "grsai\x00shared", "openai\x00shared"}
 	filter := service.ChannelMonitorV2Filter{Platforms: platforms, Models: models}
 	require.True(t, h.scopeFilter(c, &filter, false))
-	require.Equal(t, []string{"grsai", "toapis", "openai"}, filter.Platforms)
-	require.Equal(t, []string{"grsai\x00shared", "toapis\x00shared", "openai\x00shared"}, filter.Models)
+	require.Equal(t, []string{"grsai", "toapis", "kuaipao", "openai"}, filter.Platforms)
+	require.Equal(t, []string{"grsai\x00shared", "toapis\x00shared", "kuaipao\x00shared", "openai\x00shared"}, filter.Models)
 	require.Equal(t, []string{"media", "grsai", "openai"}, platforms)
 	require.Equal(t, []string{"media\x00shared", "grsai\x00shared", "openai\x00shared"}, models)
 }

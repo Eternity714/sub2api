@@ -14,13 +14,13 @@ var (
 		PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo, PlatformTypeSafe,
 		PlatformCommandCode,
 		PlatformCline,
-		PlatformGrsai, PlatformToAPIs,
+		PlatformGrsai, PlatformToAPIs, PlatformKuaipao,
 	}
 	legacyCompositePrecedence = []string{
 		PlatformAnthropic, PlatformGemini, PlatformOpenAI, PlatformAntigravity, PlatformGrok,
 		PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo, PlatformTypeSafe,
 		PlatformCommandCode,
-		PlatformCline, PlatformGrsai, PlatformToAPIs,
+		PlatformCline, PlatformGrsai, PlatformToAPIs, PlatformKuaipao,
 	}
 	legacyOpenAIGateway = []string{
 		PlatformOpenAI, PlatformGrok, PlatformKimi, PlatformZhipu, PlatformDeepseek, PlatformMiniMax, PlatformOpenCodeGo,
