@@ -62,6 +62,12 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 	if metadata == nil {
 		metadata = map[string]any{}
 	}
+	if platform == PlatformOpenAI {
+		if mediaType != "image" {
+			return nil, "", errors.New("OpenAI unified media supports synchronous images only")
+		}
+		return buildUnifiedOpenAIImagePayload(model, request, values, metadata, count)
+	}
 	if platform == PlatformGrsai {
 		out := map[string]any{"model": model, "replyType": "async"}
 		for _, field := range []string{"prompt", "duration"} {
@@ -295,7 +301,7 @@ func (u *unifiedMediaHTTPUpstream) Poll(ctx context.Context, account *Account, m
 }
 func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, method, endpoint string, payload []byte, mediaType, model string) (*UnifiedMediaUpstreamResult, error) {
 	result := &UnifiedMediaUpstreamResult{Disposition: "unknown", Status: "in_progress"}
-	if account.Type != AccountTypeAPIKey || (account.Platform != PlatformGrsai && account.Platform != "toapis") {
+	if account.Type != AccountTypeAPIKey || (account.Platform != PlatformGrsai && account.Platform != PlatformToAPIs && !(account.Platform == PlatformOpenAI && mediaType == "image")) {
 		result.Disposition = "rejected"
 		return result, errors.New("invalid media account")
 	}
@@ -313,6 +319,10 @@ func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, met
 	if err != nil {
 		result.Disposition = "rejected"
 		return result, err
+	}
+	if account.Platform == PlatformOpenAI {
+		// Reuse the Images gateway URL rules after validating the base URL above.
+		target = buildOpenAIEndpointURL(base, parsedEndpoint.Path)
 	}
 	if parsedEndpoint.RawQuery != "" {
 		target += "?" + parsedEndpoint.RawQuery
@@ -351,7 +361,15 @@ func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, met
 		return result, errors.New("invalid upstream media response")
 	}
 	responseValid := false
-	if account.Platform == PlatformGrsai {
+	if account.Platform == PlatformOpenAI {
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			result.URLs = parseUnifiedOpenAIImageURLs(raw)
+			if len(result.URLs) > 0 {
+				result.Status = "completed"
+				responseValid = true
+			}
+		}
+	} else if account.Platform == PlatformGrsai {
 		grs, parseErr := parseGrsaiUpstreamResult(resp.StatusCode, raw, key)
 		if grs != nil {
 			responseValid = grs.Status != ""

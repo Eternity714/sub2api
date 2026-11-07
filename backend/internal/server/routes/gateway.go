@@ -582,24 +582,6 @@ func compositeTargetPlatformMiddleware(resolver *service.CompositeRouteResolver)
 			c.Next()
 			return
 		}
-		// Canonical media requests preserve the public model and all route candidates.
-		if c.Request != nil && c.Request.Method == http.MethodPost &&
-			(c.FullPath() == "/v1/images/generations" || c.FullPath() == "/v1/videos/generations") {
-			imageMedia, routeErr := resolver.HasMediaRoutes(c.Request.Context(), apiKey.Group.ID, service.CompositeRouteEndpointImages)
-			videoMedia := false
-			if routeErr == nil && !imageMedia {
-				videoMedia, routeErr = resolver.HasMediaRoutes(c.Request.Context(), apiKey.Group.ID, service.CompositeRouteEndpointVideos)
-			}
-			if routeErr != nil {
-				c.AbortWithStatusJSON(503, gin.H{"error": gin.H{"type": "api_error", "message": "Media routing is unavailable"}})
-				return
-			}
-			if imageMedia || videoMedia {
-				c.Set("unified_media_protocol", true)
-				c.Next()
-				return
-			}
-		}
 		if c.Request == nil || c.Request.Method == http.MethodGet {
 			c.Next()
 			return
@@ -624,6 +606,21 @@ func compositeTargetPlatformMiddleware(resolver *service.CompositeRouteResolver)
 		routePath := c.FullPath()
 		model := requestmodel.FromBodyForRoute(routePath, c.GetHeader("Content-Type"), body)
 		if model != "" {
+			// Preserve public models only for matching unified media candidates.
+			// Other models in a mixed group keep their existing gateway handler.
+			if c.Request.Method == http.MethodPost && (routePath == "/v1/images/generations" || routePath == "/v1/videos/generations") {
+				candidates, routeErr := resolver.ResolveMediaCandidates(c.Request.Context(), apiKey.Group.ID, model, compositeRouteEndpointForPath(c.Request.URL.Path))
+				if routeErr != nil {
+					c.AbortWithStatusJSON(503, gin.H{"error": gin.H{"type": "api_error", "message": "Media routing is unavailable"}})
+					return
+				}
+				if len(candidates) > 0 {
+					requestmodel.ResetRequestBody(c.Request, body)
+					c.Set("unified_media_protocol", true)
+					c.Next()
+					return
+				}
+			}
 			decision, err := resolver.Resolve(c.Request.Context(), apiKey.Group.ID, model, compositeRouteEndpointForPath(c.Request.URL.Path))
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": gin.H{"type": "server_error", "message": "Failed to resolve composite model route"}})
@@ -731,6 +728,8 @@ func compositeRouteEndpointForPath(path string) string {
 		return service.CompositeRouteEndpointEmbeddings
 	case strings.Contains(path, "/images/"):
 		return service.CompositeRouteEndpointImages
+	case strings.Contains(path, "/videos/"):
+		return service.CompositeRouteEndpointVideos
 	case strings.Contains(path, "/v1beta/"):
 		return service.CompositeRouteEndpointGemini
 	default:

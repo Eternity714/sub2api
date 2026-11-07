@@ -19,6 +19,13 @@ func isMediaRoutePlatform(platform string) bool {
 	return platform == PlatformGrsai || platform == PlatformToAPIs
 }
 
+// OpenAI image routes opt into unified tasks through an explicit capability.
+// Ordinary OpenAI routes continue to use their existing gateway handler.
+func isUnifiedMediaRoute(route CompositeModelRoute) bool {
+	return isMediaRoutePlatform(route.TargetPlatform) ||
+		(route.TargetPlatform == PlatformOpenAI && route.Endpoint == CompositeRouteEndpointImages && route.CapabilityModel != "")
+}
+
 // ResolveMediaCandidates only resolves explicit media routes. It deliberately avoids
 // the legacy detector, any endpoint, and ambiguous account-owned model inference.
 func (r *CompositeRouteResolver) ResolveMediaCandidates(ctx context.Context, groupID int64, model, endpoint string) ([]CompositeRouteDecision, error) {
@@ -64,7 +71,7 @@ func (r *CompositeRouteResolver) mediaRoutes(ctx context.Context, groupID int64,
 	}
 	result := make([]CompositeModelRoute, 0, len(routes))
 	for _, route := range routes {
-		if route.Enabled && route.GroupID == groupID && route.Endpoint == endpoint && route.MatchType == CompositeRouteMatchExact && isMediaRoutePlatform(route.TargetPlatform) {
+		if route.Enabled && route.GroupID == groupID && route.Endpoint == endpoint && route.MatchType == CompositeRouteMatchExact && isUnifiedMediaRoute(route) {
 			result = append(result, route)
 		}
 	}

@@ -281,7 +281,9 @@ func compositeRouteFromInput(groupID int64, input CompositeRouteInput) (*Composi
 			return nil, fmt.Errorf("GRS.AI and ToAPIs require an exact images or videos route")
 		}
 	} else if input.CapabilityModel != "" {
-		return nil, fmt.Errorf("capability_model is only supported by GRS.AI or ToAPIs media routes")
+		if input.TargetPlatform != PlatformOpenAI || input.Endpoint != CompositeRouteEndpointImages || input.MatchType != CompositeRouteMatchExact {
+			return nil, fmt.Errorf("capability_model requires a GRS.AI/ToAPIs media route or an exact OpenAI images route")
+		}
 	}
 	if input.Priority == 0 {
 		input.Priority = 100

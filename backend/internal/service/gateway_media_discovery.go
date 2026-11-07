@@ -71,7 +71,7 @@ func mediaDiscoveryCandidates(routes []CompositeModelRoute, groupID int64, model
 			continue
 		}
 		// Catalog IDs can also serve chat/any routes. Those are not media aliases.
-		if !isMediaRouteEndpoint(route.Endpoint) || !isMediaRoutePlatform(route.TargetPlatform) {
+		if !isMediaRouteEndpoint(route.Endpoint) || !isUnifiedMediaRoute(route) {
 			return nil, false
 		}
 		upstream := strings.TrimSpace(route.UpstreamModel)

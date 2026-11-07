@@ -15,7 +15,11 @@ import (
 
 func TestUnifiedMediaCompositePreservesPublicModelAndCandidates(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	resolver := service.NewCompositeRouteResolver(compositeRouteRepoStub{routes: []service.CompositeModelRoute{{ID: 1, GroupID: 1, PublicModel: "public", UpstreamModel: "nano-banana-2", TargetPlatform: service.PlatformGrsai, Endpoint: "images", MatchType: "exact", Enabled: true}, {ID: 2, GroupID: 1, PublicModel: "public", UpstreamModel: "gemini-nano-banana-2.1", TargetPlatform: service.PlatformToAPIs, Endpoint: "images", MatchType: "exact", Enabled: true}}})
+	resolver := service.NewCompositeRouteResolver(compositeRouteRepoStub{routes: []service.CompositeModelRoute{
+		{ID: 1, GroupID: 1, PublicModel: "public", UpstreamModel: "nano-banana-2", TargetPlatform: service.PlatformGrsai, Endpoint: "images", MatchType: "exact", Enabled: true},
+		{ID: 2, GroupID: 1, PublicModel: "public", UpstreamModel: "gemini-nano-banana-2.1", TargetPlatform: service.PlatformToAPIs, Endpoint: "images", MatchType: "exact", Enabled: true},
+		{ID: 3, GroupID: 1, PublicModel: "public", UpstreamModel: "minimax-h3", TargetPlatform: service.PlatformGrsai, Endpoint: "videos", MatchType: "exact", Enabled: true},
+	}})
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
 		id := int64(1)
@@ -48,5 +52,49 @@ func TestUnifiedMediaLegacyGRSEndpointsRetired(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, httptest.NewRequest(p.method, p.path, nil))
 		require.Equal(t, 404, w.Code, p.path)
+	}
+}
+
+func TestUnifiedMediaOpenAIOptInKeepsMixedLegacyRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	resolver := service.NewCompositeRouteResolver(compositeRouteRepoStub{routes: []service.CompositeModelRoute{
+		{ID: 1, GroupID: 1, PublicModel: "new-image", UpstreamModel: "gpt-image-2.6-1k", TargetPlatform: service.PlatformOpenAI, Endpoint: "images", MatchType: "exact", CapabilityModel: "new-image", Enabled: true},
+		{ID: 2, GroupID: 1, PublicModel: "legacy-image", UpstreamModel: "legacy-upstream", TargetPlatform: service.PlatformOpenAI, Endpoint: "images", MatchType: "exact", Enabled: true},
+		{ID: 3, GroupID: 1, PublicModel: "legacy-video", UpstreamModel: "video-upstream", TargetPlatform: service.PlatformGrok, Endpoint: "videos", MatchType: "exact", Enabled: true},
+	}})
+	for _, tc := range []struct {
+		model, endpoint, upstream string
+		unified                   bool
+	}{
+		{"new-image", "images", "", true},
+		{"legacy-image", "images", "legacy-upstream", false},
+		{"legacy-video", "videos", "video-upstream", false},
+	} {
+		t.Run(tc.model, func(t *testing.T) {
+			r := gin.New()
+			r.Use(func(c *gin.Context) {
+				id := int64(1)
+				c.Set(string(middleware.ContextKeyAPIKey), &service.APIKey{GroupID: &id, Group: &service.Group{ID: 1, Platform: service.PlatformComposite}})
+			})
+			r.Use(compositeTargetPlatformMiddleware(resolver))
+			path := "/v1/" + tc.endpoint + "/generations"
+			r.POST(path, func(c *gin.Context) {
+				enabled, _ := c.Get("unified_media_protocol")
+				require.Equal(t, tc.unified, enabled == true)
+				raw, err := io.ReadAll(c.Request.Body)
+				require.NoError(t, err)
+				expectedModel := tc.upstream
+				if tc.unified {
+					expectedModel = tc.model
+				}
+				require.Contains(t, string(raw), expectedModel)
+				c.Status(204)
+			})
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"model":"`+tc.model+`","prompt":"cup"}`))
+			req.Header.Set("Content-Type", "application/json")
+			r.ServeHTTP(w, req)
+			require.Equal(t, 204, w.Code)
+		})
 	}
 }
