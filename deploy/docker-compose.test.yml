@@ -8,7 +8,7 @@ services:
     command: ["python", "deploy/generate-media-api-docs.py", "--check"]
 
   backend-test:
-    image: golang:1.27.2
+    image: golang:1.27.3
     working_dir: /workspace/backend
     volumes:
       - ../backend:/workspace/backend
@@ -19,7 +19,7 @@ services:
     command: ["go", "test", "-tags=unit", "./..."]
 
   backend-integration:
-    image: golang:1.27.2
+    image: golang:1.27.3
     working_dir: /workspace/backend
     environment:
       CI: "true"
@@ -44,7 +44,7 @@ services:
         go test -tags=integration ./...
 
   frontend-test:
-    image: node:20
+    image: node:24
     working_dir: /workspace
     environment:
       CI: "true"
