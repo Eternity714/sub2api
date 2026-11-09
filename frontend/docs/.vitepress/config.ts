@@ -47,6 +47,7 @@ export default defineConfig({
       ] },
       { text: '图片与视频', items: [
         { text: '媒体 API 接入指南', link: '/media-api' },
+        { text: 'GPT Image 2.6', link: '/media-gpt-image-2.6' },
         { text: '媒体模型目录', link: '/media-models/' },
         ...mediaModelSidebar,
         { text: '其它媒体协议', collapsed: true, items: [

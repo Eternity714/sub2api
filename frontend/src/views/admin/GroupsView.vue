@@ -4150,10 +4150,19 @@
               </p>
             </div>
 
-            <div v-if="compositeRouteForm.endpoint === 'images' || compositeRouteForm.endpoint === 'videos'">
-              <label class="input-label">{{ t('admin.groups.compositeRoutes.capabilityModel') }}</label>
-              <input v-model.trim="compositeRouteForm.capability_model" data-testid="composite-capability-model" type="text" maxlength="200" class="input" />
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.groups.compositeRoutes.capabilityModelHint') }}</p>
+            <div v-if="compositeRouteIsMedia">
+              <template v-if="!compositeRouteIsNativeMedia">
+                <label class="input-label">{{ t('admin.groups.compositeRoutes.capabilityModel') }}</label>
+                <input v-model.trim="compositeRouteForm.capability_model" data-testid="composite-capability-model" type="text" maxlength="200" class="input" />
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.groups.compositeRoutes.capabilityModelHint') }}</p>
+              </template>
+              <div v-else-if="compositeRouteHasLegacyCapability" class="space-y-2 rounded-lg border border-gray-200 p-3 dark:border-dark-600">
+                <p class="text-xs font-medium">{{ t('admin.groups.compositeRoutes.legacyCapability') }}</p>
+                <code data-testid="composite-legacy-capability" class="block break-all text-xs">{{ compositeRouteForm.capability_model }}</code>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.groups.compositeRoutes.legacyCapabilityHint') }}</p>
+                <button type="button" data-testid="composite-use-provider-adapter" class="btn btn-secondary btn-sm" @click="compositeRouteForm.capability_model = ''">{{ t('admin.groups.compositeRoutes.useProviderAdapter') }}</button>
+              </div>
+              <p v-else class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.groups.compositeRoutes.nativeProviderAdapterHint') }}</p>
               <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.groups.compositeRoutes.mediaCandidatesHint') }}</p>
               <router-link class="mt-1 inline-block text-xs text-primary-600 hover:underline dark:text-primary-400" to="/admin/media-capabilities">{{ t('nav.mediaCapabilities') }}</router-link>
             </div>
@@ -4278,7 +4287,14 @@
                 <ol v-if="compositePreviewDecision.candidates?.length" data-testid="composite-media-candidates" class="mt-3 list-inside list-decimal space-y-2 border-t border-gray-200 pt-3 dark:border-dark-600">
                   <li v-for="candidate in compositePreviewDecision.candidates" :key="candidate.route?.id" class="break-all">
                     {{ formatCompositePlatform(candidate.target_platform) }} · {{ candidate.upstream_model }}
-                    <span class="text-xs text-gray-500">{{ t('admin.groups.compositeRoutes.priority') }}: {{ candidate.route?.priority }} · schema: {{ candidate.route?.capability_model || candidate.public_model }}</span>
+                    <span class="text-xs text-gray-500">
+                      {{ t('admin.groups.compositeRoutes.priority') }}: {{ candidate.route?.priority }} ·
+                      <template v-if="isNativeMediaPlatform(candidate.target_platform)">
+                        <template v-if="candidate.route?.capability_model?.trim()">{{ t('admin.groups.compositeRoutes.legacyCapability') }}: {{ candidate.route.capability_model }}</template>
+                        <template v-else>{{ t('admin.groups.compositeRoutes.nativeProviderAdapterHint') }}</template>
+                      </template>
+                      <template v-else>schema: {{ candidate.route?.capability_model || candidate.public_model }}</template>
+                    </span>
                   </li>
                 </ol>
                 <p v-if="compositePreviewDecision.candidates?.length" class="mt-2 text-xs text-gray-500">{{ t('admin.groups.compositeRoutes.mediaPreviewHint') }}</p>
@@ -4354,6 +4370,7 @@ import EmptyState from "@/components/common/EmptyState.vue";
 import Select from "@/components/common/Select.vue";
 import PlatformIcon from "@/components/common/PlatformIcon.vue";
 import { platformLabel } from "@/utils/platformColors";
+import { isNativeMediaPlatform } from "@/utils/publicPlatform";
 import Icon from "@/components/icons/Icon.vue";
 import GroupI18nField from "@/components/admin/group/GroupI18nField.vue";
 import GroupRateMultipliersModal from "@/components/admin/group/GroupRateMultipliersModal.vue";
@@ -4937,6 +4954,20 @@ const compositeRouteForm = reactive<CompositeRouteFormState>({
   enabled: true,
   notes: "",
 });
+const compositeRouteIsMedia = computed(() =>
+  ["images", "videos"].includes(compositeRouteForm.endpoint),
+);
+const compositeRouteIsNativeMedia = computed(() =>
+  compositeRouteIsMedia.value && isNativeMediaPlatform(compositeRouteForm.target_platform),
+);
+const compositeRouteHasLegacyCapability = computed(() =>
+  compositeRouteIsNativeMedia.value && !!compositeRouteForm.capability_model.trim(),
+);
+watch(
+  [() => compositeRouteForm.target_platform, () => compositeRouteForm.endpoint],
+  () => { compositeRouteForm.capability_model = ""; },
+  { flush: "sync" },
+);
 const createMessagesDispatchDefaults = createDefaultMessagesDispatchFormState();
 const editMessagesDispatchDefaults = createDefaultMessagesDispatchFormState();
 const createModelAllowlistState = reactive(createInitialModelAllowlistState());
@@ -6554,7 +6585,9 @@ const toCompositeRouteInput = (): CompositeModelRouteInput => ({
   match_type: compositeRouteForm.match_type,
   target_platform: compositeRouteForm.target_platform,
   upstream_model: compositeRouteForm.upstream_model.trim(),
-  capability_model: ["images", "videos"].includes(compositeRouteForm.endpoint) ? compositeRouteForm.capability_model.trim() : "",
+  capability_model: compositeRouteIsMedia.value
+    ? compositeRouteForm.capability_model.trim()
+    : "",
   endpoint: compositeRouteForm.endpoint,
   priority: Number(compositeRouteForm.priority) || 100,
   enabled: compositeRouteForm.enabled,
@@ -6608,8 +6641,8 @@ const editCompositeRoute = (route: CompositeModelRoute) => {
   compositeRouteForm.match_type = route.match_type;
   compositeRouteForm.target_platform = route.target_platform;
   compositeRouteForm.upstream_model = route.upstream_model;
-  compositeRouteForm.capability_model = route.capability_model || "";
   compositeRouteForm.endpoint = route.endpoint;
+  compositeRouteForm.capability_model = route.capability_model || "";
   compositeRouteForm.priority = route.priority || 100;
   compositeRouteForm.enabled = route.enabled;
   compositeRouteForm.notes = route.notes || "";

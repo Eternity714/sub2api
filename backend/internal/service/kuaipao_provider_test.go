@@ -33,7 +33,7 @@ func TestKuaipaoProviderTranslatesPublicModelToUpstream(t *testing.T) {
 		require.Equal(t, "Bearer provider-key", r.Header.Get("Authorization"))
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
-		require.JSONEq(t, `{"model":"gpt-image-2.6-1k","prompt":"blue cup","size":"1024x1024","quality":"auto","n":1,"response_format":"url"}`, string(body))
+		require.JSONEq(t, `{"model":"gpt-image-2.6-1k","prompt":"blue cup","aspect_ratio":"1:1","resolution":"1K","quality":"auto","n":1,"response_format":"url"}`, string(body))
 		_, _ = w.Write([]byte(`{"data":[{"url":"https://example.com/image.png"}]}`))
 	}))
 	defer srv.Close()

@@ -90,12 +90,16 @@ func (e *CompileError) Error() string {
 }
 
 type NormalizedRequest struct {
-	Values         map[string]any `json:"values"`
-	Mode           string         `json:"mode"`
-	ProvidedFields []string       `json:"provided_fields"`
-	ImageSpec      *ImageSpec     `json:"image_spec,omitempty"`
-	RequestedCount int            `json:"requested_count"`
-	mediaType      string
+	Values             map[string]any  `json:"values"`
+	Mode               string          `json:"mode"`
+	ProvidedFields     []string        `json:"provided_fields"`
+	ImageSpec          *ImageSpec      `json:"image_spec,omitempty"`
+	RequestedImageSpec *ImageSpec      `json:"requested_image_spec,omitempty"`
+	ReplyType          string          `json:"reply_type,omitempty"`
+	RequestedCount     int             `json:"requested_count"`
+	AtomicBatch        bool            `json:"atomic_batch,omitempty"`
+	AdapterProfile     json.RawMessage `json:"adapter_profile,omitempty"`
+	mediaType          string
 }
 
 type CandidateMatch struct {

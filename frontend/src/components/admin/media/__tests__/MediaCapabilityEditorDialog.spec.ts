@@ -32,6 +32,76 @@ const mountEditor = (capability: MediaCapability | null = null) => mount(MediaCa
 })
 
 describe('媒体能力编辑', () => {
+  it('将能力草稿说明为公共参数规则并区分 Provider 的上游适配', () => {
+    const wrapper = mountEditor()
+    expect(wrapper.text()).toContain('对外公共参数')
+    expect(wrapper.text()).toContain('Provider')
+    expect(wrapper.text()).toContain('images')
+    expect(wrapper.text()).toContain('aspectRatio')
+    expect(wrapper.text()).toContain('quality')
+    expect(wrapper.text()).toContain('replyType 目前仅支持 async')
+    expect(wrapper.text()).toContain('旧 size/metadata 仅兼容')
+    expect(wrapper.text()).toContain('兼容/高级像素映射（可选）')
+    expect(wrapper.text()).toContain('无需为各上游分别配置')
+  })
+
+  it.each(['images', 'aspectRatio', 'quality', 'imageSize', 'resolution', 'replyType'])('可新增 GRS 字段 %s，使用对应类型且 replyType 仅示例 async', async name => {
+    const wrapper = mountEditor()
+    await wrapper.get('[data-testid="public-model"]').setValue('grs-public-model')
+    await wrapper.get('[data-testid="top-add-select"]').setValue(name)
+    await wrapper.get('[data-testid="top-add-field"]').trigger('click')
+    expect(wrapper.find(`[data-testid="field-${name}-row"]`).exists()).toBe(true)
+    if (name === 'images') {
+      await wrapper.get('[data-testid="field-images[]-constraints"]').trigger('click')
+      expect(wrapper.find('[data-testid="field-images[]-type"]').exists()).toBe(false)
+      expect(wrapper.get('[data-testid="field-images[]-format"]').attributes('disabled')).toBeDefined()
+    }
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    const expected = name === 'images'
+      ? { type: 'array', items: { type: 'string', format: 'http_url' } }
+      : name === 'replyType' ? { type: 'string', enum: ['async'], default: 'async' } : { type: 'string' }
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ schema: expect.objectContaining({ fields: { [name]: expected } }) }))
+  })
+
+  it('迁移后的 GRS schema 可显示、编辑、保存，且不自动改为旧字段名', async () => {
+    const fields: Record<string, MediaCapabilityField> = {
+      images: { type: 'array', max_items: 2, items: { type: 'string', format: 'http_url' } },
+      aspectRatio: { type: 'string', enum: ['1:1'] },
+      imageSize: { type: 'string', enum: ['1K'], default: '1K' },
+      quality: { type: 'string', enum: ['auto'], default: 'auto' },
+      replyType: { type: 'string', enum: ['async'], default: 'async' },
+    }
+    const capability = { ...record(), schema: { ...schema(), fields } }
+    const wrapper = mountEditor(capability)
+    for (const name of Object.keys(fields)) expect(wrapper.find(`[data-testid="field-${name}-row"]`).exists()).toBe(true)
+    await wrapper.get('[data-testid="field-aspectRatio-default"]').setValue('"1:1"')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(update).toHaveBeenCalledWith(7, expect.objectContaining({ schema: expect.objectContaining({
+      fields: { ...fields, aspectRatio: { ...fields.aspectRatio, default: '1:1' } },
+    }) }))
+    expect(capability.schema.fields.aspectRatio).not.toHaveProperty('default')
+  })
+
+  it('视频 audios 使用 URL 数组并可独立配置，保留旧视频字段入口', async () => {
+    const wrapper = mountEditor()
+    await wrapper.get('[data-testid="public-model"]').setValue('grs-video-model')
+    await wrapper.get('[data-testid="media-type"]').setValue('video')
+    const options = wrapper.get('[data-testid="top-add-select"]').findAll('option').map(option => option.attributes('value'))
+    expect(options).toEqual(expect.arrayContaining(['audios', 'images', 'aspectRatio', 'duration', 'aspect_ratio', 'image_urls', 'metadata']))
+    await wrapper.get('[data-testid="top-add-select"]').setValue('audios')
+    await wrapper.get('[data-testid="top-add-field"]').trigger('click')
+    await wrapper.get('[data-testid="field-audios[]-constraints"]').trigger('click')
+    expect(wrapper.find('[data-testid="field-audios[]-type"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="field-audios[]-format"]').attributes('disabled')).toBeDefined()
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ media_type: 'video', schema: expect.objectContaining({
+      fields: { audios: { type: 'array', items: { type: 'string', format: 'http_url' } } },
+    }) }))
+  })
+
   beforeEach(() => {
     vi.resetAllMocks()
     create.mockResolvedValue({ ...record(), revision: 1 })

@@ -31,6 +31,34 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 	if len(rawFields["metadata"]) > MaxMetadataBytes {
 		return nil, []FieldError{fieldError("metadata", "size_limit", "metadata exceeds size limit")}
 	}
+	var requestedSpec *ImageSpec
+	if c.mediaType == "image" {
+		var pixelErrors []FieldError
+		requestedSpec, pixelErrors = requestedPixels(values, c.schema)
+		errs = append(errs, pixelErrors...)
+	}
+	errs = append(errs, canonicalInput(values, c.mediaType)...)
+	if metadata, exists := values["metadata"]; exists {
+		encoded, _ := json.Marshal(metadata)
+		if len(encoded) > MaxMetadataBytes {
+			errs = append(errs, fieldError("metadata", "size_limit", "metadata exceeds size limit"))
+		}
+	}
+	if len(errs) > 0 {
+		return nil, errs
+	}
+	// The task endpoint currently implements async replies only, including when
+	// validating a legacy schema which predates replyType.
+	replyType := ""
+	if reply, exists := values["replyType"]; exists {
+		if reply != "async" {
+			return nil, []FieldError{fieldError("replyType", "unsupported_reply_type", "only async task replies are supported")}
+		}
+		replyType = "async"
+		if _, declared := c.schema.Fields["replyType"]; !declared {
+			delete(values, "replyType")
+		}
+	}
 	provided := make([]string, 0)
 	collectProvided(values, "", &provided)
 	sort.Strings(provided)
@@ -132,7 +160,14 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	return &NormalizedRequest{Values: values, Mode: modeID, ProvidedFields: provided, ImageSpec: imageSpec, RequestedCount: requestedCount, mediaType: c.mediaType}, nil
+	if reply, exists := values["replyType"]; exists {
+		if reply != "async" {
+			return nil, []FieldError{fieldError("replyType", "unsupported_reply_type", "only async task replies are supported")}
+		}
+		replyType = "async"
+		delete(values, "replyType")
+	}
+	return &NormalizedRequest{Values: values, Mode: modeID, ProvidedFields: provided, ImageSpec: imageSpec, RequestedImageSpec: requestedSpec, ReplyType: replyType, RequestedCount: requestedCount, AtomicBatch: requestedCount > 1 && (c.schema.Batch.SemanticallyLinked || !c.schema.Batch.AllowSplit), mediaType: c.mediaType}, nil
 }
 
 func collectProvided(values any, path string, provided *[]string) {

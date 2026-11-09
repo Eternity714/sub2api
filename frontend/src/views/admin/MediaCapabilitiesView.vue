@@ -3,7 +3,7 @@
     <TablePageLayout>
       <template #actions>
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <p class="max-w-2xl text-sm text-gray-500 dark:text-gray-400">{{ label('按公开模型和媒体类型维护生成参数。基础模板需要按模型核对；此页面的校验不会发起生成或收费。', 'Manage generation parameters by public model and media type. Verify templates against model support. Validation does not generate media or charge.') }}</p>
+          <p class="max-w-2xl text-sm text-gray-500 dark:text-gray-400">{{ label('按公开模型维护 GRS 式对外公共参数：images 为参考图、aspectRatio 为比例或像素尺寸、quality 为画质，imageSize 或 resolution 按模型配置，replyType 目前仅支持 async。Provider 自动转换各家上游格式，无需分别维护上游能力。旧 size/metadata 仅兼容；本页校验不会生成或收费。', 'Manage GRS-style public parameters by public model: images for references, aspectRatio for ratios or pixel dimensions, quality for image quality, and imageSize or resolution per model. replyType currently supports async only. Providers convert upstream formats; separate upstream capabilities are not required. Legacy size/metadata remain compatible. Validation does not generate media or charge.') }}</p>
           <button type="button" class="btn btn-primary" :disabled="loading || !!templateError" @click="openEditor(null)">{{ label('新增能力配置', 'Add capability') }}</button>
         </div>
       </template>

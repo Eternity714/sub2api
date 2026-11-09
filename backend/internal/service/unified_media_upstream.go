@@ -62,7 +62,13 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 	if metadata == nil {
 		metadata = map[string]any{}
 	}
-	if platform == PlatformOpenAI || platform == PlatformKuaipao {
+	if platform == PlatformKuaipao {
+		if mediaType != "image" {
+			return nil, "", errors.New("Kuaipao supports synchronous images only")
+		}
+		return buildUnifiedKuaipaoImagePayload(model, values, metadata, count)
+	}
+	if platform == PlatformOpenAI {
 		if mediaType != "image" {
 			return nil, "", errors.New("OpenAI unified media supports synchronous images only")
 		}
@@ -82,16 +88,21 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 			if size, ok := values["size"]; ok {
 				out["aspectRatio"] = size
 			}
+			if request.RequestedImageSpec != nil {
+				out["aspectRatio"] = fmt.Sprintf("%dx%d", request.RequestedImageSpec.Width, request.RequestedImageSpec.Height)
+			}
 			if strings.HasPrefix(model, "nano-") {
 				if value, ok := metadata["resolution"]; ok {
 					out["imageSize"] = value
 				}
 			}
 			if grsaiRequiresPixelSize(model) {
-				if request.ImageSpec == nil {
+				if request.ImageSpec == nil && request.RequestedImageSpec == nil {
 					return nil, "", errors.New("model requires a configured aspect ratio and resolution pixel mapping")
 				}
-				out["aspectRatio"] = fmt.Sprintf("%dx%d", request.ImageSpec.Width, request.ImageSpec.Height)
+				if request.RequestedImageSpec == nil {
+					out["aspectRatio"] = fmt.Sprintf("%dx%d", request.ImageSpec.Width, request.ImageSpec.Height)
+				}
 			}
 		} else {
 			if ratio, ok := values["aspect_ratio"]; ok {
@@ -134,6 +145,12 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 		return nil, "", errors.New("unsupported unified media provider")
 	}
 	profile := mediaAdapterProfile(platform, mediaType, model)
+	if len(request.AdapterProfile) > 0 {
+		profile = UnifiedMediaAdapterProfile{}
+		if err := json.Unmarshal(request.AdapterProfile, &profile); err != nil {
+			return nil, "", errors.New("captured media adapter profile is invalid")
+		}
+	}
 	out := map[string]any{"model": model}
 	fields := []string{"prompt", "image_urls"}
 	if mediaType == "image" {
@@ -234,7 +251,7 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 }
 
 func grsaiRequiresPixelSize(model string) bool {
-	return model == "gpt-image-2-vip" || strings.HasPrefix(model, "gpt-image-2.5-flare") || strings.HasPrefix(model, "gpt-image-2.5-sunburst")
+	return model == "gpt-image-2-vip" || strings.HasPrefix(model, "gpt-image-2.5-flare") || strings.HasPrefix(model, "gpt-image-2.5-sunburst") || strings.HasPrefix(model, "gpt-image-2.6-flare") || strings.HasPrefix(model, "gpt-image-2.6-sunburst")
 }
 func unifiedMediaTakePath(root map[string]any, path string) (any, bool) {
 	parts := strings.Split(path, ".")
@@ -285,6 +302,9 @@ func (u *unifiedMediaHTTPUpstream) Submit(ctx context.Context, account *Account,
 	return u.do(ctx, account, http.MethodPost, endpoint, payload, mediaType, model)
 }
 func (u *unifiedMediaHTTPUpstream) Poll(ctx context.Context, account *Account, mediaType, model, taskID string) (*UnifiedMediaUpstreamResult, error) {
+	return u.PollWithProfile(ctx, account, mediaType, model, taskID, nil)
+}
+func (u *unifiedMediaHTTPUpstream) PollWithProfile(ctx context.Context, account *Account, mediaType, model, taskID string, captured *UnifiedMediaAdapterProfile) (*UnifiedMediaUpstreamResult, error) {
 	if account != nil && account.Platform == PlatformKuaipao {
 		return (&kuaipaoMediaProvider{transport: u}).Poll(ctx, account, mediaType, model, taskID)
 	}
@@ -296,10 +316,13 @@ func (u *unifiedMediaHTTPUpstream) Poll(ctx context.Context, account *Account, m
 		endpoint = grsaiResultPath + "?id=" + url.QueryEscape(taskID)
 	} else {
 		profile := mediaAdapterProfile(account.Platform, mediaType, model)
+		if captured != nil {
+			profile = *captured
+		}
 		if profile.QueryPath != "" {
 			endpoint = strings.ReplaceAll(profile.QueryPath, "{id}", url.PathEscape(taskID))
 		}
-		if model == "midjourney" {
+		if model == "midjourney" && profile.QueryPath == "" {
 			endpoint = "/v1/midjourney/" + url.PathEscape(taskID)
 		}
 	}

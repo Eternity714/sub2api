@@ -11,8 +11,8 @@ import (
 var fieldNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 var ratioPattern = regexp.MustCompile(`^[1-9][0-9]*:[1-9][0-9]*$`)
 
-var imageFields = map[string]bool{"prompt": true, "size": true, "n": true, "image_urls": true, "metadata": true}
-var videoFields = map[string]bool{"prompt": true, "duration": true, "aspect_ratio": true, "image_urls": true, "metadata": true}
+var imageFields = map[string]bool{"prompt": true, "size": true, "n": true, "image_urls": true, "metadata": true, "replyType": true}
+var videoFields = map[string]bool{"prompt": true, "duration": true, "aspect_ratio": true, "image_urls": true, "metadata": true, "replyType": true}
 
 func Compile(mediaType string, schemaJSON []byte) (*Compiled, error) {
 	fail := func(errs ...FieldError) (*Compiled, error) { return nil, &CompileError{Fields: errs} }
@@ -36,6 +36,7 @@ func Compile(mediaType string, schemaJSON []byte) (*Compiled, error) {
 	if err := decoder.Decode(&schema); err != nil {
 		return fail(fieldError("$", "invalid_schema", "schema fields have invalid types"))
 	}
+	errs = append(errs, canonicalSchema(&schema, mediaType)...)
 	compiled := &Compiled{mediaType: mediaType, schema: schema}
 	if schema.Version != 1 {
 		errs = append(errs, fieldError("version", "unsupported_version", "only capability version 1 is supported"))
@@ -54,7 +55,7 @@ func Compile(mediaType string, schemaJSON []byte) (*Compiled, error) {
 			errs = append(errs, fieldError("fields."+name, "unknown_field", "field is not part of this media interface"))
 		}
 		errs = append(errs, validateFieldDefinition(field, "fields."+name, 1, &count)...)
-		requiredType := map[string]string{"prompt": "string", "size": "string", "n": "integer", "image_urls": "array", "metadata": "object", "aspect_ratio": "string"}[name]
+		requiredType := map[string]string{"prompt": "string", "size": "string", "n": "integer", "image_urls": "array", "metadata": "object", "aspect_ratio": "string", "replyType": "string"}[name]
 		if requiredType != "" && field.Type != requiredType {
 			errs = append(errs, fieldError("fields."+name+".type", "type", "field type conflicts with the unified interface"))
 		}

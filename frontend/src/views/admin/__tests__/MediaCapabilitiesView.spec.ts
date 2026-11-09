@@ -10,6 +10,19 @@ const makeRecord = (id: number, type: 'image' | 'video') => ({ id, public_model:
 const mountView = () => mount(MediaCapabilitiesView, { global: { stubs: { AppLayout: { template: '<main><slot /></main>' }, teleport: true } } })
 
 describe('媒体能力管理列表', () => {
+  it('说明这里只维护对外公共参数，实际上游适配由 Provider 处理', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.text()).toContain('对外公共参数')
+    expect(wrapper.text()).toContain('Provider')
+    expect(wrapper.text()).toContain('images')
+    expect(wrapper.text()).toContain('aspectRatio')
+    expect(wrapper.text()).toContain('quality')
+    expect(wrapper.text()).toContain('replyType 目前仅支持 async')
+    expect(wrapper.text()).toContain('旧 size/metadata 仅兼容')
+    wrapper.unmount()
+  })
+
   beforeEach(() => {
     vi.resetAllMocks()
     list.mockResolvedValue({ items: [makeRecord(1, 'image'), makeRecord(2, 'video')], total: 2, page: 1, page_size: 20 })

@@ -35,7 +35,7 @@ func MatchCandidate(normalized *NormalizedRequest, candidate *Compiled) Candidat
 		count = 1
 	}
 	if count > result.NativeBatchSize {
-		if !candidate.schema.Batch.AllowSplit || candidate.schema.Batch.SemanticallyLinked {
+		if normalized.AtomicBatch || !candidate.schema.Batch.AllowSplit || candidate.schema.Batch.SemanticallyLinked {
 			result.Errors = append(result.Errors, fieldError("n", "unsupported_batch", "candidate cannot preserve this request through independent splitting"))
 			return result
 		}

@@ -6,10 +6,10 @@ description: 媒体 API 的统一图片与视频生成协议：创建异步任�
 
 媒体 API 使用统一的异步协议生成图片和视频。选择模型、创建任务并保存 `id`，再使用同一个 API Key 查询，任务完成后从 `result.data` 获取文件 URL。
 
-每个模型支持的比例、分辨率、时长、参考图及其他参数见[媒体模型目录](/media-models/)。例如 [GPT Image 2](/media-models/gpt-image-2) 和 [Nano Banana 2.1](/media-models/nano-banana-2.1)。模型及价格是否对当前密钥开放，以[可用渠道](https://www.gkotta.bid/available-channels)为准。
+每个模型支持的比例、分辨率、时长、参考图及其他参数见[媒体模型目录](/media-models/)。当前图片接入见 [GPT Image 2.6](/media-gpt-image-2.6)。模型及价格是否对当前密钥开放，以[可用渠道](https://www.gkotta.bid/available-channels)为准。
 
 ::: warning 先确认密钥使用媒体 API 分组
-本页适用于标记为“媒体 API”的分组。创建接口固定返回异步任务，图片 `size` 表示宽高比，查询路径包含 `/generations/`。其它协议分组可能使用同名创建路径，但请求字段与响应格式不同，请使用对应协议的文档。
+本页适用于标记为“媒体 API”的分组。创建接口固定返回异步任务，图片使用统一 `aspectRatio`、`imageSize` 和 `quality` 参数，查询路径包含 `/generations/`。其它协议分组可能使用同名创建路径，但请求字段与响应格式不同，请使用对应协议的文档。
 :::
 
 ## 地址与认证
@@ -51,27 +51,32 @@ $env:SUB2API_KEY = "YOUR_SUB2API_KEY"
 | --- | --- | --- |
 | `model` | `string` | 必填，当前分组开放的图片模型 ID |
 | `prompt` | `string` | 提示词；是否必填由模型及输入模式决定 |
-| `size` | `string` | 图片宽高比，例如 `1:1`、`16:9`；允许值见模型页 |
+| `aspectRatio` | `string` | 图片宽高比，例如 `1:1`、`3:2`；像素写法及允许值见模型页 |
 | `n` | `integer` | 希望生成的图片结果数；默认值、上限及批量限制见模型页 |
-| `image_urls` | `string[]` | 模型支持的参考图 URL；数量、顺序和输入要求见模型页 |
+| `images` | `string[]` | 模型支持的参考图 HTTP(S) URL，顺序保留 |
+| `imageSize` / `resolution` | `string` | 输出分辨率档位，由模型规则定义 |
+| `quality` | `string` | 质量档位，由模型规则定义 |
+| `replyType` | `string` | 目前仅支持 `async`，返回 202 后轮询 |
 | `metadata` | `object` | 模型特有参数，只接受模型页声明的字段 |
 
-分辨率放在 `metadata.resolution`，例如某些模型支持 `1K`、`2K`、`4K`。`size` 不接受 `1024x1024` 等像素尺寸，也不支持 `metadata.output_size`。比例与分辨率必须是该模型支持的组合。
+分辨率使用顶层 `imageSize`（也接受 `resolution` 别名），质量使用 `quality`，回复类型目前只支持 `replyType:async`。具体枚举见模型页。旧的 `size/image_urls/metadata.resolution/metadata.quality` 请求仍兼容，别名同时传入时不能冲突。不支持 `metadata.output_size`、Base64 参考图或 `replyType:json/stream`。
 
 省略字段时，仅应用该模型明确声明的默认值。如果 `metadata` 本身声明了默认 `{}`，省略时会先创建对象，再应用子字段默认值；如果父对象没有默认值，子字段默认值不会凭空创建父对象。每个模型页均说明实际规则，需要特定输出规格时建议明确传入对应字段。
 
-下面使用 `gpt-image-2` 创建一张图片；可选值及参考图用法见[模型文档](/media-models/gpt-image-2)：
+下面使用 `gpt-image-2.6` 创建一张图片；可选值及参考图用法见[模型文档](/media-gpt-image-2.6)：
 
 ```bash
 curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
   -H "Authorization: Bearer $SUB2API_KEY" \
   -H 'Content-Type: application/json' \
   --data '{
-    "model": "gpt-image-2",
+    "model": "gpt-image-2.6",
     "prompt": "一只坐在窗边的橘猫，柔和自然光，细节清晰",
-    "size": "1:1",
+    "aspectRatio": "1:1",
     "n": 1,
-    "metadata": {"resolution": "1K"}
+    "imageSize": "1K",
+    "quality": "auto",
+    "replyType": "async"
   }'
 ```
 
@@ -80,7 +85,7 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
 ```json
 {
   "id": "media_4b0d7db4-8d24-4b67-afb9-f3364a0c7db3",
-  "model": "gpt-image-2",
+  "model": "gpt-image-2.6",
   "status": "queued",
   "progress": 0,
   "created_at": 1792108800
@@ -98,11 +103,11 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
 | `model` | `string` | 必填，当前分组开放的视频模型 ID |
 | `prompt` | `string` | 提示词；是否必填由模型及输入模式决定 |
 | `duration` | `number` | 视频时长，单位秒；是否要求整数、范围及默认值见模型页 |
-| `aspect_ratio` | `string` | 视频宽高比，例如 `16:9`、`9:16` |
-| `image_urls` | `string[]` | 模型支持的参考图 URL；数量、顺序和输入要求见模型页 |
+| `aspectRatio` | `string` | 视频宽高比，例如 `16:9`、`9:16` |
+| `images` | `string[]` | 模型支持的参考图 HTTP(S) URL，顺序保留 |
 | `metadata` | `object` | 模型特有参数，包括该模型支持的 `resolution` 等字段 |
 
-视频没有顶层 `size` 或 `n` 字段。分辨率同样放在 `metadata.resolution`，具体值由模型决定，例如 `480p`、`720p`、`1080p`，不能直接照搬图片模型的分辨率。
+视频没有顶层 `n` 字段。分辨率使用顶层 `resolution`，回复类型使用 `replyType:async`。旧的 `aspect_ratio/image_urls/metadata` 格式继续兼容；具体值由模型决定，例如 `480p`、`720p`、`1080p`，不能直接照搬图片模型的分辨率。
 
 下面是文生视频示例。使用前在[模型目录](/media-models/)确认密钥可用的模型及参数：
 
@@ -114,8 +119,9 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/videos/generations" \
     "model": "doubao-seedance-1-0-pro-fast",
     "prompt": "海边日出，海浪轻柔拍岸，镜头缓慢前移",
     "duration": 5,
-    "aspect_ratio": "16:9",
-    "metadata": {"resolution": "480p"}
+    "aspectRatio": "16:9",
+    "resolution": "480p",
+    "replyType": "async"
   }'
 ```
 
@@ -186,7 +192,7 @@ curl --fail-with-body \
 ```json
 {
   "id": "media_4b0d7db4-8d24-4b67-afb9-f3364a0c7db3",
-  "model": "gpt-image-2",
+  "model": "gpt-image-2.6",
   "status": "in_progress",
   "progress": 50,
   "created_at": 1792108800,
@@ -204,7 +210,7 @@ curl --fail-with-body \
 ```json
 {
   "id": "media_4b0d7db4-8d24-4b67-afb9-f3364a0c7db3",
-  "model": "gpt-image-2",
+  "model": "gpt-image-2.6",
   "status": "completed",
   "progress": 100,
   "created_at": 1792108800,
@@ -246,7 +252,7 @@ curl --fail-with-body \
 ```json
 {
   "id": "media_a51b008b-e709-426b-b7a6-6c8d2c696b1c",
-  "model": "gpt-image-2",
+  "model": "gpt-image-2.6",
   "status": "completed",
   "progress": 100,
   "created_at": 1792108800,
@@ -269,7 +275,7 @@ curl --fail-with-body \
 ```json
 {
   "id": "media_a51b008b-e709-426b-b7a6-6c8d2c696b1c",
-  "model": "gpt-image-2",
+  "model": "gpt-image-2.6",
   "status": "completed",
   "progress": 100,
   "created_at": 1792108800,

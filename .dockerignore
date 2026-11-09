@@ -7,6 +7,9 @@
 .gitignore
 .gitattributes
 
+# Local operational scripts and verification artifacts are not image inputs.
+/.dev/
+
 # Documentation
 *.md
 !deploy/DOCKER.md

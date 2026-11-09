@@ -48,8 +48,16 @@ const label = useMediaLabels()
 provide('media-field-drafts', reactive(new Map()))
 const removedFields = new Map<string, MediaCapabilityField>()
 const newField = ref('')
-const fieldTypes: Record<string, MediaFieldType> = { prompt: 'string', size: 'string', n: 'integer', duration: 'number', aspect_ratio: 'string', image_urls: 'array', metadata: 'object' }
-const supportedFields = computed(() => props.mediaType === 'image' ? ['prompt', 'size', 'n', 'image_urls', 'metadata'] : ['prompt', 'duration', 'aspect_ratio', 'image_urls', 'metadata'])
+const fieldTypes: Record<string, MediaFieldType> = {
+  prompt: 'string', images: 'array', aspectRatio: 'string', quality: 'string',
+  imageSize: 'string', resolution: 'string', replyType: 'string', audios: 'array',
+  size: 'string', n: 'integer', duration: 'number', aspect_ratio: 'string',
+  image_urls: 'array', metadata: 'object',
+}
+const grsFields = ['images', 'aspectRatio', 'quality', 'imageSize', 'resolution', 'replyType']
+const supportedFields = computed(() => props.mediaType === 'image'
+  ? ['prompt', ...grsFields, 'size', 'n', 'image_urls', 'metadata']
+  : ['prompt', ...grsFields, 'audios', 'duration', 'aspect_ratio', 'image_urls', 'metadata'])
 const declaredFields = computed(() => Object.keys(props.fields))
 const availableFields = computed(() => supportedFields.value.filter(key => !Object.prototype.hasOwnProperty.call(props.fields, key)))
 watch(() => props.mediaType, () => { newField.value = ''; removedFields.clear() })
@@ -68,7 +76,12 @@ function addField() {
   const key = newField.value
   if (!availableFields.value.includes(key)) return
   const type = fieldType(key)
-  updateField(key, removedFields.get(key) || { type, ...(type === 'object' ? { properties: {} } : {}), ...(type === 'array' ? { items: { type: 'string', format: 'http_url' } } : {}) })
+  updateField(key, removedFields.get(key) || {
+    type,
+    ...(type === 'object' ? { properties: {} } : {}),
+    ...(type === 'array' ? { items: { type: 'string', format: 'http_url' } } : {}),
+    ...(key === 'replyType' ? { enum: ['async'], default: 'async' } : {}),
+  })
   newField.value = ''
 }
 function renameField(from: string, to: string) { emit('rename', from, to) }

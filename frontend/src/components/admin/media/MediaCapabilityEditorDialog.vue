@@ -37,7 +37,8 @@
         </section>
         <section class="space-y-3">
           <h4 class="font-semibold">{{ label('统一字段与参数限制', 'Fields and constraints') }}</h4>
-          <p class="text-xs text-gray-500">{{ label('model 始终必填。直接编辑参数行，展开对象可维护子字段；删除后该参数不再被接受。图片尺寸使用 size + metadata.resolution。', 'model is always required. Edit parameters in place and expand objects to manage child fields. Deleted parameters are no longer accepted. Image sizes use size + metadata.resolution.') }}</p>
+          <p class="text-xs text-gray-500">{{ label('这里只维护 GRS 式对外公共参数：images 为参考图、aspectRatio 为比例或像素尺寸、quality 为画质；imageSize 或 resolution 按模型配置，replyType 目前仅支持 async。Provider 自动转换各家上游格式。', 'Configure GRS-style public parameters here: images for references, aspectRatio for ratios or pixel dimensions, quality for image quality, and imageSize or resolution per model. replyType currently supports async only. Providers convert upstream formats.') }}</p>
+          <p class="text-xs text-gray-500">{{ label('model 始终必填。直接编辑参数行，展开对象可维护子字段；删除后该参数不再被接受。旧 size/metadata 仅兼容。', 'model is always required. Edit parameters in place and expand objects to manage child fields. Deleted parameters are no longer accepted. Legacy size/metadata remain compatible.') }}</p>
           <MediaFieldTable :key="`${form.media_type}-${editorGeneration}`" :fields="form.schema.fields" :media-type="form.media_type" @update="setFields" @invalid="setFieldError" @clear-errors="clearFieldErrors" @rename="renameField" />
         </section>
         <section class="space-y-3 border-t border-gray-200 pt-5 dark:border-dark-700">
@@ -53,8 +54,8 @@
           </div>
         </section>
         <section v-if="form.media_type === 'image'" class="space-y-3 border-t border-gray-200 pt-5 dark:border-dark-700">
-          <div class="flex items-center justify-between gap-2"><h4 class="font-semibold">{{ label('已验证的像素规格映射', 'Verified pixel mappings') }}</h4><button type="button" class="btn btn-secondary btn-sm" data-testid="add-image-spec" @click="addImageSpec">{{ label('添加规格', 'Add mapping') }}</button></div>
-          <p class="text-xs text-gray-500">{{ label('只填写已有依据的比例 + resolution → 像素尺寸；不使用全局推算或静默降规格。', 'Only configure documented aspect ratio + resolution pixel mappings. No global approximation or silent downgrade.') }}</p>
+          <div class="flex items-center justify-between gap-2"><h4 class="font-semibold">{{ label('兼容/高级像素映射（可选）', 'Compatibility / advanced pixel mappings (optional)') }}</h4><button type="button" class="btn btn-secondary btn-sm" data-testid="add-image-spec" @click="addImageSpec">{{ label('添加规格', 'Add mapping') }}</button></div>
+          <p class="text-xs text-gray-500">{{ label('原生媒体 Provider 负责实际像素转换，无需为各上游分别配置。此处仅保留需要显式映射的兼容/高级配置；只填写有依据的像素尺寸，不推算或静默降规格。', 'Native media providers handle actual pixel conversion; separate mappings for each upstream are not required. This optional compatibility / advanced configuration remains available for explicit mappings. Use documented pixel sizes without approximation or silent downgrade.') }}</p>
           <div v-for="(spec, index) in form.schema.image_specs" :key="index" class="grid items-end gap-2 rounded-xl border border-gray-200 p-3 sm:grid-cols-5 dark:border-dark-700">
             <label class="input-label">{{ label('比例', 'Ratio') }}<input v-model.trim="spec.aspect_ratio" :data-testid="`spec-${index}-ratio`" class="input mt-1" placeholder="1:1" /></label>
             <label class="input-label">resolution<input v-model.trim="spec.resolution" :data-testid="`spec-${index}-resolution`" class="input mt-1" placeholder="1K" /></label>

@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/mediacapability"
 )
 
@@ -85,10 +86,12 @@ func (r *CompositeRouteResolver) mediaRoutes(ctx context.Context, groupID int64,
 }
 
 type MediaCandidate struct {
-	Route      CompositeRouteDecision         `json:"route"`
-	Capability MediaCapabilitySnapshot        `json:"capability_snapshot"`
-	Compiled   *mediacapability.Compiled      `json:"-"`
-	Match      mediacapability.CandidateMatch `json:"match"`
+	ProviderManaged bool                           `json:"provider_managed,omitempty"`
+	AdapterProfile  *UnifiedMediaAdapterProfile    `json:"adapter_profile,omitempty"`
+	Route           CompositeRouteDecision         `json:"route"`
+	Capability      MediaCapabilitySnapshot        `json:"capability_snapshot"`
+	Compiled        *mediacapability.Compiled      `json:"-"`
+	Match           mediacapability.CandidateMatch `json:"match"`
 }
 
 type CompositeMediaRouteService struct {
@@ -123,6 +126,25 @@ func (s *CompositeMediaRouteService) MediaCandidates(ctx context.Context, groupI
 	failures := make([]mediacapability.FieldError, 0)
 	for _, route := range routes {
 		capabilityModel := route.Route.CapabilityModel
+		if capabilityModel == "" {
+			plan, planErr := planUnifiedMediaProviderRequest(route.TargetPlatform, mediaType, route.UpstreamModel, normalized)
+			if planErr != nil {
+				var fields []mediacapability.FieldError
+				if json.Unmarshal([]byte(infraerrors.FromError(planErr).Metadata["fields"]), &fields) == nil && len(fields) > 0 {
+					failures = append(failures, fields...)
+				} else {
+					failures = append(failures, mediacapability.FieldError{Path: "model", Code: "unsupported_parameters", Message: "provider cannot adapt the requested parameters"})
+				}
+				continue
+			}
+			if plan != nil {
+				digest := sha256.Sum256(plan.Schema)
+				compiled, _ := mediacapability.Compile(mediaType, plan.Schema)
+				snapshot := MediaCapabilitySnapshot{PublicModel: route.UpstreamModel, MediaType: mediaType, SchemaVersion: 1, SchemaHash: hex.EncodeToString(digest[:]), Schema: plan.Schema}
+				result = append(result, MediaCandidate{Route: route, Capability: snapshot, Compiled: compiled, Match: plan.Match, ProviderManaged: true, AdapterProfile: plan.Profile})
+				continue
+			}
+		}
 		if capabilityModel == "" {
 			capabilityModel = model
 		}

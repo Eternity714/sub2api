@@ -37,6 +37,9 @@ type UnifiedMediaUpstream interface {
 	Submit(context.Context, *Account, string, string, *mediacapability.NormalizedRequest, int) (*UnifiedMediaUpstreamResult, error)
 	Poll(context.Context, *Account, string, string, string) (*UnifiedMediaUpstreamResult, error)
 }
+type unifiedMediaProfilePoller interface {
+	PollWithProfile(context.Context, *Account, string, string, string, *UnifiedMediaAdapterProfile) (*UnifiedMediaUpstreamResult, error)
+}
 type UnifiedMediaStoredResult struct {
 	URL            string          `json:"url"`
 	ExpiresAt      *time.Time      `json:"expires_at,omitempty"`
@@ -46,12 +49,14 @@ type UnifiedMediaResultPersister interface {
 	Persist(context.Context, string, string, int, int, string) (*UnifiedMediaStoredResult, error)
 }
 type UnifiedMediaCandidateSnapshot struct {
-	Platform         string                  `json:"platform"`
-	Model            string                  `json:"model"`
-	RouteID          int64                   `json:"route_id"`
-	Capability       MediaCapabilitySnapshot `json:"capability"`
-	NativeMaxResults int                     `json:"native_max_results"`
-	AllowSplit       bool                    `json:"allow_split"`
+	ProviderManaged  bool                        `json:"provider_managed,omitempty"`
+	AdapterProfile   *UnifiedMediaAdapterProfile `json:"adapter_profile,omitempty"`
+	Platform         string                      `json:"platform"`
+	Model            string                      `json:"model"`
+	RouteID          int64                       `json:"route_id"`
+	Capability       MediaCapabilitySnapshot     `json:"capability"`
+	NativeMaxResults int                         `json:"native_max_results"`
+	AllowSplit       bool                        `json:"allow_split"`
 }
 type UnifiedMediaTaskPayload struct {
 	Normalized *mediacapability.NormalizedRequest `json:"normalized"`
@@ -66,22 +71,23 @@ type UnifiedMediaOutput struct {
 }
 
 type UnifiedMediaUnit struct {
-	State                 string                     `json:"state"`
-	Count                 int                        `json:"count"`
-	AccountID             int64                      `json:"account_id,omitempty"`
-	AccountRateMultiplier *float64                   `json:"account_rate_multiplier,omitempty"`
-	Platform              string                     `json:"platform,omitempty"`
-	UpstreamModel         string                     `json:"upstream_model,omitempty"`
-	UpstreamTaskID        string                     `json:"upstream_task_id,omitempty"`
-	LastHTTPStatus        int                        `json:"last_http_status,omitempty"`
-	Attempt               int                        `json:"attempt"`
-	TriedCandidates       []string                   `json:"tried_candidates,omitempty"`
-	URLs                  []string                   `json:"urls,omitempty"`
-	Stored                []UnifiedMediaStoredResult `json:"stored,omitempty"`
-	Outputs               []UnifiedMediaOutput       `json:"outputs,omitempty"`
-	Failures              int                        `json:"failures"`
-	NextAttemptAt         time.Time                  `json:"next_attempt_at,omitempty"`
-	Error                 string                     `json:"error,omitempty"`
+	AdapterProfile        *UnifiedMediaAdapterProfile `json:"adapter_profile,omitempty"`
+	State                 string                      `json:"state"`
+	Count                 int                         `json:"count"`
+	AccountID             int64                       `json:"account_id,omitempty"`
+	AccountRateMultiplier *float64                    `json:"account_rate_multiplier,omitempty"`
+	Platform              string                      `json:"platform,omitempty"`
+	UpstreamModel         string                      `json:"upstream_model,omitempty"`
+	UpstreamTaskID        string                      `json:"upstream_task_id,omitempty"`
+	LastHTTPStatus        int                         `json:"last_http_status,omitempty"`
+	Attempt               int                         `json:"attempt"`
+	TriedCandidates       []string                    `json:"tried_candidates,omitempty"`
+	URLs                  []string                    `json:"urls,omitempty"`
+	Stored                []UnifiedMediaStoredResult  `json:"stored,omitempty"`
+	Outputs               []UnifiedMediaOutput        `json:"outputs,omitempty"`
+	Failures              int                         `json:"failures"`
+	NextAttemptAt         time.Time                   `json:"next_attempt_at,omitempty"`
+	Error                 string                      `json:"error,omitempty"`
 }
 type UnifiedMediaTask struct {
 	ID               string
@@ -267,7 +273,7 @@ func (s *UnifiedMediaTaskService) Create(ctx context.Context, input UnifiedMedia
 	now := s.Now().UTC()
 	task := &UnifiedMediaTask{ID: "media_" + uuid.NewString(), UserID: key.UserID, APIKeyID: key.ID, GroupID: key.Group.ID, Model: envelope.Model, MediaType: input.MediaType, Status: "queued", RequestedCount: count, UnitPrice: unit, AccountUnitPrice: accountUnit, HeldAmount: held, CreatedAt: now, UpdatedAt: now, Deadline: now.Add(24 * time.Hour), Payload: UnifiedMediaTaskPayload{Normalized: normalized, Capability: validated.Capability}}
 	for _, candidate := range candidates {
-		task.Payload.Candidates = append(task.Payload.Candidates, UnifiedMediaCandidateSnapshot{Platform: candidate.Route.TargetPlatform, Model: candidate.Route.UpstreamModel, RouteID: candidate.Route.Route.ID, Capability: candidate.Capability, NativeMaxResults: candidate.Match.NativeBatchSize, AllowSplit: candidate.Match.NeedsSplit})
+		task.Payload.Candidates = append(task.Payload.Candidates, UnifiedMediaCandidateSnapshot{Platform: candidate.Route.TargetPlatform, Model: candidate.Route.UpstreamModel, RouteID: candidate.Route.Route.ID, Capability: candidate.Capability, NativeMaxResults: candidate.Match.NativeBatchSize, AllowSplit: candidate.Match.NeedsSplit, ProviderManaged: candidate.ProviderManaged, AdapterProfile: candidate.AdapterProfile})
 	}
 	var publicSchema mediacapability.Schema
 	_ = json.Unmarshal(validated.Capability.Schema, &publicSchema)
@@ -429,7 +435,12 @@ func (s *UnifiedMediaTaskService) process(ctx context.Context, task *UnifiedMedi
 				s.retry(unit)
 				continue
 			}
-			result, err := s.Upstream.Poll(ctx, account, task.MediaType, unit.UpstreamModel, unit.UpstreamTaskID)
+			var result *UnifiedMediaUpstreamResult
+			if poller, ok := s.Upstream.(unifiedMediaProfilePoller); ok && unit.AdapterProfile != nil {
+				result, err = poller.PollWithProfile(ctx, account, task.MediaType, unit.UpstreamModel, unit.UpstreamTaskID, unit.AdapterProfile)
+			} else {
+				result, err = s.Upstream.Poll(ctx, account, task.MediaType, unit.UpstreamModel, unit.UpstreamTaskID)
+			}
 			if err != nil || result == nil {
 				s.retry(unit)
 				continue
@@ -536,6 +547,7 @@ func (s *UnifiedMediaTaskService) submit(ctx context.Context, task *UnifiedMedia
 			unit.AccountRateMultiplier = &accountRate
 			unit.Platform = account.Platform
 			unit.UpstreamModel = candidate.Model
+			unit.AdapterProfile = candidate.AdapterProfile
 			unit.Attempt++
 			unit.State = "submitting"
 			unit.TriedCandidates = append(unit.TriedCandidates, candidateKey)
@@ -735,6 +747,16 @@ func UnifiedMediaTaskResultExpiry(task *UnifiedMediaTask) *time.Time {
 	return earliest
 }
 func unifiedMediaCandidateRequest(original *mediacapability.NormalizedRequest, candidate UnifiedMediaCandidateSnapshot) (*mediacapability.NormalizedRequest, error) {
+	if candidate.ProviderManaged {
+		request, err := adaptUnifiedMediaProviderRequest(candidate.Capability.MediaType, candidate.Capability.Schema, original)
+		if err != nil {
+			return nil, err
+		}
+		if candidate.AdapterProfile != nil {
+			request.AdapterProfile, _ = json.Marshal(candidate.AdapterProfile)
+		}
+		return request, nil
+	}
 	if original == nil {
 		return nil, errors.New("media normalized payload is unavailable")
 	}
