@@ -215,3 +215,41 @@ func TestUnifiedProviderParametersWorkerPollUsesFrozenQueryPath(t *testing.T) {
 	require.NoError(t, service.process(context.Background(), &task))
 	require.Equal(t, "/v1/captured/accepted-id", path)
 }
+
+func TestUnifiedProviderGPTImage25UsesOneGRSContract(t *testing.T) {
+	request := providerPublicRequest(t, `{"model":"gpt-image-2.5","prompt":"cup","aspectRatio":"3:2","imageSize":"1K","quality":"auto","replyType":"async","n":1}`)
+	routes := []CompositeModelRoute{providerRoute(1, PlatformGrsai, "gpt-image-2.5"), providerRoute(2, PlatformKuaipao, "gpt-image-2.5-1k")}
+	for i := range routes {
+		routes[i].PublicModel = "gpt-image-2.5"
+	}
+	repo := &providerCapabilityLookups{}
+	svc := NewCompositeMediaRouteService(NewCompositeRouteResolver(compositeRouteRepoStub{routes: routes}), repo)
+	candidates, err := svc.MediaCandidates(context.Background(), 22, "gpt-image-2.5", "image", request)
+	require.NoError(t, err)
+	require.Len(t, candidates, 2)
+	require.Empty(t, repo.models)
+	for _, candidate := range candidates {
+		require.True(t, candidate.ProviderManaged)
+		adapted, err := unifiedMediaCandidateRequest(request, UnifiedMediaCandidateSnapshot{ProviderManaged: true, Platform: candidate.Route.TargetPlatform, Model: candidate.Route.UpstreamModel, Capability: candidate.Capability, AdapterProfile: candidate.AdapterProfile})
+		require.NoError(t, err)
+		require.NotNil(t, adapted.ImageSpec)
+		body, _, err := BuildUnifiedMediaPayload(candidate.Route.TargetPlatform, "image", candidate.Route.UpstreamModel, adapted, 1)
+		require.NoError(t, err)
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(body, &payload))
+		require.Equal(t, candidate.Route.UpstreamModel, payload["model"])
+		if candidate.Route.TargetPlatform == PlatformGrsai {
+			require.Equal(t, "3:2", payload["aspectRatio"])
+			require.Equal(t, "async", payload["replyType"])
+			require.Equal(t, 1536, adapted.ImageSpec.Width)
+		} else {
+			require.Equal(t, "3:2", payload["aspect_ratio"])
+			require.Equal(t, "1K", payload["resolution"])
+			require.Equal(t, 1248, adapted.ImageSpec.Width)
+		}
+	}
+	require.Equal(t, "gpt-image-2.5", request.Values["model"])
+	unsupported := providerPublicRequest(t, `{"model":"gpt-image-2.5","prompt":"cup","imageSize":"2K"}`)
+	_, err = svc.MediaCandidates(context.Background(), 22, "gpt-image-2.5", "image", unsupported)
+	require.Error(t, err)
+}

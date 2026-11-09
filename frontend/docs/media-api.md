@@ -6,7 +6,7 @@ description: 媒体 API 的统一图片与视频生成协议：创建异步任�
 
 媒体 API 使用统一的异步协议生成图片和视频。选择模型、创建任务并保存 `id`，再使用同一个 API Key 查询，任务完成后从 `result.data` 获取文件 URL。
 
-每个模型支持的比例、分辨率、时长、参考图及其他参数见[媒体模型目录](/media-models/)。当前图片接入见 [GPT Image 2.6](/media-gpt-image-2.6)。模型及价格是否对当前密钥开放，以[可用渠道](https://www.gkotta.bid/available-channels)为准。
+每个模型支持的比例、分辨率、时长、参考图及其他参数见[媒体模型目录](/media-models/)。当前图片接入见 [GPT Image 2.6](/media-gpt-image-2.6) 和 [GPT Image 2.5](/media-gpt-image-2.5)。模型及价格是否对当前密钥开放，以[可用渠道](https://www.gkotta.bid/available-channels)为准。
 
 ::: warning 先确认密钥使用媒体 API 分组
 本页适用于标记为“媒体 API”的分组。创建接口固定返回异步任务，图片使用统一 `aspectRatio`、`imageSize` 和 `quality` 参数，查询路径包含 `/generations/`。其它协议分组可能使用同名创建路径，但请求字段与响应格式不同，请使用对应协议的文档。
