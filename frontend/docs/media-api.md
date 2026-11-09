@@ -70,7 +70,7 @@ $env:SUB2API_KEY = "YOUR_SUB2API_KEY"
 
 ### 旧参数兼容
 
-已有客户端仅在模型声明了对应参数时可以使用旧名字；新接入统一使用下表左列。新旧别名同时传入时，值必须一致。`gpt-image-2.6-1k`、`gpt-image-2.5-1k`、`gpt-image-2.6-2k` 和 `gpt-image-2.5-2k` 不接受 `imageSize`、`resolution` 或 `metadata.resolution`。
+已有客户端仅在模型声明了对应参数时可以使用旧名字；新接入统一使用下表左列。新旧别名同时传入时，值必须一致。四款 GPT Image Flare/Sunburst 使用 `imageSize` 选择 1K/2K/4K，默认 1K；不接受像素尺寸写法。旧固定档位型号停止创建任务。
 
 | 推荐字段 | 兼容字段 |
 | --- | --- |
@@ -140,7 +140,7 @@ GET 查询不会再次生成。Key 额度不足以创建新任务时，仍可查
 ```json
 {
   "id": "media_EXAMPLE_TASK_ID",
-  "model": "gpt-image-2.6-1k",
+  "model": "gpt-image-2.6-flare",
   "status": "completed",
   "progress": 100,
   "created_at": 1794182400,
@@ -236,7 +236,7 @@ async function createImage() {
   const response = await fetch(base + routes.image, {
     method: 'POST', headers,
     body: JSON.stringify({
-      model: 'gpt-image-2.6-1k', prompt: '白色桌面上的蓝色陶瓷杯',
+      model: 'gpt-image-2.6-flare', prompt: '白色桌面上的蓝色陶瓷杯',
       aspectRatio: '3:2', quality: 'auto', replyType: 'async', n: 1,
     }),
     signal: AbortSignal.timeout(60000),

@@ -177,6 +177,12 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 	if len(errs) > 0 {
 		return nil, errs
 	}
+	// An explicit automatic-ratio mapping binds the configured request geometry
+	// for every ratio and tier. Providers replay these captured target pixels.
+	if c.schema.AutoImageAspectRatio != "" && imageSpec != nil && requestedSpec == nil {
+		copy := *imageSpec
+		requestedSpec = &copy
+	}
 	if reply, exists := values["replyType"]; exists {
 		if reply != "async" {
 			return nil, []FieldError{fieldError("replyType", "unsupported_reply_type", "only async task replies are supported")}

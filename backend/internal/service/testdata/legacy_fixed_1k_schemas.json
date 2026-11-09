@@ -1,0 +1,140 @@
+{
+  "models": [
+    {
+      "model": "gpt-image-2.6-1k",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 1,
+            "minimum": 1
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 16,
+            "min_items": 1
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 32000,
+            "min_length": 1
+          },
+          "quality": {
+            "enum": [
+              "auto"
+            ],
+            "type": "string",
+            "default": "auto"
+          },
+          "replyType": {
+            "enum": [
+              "async"
+            ],
+            "type": "string",
+            "default": "async"
+          },
+          "aspectRatio": {
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1"
+            ],
+            "type": "string",
+            "default": "1:1"
+          }
+        },
+        "version": 1
+      }
+    },
+    {
+      "model": "gpt-image-2.5-1k",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 1,
+            "minimum": 1
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 16,
+            "min_items": 1
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 32000,
+            "min_length": 1
+          },
+          "quality": {
+            "enum": [
+              "auto"
+            ],
+            "type": "string",
+            "default": "auto"
+          },
+          "replyType": {
+            "enum": [
+              "async"
+            ],
+            "type": "string",
+            "default": "async"
+          },
+          "aspectRatio": {
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1"
+            ],
+            "type": "string",
+            "default": "1:1"
+          }
+        },
+        "version": 1
+      }
+    }
+  ]
+}

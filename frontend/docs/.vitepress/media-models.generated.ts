@@ -5,20 +5,20 @@ export const mediaModelSidebar = [
     "collapsed": true,
     "items": [
       {
-        "text": "gpt-image-2.5-1k",
-        "link": "/media-models/gpt-image-2.5-1k"
+        "text": "gpt-image-2.5-flare",
+        "link": "/media-models/gpt-image-2.5-flare"
       },
       {
-        "text": "gpt-image-2.5-2k",
-        "link": "/media-models/gpt-image-2.5-2k"
+        "text": "gpt-image-2.5-sunburst",
+        "link": "/media-models/gpt-image-2.5-sunburst"
       },
       {
-        "text": "gpt-image-2.6-1k",
-        "link": "/media-models/gpt-image-2.6-1k"
+        "text": "gpt-image-2.6-flare",
+        "link": "/media-models/gpt-image-2.6-flare"
       },
       {
-        "text": "gpt-image-2.6-2k",
-        "link": "/media-models/gpt-image-2.6-2k"
+        "text": "gpt-image-2.6-sunburst",
+        "link": "/media-models/gpt-image-2.6-sunburst"
       },
       {
         "text": "nano-banana-2.1",

@@ -30,6 +30,7 @@ export interface MediaCapabilityRule {
 export interface MediaImageSpec { aspect_ratio: string; resolution: string; width: number; height: number }
 export interface MediaCapabilitySchema {
   version: number
+  allow_pixel_size?: boolean
   fixed_image_resolution?: '1K' | '2K' | '4K'
   auto_image_aspect_ratio?: string
   fields: Record<string, MediaCapabilityField>

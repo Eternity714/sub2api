@@ -30,7 +30,7 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/models" \
 | `prompt` | string | 描述主体、场景、风格，或对参考图的修改要求 |
 | `images` | string[] | 可选参考图 HTTP(S) 直链，按数组顺序处理 |
 | `aspectRatio` | string | 比例，如 `1:1`、`3:2`、`2:3`；允许范围见模型页 |
-| `imageSize` | string | 仅在模型声明时可传；固定 `-1k` 型号不接受此字段及其别名 |
+| `imageSize` | string | 分辨率档位；GPT Image 支持 `1K/2K/4K`，默认 `1K` |
 | `quality` | string | 质量，仅在模型页声明时传入，按模型枚举填写 |
 | `n` | integer | 结果数；当前图片模型仅允许 `1` |
 | `replyType` | string | 目前仅支持 `async` |
@@ -40,22 +40,22 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/models" \
 
 ### 比例与像素
 
-`gpt-image-2.6-1k` 和 `gpt-image-2.5-1k` 已固定 1K，使用 `aspectRatio` 选择比例，不接受 `imageSize`、`resolution`、`metadata.resolution` 或像素尺寸写法。`auto` 由生成服务决定比例，实际像素以结果为准。其他模型的档位参数见对应模型页。
+GPT Image 仅开放 `gpt-image-2.6-sunburst`、`gpt-image-2.6-flare`、`gpt-image-2.5-sunburst`、`gpt-image-2.5-flare`。使用 `imageSize` 选择 `1K/2K/4K`，默认 `1K`，售价分别为 **0.12/0.20/0.35 元/张**。同一分辨率的 `auto/low/medium/high` 四种质量同价。
 
-`gpt-image-2.6-2k`、`gpt-image-2.5-2k` 固定 2K，同样不传分辨率字段。它们额外支持 `1:3`、`3:1`，`quality` 可选 `auto/low/medium/high`，四种质量均为 0.2 元/张。两个 2K 型号的 `aspectRatio:auto` 固定输出 2048×2048；1K 型号的 `auto` 仍由生成服务决定比例。
+三个档位均支持模型页列出的 16 个比例值，默认 `1:1`。`aspectRatio:auto` 按正方形构造请求，目标尺寸分别为 1024×1024、2048×2048、2880×2880。交付保留生成服务原图，实际像素可能存在差异，不因尺寸差异缩放、裁剪或重试；仍按请求的 `imageSize` 档位收费。
 
-旧名字仅在模型声明了对应参数时兼容；别名不会增加可用参数。固定 `-1k` 型号不接受任何分辨率字段。映射见[旧参数兼容](/media-api#旧参数兼容)。
+不接受像素尺寸写法；`n` 仅为 1，`replyType` 仅为 `async`。旧的固定 `-1k/-2k` 型号停止创建任务，历史任务继续按创建时的快照查询和结算。参数别名说明见[旧参数兼容](/media-api#旧参数兼容)。
 
 ## 文生图
 
-下面使用 `gpt-image-2.6-1k`。切换模型时先核对对应参数页。
+下面使用 `gpt-image-2.6-flare`。切换模型时先核对对应参数页。
 
 ```bash
 curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
   -H "Authorization: Bearer $SUB2API_KEY" \
   -H 'Content-Type: application/json' \
   --data '{
-    "model": "gpt-image-2.6-1k",
+    "model": "gpt-image-2.6-flare",
     "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
     "aspectRatio": "3:2",
     "quality": "auto",
@@ -72,7 +72,7 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
 
 ```json
 {
-  "model": "gpt-image-2.6-1k",
+  "model": "gpt-image-2.6-flare",
   "prompt": "保留参考图的主体和构图，将陶瓷杯改为绿色，背景保持白色",
   "images": ["https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"],
   "aspectRatio": "3:2",
@@ -98,7 +98,7 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
 $env:SUB2API_KEY = "YOUR_SUB2API_KEY"
 $headers = @{ Authorization = "Bearer $env:SUB2API_KEY" }
 $body = @{
-  model = "gpt-image-2.6-1k"
+  model = "gpt-image-2.6-flare"
   prompt = "白色桌面上的蓝色陶瓷杯，柔和自然光"
   aspectRatio = "3:2"
   quality = "auto"

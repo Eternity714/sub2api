@@ -124,6 +124,11 @@ func Compile(mediaType string, schemaJSON []byte) (*Compiled, error) {
 		errs = append(errs, fieldError("image_specs", "size_limit", "too many image specifications"))
 	}
 	seenSpecs := make(map[string]bool)
+	if value, exists := object["allow_pixel_size"]; exists {
+		if _, ok := value.(bool); !ok || mediaType != "image" {
+			errs = append(errs, fieldError("allow_pixel_size", "invalid_value", "pixel size input policy must be an image boolean"))
+		}
+	}
 	if _, exists := object["fixed_image_resolution"]; exists {
 		if mediaType != "image" || (schema.FixedImageResolution != "1K" && schema.FixedImageResolution != "2K" && schema.FixedImageResolution != "4K") {
 			errs = append(errs, fieldError("fixed_image_resolution", "invalid_value", "fixed image resolution must be 1K, 2K or 4K"))
@@ -168,8 +173,19 @@ func Compile(mediaType string, schemaJSON []byte) (*Compiled, error) {
 			allowsAuto = allowsAuto || ratio == "auto"
 			allowsTarget = allowsTarget || ratio == schema.AutoImageAspectRatio
 		}
-		if schema.FixedImageResolution == "" || !ratioPattern.MatchString(schema.AutoImageAspectRatio) || !allowsAuto || !allowsTarget || !seenSpecs[schema.AutoImageAspectRatio+"\x00"+schema.FixedImageResolution] {
-			errs = append(errs, fieldError("auto_image_aspect_ratio", "invalid_value", "automatic ratio requires an allowed fixed-resolution pixel mapping"))
+		valid := mediaType == "image" && ratioPattern.MatchString(schema.AutoImageAspectRatio) && allowsAuto && allowsTarget
+		resolutions := []any{schema.FixedImageResolution}
+		if schema.FixedImageResolution == "" {
+			field, ok := compiled.fieldAt("metadata.resolution")
+			valid = valid && ok && field.Type == "string" && len(field.Enum) > 0
+			resolutions = field.Enum
+		}
+		for _, resolution := range resolutions {
+			tier, ok := resolution.(string)
+			valid = valid && ok && seenSpecs[schema.AutoImageAspectRatio+"\x00"+tier]
+		}
+		if !valid {
+			errs = append(errs, fieldError("auto_image_aspect_ratio", "invalid_value", "automatic ratio requires an allowed pixel mapping for every resolution"))
 		}
 	}
 	if len(errs) != 0 {
@@ -330,7 +346,7 @@ func checkSchemaSyntax(object map[string]any) []FieldError {
 		}
 		return obj
 	}
-	check(object, "$", "version fields modes rules image_specs batch fixed_image_resolution auto_image_aspect_ratio")
+	check(object, "$", "version fields modes rules image_specs batch fixed_image_resolution auto_image_aspect_ratio allow_pixel_size")
 	var fieldSyntax func(any, string, int)
 	fieldSyntax = func(value any, path string, depth int) {
 		if depth > MaxDepth {

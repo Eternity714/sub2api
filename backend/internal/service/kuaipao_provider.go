@@ -12,7 +12,7 @@ import (
 
 const (
 	KuaipaoDefaultBaseURL    = "https://image.kuaipao.pro/v2"
-	KuaipaoDefaultImageModel = "gpt-image-2.6-1k"
+	KuaipaoDefaultImageModel = "gpt-image-2.6-flare"
 )
 
 // kuaipaoMediaProvider is the independent Kuaipao adapter for unified tasks.

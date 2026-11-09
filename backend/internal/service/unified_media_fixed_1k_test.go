@@ -15,7 +15,7 @@ import (
 
 func fixed1KPublicSchemas(t *testing.T) map[string]json.RawMessage {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "docs", "media-api-catalog.json"))
+	raw, err := os.ReadFile(filepath.Join("testdata", "legacy_fixed_1k_schemas.json"))
 	require.NoError(t, err)
 	var catalog struct {
 		Models []struct {

@@ -2,7 +2,7 @@
   "version": 2,
   "platform": "media",
   "display_name": "媒体 API",
-  "snapshot_at": "2026-11-09T10:07:38.925087+00:00",
+  "snapshot_at": "2026-11-09T17:08:59.355375+00:00",
   "models": [
     {
       "model": "nano-banana-pro",
@@ -227,235 +227,7 @@
       ]
     },
     {
-      "model": "gpt-image-2.6-1k",
-      "media_type": "image",
-      "schema": {
-        "batch": {
-          "allow_split": false,
-          "native_max_results": 1,
-          "semantically_linked": false
-        },
-        "fields": {
-          "n": {
-            "type": "integer",
-            "default": 1,
-            "maximum": 1,
-            "minimum": 1
-          },
-          "images": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "http_url"
-            },
-            "max_items": 16,
-            "min_items": 1
-          },
-          "prompt": {
-            "type": "string",
-            "required": true,
-            "max_length": 32000,
-            "min_length": 1
-          },
-          "quality": {
-            "enum": [
-              "auto"
-            ],
-            "type": "string",
-            "default": "auto"
-          },
-          "replyType": {
-            "enum": [
-              "async"
-            ],
-            "type": "string",
-            "default": "async"
-          },
-          "aspectRatio": {
-            "enum": [
-              "auto",
-              "1:1",
-              "16:9",
-              "9:16",
-              "4:3",
-              "3:4",
-              "3:2",
-              "2:3",
-              "5:4",
-              "4:5",
-              "21:9",
-              "9:21",
-              "1:2",
-              "2:1"
-            ],
-            "type": "string",
-            "default": "1:1"
-          }
-        },
-        "version": 1
-      },
-      "callable": true,
-      "pricing_available": true,
-      "pricing": {
-        "billing_mode": "image",
-        "unit_price": 0.066,
-        "intervals": []
-      },
-      "examples": [
-        {
-          "label": "文生图（1K）",
-          "request": {
-            "model": "gpt-image-2.6-1k",
-            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "3:2",
-            "replyType": "async",
-            "n": 1,
-            "quality": "auto"
-          }
-        },
-        {
-          "label": "参考图生图",
-          "request": {
-            "model": "gpt-image-2.6-1k",
-            "prompt": "保留参考图主体和构图，将陶瓷杯改为绿色",
-            "aspectRatio": "3:2",
-            "replyType": "async",
-            "n": 1,
-            "quality": "auto",
-            "images": [
-              "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
-            ]
-          }
-        },
-        {
-          "label": "自动比例（固定 1K）",
-          "request": {
-            "model": "gpt-image-2.6-1k",
-            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "auto",
-            "quality": "auto",
-            "replyType": "async",
-            "n": 1
-          }
-        }
-      ]
-    },
-    {
-      "model": "gpt-image-2.5-1k",
-      "media_type": "image",
-      "schema": {
-        "batch": {
-          "allow_split": false,
-          "native_max_results": 1,
-          "semantically_linked": false
-        },
-        "fields": {
-          "n": {
-            "type": "integer",
-            "default": 1,
-            "maximum": 1,
-            "minimum": 1
-          },
-          "images": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "http_url"
-            },
-            "max_items": 16,
-            "min_items": 1
-          },
-          "prompt": {
-            "type": "string",
-            "required": true,
-            "max_length": 32000,
-            "min_length": 1
-          },
-          "quality": {
-            "enum": [
-              "auto"
-            ],
-            "type": "string",
-            "default": "auto"
-          },
-          "replyType": {
-            "enum": [
-              "async"
-            ],
-            "type": "string",
-            "default": "async"
-          },
-          "aspectRatio": {
-            "enum": [
-              "auto",
-              "1:1",
-              "16:9",
-              "9:16",
-              "4:3",
-              "3:4",
-              "3:2",
-              "2:3",
-              "5:4",
-              "4:5",
-              "21:9",
-              "9:21",
-              "1:2",
-              "2:1"
-            ],
-            "type": "string",
-            "default": "1:1"
-          }
-        },
-        "version": 1
-      },
-      "callable": true,
-      "pricing_available": true,
-      "pricing": {
-        "billing_mode": "image",
-        "unit_price": 0.066,
-        "intervals": []
-      },
-      "examples": [
-        {
-          "label": "文生图（1K）",
-          "request": {
-            "model": "gpt-image-2.5-1k",
-            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "3:2",
-            "replyType": "async",
-            "n": 1,
-            "quality": "auto"
-          }
-        },
-        {
-          "label": "参考图生图",
-          "request": {
-            "model": "gpt-image-2.5-1k",
-            "prompt": "保留参考图主体和构图，将陶瓷杯改为绿色",
-            "aspectRatio": "3:2",
-            "replyType": "async",
-            "n": 1,
-            "quality": "auto",
-            "images": [
-              "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
-            ]
-          }
-        },
-        {
-          "label": "自动比例（固定 1K）",
-          "request": {
-            "model": "gpt-image-2.5-1k",
-            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "auto",
-            "quality": "auto",
-            "replyType": "async",
-            "n": 1
-          }
-        }
-      ]
-    },
-    {
-      "model": "gpt-image-2.6-2k",
+      "model": "gpt-image-2.6-sunburst",
       "media_type": "image",
       "schema": {
         "batch": {
@@ -523,12 +295,110 @@
             ],
             "type": "string",
             "default": "1:1"
+          },
+          "imageSize": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "default": "1K"
           }
         },
         "version": 1,
-        "fixed_image_resolution": "2K",
         "auto_image_aspect_ratio": "1:1",
         "image_specs": [
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "1K",
+            "width": 1024,
+            "height": 1024
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "1K",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "1K",
+            "width": 720,
+            "height": 1280
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "1K",
+            "width": 1152,
+            "height": 864
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "1K",
+            "width": 864,
+            "height": 1152
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "1K",
+            "width": 1248,
+            "height": 832
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "1K",
+            "width": 832,
+            "height": 1248
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "1K",
+            "width": 1120,
+            "height": 896
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "1K",
+            "width": 896,
+            "height": 1120
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "1K",
+            "width": 1456,
+            "height": 624
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "1K",
+            "width": 624,
+            "height": 1456
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "1K",
+            "width": 720,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "1K",
+            "width": 1440,
+            "height": 720
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "1K",
+            "width": 576,
+            "height": 1728
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "1K",
+            "width": 1728,
+            "height": 576
+          },
           {
             "aspect_ratio": "1:1",
             "resolution": "2K",
@@ -618,46 +488,165 @@
             "resolution": "2K",
             "width": 3504,
             "height": 1168
+          },
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "4K",
+            "width": 2880,
+            "height": 2880
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 2160
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "4K",
+            "width": 2160,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "4K",
+            "width": 3264,
+            "height": 2448
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "4K",
+            "width": 2448,
+            "height": 3264
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "4K",
+            "width": 3504,
+            "height": 2336
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "4K",
+            "width": 2336,
+            "height": 3504
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "4K",
+            "width": 3200,
+            "height": 2560
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "4K",
+            "width": 2560,
+            "height": 3200
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "4K",
+            "width": 3808,
+            "height": 1632
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "4K",
+            "width": 1632,
+            "height": 3808
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "4K",
+            "width": 1920,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 1920
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "4K",
+            "width": 1280,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 1280
           }
-        ]
+        ],
+        "allow_pixel_size": false
       },
       "callable": true,
       "pricing_available": true,
       "pricing": {
         "billing_mode": "image",
-        "unit_price": 0.2,
-        "intervals": []
+        "unit_price": null,
+        "intervals": [
+          {
+            "tier_label": "1K",
+            "per_request_price": 0.12
+          },
+          {
+            "tier_label": "2K",
+            "per_request_price": 0.2
+          },
+          {
+            "tier_label": "4K",
+            "per_request_price": 0.35
+          }
+        ]
       },
       "examples": [
         {
-          "label": "文生图（固定2K）",
+          "label": "文生图（1K）",
           "request": {
-            "model": "gpt-image-2.6-2k",
+            "model": "gpt-image-2.6-sunburst",
             "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "16:9",
-            "quality": "high",
-            "replyType": "async",
-            "n": 1
-          }
-        },
-        {
-          "label": "自动比例（固定正方形）",
-          "request": {
-            "model": "gpt-image-2.6-2k",
-            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "auto",
+            "aspectRatio": "1:1",
+            "imageSize": "1K",
             "quality": "auto",
             "replyType": "async",
             "n": 1
           }
         },
         {
-          "label": "参考图生图",
+          "label": "文生图（2K）",
           "request": {
-            "model": "gpt-image-2.6-2k",
+            "model": "gpt-image-2.6-sunburst",
             "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "3:2",
+            "aspectRatio": "16:9",
+            "imageSize": "2K",
             "quality": "medium",
+            "replyType": "async",
+            "n": 1
+          }
+        },
+        {
+          "label": "文生图（4K）",
+          "request": {
+            "model": "gpt-image-2.6-sunburst",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "21:9",
+            "imageSize": "4K",
+            "quality": "high",
+            "replyType": "async",
+            "n": 1
+          }
+        },
+        {
+          "label": "参考图生图（4K）",
+          "request": {
+            "model": "gpt-image-2.6-sunburst",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "21:9",
+            "imageSize": "4K",
+            "quality": "high",
             "replyType": "async",
             "n": 1,
             "images": [
@@ -668,7 +657,7 @@
       ]
     },
     {
-      "model": "gpt-image-2.5-2k",
+      "model": "gpt-image-2.6-flare",
       "media_type": "image",
       "schema": {
         "batch": {
@@ -736,12 +725,110 @@
             ],
             "type": "string",
             "default": "1:1"
+          },
+          "imageSize": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "default": "1K"
           }
         },
         "version": 1,
-        "fixed_image_resolution": "2K",
         "auto_image_aspect_ratio": "1:1",
         "image_specs": [
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "1K",
+            "width": 1024,
+            "height": 1024
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "1K",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "1K",
+            "width": 720,
+            "height": 1280
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "1K",
+            "width": 1152,
+            "height": 864
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "1K",
+            "width": 864,
+            "height": 1152
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "1K",
+            "width": 1248,
+            "height": 832
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "1K",
+            "width": 832,
+            "height": 1248
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "1K",
+            "width": 1120,
+            "height": 896
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "1K",
+            "width": 896,
+            "height": 1120
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "1K",
+            "width": 1456,
+            "height": 624
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "1K",
+            "width": 624,
+            "height": 1456
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "1K",
+            "width": 720,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "1K",
+            "width": 1440,
+            "height": 720
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "1K",
+            "width": 576,
+            "height": 1728
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "1K",
+            "width": 1728,
+            "height": 576
+          },
           {
             "aspect_ratio": "1:1",
             "resolution": "2K",
@@ -831,46 +918,1025 @@
             "resolution": "2K",
             "width": 3504,
             "height": 1168
+          },
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "4K",
+            "width": 2880,
+            "height": 2880
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 2160
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "4K",
+            "width": 2160,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "4K",
+            "width": 3264,
+            "height": 2448
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "4K",
+            "width": 2448,
+            "height": 3264
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "4K",
+            "width": 3504,
+            "height": 2336
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "4K",
+            "width": 2336,
+            "height": 3504
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "4K",
+            "width": 3200,
+            "height": 2560
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "4K",
+            "width": 2560,
+            "height": 3200
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "4K",
+            "width": 3808,
+            "height": 1632
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "4K",
+            "width": 1632,
+            "height": 3808
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "4K",
+            "width": 1920,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 1920
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "4K",
+            "width": 1280,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 1280
           }
-        ]
+        ],
+        "allow_pixel_size": false
       },
       "callable": true,
       "pricing_available": true,
       "pricing": {
         "billing_mode": "image",
-        "unit_price": 0.2,
-        "intervals": []
+        "unit_price": null,
+        "intervals": [
+          {
+            "tier_label": "1K",
+            "per_request_price": 0.12
+          },
+          {
+            "tier_label": "2K",
+            "per_request_price": 0.2
+          },
+          {
+            "tier_label": "4K",
+            "per_request_price": 0.35
+          }
+        ]
       },
       "examples": [
         {
-          "label": "文生图（固定2K）",
+          "label": "文生图（1K）",
           "request": {
-            "model": "gpt-image-2.5-2k",
+            "model": "gpt-image-2.6-flare",
             "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "16:9",
-            "quality": "high",
-            "replyType": "async",
-            "n": 1
-          }
-        },
-        {
-          "label": "自动比例（固定正方形）",
-          "request": {
-            "model": "gpt-image-2.5-2k",
-            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "auto",
+            "aspectRatio": "1:1",
+            "imageSize": "1K",
             "quality": "auto",
             "replyType": "async",
             "n": 1
           }
         },
         {
-          "label": "参考图生图",
+          "label": "文生图（2K）",
           "request": {
-            "model": "gpt-image-2.5-2k",
+            "model": "gpt-image-2.6-flare",
             "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "3:2",
+            "aspectRatio": "16:9",
+            "imageSize": "2K",
             "quality": "medium",
+            "replyType": "async",
+            "n": 1
+          }
+        },
+        {
+          "label": "文生图（4K）",
+          "request": {
+            "model": "gpt-image-2.6-flare",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "21:9",
+            "imageSize": "4K",
+            "quality": "high",
+            "replyType": "async",
+            "n": 1
+          }
+        },
+        {
+          "label": "参考图生图（4K）",
+          "request": {
+            "model": "gpt-image-2.6-flare",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "21:9",
+            "imageSize": "4K",
+            "quality": "high",
+            "replyType": "async",
+            "n": 1,
+            "images": [
+              "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "gpt-image-2.5-sunburst",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 1,
+            "minimum": 1
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 16,
+            "min_items": 1
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 32000,
+            "min_length": 1
+          },
+          "quality": {
+            "enum": [
+              "auto",
+              "low",
+              "medium",
+              "high"
+            ],
+            "type": "string",
+            "default": "auto"
+          },
+          "replyType": {
+            "enum": [
+              "async"
+            ],
+            "type": "string",
+            "default": "async"
+          },
+          "aspectRatio": {
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "type": "string",
+            "default": "1:1"
+          },
+          "imageSize": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "default": "1K"
+          }
+        },
+        "version": 1,
+        "auto_image_aspect_ratio": "1:1",
+        "image_specs": [
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "1K",
+            "width": 1024,
+            "height": 1024
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "1K",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "1K",
+            "width": 720,
+            "height": 1280
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "1K",
+            "width": 1152,
+            "height": 864
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "1K",
+            "width": 864,
+            "height": 1152
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "1K",
+            "width": 1248,
+            "height": 832
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "1K",
+            "width": 832,
+            "height": 1248
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "1K",
+            "width": 1120,
+            "height": 896
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "1K",
+            "width": 896,
+            "height": 1120
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "1K",
+            "width": 1456,
+            "height": 624
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "1K",
+            "width": 624,
+            "height": 1456
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "1K",
+            "width": 720,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "1K",
+            "width": 1440,
+            "height": 720
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "1K",
+            "width": 576,
+            "height": 1728
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "1K",
+            "width": 1728,
+            "height": 576
+          },
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "2K",
+            "width": 2048,
+            "height": 2048
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "2K",
+            "width": 2560,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "2K",
+            "width": 1440,
+            "height": 2560
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "2K",
+            "width": 2304,
+            "height": 1728
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "2K",
+            "width": 1728,
+            "height": 2304
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "2K",
+            "width": 2496,
+            "height": 1664
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "2K",
+            "width": 1664,
+            "height": 2496
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "2K",
+            "width": 2240,
+            "height": 1792
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "2K",
+            "width": 1792,
+            "height": 2240
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "2K",
+            "width": 3024,
+            "height": 1296
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "2K",
+            "width": 1296,
+            "height": 3024
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "2K",
+            "width": 1440,
+            "height": 2880
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "2K",
+            "width": 2880,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "2K",
+            "width": 1168,
+            "height": 3504
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "2K",
+            "width": 3504,
+            "height": 1168
+          },
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "4K",
+            "width": 2880,
+            "height": 2880
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 2160
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "4K",
+            "width": 2160,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "4K",
+            "width": 3264,
+            "height": 2448
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "4K",
+            "width": 2448,
+            "height": 3264
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "4K",
+            "width": 3504,
+            "height": 2336
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "4K",
+            "width": 2336,
+            "height": 3504
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "4K",
+            "width": 3200,
+            "height": 2560
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "4K",
+            "width": 2560,
+            "height": 3200
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "4K",
+            "width": 3808,
+            "height": 1632
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "4K",
+            "width": 1632,
+            "height": 3808
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "4K",
+            "width": 1920,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 1920
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "4K",
+            "width": 1280,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 1280
+          }
+        ],
+        "allow_pixel_size": false
+      },
+      "callable": true,
+      "pricing_available": true,
+      "pricing": {
+        "billing_mode": "image",
+        "unit_price": null,
+        "intervals": [
+          {
+            "tier_label": "1K",
+            "per_request_price": 0.12
+          },
+          {
+            "tier_label": "2K",
+            "per_request_price": 0.2
+          },
+          {
+            "tier_label": "4K",
+            "per_request_price": 0.35
+          }
+        ]
+      },
+      "examples": [
+        {
+          "label": "文生图（1K）",
+          "request": {
+            "model": "gpt-image-2.5-sunburst",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "1:1",
+            "imageSize": "1K",
+            "quality": "auto",
+            "replyType": "async",
+            "n": 1
+          }
+        },
+        {
+          "label": "文生图（2K）",
+          "request": {
+            "model": "gpt-image-2.5-sunburst",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "16:9",
+            "imageSize": "2K",
+            "quality": "medium",
+            "replyType": "async",
+            "n": 1
+          }
+        },
+        {
+          "label": "文生图（4K）",
+          "request": {
+            "model": "gpt-image-2.5-sunburst",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "21:9",
+            "imageSize": "4K",
+            "quality": "high",
+            "replyType": "async",
+            "n": 1
+          }
+        },
+        {
+          "label": "参考图生图（4K）",
+          "request": {
+            "model": "gpt-image-2.5-sunburst",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "21:9",
+            "imageSize": "4K",
+            "quality": "high",
+            "replyType": "async",
+            "n": 1,
+            "images": [
+              "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "model": "gpt-image-2.5-flare",
+      "media_type": "image",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 1,
+            "minimum": 1
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 16,
+            "min_items": 1
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 32000,
+            "min_length": 1
+          },
+          "quality": {
+            "enum": [
+              "auto",
+              "low",
+              "medium",
+              "high"
+            ],
+            "type": "string",
+            "default": "auto"
+          },
+          "replyType": {
+            "enum": [
+              "async"
+            ],
+            "type": "string",
+            "default": "async"
+          },
+          "aspectRatio": {
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "type": "string",
+            "default": "1:1"
+          },
+          "imageSize": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "default": "1K"
+          }
+        },
+        "version": 1,
+        "auto_image_aspect_ratio": "1:1",
+        "image_specs": [
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "1K",
+            "width": 1024,
+            "height": 1024
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "1K",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "1K",
+            "width": 720,
+            "height": 1280
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "1K",
+            "width": 1152,
+            "height": 864
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "1K",
+            "width": 864,
+            "height": 1152
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "1K",
+            "width": 1248,
+            "height": 832
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "1K",
+            "width": 832,
+            "height": 1248
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "1K",
+            "width": 1120,
+            "height": 896
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "1K",
+            "width": 896,
+            "height": 1120
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "1K",
+            "width": 1456,
+            "height": 624
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "1K",
+            "width": 624,
+            "height": 1456
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "1K",
+            "width": 720,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "1K",
+            "width": 1440,
+            "height": 720
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "1K",
+            "width": 576,
+            "height": 1728
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "1K",
+            "width": 1728,
+            "height": 576
+          },
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "2K",
+            "width": 2048,
+            "height": 2048
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "2K",
+            "width": 2560,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "2K",
+            "width": 1440,
+            "height": 2560
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "2K",
+            "width": 2304,
+            "height": 1728
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "2K",
+            "width": 1728,
+            "height": 2304
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "2K",
+            "width": 2496,
+            "height": 1664
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "2K",
+            "width": 1664,
+            "height": 2496
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "2K",
+            "width": 2240,
+            "height": 1792
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "2K",
+            "width": 1792,
+            "height": 2240
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "2K",
+            "width": 3024,
+            "height": 1296
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "2K",
+            "width": 1296,
+            "height": 3024
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "2K",
+            "width": 1440,
+            "height": 2880
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "2K",
+            "width": 2880,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "2K",
+            "width": 1168,
+            "height": 3504
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "2K",
+            "width": 3504,
+            "height": 1168
+          },
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "4K",
+            "width": 2880,
+            "height": 2880
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 2160
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "4K",
+            "width": 2160,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "4K",
+            "width": 3264,
+            "height": 2448
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "4K",
+            "width": 2448,
+            "height": 3264
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "4K",
+            "width": 3504,
+            "height": 2336
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "4K",
+            "width": 2336,
+            "height": 3504
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "4K",
+            "width": 3200,
+            "height": 2560
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "4K",
+            "width": 2560,
+            "height": 3200
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "4K",
+            "width": 3808,
+            "height": 1632
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "4K",
+            "width": 1632,
+            "height": 3808
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "4K",
+            "width": 1920,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 1920
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "4K",
+            "width": 1280,
+            "height": 3840
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "4K",
+            "width": 3840,
+            "height": 1280
+          }
+        ],
+        "allow_pixel_size": false
+      },
+      "callable": true,
+      "pricing_available": true,
+      "pricing": {
+        "billing_mode": "image",
+        "unit_price": null,
+        "intervals": [
+          {
+            "tier_label": "1K",
+            "per_request_price": 0.12
+          },
+          {
+            "tier_label": "2K",
+            "per_request_price": 0.2
+          },
+          {
+            "tier_label": "4K",
+            "per_request_price": 0.35
+          }
+        ]
+      },
+      "examples": [
+        {
+          "label": "文生图（1K）",
+          "request": {
+            "model": "gpt-image-2.5-flare",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "1:1",
+            "imageSize": "1K",
+            "quality": "auto",
+            "replyType": "async",
+            "n": 1
+          }
+        },
+        {
+          "label": "文生图（2K）",
+          "request": {
+            "model": "gpt-image-2.5-flare",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "16:9",
+            "imageSize": "2K",
+            "quality": "medium",
+            "replyType": "async",
+            "n": 1
+          }
+        },
+        {
+          "label": "文生图（4K）",
+          "request": {
+            "model": "gpt-image-2.5-flare",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "21:9",
+            "imageSize": "4K",
+            "quality": "high",
+            "replyType": "async",
+            "n": 1
+          }
+        },
+        {
+          "label": "参考图生图（4K）",
+          "request": {
+            "model": "gpt-image-2.5-flare",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "21:9",
+            "imageSize": "4K",
+            "quality": "high",
             "replyType": "async",
             "n": 1,
             "images": [
@@ -1186,6 +2252,36 @@
       "model": "wan3.0-video",
       "media_type": "video",
       "slug": "wan3.0-video"
+    },
+    {
+      "model": "gpt-image-2.6-1k",
+      "media_type": "image",
+      "slug": "gpt-image-2.6-1k"
+    },
+    {
+      "model": "gpt-image-2.5-1k",
+      "media_type": "image",
+      "slug": "gpt-image-2.5-1k"
+    },
+    {
+      "model": "gpt-image-2.6-2k",
+      "media_type": "image",
+      "slug": "gpt-image-2.6-2k"
+    },
+    {
+      "model": "gpt-image-2.5-2k",
+      "media_type": "image",
+      "slug": "gpt-image-2.5-2k"
+    },
+    {
+      "model": "gpt-image-2.5",
+      "media_type": "image",
+      "slug": "gpt-image-2.5"
+    },
+    {
+      "model": "gpt-image-2.6",
+      "media_type": "image",
+      "slug": "gpt-image-2.6"
     }
   ]
 }

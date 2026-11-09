@@ -207,6 +207,10 @@ def model_page(model, date):
             auto_spec = next(spec for spec in schema["image_specs"] if spec["aspect_ratio"] == schema["auto_image_aspect_ratio"] and spec["resolution"] == schema["fixed_image_resolution"])
             lines += ["本模型固定为 **" + schema["fixed_image_resolution"] + "**，使用 " + code("aspectRatio") + " 选择下表尺寸。" + code("auto") + " 固定按 " + code(schema["auto_image_aspect_ratio"]) + f' 处理，生成 {auto_spec["width"]}×{auto_spec["height"]} 图片；' + code("quality:auto") + " 仍表示自动质量。", "",
                       "不接受 " + paths(["imageSize", "resolution", "metadata.resolution"]) + " 或像素尺寸写法。四种质量均按相同单价计费。", ""]
+        elif schema.get("auto_image_aspect_ratio"):
+            lines += ["使用 " + code("imageSize") + " 选择 **1K、2K、4K**，省略时默认 **1K**；" + code("aspectRatio:auto") + " 按 " + code(schema["auto_image_aspect_ratio"]) + " 构造请求，三个档位的正方形目标尺寸分别为 1024×1024、2048×2048、2880×2880。", "",
+                      "下表为请求的目标尺寸映射。实际交付保留生成服务原图，像素尺寸可能存在差异，不因该差异自动缩放、裁剪或重试。按请求的 " + code("imageSize") + " 档位计费，不根据结果像素重新分档。", "",
+                      "仅接受比例写法，不接受 " + code("aspectRatio:1024x1024") + " 等像素尺寸。四种质量在同一分辨率下同价。", ""]
         elif name.endswith("-1k") and "imageSize" not in fields:
             lines += ["本模型固定为 **1K**，只使用 " + code("aspectRatio") + " 选择上表列出的比例。" + code("auto") + " 由生成服务自动决定比例，不承诺固定像素。同一比例的实际像素可因生成服务而不同。", "",
                       "不接受 " + paths(["imageSize", "resolution", "metadata.resolution"]) + "，也不接受像素尺寸写法；质量仅支持 " + code("quality:auto") + "。", ""]
@@ -249,6 +253,11 @@ def model_page(model, date):
     tiers = [tier["tier_label"] for tier in model["pricing"].get("intervals", []) if tier.get("tier_label")]
     if tiers:
         lines += ["当前价目档位：" + paths(tiers) + "。价目档位不扩展可用参数范围；请求仍须满足本页字段及模式限制。", ""]
+        if image:
+            lines += ["| imageSize | 单价（元/张） |", "| --- | ---: |"]
+            for tier in model["pricing"]["intervals"]:
+                lines.append(f'| {code(tier["tier_label"])} | {tier["per_request_price"]} |')
+            lines.append("")
     if image and fields.get("n", {}).get("maximum", 1) > 1:
         lines += ["批量图片等待整项任务结束后统一返回，部分成功时仅交付成功的文件并按成功部分收费。支持数量以 " + code("n") + " 的约束为准。", ""]
     elif image:
@@ -299,6 +308,8 @@ def generate(catalog):
         assert value.casefold() not in slugs and "/" not in value and "\\" not in value, value
         slugs.add(value.casefold())
         outputs[f"frontend/docs/media-models/{value}.md"] = inactive_page(model)
+        if model["model"] in ["gpt-image-2.5", "gpt-image-2.6"]:
+            outputs[f'frontend/docs/media-{model["model"]}.md'] = inactive_page(model)
     group_models = lambda media: sorted((model for model in models if model["media_type"] == media), key=lambda model: (model["model"].lower(), model["model"]))
     lines = ["---", "description: 统一媒体 API 当前开放的图片与视频模型、参数和调用示例。", "---", "", "# 当前媒体模型", "",
              f'核对日期：**{date}**。当前开放 **{len(group_models("image"))} 个图片模型、{len(group_models("video"))} 个视频模型**。', "",
@@ -327,6 +338,8 @@ def generate(catalog):
             price = model["pricing"].get("unit_price")
             unit = "张" if media == "image" else ("秒" if model["pricing"]["billing_mode"] == "video" else "次")
             price_text = f"{price} 元/{unit}" if price is not None else "见可用渠道"
+            if price is None and model["pricing"].get("intervals"):
+                price_text = "；".join(f'{tier["tier_label"]}：{tier["per_request_price"]} 元/{unit}' for tier in model["pricing"]["intervals"])
             lines.append(f'| [{model["model"]}]({link}) | {res} | {count} | {price_text} |')
         lines += [""]
         sidebar.append({"text": label + "参数", "collapsed": True, "items": items})

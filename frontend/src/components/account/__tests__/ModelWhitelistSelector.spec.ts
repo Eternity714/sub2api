@@ -91,7 +91,7 @@ describe('ModelWhitelistSelector', () => {
     const fill = wrapper.findAll('button').find(button => button.text().includes('admin.accounts.fillRelatedModels'))
     expect(fill).toBeDefined()
     await fill!.trigger('click')
-    expect(wrapper.emitted('update:modelValue')?.[0]?.[0]).toEqual(['gpt-image-2.6-1k'])
+    expect(wrapper.emitted('update:modelValue')?.[0]?.[0]).toEqual(['gpt-image-2.6-sunburst', 'gpt-image-2.6-flare', 'gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'])
     expect(wrapper.text()).not.toContain('admin.accounts.syncUpstreamModels')
     wrapper.unmount()
   })

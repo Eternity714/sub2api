@@ -4,7 +4,7 @@ description: nano-banana-2.1 图片生成 API 参数、输入模式、调用示�
 
 # nano-banana-2.1
 
-图片生成模型，使用[媒体 API 异步协议](/media-api)。参数核对日期：2026-11-09。
+图片生成模型，使用[媒体 API 异步协议](/media-api)。参数核对日期：2026-11-10。
 
 **模型 ID：`nano-banana-2.1`**。请原样填写，大小写不可替换。
 

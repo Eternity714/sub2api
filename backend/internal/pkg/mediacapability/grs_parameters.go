@@ -145,6 +145,9 @@ func requestedPixels(values map[string]any, schema Schema) (*ImageSpec, []FieldE
 	if !ok || !strings.Contains(text, "x") {
 		return nil, nil
 	}
+	if schema.AllowPixelSize != nil && !*schema.AllowPixelSize {
+		return nil, []FieldError{fieldError("aspectRatio", "unsupported_pixel_size", "this model accepts aspect ratios, not pixel dimensions")}
+	}
 	parts := strings.Split(text, "x")
 	if len(parts) != 2 {
 		return nil, []FieldError{fieldError("aspectRatio", "format", "pixel dimensions must be WIDTHxHEIGHT")}

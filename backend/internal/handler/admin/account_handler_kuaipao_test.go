@@ -15,7 +15,7 @@ func TestKuaipaoAccountModelsNeverFallBackToChat(t *testing.T) {
 		mapping map[string]any
 		want    string
 	}{
-		{"default", nil, "gpt-image-2.6-1k"},
+		{"default", nil, "gpt-image-2.6-flare"},
 		{"public alias", map[string]any{"gpt-image-2.6": "gpt-image-2.6-1k"}, "gpt-image-2.6"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

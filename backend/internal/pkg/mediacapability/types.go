@@ -15,6 +15,7 @@ const (
 )
 
 type Schema struct {
+	AllowPixelSize       *bool            `json:"allow_pixel_size,omitempty"`
 	FixedImageResolution string           `json:"fixed_image_resolution,omitempty"`
 	AutoImageAspectRatio string           `json:"auto_image_aspect_ratio,omitempty"`
 	Version              int              `json:"version"`
