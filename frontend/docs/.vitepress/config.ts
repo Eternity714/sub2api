@@ -46,16 +46,16 @@ export default defineConfig({
         { text: '国内模型接入', link: '/domestic-models' },
       ] },
       { text: '图片与视频', items: [
-        { text: '媒体 API 接入指南', link: '/media-api' },
-        { text: 'GPT Image 2.6', link: '/media-gpt-image-2.6' },
-        { text: 'GPT Image 2.5', link: '/media-gpt-image-2.5' },
-        { text: '媒体模型目录', link: '/media-models/' },
+        { text: '媒体 API 接入总览', link: '/media-api' },
+        { text: '图片生成 API', link: '/media-images' },
+        { text: '视频生成 API', link: '/media-videos' },
+        { text: '当前模型与参数', link: '/media-models/' },
         ...mediaModelSidebar,
-        { text: '其它媒体协议', collapsed: true, items: [
-          { text: '图像生成 API', link: '/image-generate' },
+        { text: '其他分组的独立协议', collapsed: true, items: [
+          { text: 'OpenAI / Gemini 图片', link: '/image-generate' },
           { text: 'Grok 视频生成', link: '/video-generation' },
           { text: 'Seedance API', link: '/seedance-api' },
-          { text: '图片转视频', link: '/image-to-video' },
+          { text: 'Grok / Seedance 图生视频', link: '/image-to-video' },
         ] },
       ] },
       { text: '使用场景', collapsed: false, items: [

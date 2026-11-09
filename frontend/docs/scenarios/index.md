@@ -34,7 +34,7 @@
 
 ## 图片与视频 API
 
-需要直接开发应用时，阅读[API 手册](/api-manual)。图片与视频教程包括[图片生成和编辑](/image-generate)、[Grok 视频生成](/video-generation)、[Seedance API](/seedance-api)与[图片转视频](/image-to-video)。
+需要直接开发应用时，阅读[API 手册](/api-manual)。图片与视频先阅读[统一图片生成](/media-images)、[统一视频生成](/media-videos)及[当前模型目录](/media-models/)；独立分组的教程包括[OpenAI / Gemini 图片](/image-generate)、[Grok 视频生成](/video-generation)、[Seedance API](/seedance-api)与[图片转视频](/image-to-video)。
 
 媒体模型需要对应渠道与权限，客户端能聊天不代表能生成图片或视频。异步视频任务需要保存创建返回的 ID，再用同一密钥查询并下载结果。
 

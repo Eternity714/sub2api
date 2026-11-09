@@ -2,7 +2,11 @@
 description: 通过 Gkotta 的 Seedance 原生任务协议创建、查询、下载和删除视频任务。
 ---
 
-# Seedance API
+# Seedance 原生视频 API
+
+::: info 本页适用于 Seedance 原生任务分组
+媒体 API 分组使用[统一视频生成 API](/media-videos)，不使用本文的 `content` 数组、原生任务状态或 `/api/v3` 路径。具体模型是否开放，以可用渠道和[当前模型目录](/media-models/)为准。
+:::
 
 Seedance 使用 Ark 原生异步任务协议。通过 `/api/v3/contents/generations/tasks` 创建视频任务，保存返回的 `id`，用同一密钥查询完成状态，再从 `content.video_url` 下载结果。
 

@@ -46,13 +46,26 @@ Claude Code 地址不含 `/v1`，其配置使用 `ANTHROPIC_AUTH_TOKEN`。Codex 
 
 ### 逐模型媒体 API 文档
 
-公开入口为 `/docs/media-api`、`/docs/media-models/` 及各模型独立页面。`docs/media-api-catalog.json` 保存经过脱敏、审核的已开放公开能力快照；它不是运行时路由配置，不会改变生产能力。当前快照核对时间为 2026-10-16 09:38:29（UTC+8），含 62 个模型（25 图片、37 视频）、89 个创建示例及 27 种输入模式。
+公开教程按使用步骤维护：
 
-后台调整模型能力或启停时，必须同步更新快照、示例与文档。公开快照只允许真实模型 ID、请求 schema、样例及计费方式／档位，不包含账号、内部路由、适配器、来源平台或凭证；实际价格引导至控制台。模型 ID 区分大小写，`MiniMax-H3` 与 `minimax-h3` 的 schema 不同，页面 slug 分别为 `minimax-h3-uppercase` 和 `minimax-h3`。
+| 页面 | 维护范围 |
+| --- | --- |
+| `/docs/media-api` | 共用地址与鉴权、异步任务状态、结果下载、错误处理和计费 |
+| `/docs/media-images` | 统一图片参数、文生图与参考图生图、Bash/PowerShell 示例 |
+| `/docs/media-videos` | 统一视频参数、参考素材、开放状态与独立视频协议对照 |
+| `/docs/media-models/` 及模型页 | 当前可用模型、精确字段约束、示例和价格快照，全部由生成器维护 |
 
-`deploy/generate-media-api-docs.py` 根据快照生成完整模型目录、逐模型 Markdown 和 `.vitepress/media-models.generated.ts`。中文字段用途说明在生成器中维护；新增字段未补用途时生成失败。生成命令为 `docker compose -f deploy/docker-compose.test.yml run --rm --no-deps media-docs-check python deploy/generate-media-api-docs.py`；省略命令覆盖时默认执行 `--check`，拒绝过期文件。不要手改生成页。文档构建仍通过现有 `frontend-test` Compose 服务执行 `pnpm --dir frontend docs:build`（先启用 Corepack）。
+`docs/media-api-catalog.json` 保存经过脱敏、审核的已开放公开能力快照；它不是运行时路由配置，不会改变生产能力。2026-11-09 核对的快照包含 `gpt-image-2.5`、`gpt-image-2.6` 两个图片模型，各有文生图与参考图生图示例；统一媒体视频模型当前为 0。视频教程使用明显的模型占位符，不将接口存在或内部模板视为已开放能力。
 
-本轮快照 SHA256（以 Git 中 LF 换行的文件为准）：`11511734cf84c612e67adcf32f64aeace2318d6431827cc1c43b351051a5925c`。发布前除了生成一致性和完整 VitePress 构建，还须在 Compose 中使用实际 `mediacapability.Compile`、`Validate` 和 `MatchCandidate` 离线核对所有示例及每种模式，确认当前至少一个有效候选完整支持请求。无需向上游发送生成请求。内部管理员模板文档不作为用户公开文档，也不能替代实际已开放能力快照。
+后台调整模型能力或启停时，必须同步更新快照、示例与文档。快照仅列同时满足已启用能力、分组允许、有效候选路由与已配置价格的型号。公开内容只允许真实模型 ID、请求 schema、样例及计费方式／档位／标价，不包含账号、内部路由、适配器、来源平台或凭证；实际价格引导至控制台。模型 ID 区分大小写，slug 必须唯一。
+
+公开示例统一使用 `images/aspectRatio/imageSize/quality/replyType`（视频用 `resolution`），旧名字只在兼容说明中出现。参考素材 URL 使用明确的占位地址，不承诺能直接生成。OpenAI/Gemini 图片、Grok 视频、Seedance 原生任务另列在“其他分组的独立协议”，不得混用其任务 ID、查询路径或响应解析。
+
+`deploy/generate-media-api-docs.py` 根据快照生成当前模型目录、逐模型 Markdown 和 `.vitepress/media-models.generated.ts`。`inactive_models` 仅记录已下线型号的 ID、媒体类型与旧 slug：生成 62 个不参与搜索的未开放提示页，保留旧链接，但不再显示过期参数、价格和创建示例，也不进入当前侧栏。旧 `/media-gpt-image-2.5`、`/media-gpt-image-2.6` 入口只链接到当前模型参数页，避免重复维护。
+
+中文字段用途说明在生成器中维护；新增字段未补用途时生成失败。生成命令为 `docker compose -f deploy/docker-compose.test.yml run --rm --no-deps media-docs-check python deploy/generate-media-api-docs.py`；省略命令覆盖时默认执行 `--check`，拒绝过期文件并输出当前快照时间及 SHA256。不要手改生成页。文档构建仍通过现有 `frontend-test` Compose 服务执行 `pnpm --dir frontend docs:build`（先启用 Corepack）。
+
+发布前除了生成一致性和完整 VitePress 构建，还须在 Compose 中使用实际 `mediacapability.Compile`、`Validate` 和 `MatchCandidate` 离线核对所有已开放模型的示例及每种模式，确认当前至少一个有效候选完整支持请求。尚未开放的视频格式示例只检查语法与协议字段，不冒充可运行的模型示例。无需向上游发送生成请求。内部管理员模板文档不作为用户公开文档，也不能替代实际已开放能力快照。
 
 本地文档开发命令为 `pnpm --dir frontend docs:dev`，静态预览为 `pnpm --dir frontend docs:preview`。文档开发服务器仅用于单独编写页面，生产入口始终是主站 `/docs`。
 

@@ -14,6 +14,11 @@ FENCE = TICK * 3
 DESCRIPTIONS = {
     "model": "模型 ID，区分大小写，必须与本页完全一致。",
     "prompt": "描述要生成的内容或对参考图的修改要求。",
+    "images": "参考图 HTTP(S) URL 列表，按输入顺序处理。",
+    "audios": "音频参考 URL 列表，仅在模型明确支持时传入。",
+    "aspectRatio": "宽高比；图片的受限像素写法还须通过实际支持检查。",
+    "imageSize": "图片分辨率档位，也接受 resolution 别名。",
+    "replyType": "目前仅支持 async：创建任务后轮询查询。",
     "size": "图片宽高比，格式为正整数 a:b，不是像素尺寸。",
     "n": "请求生成的图片结果数量。",
     "duration": "视频时长，单位为秒。",
@@ -63,7 +68,7 @@ DESCRIPTIONS = {
     "fast_pretreatment": "是否启用快速素材预处理。",
     "shot_type": "镜头类型：single 为单镜头，multi 为多镜头。",
 }
-ORDER = ["prompt", "size", "n", "duration", "aspect_ratio", "image_urls", "metadata"]
+ORDER = ["prompt", "images", "audios", "aspectRatio", "imageSize", "resolution", "quality", "duration", "n", "replyType", "size", "aspect_ratio", "image_urls", "metadata"]
 
 
 def dump(value):
@@ -174,7 +179,7 @@ def model_page(model, date):
               f"| POST | {code(endpoint)} | 创建任务，成功返回 HTTP 202 |",
               f'| GET | {code(endpoint + "/{task_id}")} | 使用创建响应的 id 查询状态和结果 |', "",
               "根地址为 " + code("https://www.gkotta.bid") + "；请求头使用 " + code("Authorization: Bearer sk-YOUR_API_KEY") + "。API Key 必须关联已开放本模型的媒体 API 分组。可用性与实际价格以[可用渠道](https://www.gkotta.bid/available-channels)为准。", "",
-              "## 请求参数", "", "以下为本模型当前开放的完整字段。顶层或嵌套对象中未列出的字段均不能传入；类型、枚举、范围或组合不符时返回 " + code("400") + "，不创建任务、不预留额度。", "",
+              "## 请求参数", "", "以下为本模型推荐使用的完整字段；[旧参数别名](/media-api#旧参数兼容)也继续兼容。除此之外，顶层或嵌套对象中未列出的字段均不能传入；类型、枚举、范围或组合不符时返回 " + code("400") + "，不创建任务、不预留额度。", "",
               '<div class="media-parameters">', "",
               "| 字段 | 类型 | 必填性 | 默认值 | 用途 | 约束 |", "| --- | --- | --- | --- | --- | --- |",
               f'| {code("model")} | {code("string")} | 必填 | 无 | {DESCRIPTIONS["model"]} | 仅限 {literal(name)} |']
@@ -182,8 +187,9 @@ def model_page(model, date):
     meta = fields.get("metadata")
     if meta:
         lines += [(f'省略 {code("metadata")} 时，本模型先采用默认 {literal(meta["default"])}，再补入其已声明的子字段默认值。' if "default" in meta else "本模型未声明 " + code("metadata") + " 父对象默认值；省略整个对象时，不会应用其子字段的默认值。需要相关选项时请显式传入对象。"), ""]
-    if "image_urls" in fields:
-        lines += ["参考图必须替换为调用方实际可公开访问的 HTTP(S) 文件 URL；示例 " + code("example.com") + " 仅占位，不能直接用来生成。不支持在 " + code("image_urls") + " 中放入 Base64 字符串或本地文件路径。", ""]
+    reference_field = "images" if "images" in fields else "image_urls"
+    if reference_field in fields:
+        lines += ["参考图必须替换为生成服务能够下载的 HTTP(S) 图片直链；示例 " + code("example.com") + " 仅占位，不能直接用来生成。不支持在 " + code(reference_field) + " 中放入 Base64 字符串或本地路径。带签名的链接应在任务处理期间保持有效。", ""]
     lines += ["## 输入模式与组合限制", ""]
     if schema.get("modes"):
         lines += ["补入默认值后，请求必须且只能匹配下表的一种模式。未传与 " + code("null") + " 不等价，仅当字段明确允许时才能传 " + code("null") + "。", "", "| 模式 | 同时满足的条件 | 附加必填 | 禁止传入 |", "| --- | --- | --- | --- |"]
@@ -192,22 +198,22 @@ def model_page(model, date):
             lines.append(f'| {code(mode["id"])} | {conditions} | {paths(mode.get("required", [])) or "无"} | {paths(mode.get("forbidden", [])) or "无"} |')
         lines += [""]
     else:
-        lines += ["本模型无额外的模式匹配条件，按上表的字段约束校验。参考图是否必填、可传数量以 " + code("image_urls") + " 行为准。", ""]
+        lines += ["本模型无额外的模式匹配条件，按上表字段约束校验。参考图是否必填、可传数量以 " + code(reference_field) + " 行为准。", ""]
     lines += ["- " + rule_text(rule) for rule in schema.get("rules", [])]
     if schema.get("rules"):
         lines.append("")
     if image:
-        lines += [code("size") + " 仅表示宽高比，分辨率放在 " + code("metadata.resolution") + "（仅在上表声明时可传）；不能传 " + code("metadata.output_size") + "。", ""]
+        lines += ["统一使用 " + code("aspectRatio") + " 与 " + code("imageSize") + " 指定比例和档位；同一档位的实际像素可以因生成服务而不同。显式像素写法只会选择能保留该尺寸的服务，无法支持时在创建前拒绝。不支持 " + code("metadata.output_size") + "。", ""]
         if schema.get("image_specs"):
-            lines += ["### 有效比例与分辨率组合", "", "只接受以下成对组合，不能把比例和分辨率枚举任意交叉。像素尺寸是该组合的配置映射。", "", "| size | metadata.resolution | 像素尺寸 |", "| --- | --- | --- |"]
+            lines += ["### 有效比例与分辨率组合", "", "只接受以下成对组合，不能把比例和分辨率枚举任意交叉。像素尺寸是该组合的配置映射。", "", "| aspectRatio | imageSize | 像素尺寸 |", "| --- | --- | --- |"]
             for spec in schema["image_specs"]:
                 lines.append(f'| {code(spec["aspect_ratio"])} | {code(spec["resolution"])} | {spec["width"]} × {spec["height"]} |')
             lines.append("")
         else:
             lines += ["当前能力未声明精确像素映射，分辨率是档位说明；本页不承诺某个固定像素尺寸。", ""]
     else:
-        lines += ["视频请求不接受顶层 " + code("size") + " 或 " + code("n") + "。分辨率字符串严格区分大小写，例如 " + code("720p") + " 与 " + code("720P") + " 不可自行替换。", ""]
-    lines += ["## 创建任务示例", "", "以下 cURL 使用 Bash。设置当前密钥，示例不会自动提交或重试：", "", FENCE + "bash", 'export SUB2API_BASE_URL="https://www.gkotta.bid"', 'export SUB2API_KEY="sk-YOUR_API_KEY"', FENCE, ""]
+        lines += ["视频使用 " + code("aspectRatio") + "、" + code("resolution") + "，不接受顶层 " + code("n") + "。分辨率严格区分大小写，例如 " + code("720p") + " 与 " + code("720P") + " 不可自行替换。", ""]
+    lines += ["## 创建任务示例", "", "以下 cURL 使用 Bash。创建请求只发送一次，拿到 id 后改用 GET 查询：", "", FENCE + "bash", 'export SUB2API_BASE_URL="https://www.gkotta.bid"', 'export SUB2API_KEY="sk-YOUR_API_KEY"', FENCE, ""]
     for example in model["examples"]:
         lines += ["### " + example["label"], ""]
         if example.get("mode"):
@@ -229,55 +235,88 @@ def model_page(model, date):
               "完整响应规则、部分成功、错误码与轮询程序见[媒体 API 接入指南](/media-api#查询任务与下载结果)。模型或媒体类型不匹配、字段非法、未开放能力会在创建前拒绝；创建成功后的执行失败通过查询响应的 " + code("completed + error") + " 返回。", "", "## 计费与交付", ""]
     units = {"image": "按成功交付的图片结果数计费", "video": "按成功交付的视频时长（秒）计费", "per_request": "按成功交付的生成次数计费"}
     lines += [units[model["pricing"]["billing_mode"]] + "。创建任务时预留额度，全部文件保存及任务处理完成后结算；失败部分释放预留额度。", ""]
+    if model["pricing"].get("unit_price") is not None:
+        lines += [f'核对时标价：**{model["pricing"]["unit_price"]} 元/{"张" if image else ("秒" if model["pricing"]["billing_mode"] == "video" else "次")}**。实际价格及分组倍率以[可用渠道](https://www.gkotta.bid/available-channels)为准。', ""]
     tiers = [tier["tier_label"] for tier in model["pricing"].get("intervals", []) if tier.get("tier_label")]
     if tiers:
         lines += ["当前价目档位：" + paths(tiers) + "。价目档位不扩展可用参数范围；请求仍须满足本页字段及模式限制。", ""]
-    if image and "n" in fields:
+    if image and fields.get("n", {}).get("maximum", 1) > 1:
         lines += ["批量图片等待整项任务结束后统一返回，部分成功时仅交付成功的文件并按成功部分收费。支持数量以 " + code("n") + " 的约束为准。", ""]
-    lines += ["实际单价及分组倍率以[可用渠道](https://www.gkotta.bid/available-channels)显示为准。", "", "[返回媒体模型目录](/media-models/) · [统一协议与错误处理](/media-api)"]
+    elif image:
+        lines += ["当前每次请求仅生成一张图片，" + code("n") + " 只能为 1。", ""]
+    lines += ["旧字段兼容关系见[参数兼容说明](/media-api#旧参数兼容)。新旧别名同时传入时必须一致；" + code("replyType") + " 当前仅支持 " + code("async") + "。", ""]
+    lines += ["[返回媒体模型目录](/media-models/) · [统一协议与错误处理](/media-api)"]
     return "\n".join(lines) + "\n"
+
+
+def inactive_page(model):
+    kind = "图片" if model["media_type"] == "image" else "视频"
+    return "\n".join([
+        "---", "search: false", f'description: {model["model"]} 的历史文档访问提示。', "---", "",
+        "# " + model["model"], "", "::: info 当前未在统一媒体 API 开放",
+        f"此链接来自旧的{kind}模型目录。这个型号当前未在统一媒体 API 开放；原页面的参数、价格和示例不再作为可调用依据。",
+        ":::", "", "请在[当前模型目录](/media-models/)和[可用渠道](https://www.gkotta.bid/available-channels)确认密钥能使用的模型。", "",
+        "接入步骤见[图片生成 API](/media-images)、[视频生成 API](/media-videos)及[任务查询与计费](/media-api#查询任务与下载结果)。", "",
+    ])
+
+
+def alias_page(model, link):
+    return "\n".join([
+        "---", "search: false", f'description: {model["model"]} 的模型文档入口。', "---", "",
+        "# " + model["model"], "", f"本模型的参数、售价与示例已统一维护在[模型参数页]({link})。", "",
+        "[图片生成 API](/media-images) · [当前模型目录](/media-models/) · [任务查询与计费](/media-api#查询任务与下载结果)", "",
+    ])
 
 
 def generate(catalog):
     models = catalog["models"]
     date = datetime.fromisoformat(catalog["snapshot_at"]).astimezone(ZoneInfo("Asia/Shanghai")).date()
     outputs, slugs = {}, set()
+    active = {(model["model"], model["media_type"]) for model in models}
     for model in models:
         assert model["callable"] and model["pricing_available"] and model["examples"], model["model"]
         value = slug(model, models)
-        assert value.casefold() not in slugs, value
+        assert value.casefold() not in slugs and "/" not in value and "\\" not in value, value
         slugs.add(value.casefold())
         outputs[f"frontend/docs/media-models/{value}.md"] = model_page(model, date)
-    groups = [("image", "图片模型"), ("video", "视频模型")]
+        if model["model"] in ["gpt-image-2.5", "gpt-image-2.6"]:
+            outputs[f'frontend/docs/media-{model["model"]}.md'] = alias_page(model, "/media-models/" + value)
+    for model in catalog.get("inactive_models", []):
+        if (model["model"], model["media_type"]) in active:
+            continue
+        value = model["slug"]
+        assert value.casefold() not in slugs and "/" not in value and "\\" not in value, value
+        slugs.add(value.casefold())
+        outputs[f"frontend/docs/media-models/{value}.md"] = inactive_page(model)
     group_models = lambda media: sorted((model for model in models if model["media_type"] == media), key=lambda model: (model["model"].lower(), model["model"]))
-    lines = ["---", "description: 媒体 API 已开放模型目录，每个模型的参数、输入模式、输出规格和调用示例。", "---", "", "# 媒体模型目录", "",
-             f'本目录包含 {len(models)} 个当前开放的模型能力（{len(group_models("image"))} 个图片、{len(group_models("video"))} 个视频），参数核对日期：{date}。点击模型查看完整参数和可复制示例。', "",
-             "请先阅读[媒体 API 接入指南](/media-api)，确认 API Key 使用媒体 API 分组。模型 ID 区分大小写，可用模型与实际价格以[可用渠道](https://www.gkotta.bid/available-channels)为准。", "",
-             "图片统一使用 " + code("POST /v1/images/generations") + "，视频统一使用 " + code("POST /v1/videos/generations") + "；随后通过对应的 " + code("GET .../generations/{task_id}") + " 查询结果。所有模型均为异步任务。", "",
-             "每个模型只接受其页面列出的字段。不同模型的分辨率、时长、参考图及音频限制各不相同，不要直接复用其它模型的扩展参数。未开放型号不在本目录中列出。", ""]
+    lines = ["---", "description: 统一媒体 API 当前开放的图片与视频模型、参数和调用示例。", "---", "", "# 当前媒体模型", "",
+             f'核对日期：**{date}**。当前开放 **{len(group_models("image"))} 个图片模型、{len(group_models("video"))} 个视频模型**。', "",
+             "此处只列出当前已开放且提供价格的型号。模型是否对你的 Key 开放以及实时价格，以[可用渠道](https://www.gkotta.bid/available-channels)和 " + code("GET /v1/models") + " 为准。", "",
+             "图片使用[图片生成 API](/media-images)，视频使用[视频生成 API](/media-videos)。两者均为异步任务，[查询、结果和计费规则](/media-api#查询任务与下载结果)共用。", ""]
     sidebar = []
-    for media, label in groups:
-        lines += ["## " + label, "", "| 模型 ID 与文档 | 分辨率档位 | 参考图 |", "| --- | --- | --- |"]
+    for media, label in [("image", "图片模型"), ("video", "视频模型")]:
+        current = group_models(media)
+        lines += ["## " + label, ""]
+        if not current:
+            lines += ["当前统一媒体 API 尚未开放可调用的" + ("视频" if media == "video" else "图片") + "模型。接口说明用于了解协议，模型开放后才能创建任务。", ""]
+            continue
+        lines += ["| 模型与参数 | 分辨率 | 每次结果数 | 标价 |", "| --- | --- | --- | --- |"]
         items = []
-        for model in group_models(media):
+        for model in current:
             link = "/media-models/" + slug(model, models)
             items.append({"text": model["model"], "link": link})
             fields = model["schema"]["fields"]
-            resolutions = fields.get("metadata", {}).get("properties", {}).get("resolution", {}).get("enum")
-            images = fields.get("image_urls")
-            support = "未开放"
-            if images:
-                support = "支持"
-                if images.get("required"):
-                    support = "必填（允许空数组）" if not images.get("min_items") else "必填"
-                if images.get("max_items"):
-                    support += f'，最多 {images["max_items"]} 张'
-                support += "，以模式限制为准"
-            res = "、".join(map(code, resolutions)) if resolutions else "见模型参数"
-            lines.append(f'| [{model["model"]}]({link}) | {res} | {support} |')
-        lines.append("")
-        sidebar.append({"text": f"{label}（{len(items)}）", "collapsed": True, "items": items})
-    outputs["frontend/docs/media-models/index.md"] = "\n".join(lines) + "\n"
+            resolution = fields.get("imageSize", fields.get("resolution", fields.get("metadata", {}).get("properties", {}).get("resolution", {})))
+            res = "、".join(map(code, resolution.get("enum", []))) or "见模型参数"
+            count = str(fields.get("n", {}).get("maximum", 1)) if media == "image" else "1"
+            price = model["pricing"].get("unit_price")
+            unit = "张" if media == "image" else ("秒" if model["pricing"]["billing_mode"] == "video" else "次")
+            price_text = f"{price} 元/{unit}" if price is not None else "见可用渠道"
+            lines.append(f'| [{model["model"]}]({link}) | {res} | {count} | {price_text} |')
+        lines += [""]
+        sidebar.append({"text": label + "参数", "collapsed": True, "items": items})
+    lines += ["## 旧型号链接", "", "旧目录中的型号不代表当前可调用能力。原链接保留未开放提示，当前清单之外的型号不再展示旧参数与创建示例。Grok、Seedance 等独立协议是否可用，应按其对应分组和可用渠道确认。", ""]
+    outputs["frontend/docs/media-models/index.md"] = "\n".join(lines)
     outputs["frontend/docs/.vitepress/media-models.generated.ts"] = "// Generated by deploy/generate-media-api-docs.py. Do not edit.\nexport const mediaModelSidebar = " + json.dumps(sidebar, ensure_ascii=False, indent=2) + "\n"
     return outputs
 
@@ -291,10 +330,10 @@ def main():
     catalog = json.loads(source)
     outputs = generate(catalog)
     import re
-    assert not re.search(r"toapis|grs[.\s_-]*ai", source.decode("utf-8"), re.I), "Provider identifier in catalog"
+    assert not re.search(r"toapis|grs[.\s_-]*ai|kuaipao", source.decode("utf-8"), re.I), "Provider identifier in catalog"
     stale = []
     for path, content in outputs.items():
-        assert not re.search(r"toapis|grs[.\s_-]*ai", content, re.I), path
+        assert not re.search(r"toapis|grs[.\s_-]*ai|kuaipao", content, re.I), path
         target = ROOT / path
         if args.check:
             if not target.is_file() or target.read_text(encoding="utf-8") != content:

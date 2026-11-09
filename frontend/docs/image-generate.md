@@ -2,10 +2,10 @@
 description: 使用 Gkotta 的 OpenAI 兼容与 Gemini 原生接口生成、编辑和保存图片。
 ---
 
-# 图片生成与编辑
+# OpenAI / Gemini 图片协议
 
 ::: warning 媒体 API 分组请使用新的统一协议
-如果密钥使用“媒体 API”分组，请转到[媒体 API 接入指南](/media-api)和[图片模型参数目录](/media-models/)。该分组的 `POST /v1/images/generations` 固定返回 `202` 异步任务，`size` 是 `1:1` 等宽高比，分辨率放在 `metadata.resolution`，结果通过 `GET /v1/images/generations/{task_id}` 查询。下文的像素 `size`、同步响应和原生编辑示例适用于其它对应协议分组。
+如果密钥使用“媒体 API”分组，请转到[媒体 API 接入指南](/media-api)和[图片模型参数目录](/media-models/)。该分组按[统一图片生成 API](/media-images)传入 `images/aspectRatio/imageSize/quality`，返回 `202` 后通过 `GET /v1/images/generations/{task_id}` 查询。下文的像素 `size`、同步响应和原生编辑示例适用于其它对应协议分组。
 :::
 
 Gkotta 提供 OpenAI 兼容 Images 接口和 Gemini 原生图片接口。先确认密钥的分组、图片模型和协议，再选择下方对应的请求格式。

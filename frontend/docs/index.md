@@ -47,7 +47,7 @@ API 服务地址是 **`https://www.gkotta.bid`**。OpenAI 兼容客户端通常�
 1. [快速开始](/quick-start)：注册账户，完成第一次请求。
 2. [API 密钥与分组](/api-keys)：查看可用渠道并配置密钥。
 3. [客户端接入](/clients)与[使用场景](/scenarios/)：为所用工具选择正确的协议、地址与模型。
-4. 接入图片或视频生成时，阅读[媒体 API 指南](/media-api)与[媒体模型目录](/media-models/)，确认各模型的参数与查询路径。
+4. 接入媒体生成时，先阅读[接入总览](/media-api)，再按需查看[图片生成](/media-images)、[视频生成](/media-videos)和[当前模型目录](/media-models/)，确认参数、查询路径与开放状态。
 
 ## 开始之前
 

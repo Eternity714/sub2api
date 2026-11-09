@@ -1,5 +1,16 @@
 # 统一图片与视频生成 API
 
+本文面向管理员与接口维护者，说明配置、校验、路由和计费实现。下游用户教程统一维护在 `frontend/docs/`：
+
+| 用户入口 | 源文件 | 内容 |
+| --- | --- | --- |
+| `/docs/media-api` | `frontend/docs/media-api.md` | 地址、鉴权、异步查询、结果、错误与计费 |
+| `/docs/media-images` | `frontend/docs/media-images.md` | 文生图、参考图生图与统一图片参数 |
+| `/docs/media-videos` | `frontend/docs/media-videos.md` | 视频协议、参考素材及当前开放状态 |
+| `/docs/media-models/` | 由 `docs/media-api-catalog.json` 生成 | 实际已开放模型、精确限制与售价快照 |
+
+接口或公开能力变更时，同步更新这些页面和公开快照；生成与验证流程见 `frontend/docs/README.md`。本文件及后台模板目录描述可配置能力，不代表当前下游已开放型号。
+
 本功能仅对配置了 GRS.AI／ToAPIs／快跑 媒体路由的 Composite 分组启用。其它分组继续使用原有平台协议。所有请求使用 Sub2API API Key：`Authorization: Bearer <key>`。
 
 ## 管理员启用步骤
