@@ -55,13 +55,13 @@ Claude Code 地址不含 `/v1`，其配置使用 `ANTHROPIC_AUTH_TOKEN`。Codex 
 | `/docs/media-videos` | 统一视频参数、参考素材、开放状态与独立视频协议对照 |
 | `/docs/media-models/` 及模型页 | 当前可用模型、精确字段约束、示例和价格快照，全部由生成器维护 |
 
-`docs/media-api-catalog.json` 保存经过脱敏、审核的已开放公开能力快照；它不是运行时路由配置，不会改变生产能力。2026-11-09 核对的快照包含 `gpt-image-2.5`、`gpt-image-2.6` 两个图片模型，各有文生图与参考图生图示例；统一媒体视频模型当前为 0。视频教程使用明显的模型占位符，不将接口存在或内部模板视为已开放能力。
+`docs/media-api-catalog.json` 保存经过脱敏、审核的已开放公开能力快照；它不是运行时路由配置，不会改变生产能力。2026-11-09 核对的快照包含 `gpt-image-2.5`、`gpt-image-2.6`、`nano-banana-2.1`、`nano-banana-pro` 四个图片模型，覆盖文生图、参考图生图及已开放的 1K/2K/4K 档位；统一媒体视频模型当前为 0。视频教程使用明显的模型占位符，不将接口存在或内部模板视为已开放能力。
 
 后台调整模型能力或启停时，必须同步更新快照、示例与文档。快照仅列同时满足已启用能力、分组允许、有效候选路由与已配置价格的型号。公开内容只允许真实模型 ID、请求 schema、样例及计费方式／档位／标价，不包含账号、内部路由、适配器、来源平台或凭证；实际价格引导至控制台。模型 ID 区分大小写，slug 必须唯一。
 
 公开示例统一使用 `images/aspectRatio/imageSize/quality/replyType`（视频用 `resolution`），旧名字只在兼容说明中出现。参考素材 URL 使用明确的占位地址，不承诺能直接生成。OpenAI/Gemini 图片、Grok 视频、Seedance 原生任务另列在“其他分组的独立协议”，不得混用其任务 ID、查询路径或响应解析。
 
-`deploy/generate-media-api-docs.py` 根据快照生成当前模型目录、逐模型 Markdown 和 `.vitepress/media-models.generated.ts`。`inactive_models` 仅记录已下线型号的 ID、媒体类型与旧 slug：生成 62 个不参与搜索的未开放提示页，保留旧链接，但不再显示过期参数、价格和创建示例，也不进入当前侧栏。旧 `/media-gpt-image-2.5`、`/media-gpt-image-2.6` 入口只链接到当前模型参数页，避免重复维护。
+`deploy/generate-media-api-docs.py` 根据快照生成当前模型目录、逐模型 Markdown 和 `.vitepress/media-models.generated.ts`。`inactive_models` 仅记录未开放型号的 ID、媒体类型与旧 slug：生成不参与搜索的未开放提示页，保留旧链接，但不再显示过期参数、价格和创建示例，也不进入当前侧栏。型号重新开放时从 `inactive_models` 移回当前清单，恢复其参数页。旧 `/media-gpt-image-2.5`、`/media-gpt-image-2.6` 入口只链接到当前模型参数页，避免重复维护。
 
 中文字段用途说明在生成器中维护；新增字段未补用途时生成失败。生成命令为 `docker compose -f deploy/docker-compose.test.yml run --rm --no-deps media-docs-check python deploy/generate-media-api-docs.py`；省略命令覆盖时默认执行 `--check`，拒绝过期文件并输出当前快照时间及 SHA256。不要手改生成页。文档构建仍通过现有 `frontend-test` Compose 服务执行 `pnpm --dir frontend docs:build`（先启用 Corepack）。
 

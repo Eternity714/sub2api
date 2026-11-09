@@ -31,7 +31,7 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/models" \
 | `images` | string[] | 可选参考图 HTTP(S) 直链，按数组顺序处理 |
 | `aspectRatio` | string | 比例，如 `1:1`、`3:2`、`2:3`；允许范围见模型页 |
 | `imageSize` | string | 分辨率档位，如 `1K`；也接受 `resolution` 别名 |
-| `quality` | string | 质量，按模型枚举填写 |
+| `quality` | string | 质量，仅在模型页声明时传入，按模型枚举填写 |
 | `n` | integer | 结果数；当前图片模型仅允许 `1` |
 | `replyType` | string | 目前仅支持 `async` |
 | `metadata` | object | 仅限模型页明确声明的扩展字段 |

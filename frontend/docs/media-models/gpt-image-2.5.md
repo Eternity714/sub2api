@@ -58,7 +58,7 @@ export SUB2API_BASE_URL="https://www.gkotta.bid"
 export SUB2API_KEY="sk-YOUR_API_KEY"
 ```
 
-### 文生图
+### 文生图（1K）
 
 ```bash
 curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
@@ -69,9 +69,9 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
   "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
   "aspectRatio": "3:2",
   "imageSize": "1K",
-  "quality": "auto",
   "replyType": "async",
-  "n": 1
+  "n": 1,
+  "quality": "auto"
 }'
 ```
 
@@ -86,9 +86,9 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
   "prompt": "保留参考图主体和构图，将陶瓷杯改为绿色",
   "aspectRatio": "3:2",
   "imageSize": "1K",
-  "quality": "auto",
   "replyType": "async",
   "n": 1,
+  "quality": "auto",
   "images": [
     "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
   ]
