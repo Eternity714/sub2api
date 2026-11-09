@@ -154,9 +154,15 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 		}
 	}
 	var imageSpec *ImageSpec
-	if len(c.schema.ImageSpecs) > 0 && !autoRatio {
+	if len(c.schema.ImageSpecs) > 0 && (!autoRatio || c.schema.AutoImageAspectRatio != "") {
 		size, _ := values["size"].(string)
 		resolution, _ := getPath(values, "metadata.resolution")
+		if c.schema.FixedImageResolution != "" {
+			resolution = c.schema.FixedImageResolution
+		}
+		if autoRatio && c.schema.AutoImageAspectRatio != "" {
+			size = c.schema.AutoImageAspectRatio
+		}
 		for _, spec := range c.schema.ImageSpecs {
 			if spec.AspectRatio == size && spec.Resolution == resolution {
 				copy := spec
@@ -178,7 +184,7 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 		replyType = "async"
 		delete(values, "replyType")
 	}
-	return &NormalizedRequest{Values: values, Mode: modeID, ProvidedFields: provided, ImageSpec: imageSpec, RequestedImageSpec: requestedSpec, ReplyType: replyType, RequestedCount: requestedCount, AtomicBatch: requestedCount > 1 && (c.schema.Batch.SemanticallyLinked || !c.schema.Batch.AllowSplit), mediaType: c.mediaType}, nil
+	return &NormalizedRequest{FixedImageResolution: c.schema.FixedImageResolution, Values: values, Mode: modeID, ProvidedFields: provided, ImageSpec: imageSpec, RequestedImageSpec: requestedSpec, ReplyType: replyType, RequestedCount: requestedCount, AtomicBatch: requestedCount > 1 && (c.schema.Batch.SemanticallyLinked || !c.schema.Batch.AllowSplit), mediaType: c.mediaType}, nil
 }
 
 func collectProvided(values any, path string, provided *[]string) {

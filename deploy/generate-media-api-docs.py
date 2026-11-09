@@ -203,15 +203,20 @@ def model_page(model, date):
     if schema.get("rules"):
         lines.append("")
     if image:
-        if name.endswith("-1k") and "imageSize" not in fields:
+        if schema.get("fixed_image_resolution"):
+            auto_spec = next(spec for spec in schema["image_specs"] if spec["aspect_ratio"] == schema["auto_image_aspect_ratio"] and spec["resolution"] == schema["fixed_image_resolution"])
+            lines += ["本模型固定为 **" + schema["fixed_image_resolution"] + "**，使用 " + code("aspectRatio") + " 选择下表尺寸。" + code("auto") + " 固定按 " + code(schema["auto_image_aspect_ratio"]) + f' 处理，生成 {auto_spec["width"]}×{auto_spec["height"]} 图片；' + code("quality:auto") + " 仍表示自动质量。", "",
+                      "不接受 " + paths(["imageSize", "resolution", "metadata.resolution"]) + " 或像素尺寸写法。四种质量均按相同单价计费。", ""]
+        elif name.endswith("-1k") and "imageSize" not in fields:
             lines += ["本模型固定为 **1K**，只使用 " + code("aspectRatio") + " 选择上表列出的比例。" + code("auto") + " 由生成服务自动决定比例，不承诺固定像素。同一比例的实际像素可因生成服务而不同。", "",
                       "不接受 " + paths(["imageSize", "resolution", "metadata.resolution"]) + "，也不接受像素尺寸写法；质量仅支持 " + code("quality:auto") + "。", ""]
         else:
             lines += ["统一使用 " + code("aspectRatio") + " 与 " + code("imageSize") + " 指定比例和档位；同一档位的实际像素可以因生成服务而不同。显式像素写法只会选择能保留该尺寸的服务，无法支持时在创建前拒绝。不支持 " + code("metadata.output_size") + "。", ""]
         if schema.get("image_specs"):
-            lines += ["### 有效比例与分辨率组合", "", "只接受以下成对组合，不能把比例和分辨率枚举任意交叉。像素尺寸是该组合的配置映射。", "", "| aspectRatio | imageSize | 像素尺寸 |", "| --- | --- | --- |"]
+            fixed = bool(schema.get("fixed_image_resolution"))
+            lines += ["### 比例与输出尺寸" if fixed else "### 有效比例与分辨率组合", "", "下表为固定档位的像素映射，分辨率无需通过请求参数指定。" if fixed else "只接受以下成对组合，不能把比例和分辨率枚举任意交叉。像素尺寸是该组合的配置映射。", "", "| aspectRatio | 像素尺寸 |" if fixed else "| aspectRatio | imageSize | 像素尺寸 |", "| --- | --- |" if fixed else "| --- | --- | --- |"]
             for spec in schema["image_specs"]:
-                lines.append(f'| {code(spec["aspect_ratio"])} | {code(spec["resolution"])} | {spec["width"]} × {spec["height"]} |')
+                lines.append(f'| {code(spec["aspect_ratio"])} | ' + ("" if fixed else f'{code(spec["resolution"])} | ') + f'{spec["width"]} × {spec["height"]} |')
             lines.append("")
         else:
             lines += ["当前能力未声明精确像素映射，分辨率是档位说明；本页不承诺某个固定像素尺寸。", ""]
@@ -316,6 +321,8 @@ def generate(catalog):
             res = "、".join(map(code, resolution.get("enum", []))) or "见模型参数"
             if model["model"].endswith("-1k") and not resolution:
                 res = "1K（固定）"
+            if model["schema"].get("fixed_image_resolution"):
+                res = model["schema"]["fixed_image_resolution"] + "（固定）"
             count = str(fields.get("n", {}).get("maximum", 1)) if media == "image" else "1"
             price = model["pricing"].get("unit_price")
             unit = "张" if media == "image" else ("秒" if model["pricing"]["billing_mode"] == "video" else "次")

@@ -43,9 +43,21 @@ func buildUnifiedOpenAIImagePayload(model string, request *mediacapability.Norma
 }
 
 func parseUnifiedOpenAIImageURLs(raw []byte) []string {
+	return parseUnifiedImageResults(raw, false)
+}
+
+func isUnifiedInlineImageURL(value string) bool {
+	const prefix = "data:image/"
+	return len(value) >= len(prefix) && strings.EqualFold(value[:len(prefix)], prefix)
+}
+
+// Kuaipao documents inline image fallback when its URL storage is unavailable.
+// This opt-in applies only to upstream results, never client reference inputs.
+func parseUnifiedImageResults(raw []byte, allowInline bool) []string {
 	var response struct {
 		Data []struct {
-			URL string `json:"url"`
+			URL    string `json:"url"`
+			Base64 string `json:"b64_json"`
 		} `json:"data"`
 	}
 	if json.Unmarshal(raw, &response) != nil || len(response.Data) == 0 {
@@ -53,7 +65,17 @@ func parseUnifiedOpenAIImageURLs(raw []byte) []string {
 	}
 	urls := make([]string, 0, len(response.Data))
 	for _, row := range response.Data {
-		u, err := url.Parse(strings.TrimSpace(row.URL))
+		value := strings.TrimSpace(row.URL)
+		if allowInline {
+			if value == "" && strings.TrimSpace(row.Base64) != "" {
+				value = "data:image/png;base64," + strings.TrimSpace(row.Base64)
+			}
+			if isUnifiedInlineImageURL(value) {
+				urls = append(urls, value)
+				continue
+			}
+		}
+		u, err := url.Parse(value)
 		if err != nil || u.Hostname() == "" || u.User != nil || (u.Scheme != "https" && u.Scheme != "http") {
 			return nil
 		}

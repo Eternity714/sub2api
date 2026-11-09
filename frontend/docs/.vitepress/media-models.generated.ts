@@ -9,8 +9,16 @@ export const mediaModelSidebar = [
         "link": "/media-models/gpt-image-2.5-1k"
       },
       {
+        "text": "gpt-image-2.5-2k",
+        "link": "/media-models/gpt-image-2.5-2k"
+      },
+      {
         "text": "gpt-image-2.6-1k",
         "link": "/media-models/gpt-image-2.6-1k"
+      },
+      {
+        "text": "gpt-image-2.6-2k",
+        "link": "/media-models/gpt-image-2.6-2k"
       },
       {
         "text": "nano-banana-2.1",

@@ -125,3 +125,21 @@ func TestKuaipaoAccountTestUsesItsImageProvider(t *testing.T) {
 	require.Contains(t, w.Body.String(), `"type":"image"`)
 	require.Contains(t, w.Body.String(), `"success":true`)
 }
+
+func TestKuaipaoAccountTestPreservesMappedFixedTier(t *testing.T) {
+	for _, tier := range []string{"2k", "4k"} {
+		t.Run(tier, func(t *testing.T) {
+			u := &kuaipaoAccountTestUpstream{}
+			model := "gpt-image-2.6-" + tier
+			a := Account{ID: 21, Platform: PlatformKuaipao, Type: AccountTypeAPIKey, Credentials: map[string]any{"base_url": "https://image.example.com/v2", "api_key": "test-key", "model_mapping": map[string]any{model: model}}}
+			s := &AccountTestService{accountRepo: &unifiedMediaAccounts{rows: []Account{a}}, httpUpstream: u, cfg: &config.Config{}}
+			c, w := newTestContext()
+			require.NoError(t, s.TestAccountConnection(c, 21, model, "cup", ""))
+			require.Len(t, u.requests, 1)
+			body, err := io.ReadAll(u.requests[0].Body)
+			require.NoError(t, err)
+			require.Contains(t, string(body), `"resolution":"`+strings.ToUpper(tier)+`"`)
+			require.Contains(t, w.Body.String(), `"success":true`)
+		})
+	}
+}

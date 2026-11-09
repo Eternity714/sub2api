@@ -63,6 +63,8 @@ curl "$SUB2API_BASE_URL/v1/images/generations" \
 
 公开模型 `gpt-image-2.5-1k` 和 `gpt-image-2.6-1k` 固定 1K，不接受 `imageSize`、`resolution`、`metadata.resolution` 或像素写法；`aspectRatio` 支持 `auto` 与其模型页列出的 13 种比例，`quality` 仅 `auto`。旧模型名停止创建新任务，历史任务继续按快照查询和结算。
 
+公开模型 `gpt-image-2.5-2k`、`gpt-image-2.6-2k` 固定2K，售价0.2元/张，quality支持auto/low/medium/high；自动比例固定为2048x2048。能力 schema 的 `fixed_image_resolution` 和 `auto_image_aspect_ratio` 是管理端受信任配置，不是请求参数；`image_specs` 保存统一的2K像素映射。它们进入任务快照，供定价、原生Provider筛选与重启恢复使用。GRS Flare根据受限像素规则接收具体尺寸，快跑使用比例与固定2K档位；请求中的分辨率字段及像素写法仍拒绝。
+
 公开规则确定下游接受范围，Provider 在其中筛选实际支持的上游。只会补充有文档依据的默认值；`quality:auto` 允许选择上游默认质量，显式质量和分辨率不做降级。全部候选都不支持时在创建任务、冻结余额和调用上游前返回参数错误。`replyType:json/stream`、Base64 参考图及 `metadata.output_size` 暂未开放。
 
 ## 创建视频

@@ -42,6 +42,8 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/models" \
 
 `gpt-image-2.6-1k` 和 `gpt-image-2.5-1k` 已固定 1K，使用 `aspectRatio` 选择比例，不接受 `imageSize`、`resolution`、`metadata.resolution` 或像素尺寸写法。`auto` 由生成服务决定比例，实际像素以结果为准。其他模型的档位参数见对应模型页。
 
+`gpt-image-2.6-2k`、`gpt-image-2.5-2k` 固定 2K，同样不传分辨率字段。它们额外支持 `1:3`、`3:1`，`quality` 可选 `auto/low/medium/high`，四种质量均为 0.2 元/张。两个 2K 型号的 `aspectRatio:auto` 固定输出 2048×2048；1K 型号的 `auto` 仍由生成服务决定比例。
+
 旧名字仅在模型声明了对应参数时兼容；别名不会增加可用参数。固定 `-1k` 型号不接受任何分辨率字段。映射见[旧参数兼容](/media-api#旧参数兼容)。
 
 ## 文生图

@@ -44,7 +44,12 @@ func (s *AccountTestService) testKuaipaoAccountConnection(c *gin.Context, accoun
 	s.sendEvent(c, TestEvent{Type: "test_start", Model: modelID})
 	upstream := NewUnifiedMediaUpstream(nil).(*unifiedMediaHTTPUpstream)
 	upstream.transport = s.httpUpstream
-	normalized := &mediacapability.NormalizedRequest{Values: map[string]any{"model": modelID, "prompt": prompt, "size": "1:1", "metadata": map[string]any{"resolution": "1K", "quality": "auto"}}, ImageSpec: &mediacapability.ImageSpec{Width: 1024, Height: 1024}, RequestedCount: 1}
+	resolution := kuaipaoModelResolution(model)
+	if resolution == "" {
+		resolution = "1K"
+	}
+	pixels := map[string]int{"1K": 1024, "2K": 2048, "4K": 2880}[resolution]
+	normalized := &mediacapability.NormalizedRequest{Values: map[string]any{"model": modelID, "prompt": prompt, "size": "1:1", "metadata": map[string]any{"resolution": resolution, "quality": "auto"}}, ImageSpec: &mediacapability.ImageSpec{Width: pixels, Height: pixels}, RequestedCount: 1}
 	result, err := upstream.Submit(c.Request.Context(), &copy, "image", model, normalized, 1)
 	if err != nil || result == nil || result.Disposition != "accepted" || result.Status != "completed" || len(result.URLs) == 0 {
 		if result != nil && result.HTTPStatus > 0 {

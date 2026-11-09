@@ -4,7 +4,7 @@ description: 统一媒体 API 当前开放的图片与视频模型、参数和�
 
 # 当前媒体模型
 
-核对日期：**2026-11-09**。当前开放 **4 个图片模型、0 个视频模型**。
+核对日期：**2026-11-09**。当前开放 **6 个图片模型、0 个视频模型**。
 
 此处只列出当前已开放且提供价格的型号。模型是否对你的 Key 开放以及实时价格，以[可用渠道](https://www.gkotta.bid/available-channels)和 `GET /v1/models` 为准。
 
@@ -15,7 +15,9 @@ description: 统一媒体 API 当前开放的图片与视频模型、参数和�
 | 模型与参数 | 分辨率 | 每次结果数 | 标价 |
 | --- | --- | --- | --- |
 | [gpt-image-2.5-1k](/media-models/gpt-image-2.5-1k) | 1K（固定） | 1 | 0.066 元/张 |
+| [gpt-image-2.5-2k](/media-models/gpt-image-2.5-2k) | 2K（固定） | 1 | 0.2 元/张 |
 | [gpt-image-2.6-1k](/media-models/gpt-image-2.6-1k) | 1K（固定） | 1 | 0.066 元/张 |
+| [gpt-image-2.6-2k](/media-models/gpt-image-2.6-2k) | 2K（固定） | 1 | 0.2 元/张 |
 | [nano-banana-2.1](/media-models/nano-banana-2.1) | `1K`、`2K`、`4K` | 1 | 0.16 元/张 |
 | [nano-banana-pro](/media-models/nano-banana-pro) | `1K`、`2K`、`4K` | 1 | 0.25 元/张 |
 

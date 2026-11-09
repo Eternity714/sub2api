@@ -29,15 +29,23 @@ func planUnifiedMediaProviderRequest(platform, mediaType, model string, original
 		if len(entry.Schema) == 0 {
 			return nil, mediaCapabilityFieldError("model", "unsupported_parameters", "provider model has no verified parameter rules")
 		}
-		request, err := adaptUnifiedMediaProviderRequest(mediaType, entry.Schema, original)
+		profile := mediaAdapterProfile(platform, mediaType, model)
+		providerSchema, err := fixedImageProviderSchema(platform, mediaType, model, entry.Schema, profile, original)
 		if err != nil {
 			return nil, err
 		}
-		profile := mediaAdapterProfile(platform, mediaType, model)
+		request, err := adaptUnifiedMediaProviderRequest(mediaType, providerSchema, original)
+		if err != nil {
+			return nil, err
+		}
 		request.AdapterProfile, _ = json.Marshal(profile)
-		if original.RequestedImageSpec != nil {
+		wanted := original.RequestedImageSpec
+		if original.FixedImageResolution != "" {
+			wanted = original.ImageSpec
+		}
+		if wanted != nil {
 			// Exact pixels are a stronger promise than a ratio and resolution tier.
-			wanted, actual := original.RequestedImageSpec, request.ImageSpec
+			actual := request.ImageSpec
 			if actual == nil || wanted.Width != actual.Width || wanted.Height != actual.Height {
 				return nil, mediaCapabilityFieldError("aspectRatio", "unsupported_image_spec", "provider cannot preserve the requested pixel dimensions")
 			}
@@ -46,7 +54,7 @@ func planUnifiedMediaProviderRequest(platform, mediaType, model string, original
 			}
 		}
 		var schema mediacapability.Schema
-		if err := json.Unmarshal(entry.Schema, &schema); err != nil {
+		if err := json.Unmarshal(providerSchema, &schema); err != nil {
 			return nil, err
 		}
 		native := schema.Batch.NativeMaxResults
@@ -67,13 +75,13 @@ func planUnifiedMediaProviderRequest(platform, mediaType, model string, original
 		if _, _, err := BuildUnifiedMediaPayload(platform, mediaType, model, request, count); err != nil {
 			return nil, mediaCapabilityFieldError("model", "unsupported_parameters", err.Error())
 		}
-		return &unifiedMediaProviderPlan{Schema: append(json.RawMessage(nil), entry.Schema...), Request: request, Match: match, Profile: &profile}, nil
+		return &unifiedMediaProviderPlan{Schema: append(json.RawMessage(nil), providerSchema...), Request: request, Match: match, Profile: &profile}, nil
 	}
 	return nil, mediaCapabilityFieldError("model", "unsupported_parameters", "provider model has no verified parameter rules")
 }
 
-// Replay the frozen schema, never the current catalog. The sole value adaptation
-// is quality:auto -> the documented provider default; explicit levels stay exact.
+// Replay the frozen schema, never the current catalog. Fixed image models bind
+// their captured tier/geometry; explicit quality levels stay exact.
 func adaptUnifiedMediaProviderRequest(mediaType string, schemaJSON json.RawMessage, original *mediacapability.NormalizedRequest) (*mediacapability.NormalizedRequest, error) {
 	if original == nil || original.Values == nil {
 		return nil, errors.New("media normalized payload is unavailable")
@@ -91,6 +99,21 @@ func adaptUnifiedMediaProviderRequest(mediaType string, schemaJSON json.RawMessa
 	decoder.UseNumber()
 	if err := decoder.Decode(&values); err != nil {
 		return nil, err
+	}
+	if original.FixedImageResolution != "" {
+		if mediaType != "image" || original.ImageSpec == nil || original.ImageSpec.Resolution != original.FixedImageResolution {
+			return nil, errors.New("fixed image specification is unavailable")
+		}
+		metadata, _ := values["metadata"].(map[string]any)
+		if metadata == nil {
+			metadata = map[string]any{}
+		}
+		if resolution, exists := metadata["resolution"]; exists && resolution != original.FixedImageResolution {
+			return nil, errors.New("resolution conflicts with the fixed image model")
+		}
+		metadata["resolution"] = original.FixedImageResolution
+		values["metadata"] = metadata
+		values["size"] = original.ImageSpec.AspectRatio
 	}
 	var schema mediacapability.Schema
 	if err := json.Unmarshal(schemaJSON, &schema); err != nil {
@@ -119,5 +142,34 @@ func adaptUnifiedMediaProviderRequest(mediaType string, schemaJSON json.RawMessa
 	validated.AtomicBatch = original.AtomicBatch
 	validated.ReplyType = original.ReplyType
 	validated.RequestedImageSpec = original.RequestedImageSpec
+	validated.FixedImageResolution = original.FixedImageResolution
 	return validated, nil
+}
+
+// GRS Flare accepts concrete pixels. Capture the reviewed custom geometry in
+// the provider schema so workers never recalculate it from a mutable catalogue.
+func fixedImageProviderSchema(platform, mediaType, model string, raw json.RawMessage, profile UnifiedMediaAdapterProfile, original *mediacapability.NormalizedRequest) (json.RawMessage, error) {
+	if original == nil || original.FixedImageResolution == "" || platform != PlatformGrsai || mediaType != "image" || !grsaiRequiresPixelSize(model) || !profile.PixelSize {
+		return raw, nil
+	}
+	spec := original.ImageSpec
+	if spec == nil || spec.Resolution != original.FixedImageResolution || spec.Width < 1 || spec.Height < 1 || spec.Width > 3840 || spec.Height > 3840 || spec.Width%16 != 0 || spec.Height%16 != 0 || spec.Width > 3*spec.Height || spec.Height > 3*spec.Width || spec.Width*spec.Height < 655360 || spec.Width*spec.Height > 8294400 {
+		return nil, mediaCapabilityFieldError("aspectRatio", "unsupported_image_spec", "GRS cannot preserve the fixed image dimensions")
+	}
+	var schema mediacapability.Schema
+	if err := json.Unmarshal(raw, &schema); err != nil {
+		return nil, err
+	}
+	found := false
+	for i, configured := range schema.ImageSpecs {
+		if configured.AspectRatio == spec.AspectRatio && configured.Resolution == spec.Resolution {
+			schema.ImageSpecs[i] = *spec
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, mediaCapabilityFieldError("aspectRatio", "unsupported_image_spec", "GRS has no reviewed ratio and tier rule")
+	}
+	return json.Marshal(schema)
 }

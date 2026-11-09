@@ -61,7 +61,7 @@ $env:SUB2API_KEY = "YOUR_SUB2API_KEY"
 | 提示词 | `prompt` | 必填性和长度按模型规则 |
 | 参考图片 | `images` | HTTP(S) 图片直链数组，保持顺序 |
 | 比例 | `aspectRatio` | 如 `3:2`；图片的受限像素写法须另经支持检查 |
-| 图片分辨率 | `imageSize` | 仅在模型声明时传入；固定 `-1k` 型号不接受此字段及其别名 |
+| 图片分辨率 | `imageSize` | 仅在模型声明时传入；固定 `-1k/-2k` 型号不接受此字段及其别名 |
 | 视频分辨率 | `resolution` | 如 `720p`，按模型页填写 |
 | 质量 | `quality` | 仅传模型允许的值 |
 | 回复类型 | `replyType` | 目前仅 `async`，创建后轮询 |
@@ -70,7 +70,7 @@ $env:SUB2API_KEY = "YOUR_SUB2API_KEY"
 
 ### 旧参数兼容
 
-已有客户端仅在模型声明了对应参数时可以使用旧名字；新接入统一使用下表左列。新旧别名同时传入时，值必须一致。`gpt-image-2.6-1k` 和 `gpt-image-2.5-1k` 不接受 `imageSize`、`resolution` 或 `metadata.resolution`。
+已有客户端仅在模型声明了对应参数时可以使用旧名字；新接入统一使用下表左列。新旧别名同时传入时，值必须一致。`gpt-image-2.6-1k`、`gpt-image-2.5-1k`、`gpt-image-2.6-2k` 和 `gpt-image-2.5-2k` 不接受 `imageSize`、`resolution` 或 `metadata.resolution`。
 
 | 推荐字段 | 兼容字段 |
 | --- | --- |

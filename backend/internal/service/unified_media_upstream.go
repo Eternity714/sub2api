@@ -392,7 +392,11 @@ func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, met
 	responseValid := false
 	if account.Platform == PlatformOpenAI || account.Platform == PlatformKuaipao {
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			result.URLs = parseUnifiedOpenAIImageURLs(raw)
+			if account.Platform == PlatformKuaipao {
+				result.URLs = parseUnifiedImageResults(raw, true)
+			} else {
+				result.URLs = parseUnifiedOpenAIImageURLs(raw)
+			}
 			if len(result.URLs) > 0 {
 				result.Status = "completed"
 				responseValid = true

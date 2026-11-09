@@ -233,6 +233,9 @@ func (s *UnifiedMediaTaskService) Create(ctx context.Context, input UnifiedMedia
 	if metadata, ok := normalized.Values["metadata"].(map[string]any); ok {
 		resolution, _ = metadata["resolution"].(string)
 	}
+	if normalized.FixedImageResolution != "" {
+		resolution = normalized.FixedImageResolution
+	}
 	price, err := s.Pricing.ResolveGrsaiTaskPrice(ctx, envelope.Model, key.Group, resolution)
 	if err != nil {
 		return nil, infraerrors.BadRequest("MEDIA_PRICING_MISSING", "explicit model and output-specification pricing is required")
@@ -718,6 +721,16 @@ func (s *UnifiedMediaTaskService) persist(ctx context.Context, task *UnifiedMedi
 		unit.State = "completed"
 		if len(unit.Stored) == unit.Count {
 			unit.Error = ""
+		}
+	}
+	if !pending {
+		// Inline output survives storage retries, then leaves only S3 metadata
+		// in the durable task once the unit is terminal.
+		for _, source := range unit.URLs {
+			if isUnifiedInlineImageURL(source) {
+				unit.URLs = nil
+				break
+			}
 		}
 	}
 	return nil

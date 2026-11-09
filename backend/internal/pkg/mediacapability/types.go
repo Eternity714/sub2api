@@ -15,12 +15,14 @@ const (
 )
 
 type Schema struct {
-	Version    int              `json:"version"`
-	Fields     map[string]Field `json:"fields"`
-	Modes      []Mode           `json:"modes,omitempty"`
-	Rules      []Rule           `json:"rules,omitempty"`
-	ImageSpecs []ImageSpec      `json:"image_specs,omitempty"`
-	Batch      Batch            `json:"batch,omitempty"`
+	FixedImageResolution string           `json:"fixed_image_resolution,omitempty"`
+	AutoImageAspectRatio string           `json:"auto_image_aspect_ratio,omitempty"`
+	Version              int              `json:"version"`
+	Fields               map[string]Field `json:"fields"`
+	Modes                []Mode           `json:"modes,omitempty"`
+	Rules                []Rule           `json:"rules,omitempty"`
+	ImageSpecs           []ImageSpec      `json:"image_specs,omitempty"`
+	Batch                Batch            `json:"batch,omitempty"`
 }
 
 type Field struct {
@@ -90,16 +92,17 @@ func (e *CompileError) Error() string {
 }
 
 type NormalizedRequest struct {
-	Values             map[string]any  `json:"values"`
-	Mode               string          `json:"mode"`
-	ProvidedFields     []string        `json:"provided_fields"`
-	ImageSpec          *ImageSpec      `json:"image_spec,omitempty"`
-	RequestedImageSpec *ImageSpec      `json:"requested_image_spec,omitempty"`
-	ReplyType          string          `json:"reply_type,omitempty"`
-	RequestedCount     int             `json:"requested_count"`
-	AtomicBatch        bool            `json:"atomic_batch,omitempty"`
-	AdapterProfile     json.RawMessage `json:"adapter_profile,omitempty"`
-	mediaType          string
+	FixedImageResolution string          `json:"fixed_image_resolution,omitempty"`
+	Values               map[string]any  `json:"values"`
+	Mode                 string          `json:"mode"`
+	ProvidedFields       []string        `json:"provided_fields"`
+	ImageSpec            *ImageSpec      `json:"image_spec,omitempty"`
+	RequestedImageSpec   *ImageSpec      `json:"requested_image_spec,omitempty"`
+	ReplyType            string          `json:"reply_type,omitempty"`
+	RequestedCount       int             `json:"requested_count"`
+	AtomicBatch          bool            `json:"atomic_batch,omitempty"`
+	AdapterProfile       json.RawMessage `json:"adapter_profile,omitempty"`
+	mediaType            string
 }
 
 type CandidateMatch struct {

@@ -23,6 +23,15 @@ type kuaipaoMediaProvider struct{ transport *unifiedMediaHTTPUpstream }
 
 var _ UnifiedMediaUpstream = (*kuaipaoMediaProvider)(nil)
 
+func kuaipaoModelResolution(model string) string {
+	for _, tier := range []string{"1k", "2k", "4k"} {
+		if strings.HasSuffix(model, "-"+tier) {
+			return strings.ToUpper(tier)
+		}
+	}
+	return ""
+}
+
 func buildUnifiedKuaipaoImagePayload(model string, values, metadata map[string]any, count int) ([]byte, string, error) {
 	if count > 10 {
 		return nil, "", errors.New("Kuaipao GPT images support at most 10 results per request")
@@ -31,16 +40,14 @@ func buildUnifiedKuaipaoImagePayload(model string, values, metadata map[string]a
 	if resolution == "" {
 		resolution = "1K"
 	}
-	fixedTier := false
-	for _, tier := range []string{"1k", "2k", "4k"} {
-		if strings.HasSuffix(model, "-"+tier) {
-			fixedTier = true
-			if _, explicit := metadata["resolution"]; !explicit {
-				resolution = strings.ToUpper(tier)
-			}
-			if resolution != strings.ToUpper(tier) {
-				return nil, "", errors.New("requested resolution conflicts with the fixed Kuaipao model tier")
-			}
+	fixedResolution := kuaipaoModelResolution(model)
+	fixedTier := fixedResolution != ""
+	if fixedTier {
+		if _, explicit := metadata["resolution"]; !explicit {
+			resolution = fixedResolution
+		}
+		if resolution != fixedResolution {
+			return nil, "", errors.New("requested resolution conflicts with the fixed Kuaipao model tier")
 		}
 	}
 	if resolution != "1K" && resolution != "2K" && resolution != "4K" {
