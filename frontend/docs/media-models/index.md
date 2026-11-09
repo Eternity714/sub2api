@@ -14,8 +14,8 @@ description: 统一媒体 API 当前开放的图片与视频模型、参数和�
 
 | 模型与参数 | 分辨率 | 每次结果数 | 标价 |
 | --- | --- | --- | --- |
-| [gpt-image-2.5](/media-models/gpt-image-2.5) | `1K` | 1 | 0.066 元/张 |
-| [gpt-image-2.6](/media-models/gpt-image-2.6) | `1K` | 1 | 0.066 元/张 |
+| [gpt-image-2.5-1k](/media-models/gpt-image-2.5-1k) | 1K（固定） | 1 | 0.066 元/张 |
+| [gpt-image-2.6-1k](/media-models/gpt-image-2.6-1k) | 1K（固定） | 1 | 0.066 元/张 |
 | [nano-banana-2.1](/media-models/nano-banana-2.1) | `1K`、`2K`、`4K` | 1 | 0.16 元/张 |
 | [nano-banana-pro](/media-models/nano-banana-pro) | `1K`、`2K`、`4K` | 1 | 0.25 元/张 |
 

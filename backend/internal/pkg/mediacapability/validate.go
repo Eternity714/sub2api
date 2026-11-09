@@ -63,6 +63,17 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 	collectProvided(values, "", &provided)
 	sort.Strings(provided)
 	applyObjectDefaults(c.schema.Fields, values)
+	// Auto has no fixed output geometry. It is valid only for image schemas
+	// which explicitly advertise it; video and legacy ratio rules stay bounded.
+	autoRatio := false
+	if c.mediaType == "image" && values["size"] == "auto" {
+		for _, allowed := range c.schema.Fields["size"].Enum {
+			if allowed == "auto" {
+				autoRatio = true
+				break
+			}
+		}
+	}
 	model, exists := values["model"]
 	if !exists {
 		errs = append(errs, fieldError("model", "required", "model is required"))
@@ -87,7 +98,7 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 	}
 	for _, key := range []string{"size", "aspect_ratio"} {
 		if value, exists := values[key]; exists && value != nil {
-			if text, ok := value.(string); ok && !ratioPattern.MatchString(text) {
+			if text, ok := value.(string); ok && !ratioPattern.MatchString(text) && !(key == "size" && autoRatio) {
 				errs = append(errs, fieldError(key, "format", "aspect ratio must contain two positive integers separated by a colon"))
 			}
 		}
@@ -143,7 +154,7 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 		}
 	}
 	var imageSpec *ImageSpec
-	if len(c.schema.ImageSpecs) > 0 {
+	if len(c.schema.ImageSpecs) > 0 && !autoRatio {
 		size, _ := values["size"].(string)
 		resolution, _ := getPath(values, "metadata.resolution")
 		for _, spec := range c.schema.ImageSpecs {

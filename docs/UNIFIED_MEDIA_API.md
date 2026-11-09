@@ -49,17 +49,19 @@ curl "$SUB2API_BASE_URL/v1/images/generations" \
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| model | string | 必填，公开模型名，例如 `gpt-image-2.6` |
+| model | string | 必填，公开模型名，例如 `gpt-image-2.6-1k` |
 | prompt | string | 提示词，必填性由模型及输入模式决定 |
 | images | string[] | 参考图 HTTP(S) URL，按输入顺序传递 |
 | aspectRatio | string | 宽高比，例如 `3:2`；图片也支持 `1536x1024` 像素写法，由公开规则和 Provider 校验 |
-| imageSize / resolution | string | 分辨率档位，例如 `1K`；两者为同一参数的别名，不能传入冲突值 |
+| imageSize / resolution | string | 仅在公开规则声明时传入；固定 `gpt-image-2.5-1k` / `gpt-image-2.6-1k` 不接受此字段及其别名 |
 | quality | string | 质量，例如 `auto`，具体枚举由公开规则和 Provider 支持范围决定 |
 | replyType | string | 目前只支持 `async`，返回 202 后轮询任务 |
 | n | integer | 所需图片数；默认值、上限和是否允许独立拆分由公开规则定义 |
 | metadata | object | 兼容已有模型扩展参数，仅接受能力 schema 声明的属性 |
 
-旧请求 `size`、`image_urls`、`metadata.quality` 和 `metadata.resolution` 继续兼容；与新名字同时传入时必须相同。GRS 风格和旧风格 schema 都可用于公开能力配置。内部归一化后交给 Provider；GRS 转为 `images/aspectRatio`，快跑转为 `image/aspect_ratio/resolution`，ToAPIs 按对应模型接口映射。快跑 `gpt-image-2.6-1k` 固定 1K，不会把 2K/4K 请求降档。比例和分辨率档位不承诺跨上游完全相同的输出像素。显式像素只选择能保留该尺寸的候选，例如 `1536x1024` 可交给 GRS，快跑固定 1K 的 3:2 网格为 `1248x832`，不会静默替换。
+旧请求 `size`、`image_urls`、`metadata.quality` 和 `metadata.resolution` 仅在公开规则声明对应参数时兼容；与新名字同时传入时必须相同。GRS 风格和旧风格 schema 都可用于公开能力配置。内部归一化后交给 Provider；GRS 转为 `images/aspectRatio`，快跑转为 `image/aspect_ratio/resolution`（自动比例改为 `size:auto`，同时省略 `aspect_ratio/resolution`），ToAPIs 按对应模型接口映射。快跑 `gpt-image-2.6-1k` 固定 1K，不会把 2K/4K 请求降档。比例和分辨率档位不承诺跨上游完全相同的输出像素。显式像素只选择能保留该尺寸的候选，例如 `1536x1024` 可交给 GRS，快跑固定 1K 的 3:2 网格为 `1248x832`，不会静默替换。
+
+公开模型 `gpt-image-2.5-1k` 和 `gpt-image-2.6-1k` 固定 1K，不接受 `imageSize`、`resolution`、`metadata.resolution` 或像素写法；`aspectRatio` 支持 `auto` 与其模型页列出的 13 种比例，`quality` 仅 `auto`。旧模型名停止创建新任务，历史任务继续按快照查询和结算。
 
 公开规则确定下游接受范围，Provider 在其中筛选实际支持的上游。只会补充有文档依据的默认值；`quality:auto` 允许选择上游默认质量，显式质量和分辨率不做降级。全部候选都不支持时在创建任务、冻结余额和调用上游前返回参数错误。`replyType:json/stream`、Base64 参考图及 `metadata.output_size` 暂未开放。
 

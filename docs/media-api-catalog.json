@@ -2,7 +2,7 @@
   "version": 2,
   "platform": "media",
   "display_name": "媒体 API",
-  "snapshot_at": "2026-11-09T08:22:40.262250+00:00",
+  "snapshot_at": "2026-11-09T09:11:56.498316+00:00",
   "models": [
     {
       "model": "nano-banana-pro",
@@ -227,7 +227,7 @@
       ]
     },
     {
-      "model": "gpt-image-2.6",
+      "model": "gpt-image-2.6-1k",
       "media_type": "image",
       "schema": {
         "batch": {
@@ -264,13 +264,6 @@
             "type": "string",
             "default": "auto"
           },
-          "imageSize": {
-            "enum": [
-              "1K"
-            ],
-            "type": "string",
-            "default": "1K"
-          },
           "replyType": {
             "enum": [
               "async"
@@ -280,9 +273,20 @@
           },
           "aspectRatio": {
             "enum": [
+              "auto",
               "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
               "3:2",
-              "2:3"
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1"
             ],
             "type": "string",
             "default": "1:1"
@@ -301,10 +305,9 @@
         {
           "label": "文生图（1K）",
           "request": {
-            "model": "gpt-image-2.6",
+            "model": "gpt-image-2.6-1k",
             "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
             "aspectRatio": "3:2",
-            "imageSize": "1K",
             "replyType": "async",
             "n": 1,
             "quality": "auto"
@@ -313,22 +316,32 @@
         {
           "label": "参考图生图",
           "request": {
-            "model": "gpt-image-2.6",
+            "model": "gpt-image-2.6-1k",
             "prompt": "保留参考图主体和构图，将陶瓷杯改为绿色",
             "aspectRatio": "3:2",
-            "imageSize": "1K",
             "replyType": "async",
             "n": 1,
             "quality": "auto",
             "images": [
               "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
             ]
+          }
+        },
+        {
+          "label": "自动比例（固定 1K）",
+          "request": {
+            "model": "gpt-image-2.6-1k",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "auto",
+            "quality": "auto",
+            "replyType": "async",
+            "n": 1
           }
         }
       ]
     },
     {
-      "model": "gpt-image-2.5",
+      "model": "gpt-image-2.5-1k",
       "media_type": "image",
       "schema": {
         "batch": {
@@ -365,13 +378,6 @@
             "type": "string",
             "default": "auto"
           },
-          "imageSize": {
-            "enum": [
-              "1K"
-            ],
-            "type": "string",
-            "default": "1K"
-          },
           "replyType": {
             "enum": [
               "async"
@@ -381,9 +387,20 @@
           },
           "aspectRatio": {
             "enum": [
+              "auto",
               "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
               "3:2",
-              "2:3"
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1"
             ],
             "type": "string",
             "default": "1:1"
@@ -402,10 +419,9 @@
         {
           "label": "文生图（1K）",
           "request": {
-            "model": "gpt-image-2.5",
+            "model": "gpt-image-2.5-1k",
             "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
             "aspectRatio": "3:2",
-            "imageSize": "1K",
             "replyType": "async",
             "n": 1,
             "quality": "auto"
@@ -414,16 +430,26 @@
         {
           "label": "参考图生图",
           "request": {
-            "model": "gpt-image-2.5",
+            "model": "gpt-image-2.5-1k",
             "prompt": "保留参考图主体和构图，将陶瓷杯改为绿色",
             "aspectRatio": "3:2",
-            "imageSize": "1K",
             "replyType": "async",
             "n": 1,
             "quality": "auto",
             "images": [
               "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
             ]
+          }
+        },
+        {
+          "label": "自动比例（固定 1K）",
+          "request": {
+            "model": "gpt-image-2.5-1k",
+            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+            "aspectRatio": "auto",
+            "quality": "auto",
+            "replyType": "async",
+            "n": 1
           }
         }
       ]

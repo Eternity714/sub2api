@@ -30,7 +30,7 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/models" \
 | `prompt` | string | 描述主体、场景、风格，或对参考图的修改要求 |
 | `images` | string[] | 可选参考图 HTTP(S) 直链，按数组顺序处理 |
 | `aspectRatio` | string | 比例，如 `1:1`、`3:2`、`2:3`；允许范围见模型页 |
-| `imageSize` | string | 分辨率档位，如 `1K`；也接受 `resolution` 别名 |
+| `imageSize` | string | 仅在模型声明时可传；固定 `-1k` 型号不接受此字段及其别名 |
 | `quality` | string | 质量，仅在模型页声明时传入，按模型枚举填写 |
 | `n` | integer | 结果数；当前图片模型仅允许 `1` |
 | `replyType` | string | 目前仅支持 `async` |
@@ -40,23 +40,22 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/models" \
 
 ### 比例与像素
 
-推荐使用 `aspectRatio` 加 `imageSize`。部分像素写法（如 `1536x1024`）会额外检查是否有服务能保留指定尺寸；无法保持时直接拒绝，不静默改成另一尺寸。声明 `1K` 的模型不会接受 `2K/4K` 请求。
+`gpt-image-2.6-1k` 和 `gpt-image-2.5-1k` 已固定 1K，使用 `aspectRatio` 选择比例，不接受 `imageSize`、`resolution`、`metadata.resolution` 或像素尺寸写法。`auto` 由生成服务决定比例，实际像素以结果为准。其他模型的档位参数见对应模型页。
 
-旧的 `size`、`image_urls`、`metadata.quality/resolution` 继续兼容，映射见[旧参数兼容](/media-api#旧参数兼容)。
+旧名字仅在模型声明了对应参数时兼容；别名不会增加可用参数。固定 `-1k` 型号不接受任何分辨率字段。映射见[旧参数兼容](/media-api#旧参数兼容)。
 
 ## 文生图
 
-下面使用 `gpt-image-2.6`。切换模型时先核对对应参数页。
+下面使用 `gpt-image-2.6-1k`。切换模型时先核对对应参数页。
 
 ```bash
 curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
   -H "Authorization: Bearer $SUB2API_KEY" \
   -H 'Content-Type: application/json' \
   --data '{
-    "model": "gpt-image-2.6",
+    "model": "gpt-image-2.6-1k",
     "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
     "aspectRatio": "3:2",
-    "imageSize": "1K",
     "quality": "auto",
     "replyType": "async",
     "n": 1
@@ -71,11 +70,10 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
 
 ```json
 {
-  "model": "gpt-image-2.6",
+  "model": "gpt-image-2.6-1k",
   "prompt": "保留参考图的主体和构图，将陶瓷杯改为绿色，背景保持白色",
   "images": ["https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"],
   "aspectRatio": "3:2",
-  "imageSize": "1K",
   "quality": "auto",
   "replyType": "async",
   "n": 1
@@ -98,10 +96,9 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
 $env:SUB2API_KEY = "YOUR_SUB2API_KEY"
 $headers = @{ Authorization = "Bearer $env:SUB2API_KEY" }
 $body = @{
-  model = "gpt-image-2.6"
+  model = "gpt-image-2.6-1k"
   prompt = "白色桌面上的蓝色陶瓷杯，柔和自然光"
   aspectRatio = "3:2"
-  imageSize = "1K"
   quality = "auto"
   replyType = "async"
   n = 1

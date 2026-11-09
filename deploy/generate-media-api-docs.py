@@ -16,7 +16,7 @@ DESCRIPTIONS = {
     "prompt": "描述要生成的内容或对参考图的修改要求。",
     "images": "参考图 HTTP(S) URL 列表，按输入顺序处理。",
     "audios": "音频参考 URL 列表，仅在模型明确支持时传入。",
-    "aspectRatio": "宽高比；图片的受限像素写法还须通过实际支持检查。",
+    "aspectRatio": "输出宽高比；允许值和 auto 支持情况见本字段约束。",
     "imageSize": "图片分辨率档位，也接受 resolution 别名。",
     "replyType": "目前仅支持 async：创建任务后轮询查询。",
     "size": "图片宽高比，格式为正整数 a:b，不是像素尺寸。",
@@ -203,7 +203,11 @@ def model_page(model, date):
     if schema.get("rules"):
         lines.append("")
     if image:
-        lines += ["统一使用 " + code("aspectRatio") + " 与 " + code("imageSize") + " 指定比例和档位；同一档位的实际像素可以因生成服务而不同。显式像素写法只会选择能保留该尺寸的服务，无法支持时在创建前拒绝。不支持 " + code("metadata.output_size") + "。", ""]
+        if name.endswith("-1k") and "imageSize" not in fields:
+            lines += ["本模型固定为 **1K**，只使用 " + code("aspectRatio") + " 选择上表列出的比例。" + code("auto") + " 由生成服务自动决定比例，不承诺固定像素。同一比例的实际像素可因生成服务而不同。", "",
+                      "不接受 " + paths(["imageSize", "resolution", "metadata.resolution"]) + "，也不接受像素尺寸写法；质量仅支持 " + code("quality:auto") + "。", ""]
+        else:
+            lines += ["统一使用 " + code("aspectRatio") + " 与 " + code("imageSize") + " 指定比例和档位；同一档位的实际像素可以因生成服务而不同。显式像素写法只会选择能保留该尺寸的服务，无法支持时在创建前拒绝。不支持 " + code("metadata.output_size") + "。", ""]
         if schema.get("image_specs"):
             lines += ["### 有效比例与分辨率组合", "", "只接受以下成对组合，不能把比例和分辨率枚举任意交叉。像素尺寸是该组合的配置映射。", "", "| aspectRatio | imageSize | 像素尺寸 |", "| --- | --- | --- |"]
             for spec in schema["image_specs"]:
@@ -279,8 +283,10 @@ def generate(catalog):
         assert value.casefold() not in slugs and "/" not in value and "\\" not in value, value
         slugs.add(value.casefold())
         outputs[f"frontend/docs/media-models/{value}.md"] = model_page(model, date)
-        if model["model"] in ["gpt-image-2.5", "gpt-image-2.6"]:
-            outputs[f'frontend/docs/media-{model["model"]}.md'] = alias_page(model, "/media-models/" + value)
+        if model["model"] in ["gpt-image-2.5-1k", "gpt-image-2.6-1k"]:
+            old_name = model["model"].removesuffix("-1k")
+            for old_path in [f"frontend/docs/media-{old_name}.md", f"frontend/docs/media-models/{old_name}.md"]:
+                outputs[old_path] = alias_page(model, "/media-models/" + value)
     for model in catalog.get("inactive_models", []):
         if (model["model"], model["media_type"]) in active:
             continue
@@ -308,6 +314,8 @@ def generate(catalog):
             fields = model["schema"]["fields"]
             resolution = fields.get("imageSize", fields.get("resolution", fields.get("metadata", {}).get("properties", {}).get("resolution", {})))
             res = "、".join(map(code, resolution.get("enum", []))) or "见模型参数"
+            if model["model"].endswith("-1k") and not resolution:
+                res = "1K（固定）"
             count = str(fields.get("n", {}).get("maximum", 1)) if media == "image" else "1"
             price = model["pricing"].get("unit_price")
             unit = "张" if media == "image" else ("秒" if model["pricing"]["billing_mode"] == "video" else "次")

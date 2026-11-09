@@ -31,8 +31,10 @@ func buildUnifiedKuaipaoImagePayload(model string, values, metadata map[string]a
 	if resolution == "" {
 		resolution = "1K"
 	}
+	fixedTier := false
 	for _, tier := range []string{"1k", "2k", "4k"} {
 		if strings.HasSuffix(model, "-"+tier) {
+			fixedTier = true
 			if _, explicit := metadata["resolution"]; !explicit {
 				resolution = strings.ToUpper(tier)
 			}
@@ -49,7 +51,17 @@ func buildUnifiedKuaipaoImagePayload(model string, values, metadata map[string]a
 		out["prompt"] = prompt
 	}
 	if ratio, exists := values["size"]; exists {
-		out["aspect_ratio"] = ratio
+		if ratio == "auto" {
+			if !fixedTier {
+				return nil, "", errors.New("automatic Kuaipao aspect ratio requires a fixed-tier model")
+			}
+			// The vendor accepts auto through size only. Its fixed-tier model
+			// supplies 1K, and size must not coexist with aspect_ratio/resolution.
+			out["size"] = "auto"
+			delete(out, "resolution")
+		} else {
+			out["aspect_ratio"] = ratio
+		}
 	} else {
 		out["aspect_ratio"] = "1:1"
 	}
