@@ -227,6 +227,7 @@ def model_page(model, date):
         elif name in ["nano-banana-pro", "nano-banana-2.1"]:
             lines += ["使用 " + code("imageSize") + " 选择 " + paths(["1k", "2k", "4k"]) + "，省略时默认 " + code("1k") + "；同时兼容对应大写 " + paths(["1K", "2K", "4K"]) + "。三个分辨率档位采用同一单张价格。", "",
                       code("aspectRatio") + " 默认 " + code("auto") + "，交由生成服务自动决定比例；不会固定转换为正方形。支持比例见参数表。实际交付保留上游原图，分辨率表示档位，不承诺固定像素尺寸。", "",
+                      "主线路按请求的比例和分辨率处理；主线路不可用或并发已满时可能切换备用。备用采用生成服务的默认比例和分辨率，因此可能与请求的 " + paths(["aspectRatio", "imageSize"]) + " 不同；交付原图，不缩放、不裁剪，仍按本模型固定单价收费。参考图和提示词继续保留。", "",
                       "不接受像素尺寸写法及 " + code("quality") + " 参数。每次仅生成一张，" + code("n:1") + "、" + code("replyType:async") + " 可省略。", ""]
         elif name.endswith("-1k") and "imageSize" not in fields:
             lines += ["本模型固定为 **1K**，只使用 " + code("aspectRatio") + " 选择上表列出的比例。" + code("auto") + " 由生成服务自动决定比例，不承诺固定像素。同一比例的实际像素可因生成服务而不同。", "",

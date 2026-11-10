@@ -502,7 +502,7 @@ export function getModelsByPlatform(platform: string): string[] {
   switch (platform) {
     case 'openai': return openaiModels
     case 'kuaipao': return kuaipaoModels
-    case 'centos': return ['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst']
+    case 'centos': return ['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst', 'gemini-3-pro-image-preview', 'gemini-3.1-flash-image-preview']
     case 'anthropic':
     case 'claude': return claudeModels
     case 'gemini': return geminiModels

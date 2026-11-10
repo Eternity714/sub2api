@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"net/textproto"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -31,6 +33,9 @@ type centosMediaProvider struct{ transport *unifiedMediaHTTPUpstream }
 var _ UnifiedMediaUpstream = (*centosMediaProvider)(nil)
 
 func buildUnifiedCentOSImagePayload(model string, request *mediacapability.NormalizedRequest, values, metadata map[string]any, count int) ([]byte, string, error) {
+	if isCentOSNanoModel(model) {
+		return buildUnifiedCentOSNanoPayload(model, request, values, metadata, count)
+	}
 	if model != "gpt-image-2.6-flare" && model != "gpt-image-2.6-sunburst" {
 		return nil, "", errors.New("CentOS model has no verified image protocol")
 	}
@@ -89,6 +94,12 @@ func (p *centosMediaProvider) Submit(ctx context.Context, account *Account, medi
 			return result, err
 		}
 	}
+	if isCentOSNanoModel(model) {
+		body, err = p.prepareNanoReferences(ctx, account, body)
+		if err != nil {
+			return result, err
+		}
+	}
 	ctx, cancel := context.WithTimeout(WithHTTPUpstreamRedirectsDisabled(WithHTTPUpstreamProfile(ctx, HTTPUpstreamProfileLongStream)), 15*time.Minute)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, target, bytes.NewReader(body))
@@ -139,7 +150,11 @@ func (p *centosMediaProvider) Submit(ctx context.Context, account *Account, medi
 			err = errors.New("CentOS image response is too large")
 		}
 		if err == nil {
-			result.URLs = parseUnifiedImageResults(raw, true)
+			if isCentOSNanoModel(model) {
+				result.URLs = parseCentOSNanoImages(raw)
+			} else {
+				result.URLs = parseUnifiedImageResults(raw, true)
+			}
 		}
 	}
 	if err != nil || len(result.URLs) != 1 {
@@ -149,6 +164,108 @@ func (p *centosMediaProvider) Submit(ctx context.Context, account *Account, medi
 	result.Disposition = "accepted"
 	result.Status = "completed"
 	return result, nil
+}
+
+func isCentOSNanoModel(model string) bool {
+	return model == "gemini-3-pro-image-preview" || model == "gemini-3.1-flash-image-preview"
+}
+
+// Default geometry is an explicit, captured policy for this backup only.
+// Public Nano validation still bounds ratio/tier, and the GRS candidate keeps them.
+func buildUnifiedCentOSNanoPayload(model string, request *mediacapability.NormalizedRequest, values, metadata map[string]any, count int) ([]byte, string, error) {
+	profile := mediaAdapterProfile(PlatformCentOS, "image", model)
+	if len(request.AdapterProfile) > 0 {
+		profile = UnifiedMediaAdapterProfile{}
+		if json.Unmarshal(request.AdapterProfile, &profile) != nil {
+			return nil, "", errors.New("captured CentOS Nano profile is invalid")
+		}
+	}
+	if !profile.DefaultImageGeometry || count != 1 || request.ImageSpec != nil || request.RequestedImageSpec != nil || request.FixedImageResolution != "" {
+		return nil, "", errors.New("CentOS Nano requires the approved default-geometry backup policy")
+	}
+	for field := range metadata {
+		if field != "resolution" {
+			return nil, "", errors.New("unsupported CentOS Nano image parameter")
+		}
+	}
+	var content any = values["prompt"]
+	if images, exists := values["image_urls"]; exists {
+		refs, ok := images.([]any)
+		if !ok || len(refs) < 1 || len(refs) > 16 {
+			return nil, "", errors.New("CentOS Nano supports one to sixteen reference images")
+		}
+		parts := []any{map[string]any{"type": "text", "text": values["prompt"]}}
+		for _, reference := range refs {
+			parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]any{"url": reference}})
+		}
+		content = parts
+	}
+	body, err := json.Marshal(map[string]any{"model": model, "messages": []any{map[string]any{"role": "user", "content": content}}, "stream": false, "modalities": []string{"text", "image"}})
+	return body, "/v1/chat/completions", err
+}
+
+var centosNanoInlineImagePattern = regexp.MustCompile(`data:image/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+`)
+
+func parseCentOSNanoImages(raw []byte) []string {
+	var response struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+			FinishReason string `json:"finish_reason"`
+		} `json:"choices"`
+		Error json.RawMessage `json:"error"`
+	}
+	if json.Unmarshal(raw, &response) != nil || len(response.Choices) != 1 || response.Choices[0].FinishReason != "stop" || (len(response.Error) > 0 && string(response.Error) != "null") {
+		return nil
+	}
+	images := centosNanoInlineImagePattern.FindAllString(response.Choices[0].Message.Content, 2)
+	if len(images) != 1 {
+		return nil
+	}
+	return images
+}
+
+func (p *centosMediaProvider) prepareNanoReferences(ctx context.Context, account *Account, payload []byte) ([]byte, error) {
+	var body struct {
+		Model    string `json:"model"`
+		Messages []struct {
+			Role    string          `json:"role"`
+			Content json.RawMessage `json:"content"`
+		} `json:"messages"`
+		Stream     bool     `json:"stream"`
+		Modalities []string `json:"modalities"`
+	}
+	if json.Unmarshal(payload, &body) != nil || len(body.Messages) != 1 {
+		return nil, errors.New("invalid CentOS Nano request")
+	}
+	var parts []struct {
+		Type     string `json:"type"`
+		Text     string `json:"text,omitempty"`
+		ImageURL *struct {
+			URL string `json:"url"`
+		} `json:"image_url,omitempty"`
+	}
+	if json.Unmarshal(body.Messages[0].Content, &parts) != nil {
+		return payload, nil // Text-only messages do not download references.
+	}
+	total := 0
+	for i := range parts {
+		if parts[i].Type != "image_url" || parts[i].ImageURL == nil {
+			continue
+		}
+		data, err := p.downloadReference(ctx, account, parts[i].ImageURL.URL, &total)
+		if err != nil {
+			return nil, err
+		}
+		parts[i].ImageURL.URL = "data:" + http.DetectContentType(data) + ";base64," + base64.StdEncoding.EncodeToString(data)
+	}
+	content, err := json.Marshal(parts)
+	if err != nil {
+		return nil, err
+	}
+	body.Messages[0].Content = content
+	return json.Marshal(body)
 }
 
 // Reference URLs never receive provider credentials. The shared transport checks
@@ -183,32 +300,9 @@ func (p *centosMediaProvider) prepareImageEdit(ctx context.Context, account *Acc
 	}
 	total := 0
 	for i, source := range references {
-		parsed, err := url.Parse(source)
-		if err != nil || parsed.Hostname() == "" || parsed.User != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || rejectPrivateImageHost(source) != nil {
-			return nil, "", errors.New("invalid public reference image URL")
-		}
-		requestCtx, cancel := context.WithTimeout(WithHTTPUpstreamPublicHostsOnly(ctx), 45*time.Second)
-		req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, source, nil)
+		data, err := p.downloadReference(ctx, account, source, &total)
 		if err != nil {
-			cancel()
-			return nil, "", errors.New("failed to prepare reference download")
-		}
-		req.Header.Set("Accept", "image/*")
-		proxyURL := ""
-		if account.ProxyID != nil && account.Proxy != nil {
-			proxyURL = account.Proxy.URL()
-		}
-		response, err := p.transport.transport.Do(req, proxyURL, account.ID, account.Concurrency)
-		if err != nil {
-			cancel()
-			return nil, "", errors.New("reference image download failed")
-		}
-		data, readErr := io.ReadAll(io.LimitReader(response.Body, (20<<20)+1))
-		_ = response.Body.Close()
-		cancel()
-		total += len(data)
-		if readErr != nil || response.StatusCode < 200 || response.StatusCode >= 300 || len(data) > 20<<20 || total > 32<<20 || !isBackfillImageContent(data) {
-			return nil, "", errors.New("reference image is unavailable or exceeds the upload limit")
+			return nil, "", err
 		}
 		fieldName := "image"
 		if len(references) > 1 {
@@ -231,6 +325,38 @@ func (p *centosMediaProvider) prepareImageEdit(ctx context.Context, account *Acc
 		return nil, "", errors.New("failed to finish reference upload")
 	}
 	return body.Bytes(), writer.FormDataContentType(), nil
+}
+
+func (p *centosMediaProvider) downloadReference(ctx context.Context, account *Account, source string, total *int) ([]byte, error) {
+	if p.transport.transport == nil {
+		return nil, errors.New("secure reference image transport is unavailable")
+	}
+	parsed, err := url.Parse(source)
+	if err != nil || parsed.Hostname() == "" || parsed.User != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || rejectPrivateImageHost(source) != nil {
+		return nil, errors.New("invalid public reference image URL")
+	}
+	requestCtx, cancel := context.WithTimeout(WithHTTPUpstreamPublicHostsOnly(ctx), 45*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, source, nil)
+	if err != nil {
+		return nil, errors.New("failed to prepare reference download")
+	}
+	req.Header.Set("Accept", "image/*")
+	proxyURL := ""
+	if account.ProxyID != nil && account.Proxy != nil {
+		proxyURL = account.Proxy.URL()
+	}
+	response, err := p.transport.transport.Do(req, proxyURL, account.ID, account.Concurrency)
+	if err != nil {
+		return nil, errors.New("reference image download failed")
+	}
+	defer func() { _ = response.Body.Close() }()
+	data, readErr := io.ReadAll(io.LimitReader(response.Body, (20<<20)+1))
+	*total += len(data)
+	if readErr != nil || response.StatusCode < 200 || response.StatusCode >= 300 || len(data) > 20<<20 || *total > 32<<20 || !isBackfillImageContent(data) {
+		return nil, errors.New("reference image is unavailable or exceeds the upload limit")
+	}
+	return data, nil
 }
 
 func (*centosMediaProvider) Poll(context.Context, *Account, string, string, string) (*UnifiedMediaUpstreamResult, error) {

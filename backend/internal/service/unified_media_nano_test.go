@@ -111,7 +111,7 @@ func TestNanoDefaultsAndInvalidInputsRemainBounded(t *testing.T) {
 			{"aspectRatio": "1:4"}, {"aspectRatio": "4:1"}, {"aspectRatio": "1:8"}, {"aspectRatio": "8:1"},
 			{"n": 2}, {"replyType": "json"}, {"replyType": "stream"},
 			{"images": []string{"data:image/png;base64,AA=="}}, {"images": []string{"file:///tmp/a.png"}}, {"images": []string{"https://user:pass@example.com/a.png"}},
-			{"images": []string{}}, {"imageSize": "1k", "resolution": "2K"}, {"resolution_uppercase": false},
+			{"images": []string{}}, {"imageSize": "1k", "resolution": "2K"}, {"resolution_uppercase": false}, {"default_image_geometry": true},
 		} {
 			extra["model"], extra["prompt"] = model, "cup"
 			raw, _ := json.Marshal(extra)

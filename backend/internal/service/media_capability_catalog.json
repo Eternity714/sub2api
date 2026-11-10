@@ -13436,5 +13436,181 @@
         "quality": "auto"
       }
     }
+  },
+  {
+    "platform": "centos",
+    "upstream_model": "gemini-3-pro-image-preview",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://doc.centos.hk/web/#/688145263/261667732",
+    "evidence": "2026-11-10 OpenAI非流式文生图及内联参考图实测均出图；原生接口报model is required。用户明确授权备用忽略比例和档位，交付上游默认原图。",
+    "notes": "仅作GRS之后的备用；独立CentOS Provider走chat/completions stream=false，从message.content提取内联图片。default_image_geometry策略进入冻结快照；不转发aspectRatio/imageSize，不承诺请求比例和分辨率，原图不缩放不裁剪。参考图安全下载后转内联，最多16张、单张20MiB、合计32MiB。",
+    "profile": {
+      "default_image_geometry": true,
+      "resolution_uppercase": true,
+      "submit_path": "/v1/chat/completions"
+    },
+    "schema": {
+      "version": 1,
+      "allow_pixel_size": false,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "images": {
+          "type": "array",
+          "min_items": 1,
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "max_items": 16
+        },
+        "aspectRatio": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21"
+          ],
+          "default": "auto"
+        },
+        "imageSize": {
+          "type": "string",
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "default": "1K"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "replyType": {
+          "type": "string",
+          "enum": [
+            "async"
+          ],
+          "default": "async"
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      }
+    },
+    "example": {
+      "model": "centos/gemini-3-pro-image-preview",
+      "prompt": "A blue ceramic vase",
+      "aspectRatio": "auto",
+      "imageSize": "1K",
+      "n": 1,
+      "replyType": "async"
+    }
+  },
+  {
+    "platform": "centos",
+    "upstream_model": "gemini-3.1-flash-image-preview",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://doc.centos.hk/web/#/688145263/261667732",
+    "evidence": "2026-11-10 OpenAI非流式文生图及内联参考图实测均出图；原生接口报model is required。用户明确授权备用忽略比例和档位，交付上游默认原图。",
+    "notes": "仅作GRS之后的备用；独立CentOS Provider走chat/completions stream=false，从message.content提取内联图片。default_image_geometry策略进入冻结快照；不转发aspectRatio/imageSize，不承诺请求比例和分辨率，原图不缩放不裁剪。参考图安全下载后转内联，最多16张、单张20MiB、合计32MiB。",
+    "profile": {
+      "default_image_geometry": true,
+      "resolution_uppercase": true,
+      "submit_path": "/v1/chat/completions"
+    },
+    "schema": {
+      "version": 1,
+      "allow_pixel_size": false,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "images": {
+          "type": "array",
+          "min_items": 1,
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "max_items": 16
+        },
+        "aspectRatio": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21"
+          ],
+          "default": "auto"
+        },
+        "imageSize": {
+          "type": "string",
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "default": "1K"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "replyType": {
+          "type": "string",
+          "enum": [
+            "async"
+          ],
+          "default": "async"
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      }
+    },
+    "example": {
+      "model": "centos/gemini-3.1-flash-image-preview",
+      "prompt": "A blue ceramic vase",
+      "aspectRatio": "auto",
+      "imageSize": "1K",
+      "n": 1,
+      "replyType": "async"
+    }
   }
 ]

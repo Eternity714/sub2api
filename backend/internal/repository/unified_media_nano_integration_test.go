@@ -32,21 +32,27 @@ func TestUnifiedMediaRepositoryNanoSnapshotRestoreAndFlatSettlement(t *testing.T
 		} `json:"models"`
 	}
 	require.NoError(t, json.Unmarshal(raw, &catalog))
-	for _, upstreamModel := range []string{"nano-banana-pro", "nano-banana-2.1"} {
-		price := map[string]float64{"nano-banana-pro": .2, "nano-banana-2.1": .15}[upstreamModel]
+	for _, provider := range []struct{ platform, public, upstream string }{
+		{service.PlatformGrsai, "nano-banana-pro", "nano-banana-pro"},
+		{service.PlatformGrsai, "nano-banana-2.1", "nano-banana-2.1"},
+		{service.PlatformCentOS, "nano-banana-pro", "gemini-3-pro-image-preview"},
+		{service.PlatformCentOS, "nano-banana-2.1", "gemini-3.1-flash-image-preview"},
+	} {
+		upstreamModel := provider.upstream
+		price := map[string]float64{"nano-banana-pro": .2, "nano-banana-2.1": .15}[provider.public]
 		var schema json.RawMessage
 		for _, entry := range catalog.Models {
-			if entry.Model == upstreamModel {
+			if entry.Model == provider.public {
 				schema = entry.Schema
 			}
 		}
 		require.NotEmpty(t, schema)
 		for _, inputTier := range []string{"1k", "2k", "4K"} {
-			t.Run(upstreamModel+"/"+inputTier, func(t *testing.T) {
+			t.Run(provider.platform+"/"+upstreamModel+"/"+inputTier, func(t *testing.T) {
 				ctx := context.Background()
 				tier := strings.ToUpper(inputTier)
 				repo, fixture, accountID := unifiedMediaIntegrationFixture(t)
-				_, err := integrationDB.ExecContext(ctx, `UPDATE accounts SET platform=$1 WHERE id=$2`, service.PlatformGrsai, accountID)
+				_, err := integrationDB.ExecContext(ctx, `UPDATE accounts SET platform=$1 WHERE id=$2`, provider.platform, accountID)
 				require.NoError(t, err)
 				model := "nano-public-" + uuid.NewString()
 				capsRepo := NewMediaCapabilityRepository(integrationDB)
@@ -57,21 +63,34 @@ func TestUnifiedMediaRepositoryNanoSnapshotRestoreAndFlatSettlement(t *testing.T
 					_, _ = integrationDB.ExecContext(ctx, `DELETE FROM media_model_capabilities WHERE id=$1`, capability.ID)
 				})
 				routesRepo := NewCompositeModelRouteRepository(integrationEntClient)
-				route := &service.CompositeModelRoute{GroupID: fixture.GroupID, PublicModel: model, MatchType: "exact", TargetPlatform: service.PlatformGrsai, UpstreamModel: upstreamModel, Endpoint: "images", Priority: 10, Enabled: true}
+				route := &service.CompositeModelRoute{GroupID: fixture.GroupID, PublicModel: model, MatchType: "exact", TargetPlatform: provider.platform, UpstreamModel: upstreamModel, Endpoint: "images", Priority: 10, Enabled: true}
 				require.NoError(t, routesRepo.Create(ctx, route))
 				t.Cleanup(func() {
 					_, _ = integrationDB.ExecContext(ctx, `DELETE FROM composite_model_routes WHERE id=$1`, route.ID)
 				})
 				dimensions := map[string][2]int{"1K": {672, 1584}, "2K": {1344, 3168}, "4K": {2688, 6336}}[tier]
+				if provider.platform == service.PlatformCentOS {
+					dimensions = [2]int{2816, 1536}
+				}
 				var pngData bytes.Buffer
 				require.NoError(t, png.Encode(&pngData, image.NewGray(image.Rect(0, 0, dimensions[0], dimensions[1]))))
 				inline := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngData.Bytes())
 				posts := 0
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					posts++
-					require.Equal(t, "/v1/api/generate", r.URL.Path)
 					var body map[string]any
 					require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+					if provider.platform == service.PlatformCentOS {
+						require.Equal(t, "/v1/chat/completions", r.URL.Path)
+						require.Equal(t, upstreamModel, body["model"])
+						require.Equal(t, false, body["stream"])
+						require.NotContains(t, body, "imageSize")
+						require.NotContains(t, body, "aspectRatio")
+						require.NotContains(t, body, "image_config")
+						_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": "![image](" + inline + ")"}, "finish_reason": "stop"}}})
+						return
+					}
+					require.Equal(t, "/v1/api/generate", r.URL.Path)
 					ratio := "9:21"
 					if tier == "1K" {
 						ratio = "auto"
@@ -88,11 +107,11 @@ func TestUnifiedMediaRepositoryNanoSnapshotRestoreAndFlatSettlement(t *testing.T
 					_ = json.NewEncoder(w).Encode(map[string]any{"id": "nano-upstream-task", "status": "succeeded", "results": []any{map[string]any{"url": inline}}})
 				}))
 				defer server.Close()
-				account := service.Account{ID: accountID, Platform: service.PlatformGrsai, Type: service.AccountTypeAPIKey, Status: service.StatusActive, Schedulable: true, Credentials: map[string]any{"api_key": "synthetic-key", "base_url": server.URL}}
+				account := service.Account{ID: accountID, Platform: provider.platform, Type: service.AccountTypeAPIKey, Status: service.StatusActive, Schedulable: true, Credentials: map[string]any{"api_key": "synthetic-key", "base_url": server.URL}}
 				storage := &unifiedMediaIntegrationStorage{}
 				uploader := service.NewImageResultUploader(storage, "media/", 0, nil)
 				channels := service.NewChannelService(NewChannelRepository(integrationDB), nil, nil, nil, nil)
-				channel, err := channels.Create(ctx, &service.CreateChannelInput{Name: "nano-flat-" + uuid.NewString(), GroupIDs: []int64{fixture.GroupID}, ModelPricing: []service.ChannelModelPricing{{Platform: service.PlatformGrsai, Models: []string{model}, BillingMode: service.BillingModeImage, PerRequestPrice: seriesPricePointer(price)}}})
+				channel, err := channels.Create(ctx, &service.CreateChannelInput{Name: "nano-flat-" + uuid.NewString(), GroupIDs: []int64{fixture.GroupID}, ModelPricing: []service.ChannelModelPricing{{Platform: provider.platform, Models: []string{model}, BillingMode: service.BillingModeImage, PerRequestPrice: seriesPricePointer(price)}}})
 				require.NoError(t, err)
 				t.Cleanup(func() { require.NoError(t, channels.Delete(ctx, channel.ID)) })
 				svc := service.NewUnifiedMediaTaskService(repo, caps, service.NewCompositeMediaRouteService(service.NewCompositeRouteResolver(routesRepo), capsRepo), nil, &service.UnifiedMediaPricingResolver{Resolver: service.NewModelPricingResolver(channels, nil)}, nil, unifiedMediaIntegrationPersister{uploader: uploader})
@@ -102,7 +121,7 @@ func TestUnifiedMediaRepositoryNanoSnapshotRestoreAndFlatSettlement(t *testing.T
 				if tier != "1K" {
 					request["imageSize"], request["aspectRatio"] = inputTier, "9:21"
 				}
-				if tier == "4K" {
+				if tier == "4K" && provider.platform == service.PlatformGrsai {
 					request["images"] = []string{"https://example.com/ref.png"}
 				}
 				body, _ := json.Marshal(request)
@@ -114,6 +133,7 @@ func TestUnifiedMediaRepositoryNanoSnapshotRestoreAndFlatSettlement(t *testing.T
 				require.Nil(t, stored.Payload.Normalized.ImageSpec)
 				require.Equal(t, inputTier, stored.Payload.Normalized.Values["metadata"].(map[string]any)["resolution"])
 				require.True(t, stored.Payload.Candidates[0].AdapterProfile.ResolutionUppercase)
+				require.Equal(t, provider.platform == service.PlatformCentOS, stored.Payload.Candidates[0].AdapterProfile.DefaultImageGeometry)
 				require.NoError(t, caps.Delete(ctx, capability.ID, capability.Revision))
 				worker := service.NewUnifiedMediaTaskService(repo, nil, nil, &unifiedMediaIntegrationAccounts{account: account}, nil, service.NewUnifiedMediaUpstream(server.Client()), unifiedMediaIntegrationPersister{uploader: uploader})
 				require.NoError(t, worker.RunOnce(ctx))

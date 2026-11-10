@@ -18,16 +18,17 @@ import (
 // UnifiedMediaAdapterProfile describes protocol differences using trusted, embedded
 // provider documentation. User metadata never selects an endpoint or transport.
 type UnifiedMediaAdapterProfile struct {
-	TopLevelMetadata    []string          `json:"top_level_metadata,omitempty"`
-	FieldMap            map[string]string `json:"field_map,omitempty"`
-	ImageURLObjects     bool              `json:"image_url_objects,omitempty"`
-	PixelSize           bool              `json:"pixel_size,omitempty"`
-	StringDuration      bool              `json:"string_duration,omitempty"`
-	ResolutionLowercase bool              `json:"resolution_lowercase,omitempty"`
-	ResolutionUppercase bool              `json:"resolution_uppercase,omitempty"`
-	SubmitPath          string            `json:"submit_path,omitempty"`
-	QueryPath           string            `json:"query_path,omitempty"`
-	FixedFields         map[string]any    `json:"fixed_fields,omitempty"`
+	TopLevelMetadata     []string          `json:"top_level_metadata,omitempty"`
+	FieldMap             map[string]string `json:"field_map,omitempty"`
+	ImageURLObjects      bool              `json:"image_url_objects,omitempty"`
+	PixelSize            bool              `json:"pixel_size,omitempty"`
+	StringDuration       bool              `json:"string_duration,omitempty"`
+	ResolutionLowercase  bool              `json:"resolution_lowercase,omitempty"`
+	ResolutionUppercase  bool              `json:"resolution_uppercase,omitempty"`
+	DefaultImageGeometry bool              `json:"default_image_geometry,omitempty"`
+	SubmitPath           string            `json:"submit_path,omitempty"`
+	QueryPath            string            `json:"query_path,omitempty"`
+	FixedFields          map[string]any    `json:"fixed_fields,omitempty"`
 }
 
 type unifiedMediaHTTPUpstream struct {

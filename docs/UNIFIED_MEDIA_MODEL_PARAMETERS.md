@@ -4448,3 +4448,64 @@ Provider冻结`resolution_uppercase=true`和`metadata.resolution -> imageSize`�
   }
 }
 ```
+
+## centos / gemini-3-pro-image-preview / image
+
+来源：https://doc.centos.hk/web/#/688145263/261667732
+
+2026-11-10 OpenAI非流式文生图及内联参考图实测均出图；原生接口报model is required。用户明确授权备用忽略比例和档位，交付上游默认原图。
+
+仅作GRS之后的备用；独立CentOS Provider走chat/completions stream=false，从message.content提取内联图片。default_image_geometry策略进入冻结快照；不转发aspectRatio/imageSize，不承诺请求比例和分辨率，原图不缩放不裁剪。参考图安全下载后转内联，最多16张、单张20MiB、合计32MiB。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `images` | array<string> | 否 | — | 最少项 1；最多项 16 |
+| `aspectRatio` | string | 否 | `"auto"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21"]` |
+| `imageSize` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 1 |
+| `replyType` | string | 否 | `"async"` | 枚举 `["async"]` |
+
+请求示例：
+
+```json
+{
+  "model": "centos/gemini-3-pro-image-preview",
+  "prompt": "A blue ceramic vase",
+  "aspectRatio": "auto",
+  "imageSize": "1K",
+  "n": 1,
+  "replyType": "async"
+}
+```
+## centos / gemini-3.1-flash-image-preview / image
+
+来源：https://doc.centos.hk/web/#/688145263/261667732
+
+2026-11-10 OpenAI非流式文生图及内联参考图实测均出图；原生接口报model is required。用户明确授权备用忽略比例和档位，交付上游默认原图。
+
+仅作GRS之后的备用；独立CentOS Provider走chat/completions stream=false，从message.content提取内联图片。default_image_geometry策略进入冻结快照；不转发aspectRatio/imageSize，不承诺请求比例和分辨率，原图不缩放不裁剪。参考图安全下载后转内联，最多16张、单张20MiB、合计32MiB。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `images` | array<string> | 否 | — | 最少项 1；最多项 16 |
+| `aspectRatio` | string | 否 | `"auto"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21"]` |
+| `imageSize` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 1 |
+| `replyType` | string | 否 | `"async"` | 枚举 `["async"]` |
+
+请求示例：
+
+```json
+{
+  "model": "centos/gemini-3.1-flash-image-preview",
+  "prompt": "A blue ceramic vase",
+  "aspectRatio": "auto",
+  "imageSize": "1K",
+  "n": 1,
+  "replyType": "async"
+}
+```
