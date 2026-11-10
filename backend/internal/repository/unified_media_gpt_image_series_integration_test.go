@@ -42,7 +42,10 @@ func TestUnifiedMediaRepositoryGPTImageSeriesTieredRestartSettlement(t *testing.
 		var pngData bytes.Buffer
 		require.NoError(t, png.Encode(&pngData, image.NewRGBA(image.Rect(0, 0, pixels, pixels))))
 		inline := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngData.Bytes())
-		for _, platform := range []string{service.PlatformGrsai, service.PlatformKuaipao} {
+		for _, platform := range []string{service.PlatformGrsai, service.PlatformKuaipao, service.PlatformCentOS} {
+			if platform == service.PlatformCentOS && test.upstream == "gpt-image-2.5-flare" {
+				continue
+			}
 			t.Run(test.name+"/"+platform, func(t *testing.T) {
 				ctx := context.Background()
 				repo, fixture, accountID := unifiedMediaIntegrationFixture(t)
@@ -95,6 +98,13 @@ func TestUnifiedMediaRepositoryGPTImageSeriesTieredRestartSettlement(t *testing.
 						require.Equal(t, fmt.Sprintf("%dx%d", pixels, pixels), body["aspectRatio"])
 						require.Equal(t, "async", body["replyType"])
 						_ = json.NewEncoder(w).Encode(map[string]any{"id": "captured-grs-task", "status": "succeeded", "results": []any{map[string]any{"url": inline}}})
+					} else if platform == service.PlatformCentOS {
+						require.Equal(t, "/v1/images/generations", r.URL.Path)
+						require.Equal(t, true, body["stream"])
+						require.Equal(t, fmt.Sprintf("%dx%d", pixels, pixels), body["size"])
+						w.Header().Set("Content-Type", "text/event-stream")
+						event, _ := json.Marshal(map[string]any{"type": "image_generation.completed", "url": inline})
+						_, _ = fmt.Fprintf(w, "data: %s\n\n", event)
 					} else {
 						require.Equal(t, "/v2/images/generations", r.URL.Path)
 						require.Equal(t, "1:1", body["aspect_ratio"])

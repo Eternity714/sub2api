@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -40,6 +41,8 @@ type CompositeModelRoute struct {
 	Endpoint string `json:"endpoint,omitempty"`
 	// Lower values win within the same match strength.
 	Priority int `json:"priority,omitempty"`
+	// Optional 1K/2K/4K priority overrides for exact image routes.
+	ResolutionPriorities map[string]int `json:"resolution_priorities,omitempty"`
 	// Enabled holds the value of the "enabled" field.
 	Enabled bool `json:"enabled,omitempty"`
 	// Notes holds the value of the "notes" field.
@@ -75,6 +78,8 @@ func (*CompositeModelRoute) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case compositemodelroute.FieldResolutionPriorities:
+			values[i] = new([]byte)
 		case compositemodelroute.FieldEnabled:
 			values[i] = new(sql.NullBool)
 		case compositemodelroute.FieldID, compositemodelroute.FieldGroupID, compositemodelroute.FieldPriority:
@@ -171,6 +176,14 @@ func (_m *CompositeModelRoute) assignValues(columns []string, values []any) erro
 			} else if value.Valid {
 				_m.Priority = int(value.Int64)
 			}
+		case compositemodelroute.FieldResolutionPriorities:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field resolution_priorities", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ResolutionPriorities); err != nil {
+					return fmt.Errorf("unmarshal field resolution_priorities: %w", err)
+				}
+			}
 		case compositemodelroute.FieldEnabled:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field enabled", values[i])
@@ -259,6 +272,9 @@ func (_m *CompositeModelRoute) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("priority=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Priority))
+	builder.WriteString(", ")
+	builder.WriteString("resolution_priorities=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ResolutionPriorities))
 	builder.WriteString(", ")
 	builder.WriteString("enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Enabled))

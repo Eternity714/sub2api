@@ -944,8 +944,12 @@ func init() {
 	compositemodelrouteDescPriority := compositemodelrouteFields[7].Descriptor()
 	// compositemodelroute.DefaultPriority holds the default value on creation for the priority field.
 	compositemodelroute.DefaultPriority = compositemodelrouteDescPriority.Default.(int)
+	// compositemodelrouteDescResolutionPriorities is the schema descriptor for resolution_priorities field.
+	compositemodelrouteDescResolutionPriorities := compositemodelrouteFields[8].Descriptor()
+	// compositemodelroute.DefaultResolutionPriorities holds the default value on creation for the resolution_priorities field.
+	compositemodelroute.DefaultResolutionPriorities = compositemodelrouteDescResolutionPriorities.Default.(map[string]int)
 	// compositemodelrouteDescEnabled is the schema descriptor for enabled field.
-	compositemodelrouteDescEnabled := compositemodelrouteFields[8].Descriptor()
+	compositemodelrouteDescEnabled := compositemodelrouteFields[9].Descriptor()
 	// compositemodelroute.DefaultEnabled holds the default value on creation for the enabled field.
 	compositemodelroute.DefaultEnabled = compositemodelrouteDescEnabled.Default.(bool)
 	errorpassthroughruleMixin := schema.ErrorPassthroughRule{}.Mixin()

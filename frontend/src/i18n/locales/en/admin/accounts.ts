@@ -1,5 +1,10 @@
 export default {
     accounts: {
+      centos: {
+        baseUrlHint: 'CentOS optimized endpoint: https://frapi.centos.hk. You may configure https://ai.centos.hk manually. The saved endpoint is not switched automatically.',
+        apiKeyHint: 'Enter the CentOS API key. The account quota is configured by the administrator and shared by its users.',
+        connectionTestHint: 'The connection test only reads the model list. Image generation support is verified separately.',
+      },
       kuaipao: {
         baseUrlHint: 'The default Kuaipao image API endpoint is https://image.kuaipao.pro/v2. Keep the /v2 path.',
         apiKeyHint: 'Enter a Kuaipao API Key. Administrators configure the shared account quota.',

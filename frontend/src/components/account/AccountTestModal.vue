@@ -42,6 +42,7 @@
       </div>
 
       <p v-if="account?.platform === 'kuaipao'" class="input-hint">{{ t('admin.accounts.kuaipao.imageTestHint') }}</p>
+      <p v-if="account?.platform === 'centos'" class="input-hint">{{ t('admin.accounts.centos.connectionTestHint') }}</p>
       <div class="space-y-1.5">
         <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
           {{ t('admin.accounts.selectTestModel') }}

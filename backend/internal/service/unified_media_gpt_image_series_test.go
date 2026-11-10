@@ -61,7 +61,10 @@ func TestGPTImageSeriesEveryTierRatioQualityPreservesProviderPayloadAndSnapshot(
 					position = 0
 				}
 				for _, quality := range []string{"auto", "low", "medium", "high"} {
-					for _, platform := range []string{PlatformKuaipao, PlatformGrsai} {
+					for _, platform := range []string{PlatformKuaipao, PlatformGrsai, PlatformCentOS} {
+						if platform == PlatformCentOS && strings.HasPrefix(model, "gpt-image-2.5") {
+							continue
+						}
 						t.Run(model+"/"+tier+"/"+ratio+"/"+quality+"/"+platform, func(t *testing.T) {
 							raw, _ := json.Marshal(map[string]any{"model": model, "prompt": "blue cup", "aspectRatio": ratio, "imageSize": tier, "quality": quality, "replyType": "async"})
 							n, fields := compiled.Validate(raw)
@@ -90,6 +93,10 @@ func TestGPTImageSeriesEveryTierRatioQualityPreservesProviderPayloadAndSnapshot(
 							if platform == PlatformGrsai {
 								require.Equal(t, fmt.Sprintf("%dx%d", pixels[position][0], pixels[position][1]), payload["aspectRatio"])
 								require.Equal(t, "async", payload["replyType"])
+							} else if platform == PlatformCentOS {
+								require.Equal(t, fmt.Sprintf("%dx%d", pixels[position][0], pixels[position][1]), payload["size"])
+								require.Equal(t, true, payload["stream"])
+								require.NotContains(t, payload, "resolution")
 							} else {
 								want := ratio
 								if ratio == "auto" {

@@ -32,8 +32,8 @@ func TestUnifiedMediaRepositoryNanoSnapshotRestoreAndFlatSettlement(t *testing.T
 		} `json:"models"`
 	}
 	require.NoError(t, json.Unmarshal(raw, &catalog))
-	for _, upstreamModel := range []string{"nano-banana-pro", "nano-banana-2"} {
-		price := map[string]float64{"nano-banana-pro": .2, "nano-banana-2": .15}[upstreamModel]
+	for _, upstreamModel := range []string{"nano-banana-pro", "nano-banana-2.1"} {
+		price := map[string]float64{"nano-banana-pro": .2, "nano-banana-2.1": .15}[upstreamModel]
 		var schema json.RawMessage
 		for _, entry := range catalog.Models {
 			if entry.Model == upstreamModel {

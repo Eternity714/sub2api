@@ -1,5 +1,5 @@
 export function isNativeMediaPlatform(platform: string | null | undefined): boolean {
-  return platform === 'grsai' || platform === 'toapis' || platform === 'kuaipao'
+  return platform === 'grsai' || platform === 'toapis' || platform === 'kuaipao' || platform === 'centos'
 }
 
 /** Public capability identity. Administrative platform IDs remain unchanged. */

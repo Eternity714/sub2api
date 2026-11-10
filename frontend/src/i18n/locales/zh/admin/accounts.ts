@@ -1,5 +1,10 @@
 export default {
     accounts: {
+      centos: {
+        baseUrlHint: 'CentOS 官方优化节点为 https://frapi.centos.hk，也可手动设置 https://ai.centos.hk。保存后不会自动切换节点。',
+        apiKeyHint: '填写 CentOS API Key。账号额度由管理员配置，所有使用者共享。',
+        connectionTestHint: '连接测试仅读取模型列表，不生成图片；模型是否支持生图须单独验证。',
+      },
       kuaipao: {
         baseUrlHint: '快跑图片 API 默认地址为 https://image.kuaipao.pro/v2，请保留 /v2 路径。',
         apiKeyHint: '填写快跑 API Key。账号额度由管理员配置，所有使用者共享。',

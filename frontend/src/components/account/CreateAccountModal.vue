@@ -265,6 +265,14 @@
           </button>
           <button
             type="button"
+            data-testid="platform-button-centos"
+            @click="form.platform = 'centos'; accountCategory = 'apikey'"
+            :class="['flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-all', form.platform === 'centos' ? 'bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-300' : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200']"
+          >
+            <PlatformIcon platform="centos" size="sm" /> CentOS
+          </button>
+          <button
+            type="button"
             data-testid="platform-button-kuaipao"
             @click="form.platform = 'kuaipao'; accountCategory = 'apikey'"
             :class="['flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-all', form.platform === 'kuaipao' ? 'bg-white text-primary-700 shadow-sm dark:bg-dark-600 dark:text-primary-300' : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200']"
@@ -4224,6 +4232,7 @@ import {
   GRSAI_GLOBAL_BASE_URL,
   TOAPIS_GLOBAL_BASE_URL,
   KUAIPAO_BASE_URL,
+  CENTOS_BASE_URL,
   isCNProviderPlatform,
   isHeaderOverrideCapable,
   isMultiProtocolApiKeyPlatform,
@@ -4299,6 +4308,7 @@ const withUpstreamRequestIdHeader = <T extends Record<string, unknown> | undefin
 }
 
 const baseUrlHint = computed(() => {
+  if (form.platform === 'centos') return t('admin.accounts.centos.baseUrlHint')
   if (form.platform === 'openai') return t('admin.accounts.openai.baseUrlHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
   if (form.platform === 'grok') return ''
@@ -4309,6 +4319,7 @@ const baseUrlHint = computed(() => {
 })
 
 const apiKeyHint = computed(() => {
+  if (form.platform === 'centos') return t('admin.accounts.centos.apiKeyHint')
   if (form.platform === 'openai') return t('admin.accounts.openai.apiKeyHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.apiKeyHint')
   if (form.platform === 'toapis') return t('admin.accounts.toapis.apiKeyHint')
@@ -4338,6 +4349,8 @@ const apiKeyBaseUrlPlaceholder = computed(() => {
       return TOAPIS_GLOBAL_BASE_URL
     case 'kuaipao':
       return KUAIPAO_BASE_URL
+    case 'centos':
+      return CENTOS_BASE_URL
     case 'grsai':
       return GRSAI_GLOBAL_BASE_URL
     default:
@@ -4364,6 +4377,7 @@ const apiKeyValuePlaceholder = computed(() => {
     case 'grsai':
     case 'toapis':
     case 'kuaipao':
+    case 'centos':
       return 'sk-...'
     case 'typesafe':
       return 'ts-...'
@@ -5214,7 +5228,7 @@ watch(
               : newPlatform === 'typesafe'
                 ? 'https://api.typesafe.ai'
                 : newPlatform === 'kuaipao'
-                  ? KUAIPAO_BASE_URL
+                  ? KUAIPAO_BASE_URL : newPlatform === 'centos' ? CENTOS_BASE_URL
                   : newPlatform === 'toapis'
                     ? TOAPIS_GLOBAL_BASE_URL
                     : newPlatform === 'grsai'
@@ -6192,7 +6206,7 @@ const handleSubmit = async () => {
           : form.platform === 'typesafe'
             ? 'https://api.typesafe.ai'
             : form.platform === 'kuaipao'
-              ? KUAIPAO_BASE_URL
+              ? KUAIPAO_BASE_URL : form.platform === 'centos' ? CENTOS_BASE_URL
               : form.platform === 'toapis'
                 ? TOAPIS_GLOBAL_BASE_URL
                 : form.platform === 'grsai'

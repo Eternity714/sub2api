@@ -2805,7 +2805,7 @@ func (h *AccountHandler) GetAvailableModels(c *gin.Context) {
 	}
 
 	// Kuaipao is a native media provider; never fall back to chat models.
-	if account.Platform == service.PlatformKuaipao {
+	if account.Platform == service.PlatformKuaipao || account.Platform == service.PlatformCentOS {
 		ids := make([]string, 0)
 		for id := range account.GetModelMapping() {
 			if !strings.ContainsAny(id, "*?") {
@@ -2813,7 +2813,11 @@ func (h *AccountHandler) GetAvailableModels(c *gin.Context) {
 			}
 		}
 		if len(ids) == 0 {
-			ids = append(ids, service.KuaipaoDefaultImageModel)
+			if account.Platform == service.PlatformCentOS {
+				ids = append(ids, service.CentOSDefaultImageModel)
+			} else {
+				ids = append(ids, service.KuaipaoDefaultImageModel)
+			}
 		}
 		sort.Strings(ids)
 		models := make([]openai.Model, 0, len(ids))

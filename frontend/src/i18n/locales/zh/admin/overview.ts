@@ -1210,6 +1210,8 @@ export default {
         selectAtLeastOne: '开启固定账号后至少选择一个账号'
       },
       compositeRoutes: {
+        resolutionPriorities: '分辨率优先级（可选）',
+        resolutionPrioritiesHint: '留空沿用默认优先级；数字越小越优先。此规则手动维护，不会自动跟随上游价格变化。',
         capabilityModel: '候选能力模型（可选）',
         capabilityModelHint: '留空使用公开模型能力；仅在兼容路线需要独立校验时填写，例如 openai/image-compat。',
         nativeProviderAdapterHint: '使用公开模型的公共参数，Provider 自动适配上游请求并校验实际支持范围。',

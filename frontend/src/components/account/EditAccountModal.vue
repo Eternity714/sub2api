@@ -47,7 +47,7 @@
             class="input"
             :placeholder="
               account.platform === 'kuaipao'
-                ? KUAIPAO_BASE_URL
+                ? KUAIPAO_BASE_URL : account.platform === 'centos' ? CENTOS_BASE_URL
                 : account.platform === 'toapis'
                 ? TOAPIS_GLOBAL_BASE_URL
                 : account.platform === 'openai'
@@ -3316,6 +3316,7 @@ import {
   GRSAI_GLOBAL_BASE_URL,
   TOAPIS_GLOBAL_BASE_URL,
   KUAIPAO_BASE_URL,
+  CENTOS_BASE_URL,
   isCNProviderPlatform,
   HEADER_OVERRIDE_ENABLED_CREDENTIAL_KEY,
   HEADER_OVERRIDES_CREDENTIAL_KEY,
@@ -3487,6 +3488,7 @@ const baseUrlHint = computed(() => {
   if (props.account.platform === 'grok') return ''
   if (props.account.platform === 'toapis') return t('admin.accounts.toapis.baseUrlHint')
   if (props.account.platform === 'kuaipao') return t('admin.accounts.kuaipao.baseUrlHint')
+  if (props.account.platform === 'centos') return t('admin.accounts.centos.baseUrlHint')
   if (props.account.platform === 'grsai') return t('admin.accounts.grsai.baseUrlHint')
   return t('admin.accounts.baseUrlHint')
 })
@@ -4206,6 +4208,7 @@ const defaultBaseUrl = computed(() => {
   if (props.account?.platform === 'typesafe') return 'https://api.typesafe.ai'
   if (props.account?.platform === 'toapis') return TOAPIS_GLOBAL_BASE_URL
   if (props.account?.platform === 'kuaipao') return KUAIPAO_BASE_URL
+  if (props.account?.platform === 'centos') return CENTOS_BASE_URL
   if (props.account?.platform === 'grsai') return GRSAI_GLOBAL_BASE_URL
   // CN 供应商：按当前模式/协议回落到官方预设（清空输入框提交时使用），
   // 不能落到 anthropic 默认值（会被当 CC base 拼出错误端点）。
@@ -4659,7 +4662,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
             : newAccount.platform === 'typesafe'
               ? 'https://api.typesafe.ai'
               : newAccount.platform === 'kuaipao'
-                ? KUAIPAO_BASE_URL
+                ? KUAIPAO_BASE_URL : newAccount.platform === 'centos' ? CENTOS_BASE_URL
                 : newAccount.platform === 'toapis'
                   ? TOAPIS_GLOBAL_BASE_URL
                   : newAccount.platform === 'grsai'

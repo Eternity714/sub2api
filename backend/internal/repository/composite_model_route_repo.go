@@ -50,6 +50,7 @@ func (r *compositeModelRouteRepository) Create(ctx context.Context, route *servi
 		SetCapabilityModel(route.CapabilityModel).
 		SetEndpoint(route.Endpoint).
 		SetPriority(route.Priority).
+		SetResolutionPriorities(nonNilResolutionPriorities(route.ResolutionPriorities)).
 		SetEnabled(route.Enabled).
 		SetNotes(route.Notes).
 		Save(ctx)
@@ -64,7 +65,7 @@ func (r *compositeModelRouteRepository) Update(ctx context.Context, route *servi
 	if route == nil {
 		return service.ErrCompositeRouteNotFound
 	}
-	updated, err := clientFromContext(ctx, r.client).CompositeModelRoute.UpdateOneID(route.ID).
+	update := clientFromContext(ctx, r.client).CompositeModelRoute.UpdateOneID(route.ID).
 		SetPublicModel(route.PublicModel).
 		SetMatchType(route.MatchType).
 		SetTargetPlatform(route.TargetPlatform).
@@ -73,8 +74,11 @@ func (r *compositeModelRouteRepository) Update(ctx context.Context, route *servi
 		SetEndpoint(route.Endpoint).
 		SetPriority(route.Priority).
 		SetEnabled(route.Enabled).
-		SetNotes(route.Notes).
-		Save(ctx)
+		SetNotes(route.Notes)
+	if route.ResolutionPriorities != nil {
+		update.SetResolutionPriorities(route.ResolutionPriorities)
+	}
+	updated, err := update.Save(ctx)
 	if err != nil {
 		return translatePersistenceError(err, service.ErrCompositeRouteNotFound, service.ErrCompositeRouteExists)
 	}
@@ -99,18 +103,26 @@ func compositeModelRouteEntityToService(row *dbent.CompositeModelRoute) *service
 		return nil
 	}
 	return &service.CompositeModelRoute{
-		ID:              row.ID,
-		GroupID:         row.GroupID,
-		PublicModel:     row.PublicModel,
-		MatchType:       row.MatchType,
-		TargetPlatform:  row.TargetPlatform,
-		UpstreamModel:   row.UpstreamModel,
-		CapabilityModel: row.CapabilityModel,
-		Endpoint:        row.Endpoint,
-		Priority:        row.Priority,
-		Enabled:         row.Enabled,
-		Notes:           derefString(row.Notes),
-		CreatedAt:       row.CreatedAt,
-		UpdatedAt:       row.UpdatedAt,
+		ID:                   row.ID,
+		GroupID:              row.GroupID,
+		PublicModel:          row.PublicModel,
+		MatchType:            row.MatchType,
+		TargetPlatform:       row.TargetPlatform,
+		UpstreamModel:        row.UpstreamModel,
+		CapabilityModel:      row.CapabilityModel,
+		Endpoint:             row.Endpoint,
+		Priority:             row.Priority,
+		ResolutionPriorities: row.ResolutionPriorities,
+		Enabled:              row.Enabled,
+		Notes:                derefString(row.Notes),
+		CreatedAt:            row.CreatedAt,
+		UpdatedAt:            row.UpdatedAt,
 	}
+}
+
+func nonNilResolutionPriorities(priorities map[string]int) map[string]int {
+	if priorities == nil {
+		return map[string]int{}
+	}
+	return priorities
 }

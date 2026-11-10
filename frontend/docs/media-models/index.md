@@ -20,7 +20,7 @@ description: 统一媒体 API 当前开放的图片与视频模型、参数和�
 | [gpt-image-2.6](/media-models/gpt-image-2.6) | 1K（固定） | 1 | 0.08 元/张 |
 | [gpt-image-2.6-flare](/media-models/gpt-image-2.6-flare) | `1K`、`2K`、`4K` | 1 | 1K：0.12 元/张；2K：0.2 元/张；4K：0.35 元/张 |
 | [gpt-image-2.6-sunburst](/media-models/gpt-image-2.6-sunburst) | `1K`、`2K`、`4K` | 1 | 1K：0.12 元/张；2K：0.2 元/张；4K：0.35 元/张 |
-| [nano-banana-2](/media-models/nano-banana-2) | `1k`、`2k`、`4k`、`1K`、`2K`、`4K` | 1 | 0.15 元/张 |
+| [nano-banana-2.1](/media-models/nano-banana-2.1) | `1k`、`2k`、`4k`、`1K`、`2K`、`4K` | 1 | 0.15 元/张 |
 | [nano-banana-pro](/media-models/nano-banana-pro) | `1k`、`2k`、`4k`、`1K`、`2K`、`4K` | 1 | 0.2 元/张 |
 
 ## 视频模型

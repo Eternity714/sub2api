@@ -75,6 +75,12 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 		}
 		return buildUnifiedOpenAIImagePayload(model, request, values, metadata, count)
 	}
+	if platform == PlatformCentOS {
+		if mediaType != "image" {
+			return nil, "", errors.New("CentOS supports images only")
+		}
+		return buildUnifiedCentOSImagePayload(model, request, values, metadata, count)
+	}
 	profile := mediaAdapterProfile(platform, mediaType, model)
 	if len(request.AdapterProfile) > 0 {
 		profile = UnifiedMediaAdapterProfile{}
@@ -303,6 +309,9 @@ func (u *unifiedMediaHTTPUpstream) Submit(ctx context.Context, account *Account,
 	if account.Platform == PlatformKuaipao {
 		return (&kuaipaoMediaProvider{transport: u}).Submit(ctx, account, mediaType, model, normalized, count)
 	}
+	if account.Platform == PlatformCentOS {
+		return (&centosMediaProvider{transport: u}).Submit(ctx, account, mediaType, model, normalized, count)
+	}
 	payload, endpoint, err := BuildUnifiedMediaPayload(account.Platform, mediaType, model, normalized, count)
 	if err != nil {
 		return &UnifiedMediaUpstreamResult{Disposition: "rejected", Error: err.Error()}, err
@@ -315,6 +324,9 @@ func (u *unifiedMediaHTTPUpstream) Poll(ctx context.Context, account *Account, m
 func (u *unifiedMediaHTTPUpstream) PollWithProfile(ctx context.Context, account *Account, mediaType, model, taskID string, captured *UnifiedMediaAdapterProfile) (*UnifiedMediaUpstreamResult, error) {
 	if account != nil && account.Platform == PlatformKuaipao {
 		return (&kuaipaoMediaProvider{transport: u}).Poll(ctx, account, mediaType, model, taskID)
+	}
+	if account != nil && account.Platform == PlatformCentOS {
+		return (&centosMediaProvider{transport: u}).Poll(ctx, account, mediaType, model, taskID)
 	}
 	if account == nil || strings.TrimSpace(taskID) == "" || len(taskID) > 512 || strings.ContainsAny(taskID, "/?#\\%") {
 		return nil, errors.New("media task is unavailable")

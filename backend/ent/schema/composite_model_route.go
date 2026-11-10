@@ -70,6 +70,9 @@ func (CompositeModelRoute) Fields() []ent.Field {
 		field.Int("priority").
 			Default(100).
 			Comment("Lower values win within the same match strength."),
+		field.JSON("resolution_priorities", map[string]int{}).
+			Default(map[string]int{}).
+			Comment("Optional 1K/2K/4K priority overrides for exact image routes."),
 		field.Bool("enabled").
 			Default(true),
 		field.String("notes").

@@ -23,6 +23,7 @@ const PROVIDER_BY_PLATFORM: Record<GroupPlatform, KeyGroupProvider> = {
   grsai: 'other',
   toapis: 'other',
   kuaipao: 'other',
+  centos: 'other',
   media: 'other'
 }
 

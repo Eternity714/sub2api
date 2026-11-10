@@ -17,7 +17,7 @@ func isMediaRouteEndpoint(endpoint string) bool {
 	return endpoint == CompositeRouteEndpointImages || endpoint == CompositeRouteEndpointVideos
 }
 func isMediaRoutePlatform(platform string) bool {
-	return platform == PlatformGrsai || platform == PlatformToAPIs || platform == PlatformKuaipao
+	return platform == PlatformGrsai || platform == PlatformToAPIs || platform == PlatformKuaipao || platform == PlatformCentOS
 }
 
 // OpenAI image routes opt into unified tasks through an explicit capability.
@@ -92,6 +92,16 @@ type MediaCandidate struct {
 	Capability      MediaCapabilitySnapshot        `json:"capability_snapshot"`
 	Compiled        *mediacapability.Compiled      `json:"-"`
 	Match           mediacapability.CandidateMatch `json:"match"`
+}
+
+func sortMediaDecisionsByResolution(routes []CompositeRouteDecision, resolution string) {
+	sort.SliceStable(routes, func(i, j int) bool {
+		left, right := routes[i].Route, routes[j].Route
+		if left.ResolutionPriority(resolution) != right.ResolutionPriority(resolution) {
+			return left.ResolutionPriority(resolution) < right.ResolutionPriority(resolution)
+		}
+		return left.ID < right.ID
+	})
 }
 
 type CompositeMediaRouteService struct {
@@ -174,6 +184,21 @@ func (s *CompositeMediaRouteService) MediaCandidates(ctx context.Context, groupI
 			failures = append(failures, mediacapability.FieldError{Path: "model", Code: "unsupported_parameters", Message: "no enabled media route capability supports the requested model and parameters"})
 		}
 		return nil, mediaCapabilityValidationError(failures)
+	}
+	if mediaType == "image" {
+		resolution := normalized.FixedImageResolution
+		if resolution == "" {
+			if metadata, ok := normalized.Values["metadata"].(map[string]any); ok {
+				resolution, _ = metadata["resolution"].(string)
+			}
+		}
+		sort.SliceStable(result, func(i, j int) bool {
+			left, right := result[i].Route.Route, result[j].Route.Route
+			if left.ResolutionPriority(resolution) != right.ResolutionPriority(resolution) {
+				return left.ResolutionPriority(resolution) < right.ResolutionPriority(resolution)
+			}
+			return left.ID < right.ID
+		})
 	}
 	return result, nil
 }

@@ -29,8 +29,8 @@ export const mediaModelSidebar = [
         "link": "/media-models/gpt-image-2.6-sunburst"
       },
       {
-        "text": "nano-banana-2",
-        "link": "/media-models/nano-banana-2"
+        "text": "nano-banana-2.1",
+        "link": "/media-models/nano-banana-2.1"
       },
       {
         "text": "nano-banana-pro",

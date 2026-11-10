@@ -35,6 +35,8 @@ const (
 	PlatformToAPIs = "toapis"
 	// PlatformKuaipao 是通过统一媒体任务接入的快跑 API 平台。
 	PlatformKuaipao = "kuaipao"
+	// PlatformCentOS 是通过独立 Provider 接入的星辰媒体平台。
+	PlatformCentOS = "centos"
 	// PlatformOpenCodeGo 是 OpenCode 平台（账号类型 Zen 按量 / Go 订阅）。
 	// 值保持 opencode_go 以兼容已落库的账号、分组、配额与 Composite 路由。
 	PlatformOpenCodeGo = "opencode_go"

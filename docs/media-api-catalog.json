@@ -2,7 +2,7 @@
   "version": 2,
   "platform": "media",
   "display_name": "媒体 API",
-  "snapshot_at": "2026-11-10T04:11:58.964338+00:00",
+  "snapshot_at": "2026-11-10T08:14:47.891359+00:00",
   "models": [
     {
       "model": "gpt-image-2.6-sunburst",
@@ -2208,7 +2208,7 @@
       ]
     },
     {
-      "model": "nano-banana-2",
+      "model": "nano-banana-2.1",
       "media_type": "image",
       "schema": {
         "version": 1,
@@ -2289,14 +2289,14 @@
         {
           "label": "文生图（默认 auto、1k）",
           "request": {
-            "model": "nano-banana-2",
+            "model": "nano-banana-2.1",
             "prompt": "白色桌面上的蓝色陶瓷花瓶，柔和自然光"
           }
         },
         {
           "label": "竖幅生图（9:21、2k）",
           "request": {
-            "model": "nano-banana-2",
+            "model": "nano-banana-2.1",
             "prompt": "柔和光线中的蓝色陶瓷花瓶",
             "aspectRatio": "9:21",
             "imageSize": "2k",
@@ -2307,7 +2307,7 @@
         {
           "label": "参考图生图（4K）",
           "request": {
-            "model": "nano-banana-2",
+            "model": "nano-banana-2.1",
             "prompt": "保留参考图主体并改为柔和水彩风格",
             "images": [
               "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
@@ -2646,9 +2646,9 @@
       "slug": "gpt-image-2.5-2k"
     },
     {
-      "model": "nano-banana-2.1",
+      "model": "nano-banana-2",
       "media_type": "image",
-      "slug": "nano-banana-2.1"
+      "slug": "nano-banana-2"
     }
   ]
 }

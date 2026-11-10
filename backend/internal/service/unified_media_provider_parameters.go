@@ -19,18 +19,25 @@ type unifiedMediaProviderPlan struct {
 // Only explicit native routes use these reviewed provider rules. Catalog entries
 // do not enable accounts, routes, public capabilities, or pricing.
 func planUnifiedMediaProviderRequest(platform, mediaType, model string, original *mediacapability.NormalizedRequest) (*unifiedMediaProviderPlan, error) {
-	if platform != PlatformGrsai && platform != PlatformToAPIs && platform != PlatformKuaipao {
+	if platform != PlatformGrsai && platform != PlatformToAPIs && platform != PlatformKuaipao && platform != PlatformCentOS {
 		return nil, nil
 	}
 	loadMediaCapabilityCatalog()
+	catalogModel := model
+	// Old slots and persisted routes may still use this name during gray rollout.
+	// Public availability is controlled by the database capability and allowlist;
+	// the renamed model's equivalent parameter rules do not publish a legacy alias.
+	if platform == PlatformGrsai && mediaType == "image" && model == "nano-banana-2" {
+		catalogModel = "nano-banana-2.1"
+	}
 	for _, entry := range mediaCatalogEntries {
-		if entry.Platform != platform || entry.MediaType != mediaType || entry.UpstreamModel != model {
+		if entry.Platform != platform || entry.MediaType != mediaType || entry.UpstreamModel != catalogModel {
 			continue
 		}
 		if len(entry.Schema) == 0 {
 			return nil, mediaCapabilityFieldError("model", "unsupported_parameters", "provider model has no verified parameter rules")
 		}
-		profile := mediaAdapterProfile(platform, mediaType, model)
+		profile := mediaAdapterProfile(platform, mediaType, catalogModel)
 		providerSchema, err := fixedImageProviderSchema(platform, mediaType, model, entry.Schema, profile, original)
 		if err != nil {
 			return nil, err
@@ -111,19 +118,23 @@ func adaptUnifiedMediaProviderRequest(mediaType string, schemaJSON json.RawMessa
 		}
 	}
 	if original.FixedImageResolution != "" || original.RequestedImageSpec != nil {
-		if mediaType != "image" || original.ImageSpec == nil || (original.FixedImageResolution != "" && original.ImageSpec.Resolution != original.FixedImageResolution) {
+		spec := original.ImageSpec
+		if spec == nil && original.FixedImageResolution == "" {
+			spec = original.RequestedImageSpec
+		}
+		if mediaType != "image" || spec == nil || (original.FixedImageResolution != "" && spec.Resolution != original.FixedImageResolution) {
 			return nil, errors.New("fixed image specification is unavailable")
 		}
 		metadata, _ := values["metadata"].(map[string]any)
 		if metadata == nil {
 			metadata = map[string]any{}
 		}
-		if resolution, exists := metadata["resolution"]; exists && resolution != original.ImageSpec.Resolution {
+		if resolution, exists := metadata["resolution"]; exists && resolution != spec.Resolution {
 			return nil, errors.New("resolution conflicts with the fixed image model")
 		}
-		metadata["resolution"] = original.ImageSpec.Resolution
+		metadata["resolution"] = spec.Resolution
 		values["metadata"] = metadata
-		values["size"] = original.ImageSpec.AspectRatio
+		values["size"] = spec.AspectRatio
 	}
 	var schema mediacapability.Schema
 	if err := json.Unmarshal(schemaJSON, &schema); err != nil {

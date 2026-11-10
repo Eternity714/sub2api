@@ -161,6 +161,12 @@ func (_c *CompositeModelRouteCreate) SetNillablePriority(v *int) *CompositeModel
 	return _c
 }
 
+// SetResolutionPriorities sets the "resolution_priorities" field.
+func (_c *CompositeModelRouteCreate) SetResolutionPriorities(v map[string]int) *CompositeModelRouteCreate {
+	_c.mutation.SetResolutionPriorities(v)
+	return _c
+}
+
 // SetEnabled sets the "enabled" field.
 func (_c *CompositeModelRouteCreate) SetEnabled(v bool) *CompositeModelRouteCreate {
 	_c.mutation.SetEnabled(v)
@@ -269,6 +275,10 @@ func (_c *CompositeModelRouteCreate) defaults() error {
 		v := compositemodelroute.DefaultPriority
 		_c.mutation.SetPriority(v)
 	}
+	if _, ok := _c.mutation.ResolutionPriorities(); !ok {
+		v := compositemodelroute.DefaultResolutionPriorities
+		_c.mutation.SetResolutionPriorities(v)
+	}
 	if _, ok := _c.mutation.Enabled(); !ok {
 		v := compositemodelroute.DefaultEnabled
 		_c.mutation.SetEnabled(v)
@@ -337,6 +347,9 @@ func (_c *CompositeModelRouteCreate) check() error {
 	}
 	if _, ok := _c.mutation.Priority(); !ok {
 		return &ValidationError{Name: "priority", err: errors.New(`ent: missing required field "CompositeModelRoute.priority"`)}
+	}
+	if _, ok := _c.mutation.ResolutionPriorities(); !ok {
+		return &ValidationError{Name: "resolution_priorities", err: errors.New(`ent: missing required field "CompositeModelRoute.resolution_priorities"`)}
 	}
 	if _, ok := _c.mutation.Enabled(); !ok {
 		return &ValidationError{Name: "enabled", err: errors.New(`ent: missing required field "CompositeModelRoute.enabled"`)}
@@ -410,6 +423,10 @@ func (_c *CompositeModelRouteCreate) createSpec() (*CompositeModelRoute, *sqlgra
 	if value, ok := _c.mutation.Priority(); ok {
 		_spec.SetField(compositemodelroute.FieldPriority, field.TypeInt, value)
 		_node.Priority = value
+	}
+	if value, ok := _c.mutation.ResolutionPriorities(); ok {
+		_spec.SetField(compositemodelroute.FieldResolutionPriorities, field.TypeJSON, value)
+		_node.ResolutionPriorities = value
 	}
 	if value, ok := _c.mutation.Enabled(); ok {
 		_spec.SetField(compositemodelroute.FieldEnabled, field.TypeBool, value)
@@ -617,6 +634,18 @@ func (u *CompositeModelRouteUpsert) UpdatePriority() *CompositeModelRouteUpsert 
 // AddPriority adds v to the "priority" field.
 func (u *CompositeModelRouteUpsert) AddPriority(v int) *CompositeModelRouteUpsert {
 	u.Add(compositemodelroute.FieldPriority, v)
+	return u
+}
+
+// SetResolutionPriorities sets the "resolution_priorities" field.
+func (u *CompositeModelRouteUpsert) SetResolutionPriorities(v map[string]int) *CompositeModelRouteUpsert {
+	u.Set(compositemodelroute.FieldResolutionPriorities, v)
+	return u
+}
+
+// UpdateResolutionPriorities sets the "resolution_priorities" field to the value that was provided on create.
+func (u *CompositeModelRouteUpsert) UpdateResolutionPriorities() *CompositeModelRouteUpsert {
+	u.SetExcluded(compositemodelroute.FieldResolutionPriorities)
 	return u
 }
 
@@ -846,6 +875,20 @@ func (u *CompositeModelRouteUpsertOne) AddPriority(v int) *CompositeModelRouteUp
 func (u *CompositeModelRouteUpsertOne) UpdatePriority() *CompositeModelRouteUpsertOne {
 	return u.Update(func(s *CompositeModelRouteUpsert) {
 		s.UpdatePriority()
+	})
+}
+
+// SetResolutionPriorities sets the "resolution_priorities" field.
+func (u *CompositeModelRouteUpsertOne) SetResolutionPriorities(v map[string]int) *CompositeModelRouteUpsertOne {
+	return u.Update(func(s *CompositeModelRouteUpsert) {
+		s.SetResolutionPriorities(v)
+	})
+}
+
+// UpdateResolutionPriorities sets the "resolution_priorities" field to the value that was provided on create.
+func (u *CompositeModelRouteUpsertOne) UpdateResolutionPriorities() *CompositeModelRouteUpsertOne {
+	return u.Update(func(s *CompositeModelRouteUpsert) {
+		s.UpdateResolutionPriorities()
 	})
 }
 
@@ -1246,6 +1289,20 @@ func (u *CompositeModelRouteUpsertBulk) AddPriority(v int) *CompositeModelRouteU
 func (u *CompositeModelRouteUpsertBulk) UpdatePriority() *CompositeModelRouteUpsertBulk {
 	return u.Update(func(s *CompositeModelRouteUpsert) {
 		s.UpdatePriority()
+	})
+}
+
+// SetResolutionPriorities sets the "resolution_priorities" field.
+func (u *CompositeModelRouteUpsertBulk) SetResolutionPriorities(v map[string]int) *CompositeModelRouteUpsertBulk {
+	return u.Update(func(s *CompositeModelRouteUpsert) {
+		s.SetResolutionPriorities(v)
+	})
+}
+
+// UpdateResolutionPriorities sets the "resolution_priorities" field to the value that was provided on create.
+func (u *CompositeModelRouteUpsertBulk) UpdateResolutionPriorities() *CompositeModelRouteUpsertBulk {
+	return u.Update(func(s *CompositeModelRouteUpsert) {
+		s.UpdateResolutionPriorities()
 	})
 }
 

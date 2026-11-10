@@ -255,6 +255,7 @@ export const TOAPIS_GLOBAL_BASE_URL = 'https://toapis.com'
 export const TOAPIS_DOMESTIC_BASE_URL = 'https://toapis.cn'
 
 export const KUAIPAO_BASE_URL = 'https://image.kuaipao.pro/v2'
+export const CENTOS_BASE_URL = 'https://frapi.centos.hk'
 
 /** GRS.AI 官方节点。创建 GRS.AI 账号时默认使用全球节点。 */
 export const GRSAI_GLOBAL_BASE_URL = 'https://grsaiapi.com'

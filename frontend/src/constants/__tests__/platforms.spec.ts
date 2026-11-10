@@ -31,7 +31,8 @@ const concretePlatforms = [
   'cline',
   'grsai',
   'toapis',
-  'kuaipao'
+  'kuaipao',
+  'centos'
 ]
 
 describe('platform option catalogs', () => {
@@ -81,11 +82,11 @@ describe('platform catalog with a newly registered platform', () => {
     expect(listPlatformIds()).toEqual(concretePlatforms)
     expect(compositePrecedencePlatformIds()).toEqual([
       'anthropic', 'gemini', 'openai', 'antigravity', 'grok',
-      'kimi', 'zhipu', 'deepseek', 'minimax', 'opencode_go', 'typesafe', 'command_code', 'cline', 'grsai', 'toapis', 'kuaipao'
+      'kimi', 'zhipu', 'deepseek', 'minimax', 'opencode_go', 'typesafe', 'command_code', 'cline', 'grsai', 'toapis', 'kuaipao', 'centos'
     ])
     expect(CONCRETE_PLATFORM_OPTIONS.map((option) => option.label)).toEqual([
       'Anthropic', 'OpenAI', 'Gemini', 'Antigravity', 'Grok',
-      'Kimi', 'Zhipu GLM', 'DeepSeek', 'MiniMax', 'OpenCode', 'TypeSafe / Jev', 'Command Code', 'Cline', 'GRS.AI', 'ToAPIs', '快跑 API'
+      'Kimi', 'Zhipu GLM', 'DeepSeek', 'MiniMax', 'OpenCode', 'TypeSafe / Jev', 'Command Code', 'Cline', 'GRS.AI', 'ToAPIs', '快跑 API', 'CentOS'
     ])
     expect(platformLabel('zhipu')).toBe('Zhipu GLM')
     expect(platformLabel('composite')).toBe('Composite')
@@ -112,8 +113,8 @@ describe('platform catalog with a newly registered platform', () => {
     expect(platformQuotaPlatforms()).not.toContain('grsai')
     expect(platformQuotaPlatforms()).not.toContain('toapis')
     expect(platformQuotaPlatforms()).not.toContain('kuaipao')
-    expect(quotaPlatformIds()).toEqual([...concretePlatforms.filter(platform => !['grsai', 'toapis', 'kuaipao'].includes(platform)), 'acme_router'])
-    expect(Object.keys(normalizePlatformQuotasMap())).toEqual([...concretePlatforms.filter(platform => !['grsai', 'toapis', 'kuaipao'].includes(platform)), 'acme_router'])
+    expect(quotaPlatformIds()).toEqual([...concretePlatforms.filter(platform => !['grsai', 'toapis', 'kuaipao', 'centos'].includes(platform)), 'acme_router'])
+    expect(Object.keys(normalizePlatformQuotasMap())).toEqual([...concretePlatforms.filter(platform => !['grsai', 'toapis', 'kuaipao', 'centos'].includes(platform)), 'acme_router'])
     expect(sanitizePlatformQuotasMap({ acme_router: { daily: 5, weekly: -1, monthly: null } }).acme_router).toEqual({
       daily: 5,
       weekly: null,

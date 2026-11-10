@@ -56,7 +56,7 @@ Claude Code 地址不含 `/v1`，其配置使用 `ANTHROPIC_AUTH_TOKEN`。Codex 
 | `/docs/media-videos` | 统一视频参数、参考素材、开放状态与独立视频协议对照 |
 | `/docs/media-models/` 及模型页 | 当前可用模型、精确字段约束、示例和价格快照，全部由生成器维护 |
 
-`docs/media-api-catalog.json` 保存经过脱敏、审核的已开放公开能力快照；它不是运行时路由配置，不会改变生产能力。2026-11-10 核对的快照包含四款 GPT Image Flare/Sunburst 与两个固定 1K 的 GPT Image 简化型号，以及 `nano-banana-pro`、`nano-banana-2`，共八个图片模型。Flare/Sunburst 按 1K/2K/4K 收费，简化型号固定 1K、0.08 元/张；统一媒体视频模型当前为 0。
+`docs/media-api-catalog.json` 保存经过脱敏、审核的已开放公开能力快照；它不是运行时路由配置，不会改变生产能力。2026-11-10 核对的快照包含四款 GPT Image Flare/Sunburst 与两个固定 1K 的 GPT Image 简化型号，以及 `nano-banana-pro`、`nano-banana-2.1`，共八个图片模型。Flare/Sunburst 按 1K/2K/4K 收费，简化型号固定 1K、0.08 元/张；统一媒体视频模型当前为 0。
 
 后台调整模型能力或启停时，必须同步更新快照、示例与文档。快照仅列同时满足已启用能力、分组允许、有效候选路由与已配置价格的型号。公开内容只允许真实模型 ID、请求 schema、样例及计费方式／档位／标价，不包含账号、内部路由、适配器、来源平台或凭证；实际价格引导至控制台。模型 ID 区分大小写，slug 必须唯一。
 

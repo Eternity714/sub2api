@@ -1213,6 +1213,8 @@ export default {
         selectAtLeastOne: 'Select at least one account after enabling pinned accounts'
       },
       compositeRoutes: {
+        resolutionPriorities: 'Resolution priorities (optional)',
+        resolutionPrioritiesHint: 'Leave blank to use the base priority. Lower numbers go first. These rules are maintained manually and do not track upstream prices automatically.',
         capabilityModel: 'Candidate capability model (optional)',
         capabilityModelHint: 'Leave blank to use the public model capability. Set an independent configuration only for compatibility routes, for example openai/image-compat.',
         nativeProviderAdapterHint: 'Uses public model parameters; the provider adapts upstream requests and checks actual support.',

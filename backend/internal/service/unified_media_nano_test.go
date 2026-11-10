@@ -28,7 +28,7 @@ func nanoPublicSchemas(t *testing.T) map[string]json.RawMessage {
 	require.NoError(t, json.Unmarshal(raw, &catalog))
 	out := map[string]json.RawMessage{}
 	for _, entry := range catalog.Models {
-		if entry.Model == "nano-banana-pro" || entry.Model == "nano-banana-2" {
+		if entry.Model == "nano-banana-pro" || entry.Model == "nano-banana-2.1" {
 			out[entry.Model] = entry.Schema
 		}
 	}
@@ -39,7 +39,7 @@ func nanoPublicSchemas(t *testing.T) map[string]json.RawMessage {
 func TestNanoPublicContractFreezesGRSPayloadAndFlatPrice(t *testing.T) {
 	ratios := []string{"auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "5:4", "4:5", "21:9", "9:21"}
 	for model, schema := range nanoPublicSchemas(t) {
-		price := map[string]float64{"nano-banana-pro": .2, "nano-banana-2": .15}[model]
+		price := map[string]float64{"nano-banana-pro": .2, "nano-banana-2.1": .15}[model]
 		caps := &mediaCapabilityMemoryRepository{rows: map[int64]*MediaCapability{1: {ID: 1, PublicModel: model, MediaType: "image", Enabled: true, Schema: schema}}}
 		routes := NewCompositeMediaRouteService(NewCompositeRouteResolver(compositeRouteRepoStub{routes: []CompositeModelRoute{{ID: 1, GroupID: 22, PublicModel: model, MatchType: "exact", Endpoint: "images", TargetPlatform: PlatformGrsai, UpstreamModel: model, Priority: 10, Enabled: true}}}), caps)
 		pricing := unifiedMediaChannelPricingResolver(22, StatusActive, []ChannelModelPricing{{Platform: PlatformGrsai, Models: []string{model}, BillingMode: BillingModeImage, PerRequestPrice: float64Ptr(price)}})
@@ -118,9 +118,24 @@ func TestNanoDefaultsAndInvalidInputsRemainBounded(t *testing.T) {
 			_, fields := compiled.Validate(raw)
 			require.NotEmpty(t, fields, string(raw))
 		}
-		for _, platform := range []string{PlatformKuaipao, PlatformToAPIs} {
+		for _, platform := range []string{PlatformKuaipao, PlatformToAPIs, PlatformCentOS} {
 			_, err := planUnifiedMediaProviderRequest(platform, "image", model, n)
 			require.Error(t, err, "only the GRS provider is registered for these models")
 		}
+	}
+}
+
+func TestNanoLegacyRouteRemainsUsableDuringGrayRolloutWithoutPublishingOldTemplate(t *testing.T) {
+	compiled, err := mediacapability.Compile("image", nanoPublicSchemas(t)["nano-banana-2.1"])
+	require.NoError(t, err)
+	n, fields := compiled.Validate([]byte(`{"model":"nano-banana-2","prompt":"cup","imageSize":"4k","aspectRatio":"9:21"}`))
+	require.Empty(t, fields)
+	plan, err := planUnifiedMediaProviderRequest(PlatformGrsai, "image", "nano-banana-2", n)
+	require.NoError(t, err)
+	body, _, err := BuildUnifiedMediaPayload(PlatformGrsai, "image", "nano-banana-2", plan.Request, 1)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"model":"nano-banana-2","prompt":"cup","imageSize":"4K","aspectRatio":"9:21","replyType":"async"}`, string(body))
+	for _, entry := range MediaCapabilityCatalog() {
+		require.False(t, entry.Platform == PlatformGrsai && entry.UpstreamModel == "nano-banana-2")
 	}
 }

@@ -4025,6 +4025,9 @@
                       <div class="text-xs text-gray-500 dark:text-gray-400">
                         {{ t("admin.groups.compositeRoutes.priority") }}:
                         {{ route.priority }}
+                        <span v-if="Object.keys(route.resolution_priorities || {}).length" class="ml-2" data-testid="composite-resolution-priorities">
+                          {{ Object.entries(route.resolution_priorities || {}).map(([tier, priority]) => `${tier}: ${priority}`).join(' · ') }}
+                        </span>
                       </div>
                     </td>
                     <td class="px-3 py-2">
@@ -4135,6 +4138,17 @@
               </div>
             </div>
 
+            <div v-if="compositeRouteForm.endpoint === 'images' && compositeRouteForm.match_type === 'exact'" class="space-y-2">
+              <label class="input-label">{{ t('admin.groups.compositeRoutes.resolutionPriorities') }}</label>
+              <div class="grid grid-cols-3 gap-3">
+                <label v-for="tier in ['1K', '2K', '4K']" :key="tier" class="text-xs">
+                  {{ tier }}
+                  <input v-model.number="compositeRouteForm.resolution_priorities[tier]" :data-testid="`composite-priority-${tier}`" type="number" min="1" max="1000000" step="1" class="input mt-1" />
+                </label>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.groups.compositeRoutes.resolutionPrioritiesHint') }}</p>
+            </div>
+
             <div>
               <label class="input-label">{{
                 t("admin.groups.compositeRoutes.upstreamModel")
@@ -4223,6 +4237,10 @@
                   :options="compositeRouteEndpointOptions"
                   class="min-w-0 flex-1"
                 />
+                <select v-if="compositePreviewEndpoint === 'images'" v-model="compositePreviewResolution" data-testid="composite-preview-resolution" class="input w-24" :aria-label="t('admin.groups.compositeRoutes.resolutionPriorities')">
+                  <option value="">{{ t('admin.groups.compositeRoutes.priority') }}</option>
+                  <option v-for="tier in ['1K', '2K', '4K']" :key="tier" :value="tier">{{ tier }}</option>
+                </select>
                 <button
                   type="button"
                   class="btn btn-secondary"
@@ -4288,7 +4306,7 @@
                   <li v-for="candidate in compositePreviewDecision.candidates" :key="candidate.route?.id" class="break-all">
                     {{ formatCompositePlatform(candidate.target_platform) }} · {{ candidate.upstream_model }}
                     <span class="text-xs text-gray-500">
-                      {{ t('admin.groups.compositeRoutes.priority') }}: {{ candidate.route?.priority }} ·
+                      {{ t('admin.groups.compositeRoutes.priority') }}: {{ candidate.route?.resolution_priorities?.[compositePreviewResolution] ?? candidate.route?.priority }} ·
                       <template v-if="isNativeMediaPlatform(candidate.target_platform)">
                         <template v-if="candidate.route?.capability_model?.trim()">{{ t('admin.groups.compositeRoutes.legacyCapability') }}: {{ candidate.route.capability_model }}</template>
                         <template v-else>{{ t('admin.groups.compositeRoutes.nativeProviderAdapterHint') }}</template>
@@ -4929,6 +4947,7 @@ type CompositeRouteFormState = {
   capability_model: string;
   endpoint: CompositeRouteEndpoint;
   priority: number;
+  resolution_priorities: Record<string, number | ''>;
   enabled: boolean;
   notes: string;
 };
@@ -4941,6 +4960,7 @@ const compositeRouteSaving = ref(false);
 const compositeRouteEditingId = ref<number | null>(null);
 const compositePreviewModel = ref("");
 const compositePreviewEndpoint = ref<CompositeRouteEndpoint>("any");
+const compositePreviewResolution = ref<'' | '1K' | '2K' | '4K'>('');
 const compositePreviewLoading = ref(false);
 const compositePreviewDecision = ref<CompositeRouteDecision | null>(null);
 const compositeRouteForm = reactive<CompositeRouteFormState>({
@@ -4951,6 +4971,7 @@ const compositeRouteForm = reactive<CompositeRouteFormState>({
   capability_model: "",
   endpoint: "any",
   priority: 100,
+  resolution_priorities: { '1K': '', '2K': '', '4K': '' },
   enabled: true,
   notes: "",
 });
@@ -6576,6 +6597,7 @@ const resetCompositeRouteForm = () => {
   compositeRouteForm.capability_model = "";
   compositeRouteForm.endpoint = "any";
   compositeRouteForm.priority = 100;
+  compositeRouteForm.resolution_priorities = { '1K': '', '2K': '', '4K': '' };
   compositeRouteForm.enabled = true;
   compositeRouteForm.notes = "";
 };
@@ -6590,6 +6612,9 @@ const toCompositeRouteInput = (): CompositeModelRouteInput => ({
     : "",
   endpoint: compositeRouteForm.endpoint,
   priority: Number(compositeRouteForm.priority) || 100,
+  resolution_priorities: compositeRouteForm.endpoint === 'images' && compositeRouteForm.match_type === 'exact'
+    ? Object.fromEntries(Object.entries(compositeRouteForm.resolution_priorities).filter((entry): entry is [string, number] => entry[1] !== ''))
+    : {},
   enabled: compositeRouteForm.enabled,
   notes: compositeRouteForm.notes.trim(),
 });
@@ -6644,6 +6669,7 @@ const editCompositeRoute = (route: CompositeModelRoute) => {
   compositeRouteForm.endpoint = route.endpoint;
   compositeRouteForm.capability_model = route.capability_model || "";
   compositeRouteForm.priority = route.priority || 100;
+  compositeRouteForm.resolution_priorities = { '1K': '', '2K': '', '4K': '', ...route.resolution_priorities };
   compositeRouteForm.enabled = route.enabled;
   compositeRouteForm.notes = route.notes || "";
 };
@@ -6719,6 +6745,7 @@ const previewCompositeRoute = async () => {
       {
         model: compositePreviewModel.value.trim(),
         endpoint: compositePreviewEndpoint.value,
+        ...(compositePreviewEndpoint.value === 'images' && compositePreviewResolution.value ? { resolution: compositePreviewResolution.value } : {}),
       },
     );
   } catch (error: any) {

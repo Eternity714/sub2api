@@ -1384,6 +1384,7 @@ function generateRoutedCodexFiles(
     grsai: t('admin.groups.platforms.media'),
     toapis: t('admin.groups.platforms.media'),
     kuaipao: t('admin.groups.platforms.media'),
+    centos: t('admin.groups.platforms.media'),
     media: t('admin.groups.platforms.media'),
     composite: 'Composite'
   }

@@ -10,7 +10,7 @@ import { isNativeMediaPlatform } from '@/utils/publicPlatform'
  * 生成并校验与后端一致；前端随后端一同构建发布，无需运行时拉取。
  */
 
-export type PlatformGateway = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grsai' | 'toapis' | 'kuaipao'
+export type PlatformGateway = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grsai' | 'toapis' | 'kuaipao' | 'centos'
 export type ProviderRouting = 'by_inbound' | 'by_model'
 export type ProviderNativeProtocol = 'chat_completions' | 'anthropic' | 'responses'
 

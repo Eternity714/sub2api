@@ -131,6 +131,44 @@ describe('Composite 媒体候选路由', () => {
    { matched: true, source: 'route', group_id: 42, public_model: 'shared', endpoint: 'videos', target_platform: 'toapis', upstream_model: 'toa-video', route: { id: 2, priority: 20, capability_model: '' } },
   ] })
  })
+ it('保存分辨率优先级并在预览中传递选中的档位', async () => {
+  listRoutes.mockResolvedValue([{
+   id: 9, group_id: 42, public_model: 'gpt-image-2.6-flare', match_type: 'exact', target_platform: 'kuaipao',
+   upstream_model: 'gpt-image-2.6-flare', endpoint: 'images', priority: 20,
+   resolution_priorities: { '4K': 30 }, enabled: true, notes: '',
+  }])
+  const wrapper = await openRoutes()
+  try {
+   expect(wrapper.get('[data-testid="composite-resolution-priorities"]').text()).toContain('4K: 30')
+   await wrapper.get('table button[title="common.edit"]').trigger('click')
+   expect((wrapper.get('[data-testid="composite-priority-4K"]').element as HTMLInputElement).value).toBe('30')
+   await wrapper.get('[data-testid="composite-priority-2K"]').setValue('15')
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(updateRoute).toHaveBeenCalledWith(42, 9, expect.objectContaining({ priority: 20, resolution_priorities: { '2K': 15, '4K': 30 } }))
+   await wrapper.get('[data-testid="composite-preview-model"]').setValue('gpt-image-2.6-flare')
+   await wrapper.get('[data-testid="composite-preview-endpoint"]').setValue('images')
+   await wrapper.get('[data-testid="composite-preview-resolution"]').setValue('4K')
+   await wrapper.get('[data-testid="composite-preview-submit"]').trigger('click')
+   await flushPromises()
+   expect(preview).toHaveBeenLastCalledWith(42, { model: 'gpt-image-2.6-flare', endpoint: 'images', resolution: '4K' })
+  } finally { wrapper.unmount() }
+ })
+ it('可以清除已有分辨率覆盖并回到默认优先级', async () => {
+  listRoutes.mockResolvedValue([{
+   id: 9, group_id: 42, public_model: 'gpt-image-2.6-flare', match_type: 'exact', target_platform: 'centos',
+   upstream_model: 'gpt-image-2.6-flare', endpoint: 'images', priority: 10,
+   resolution_priorities: { '4K': 20 }, enabled: true, notes: '',
+  }])
+  const wrapper = await openRoutes()
+  try {
+   await wrapper.get('table button[title="common.edit"]').trigger('click')
+   await wrapper.get('[data-testid="composite-priority-4K"]').setValue('')
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(updateRoute).toHaveBeenCalledWith(42, 9, expect.objectContaining({ target_platform: 'centos', priority: 10, resolution_priorities: {} }))
+  } finally { wrapper.unmount() }
+ })
  it('可创建原生视频候选并由 Provider 适配，预览显示全部候选顺序', async () => {
   const wrapper = mountView()
   await flushPromises()
