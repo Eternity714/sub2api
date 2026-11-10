@@ -28,7 +28,7 @@ func seriesPublicSchemas(t *testing.T) map[string]json.RawMessage {
 	require.NoError(t, json.Unmarshal(raw, &catalog))
 	out := map[string]json.RawMessage{}
 	for _, model := range catalog.Models {
-		if strings.HasPrefix(model.Model, "gpt-image-") {
+		if strings.HasSuffix(model.Model, "-flare") || strings.HasSuffix(model.Model, "-sunburst") {
 			out[model.Model] = model.Schema
 		}
 	}

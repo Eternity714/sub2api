@@ -205,8 +205,10 @@ def model_page(model, date):
     if image:
         if schema.get("fixed_image_resolution"):
             auto_spec = next(spec for spec in schema["image_specs"] if spec["aspect_ratio"] == schema["auto_image_aspect_ratio"] and spec["resolution"] == schema["fixed_image_resolution"])
-            lines += ["本模型固定为 **" + schema["fixed_image_resolution"] + "**，使用 " + code("aspectRatio") + " 选择下表尺寸。" + code("auto") + " 固定按 " + code(schema["auto_image_aspect_ratio"]) + f' 处理，生成 {auto_spec["width"]}×{auto_spec["height"]} 图片；' + code("quality:auto") + " 仍表示自动质量。", "",
-                      "不接受 " + paths(["imageSize", "resolution", "metadata.resolution"]) + " 或像素尺寸写法。四种质量均按相同单价计费。", ""]
+            quality_note = "质量仅支持 " + code("quality:auto") + "。" if fields.get("quality", {}).get("enum") == ["auto"] else "四种质量均按相同单价计费。"
+            lines += ["本模型固定为 **" + schema["fixed_image_resolution"] + "**，使用 " + code("aspectRatio") + " 选择下表目标尺寸。" + code("auto") + " 固定按 " + code(schema["auto_image_aspect_ratio"]) + f' 处理，正方形目标尺寸为 {auto_spec["width"]}×{auto_spec["height"]}；' + code("quality:auto") + " 表示自动质量。", "",
+                      "不接受 " + paths(["imageSize", "resolution", "metadata.resolution"]) + " 或像素尺寸写法。" + quality_note, "",
+                      "实际交付保留生成服务原图，像素尺寸可能存在差异，不因该差异自动缩放、裁剪、重试或改变计费。", ""]
         elif schema.get("auto_image_aspect_ratio"):
             lines += ["使用 " + code("imageSize") + " 选择 **1K、2K、4K**，省略时默认 **1K**；" + code("aspectRatio:auto") + " 按 " + code(schema["auto_image_aspect_ratio"]) + " 构造请求，三个档位的正方形目标尺寸分别为 1024×1024、2048×2048、2880×2880。", "",
                       "下表为请求的目标尺寸映射。实际交付保留生成服务原图，像素尺寸可能存在差异，不因该差异自动缩放、裁剪或重试。按请求的 " + code("imageSize") + " 档位计费，不根据结果像素重新分档。", "",
@@ -297,6 +299,8 @@ def generate(catalog):
         assert value.casefold() not in slugs and "/" not in value and "\\" not in value, value
         slugs.add(value.casefold())
         outputs[f"frontend/docs/media-models/{value}.md"] = model_page(model, date)
+        if model["model"] in ["gpt-image-2.5", "gpt-image-2.6"]:
+            outputs[f'frontend/docs/media-{model["model"]}.md'] = alias_page(model, "/media-models/" + value)
         if model["model"] in ["gpt-image-2.5-1k", "gpt-image-2.6-1k"]:
             old_name = model["model"].removesuffix("-1k")
             for old_path in [f"frontend/docs/media-{old_name}.md", f"frontend/docs/media-models/{old_name}.md"]:

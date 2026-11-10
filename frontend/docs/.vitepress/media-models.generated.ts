@@ -5,12 +5,20 @@ export const mediaModelSidebar = [
     "collapsed": true,
     "items": [
       {
+        "text": "gpt-image-2.5",
+        "link": "/media-models/gpt-image-2.5"
+      },
+      {
         "text": "gpt-image-2.5-flare",
         "link": "/media-models/gpt-image-2.5-flare"
       },
       {
         "text": "gpt-image-2.5-sunburst",
         "link": "/media-models/gpt-image-2.5-sunburst"
+      },
+      {
+        "text": "gpt-image-2.6",
+        "link": "/media-models/gpt-image-2.6"
       },
       {
         "text": "gpt-image-2.6-flare",
