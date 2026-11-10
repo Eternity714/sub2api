@@ -56,7 +56,7 @@ func TestDocumentationVersionedCleanURLs(t *testing.T) {
 		}
 		t.Run(source, func(t *testing.T) {
 			pages := map[string]string{
-				"media-models/nano-banana-2.1.html":     `<html><head><script>window.versioned = true;</script></head><body>versioned-banana</body></html>`,
+				"media-models/gpt-image-2.6.html":       `<html><head><script>window.versioned = true;</script></head><body>versioned-image</body></html>`,
 				"media-models/gpt-image-2.5-flare.html": `<html><head><script>window.versioned = true;</script></head><body>versioned-gpt</body></html>`,
 				"releases/v2.1/index.html":              `<html><head><script>window.versioned = true;</script></head><body>versioned-directory</body></html>`,
 				"assets/version.2.1.AbCd1234.js":        "export const versionedResource = true;",
@@ -86,10 +86,10 @@ func TestDocumentationVersionedCleanURLs(t *testing.T) {
 				status int
 				body   string
 			}{
-				{"/docs/media-models/nano-banana-2.1", http.StatusOK, "versioned-banana"},
-				{"/docs/media-models/nano-banana-2.1/", http.StatusOK, "versioned-banana"},
-				{"/docs/media-models/nano-banana-2.1?from=index", http.StatusOK, "versioned-banana"},
-				{"/docs/media-models/nano-banana-2.1.html", http.StatusOK, "versioned-banana"},
+				{"/docs/media-models/gpt-image-2.6", http.StatusOK, "versioned-image"},
+				{"/docs/media-models/gpt-image-2.6/", http.StatusOK, "versioned-image"},
+				{"/docs/media-models/gpt-image-2.6?from=index", http.StatusOK, "versioned-image"},
+				{"/docs/media-models/gpt-image-2.6.html", http.StatusOK, "versioned-image"},
 				{"/docs/media-models/gpt-image-2.5-flare", http.StatusOK, "versioned-gpt"},
 				{"/docs/media-models/gpt-image-2.5-flare.html", http.StatusOK, "versioned-gpt"},
 				{"/docs/releases/v2.1", http.StatusOK, "versioned-directory"},

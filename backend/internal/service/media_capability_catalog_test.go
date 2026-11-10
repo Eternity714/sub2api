@@ -62,11 +62,10 @@ func TestMediaCatalogSpecificConstraintsDoNotLeakAcrossModels(t *testing.T) {
 	for _, entry := range MediaCapabilityCatalog() {
 		index[entry.Platform+":"+entry.UpstreamModel+":"+entry.MediaType] = entry
 	}
-	for _, key := range []string{"toapis:gemini_omni:video", "toapis:nano_banana:image", "toapis:grok-imagine-1.0-edit:image"} {
+	for _, key := range []string{"toapis:gemini_omni:video", "toapis:grok-imagine-1.0-edit:image"} {
 		require.Empty(t, index[key].Schema, key)
 	}
 	for _, tc := range []struct{ key, body string }{
-		{"grsai:nano-banana-pro-cl:image", `{"model":"x","prompt":"p","metadata":{"resolution":"4K"}}`},
 		{"toapis:viduq2-fast:image", `{"model":"x","prompt":"p","metadata":{"resolution":"4K"}}`},
 		{"toapis:doubao-seedream-5-0-pro:image", `{"model":"x","prompt":"p","metadata":{"layer_decomposition":true}}`},
 	} {

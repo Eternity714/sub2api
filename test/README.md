@@ -1,6 +1,6 @@
 # 本地真实图片端到端测试
 
-通过 Docker Compose 请求本地预览 `localhost:18081`，默认模型为 `nano-banana-2-lite`。首次运行提交一次真实生成，会消耗上游额度并按本地分组配置扣费。
+通过 Docker Compose 请求本地预览 `localhost:18081`，必须通过 `SUB2API_TEST_MODEL` 显式指定已配置的图片模型，脚本不提供默认型号。首次运行提交一次真实生成，会消耗上游额度并按本地分组配置扣费。此脚本使用历史 GRS 原生协议，仅用于对应的隔离预览环境；当前统一媒体 API 请按公开文档接入。
 
 ## 准备
 
@@ -18,7 +18,7 @@ docker compose -f test/docker-compose.media.yml run --rm media-setup
 
 ```dotenv
 SUB2API_TEST_KEY=<测试用户的Sub2API Key>
-SUB2API_TEST_MODEL=nano-banana-2-lite
+SUB2API_TEST_MODEL=REPLACE_WITH_CONFIGURED_IMAGE_MODEL
 SUB2API_TEST_BASE_URL=http://host.docker.internal:18081
 ```
 

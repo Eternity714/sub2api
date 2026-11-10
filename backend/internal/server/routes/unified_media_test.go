@@ -16,8 +16,8 @@ import (
 func TestUnifiedMediaCompositePreservesPublicModelAndCandidates(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	resolver := service.NewCompositeRouteResolver(compositeRouteRepoStub{routes: []service.CompositeModelRoute{
-		{ID: 1, GroupID: 1, PublicModel: "public", UpstreamModel: "nano-banana-2", TargetPlatform: service.PlatformGrsai, Endpoint: "images", MatchType: "exact", Enabled: true},
-		{ID: 2, GroupID: 1, PublicModel: "public", UpstreamModel: "gemini-nano-banana-2.1", TargetPlatform: service.PlatformToAPIs, Endpoint: "images", MatchType: "exact", Enabled: true},
+		{ID: 1, GroupID: 1, PublicModel: "public", UpstreamModel: "gpt-image-2.5-flare", TargetPlatform: service.PlatformGrsai, Endpoint: "images", MatchType: "exact", Enabled: true},
+		{ID: 2, GroupID: 1, PublicModel: "public", UpstreamModel: "gpt-image-2.5-flare", TargetPlatform: service.PlatformToAPIs, Endpoint: "images", MatchType: "exact", Enabled: true},
 		{ID: 3, GroupID: 1, PublicModel: "public", UpstreamModel: "minimax-h3", TargetPlatform: service.PlatformGrsai, Endpoint: "videos", MatchType: "exact", Enabled: true},
 	}})
 	r := gin.New()

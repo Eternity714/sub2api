@@ -203,7 +203,7 @@ func newGrsaiRecoveryRuntime(now time.Time, record *GrsaiSettlement, client *grs
 
 func grsaiRecoveryRecord(now time.Time, taskID *string, upstreamStatus, internalStatus string) *GrsaiSettlement {
 	return &GrsaiSettlement{
-		ID: 19, AccountID: 8, GroupID: 3, UserID: 2, APIKeyID: 4, Model: "nano-banana-2",
+		ID: 19, AccountID: 8, GroupID: 3, UserID: 2, APIKeyID: 4, Model: "fixture-image",
 		BaseUnitPrice: 0.2, GroupRateMultiplier: 1, AccountRateMultiplier: 1, BillableUnitPrice: 0.2,
 		RequestedImageCount: 1, Currency: "USD", BillingIdempotencyKey: "grsai_settlement:19",
 		UpstreamTaskID: taskID, UpstreamStatus: upstreamStatus, InternalStatus: internalStatus,

@@ -2,230 +2,8 @@
   "version": 2,
   "platform": "media",
   "display_name": "媒体 API",
-  "snapshot_at": "2026-11-10T02:24:31.773205+00:00",
+  "snapshot_at": "2026-11-10T02:59:00.424767+00:00",
   "models": [
-    {
-      "model": "nano-banana-pro",
-      "media_type": "image",
-      "schema": {
-        "batch": {
-          "allow_split": false,
-          "native_max_results": 1,
-          "semantically_linked": false
-        },
-        "fields": {
-          "n": {
-            "type": "integer",
-            "default": 1,
-            "maximum": 1,
-            "minimum": 1
-          },
-          "images": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "http_url"
-            },
-            "min_items": 1
-          },
-          "prompt": {
-            "type": "string",
-            "required": true,
-            "max_length": 32000,
-            "min_length": 1
-          },
-          "imageSize": {
-            "enum": [
-              "1K",
-              "2K",
-              "4K"
-            ],
-            "type": "string",
-            "default": "1K"
-          },
-          "replyType": {
-            "enum": [
-              "async"
-            ],
-            "type": "string",
-            "default": "async"
-          },
-          "aspectRatio": {
-            "enum": [
-              "1:1",
-              "4:3",
-              "3:4",
-              "16:9",
-              "9:16",
-              "3:2",
-              "2:3",
-              "5:4",
-              "4:5",
-              "21:9"
-            ],
-            "type": "string",
-            "default": "1:1"
-          }
-        },
-        "version": 1
-      },
-      "callable": true,
-      "pricing_available": true,
-      "pricing": {
-        "billing_mode": "image",
-        "unit_price": 0.25,
-        "intervals": []
-      },
-      "examples": [
-        {
-          "label": "文生图（1K）",
-          "request": {
-            "model": "nano-banana-pro",
-            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "3:2",
-            "imageSize": "1K",
-            "replyType": "async",
-            "n": 1
-          }
-        },
-        {
-          "label": "文生图（2K）",
-          "request": {
-            "model": "nano-banana-pro",
-            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "16:9",
-            "imageSize": "2K",
-            "replyType": "async",
-            "n": 1
-          }
-        },
-        {
-          "label": "参考图生图（4K）",
-          "request": {
-            "model": "nano-banana-pro",
-            "prompt": "保留参考图主体和构图，将陶瓷杯改为绿色",
-            "aspectRatio": "4:3",
-            "imageSize": "4K",
-            "replyType": "async",
-            "n": 1,
-            "images": [
-              "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "model": "nano-banana-2.1",
-      "media_type": "image",
-      "schema": {
-        "batch": {
-          "allow_split": false,
-          "native_max_results": 1,
-          "semantically_linked": false
-        },
-        "fields": {
-          "n": {
-            "type": "integer",
-            "default": 1,
-            "maximum": 1,
-            "minimum": 1
-          },
-          "images": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "http_url"
-            },
-            "min_items": 1
-          },
-          "prompt": {
-            "type": "string",
-            "required": true,
-            "max_length": 32000,
-            "min_length": 1
-          },
-          "imageSize": {
-            "enum": [
-              "1K",
-              "2K",
-              "4K"
-            ],
-            "type": "string",
-            "default": "1K"
-          },
-          "replyType": {
-            "enum": [
-              "async"
-            ],
-            "type": "string",
-            "default": "async"
-          },
-          "aspectRatio": {
-            "enum": [
-              "1:1",
-              "4:3",
-              "3:4",
-              "16:9",
-              "9:16",
-              "3:2",
-              "2:3",
-              "5:4",
-              "4:5",
-              "21:9"
-            ],
-            "type": "string",
-            "default": "1:1"
-          }
-        },
-        "version": 1
-      },
-      "callable": true,
-      "pricing_available": true,
-      "pricing": {
-        "billing_mode": "image",
-        "unit_price": 0.16,
-        "intervals": []
-      },
-      "examples": [
-        {
-          "label": "文生图（1K）",
-          "request": {
-            "model": "nano-banana-2.1",
-            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "3:2",
-            "imageSize": "1K",
-            "replyType": "async",
-            "n": 1
-          }
-        },
-        {
-          "label": "文生图（2K）",
-          "request": {
-            "model": "nano-banana-2.1",
-            "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
-            "aspectRatio": "16:9",
-            "imageSize": "2K",
-            "replyType": "async",
-            "n": 1
-          }
-        },
-        {
-          "label": "参考图生图（4K）",
-          "request": {
-            "model": "nano-banana-2.1",
-            "prompt": "保留参考图主体和构图，将陶瓷杯改为绿色",
-            "aspectRatio": "4:3",
-            "imageSize": "4K",
-            "replyType": "async",
-            "n": 1,
-            "images": [
-              "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
-            ]
-          }
-        }
-      ]
-    },
     {
       "model": "gpt-image-2.6-sunburst",
       "media_type": "image",
@@ -2644,6 +2422,16 @@
       "model": "gpt-image-2.5-2k",
       "media_type": "image",
       "slug": "gpt-image-2.5-2k"
+    },
+    {
+      "model": "nano-banana-pro",
+      "media_type": "image",
+      "slug": "nano-banana-pro"
+    },
+    {
+      "model": "nano-banana-2.1",
+      "media_type": "image",
+      "slug": "nano-banana-2.1"
     }
   ]
 }

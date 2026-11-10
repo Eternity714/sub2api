@@ -44,8 +44,8 @@ func TestGrsaiNativeClientGeneratePreservesExplicitJSONBody(t *testing.T) {
 }
 
 func TestGrsaiNativeClientGenerateAddsOnlyDefaultReplyType(t *testing.T) {
-	original := []byte("{ \"model\" : \"nano-banana\", \"future\" : { \"answer\" : 42 }, \"images\" : [\"one\", \"two\"] }\r\n")
-	want := []byte("{ \"model\" : \"nano-banana\", \"future\" : { \"answer\" : 42 }, \"images\" : [\"one\", \"two\"] ,\"replyType\":\"json\"}\r\n")
+	original := []byte("{ \"model\" : \"fixture-image\", \"future\" : { \"answer\" : 42 }, \"images\" : [\"one\", \"two\"] }\r\n")
+	want := []byte("{ \"model\" : \"fixture-image\", \"future\" : { \"answer\" : 42 }, \"images\" : [\"one\", \"two\"] ,\"replyType\":\"json\"}\r\n")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got, err := io.ReadAll(r.Body)

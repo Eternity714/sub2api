@@ -36,7 +36,7 @@ describe('SupportedModelChip', () => {
     (pricingKeyPrefix) => {
       it.each([
         { name: 'gpt-image-2', perImagePrice: 0.06, imageTokenPrice: 0.00003, expected: '$0.06' },
-        { name: 'nano-banana-fast', perImagePrice: 0.044, imageTokenPrice: null, expected: '$0.044' },
+        { name: 'fixture-image', perImagePrice: 0.044, imageTokenPrice: null, expected: '$0.044' },
         { name: 'free-image', perImagePrice: 0, imageTokenPrice: 0.00003, expected: '$0' }
       ])('shows $name per-image price instead of its image-token price', async (fixture) => {
         const wrapper = mount(SupportedModelChip, {

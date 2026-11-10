@@ -91,11 +91,6 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 			if request.RequestedImageSpec != nil {
 				out["aspectRatio"] = fmt.Sprintf("%dx%d", request.RequestedImageSpec.Width, request.RequestedImageSpec.Height)
 			}
-			if strings.HasPrefix(model, "nano-") {
-				if value, ok := metadata["resolution"]; ok {
-					out["imageSize"] = value
-				}
-			}
 			if grsaiRequiresPixelSize(model) {
 				if request.ImageSpec == nil && request.RequestedImageSpec == nil {
 					return nil, "", errors.New("model requires a configured aspect ratio and resolution pixel mapping")
