@@ -81,6 +81,12 @@ function mountModal(extraProps: Record<string, unknown> = {}) {
 }
 
 describe('BulkEditAccountModal', () => {
+  it.each(['grsai', 'toapis', 'kuaipao'])('不为 %s 批量编辑显示旧账单探测', platform => {
+    const wrapper = mountModal({ selectedPlatforms: [platform], selectedTypes: ['apikey'] })
+    expect(wrapper.find('#bulk-edit-upstream-billing-auto-probe-enabled').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   beforeEach(() => {
     vi.mocked(adminAPI.accounts.bulkUpdate).mockReset()
     vi.mocked(adminAPI.accounts.checkMixedChannelRisk).mockReset()

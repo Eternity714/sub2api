@@ -66,7 +66,7 @@
       </td>
     </tr>
   </template>
-  <MediaFieldEditor v-if="field?.type === 'array' && depth < 7" :visible="visible && expanded" :path="`${path}[]`" name="items" :field="field.items || { type: 'string', ...(path === 'image_urls' ? { format: 'http_url' } : {}) }" default-type="string" :depth="depth + 1" :allowed-types="path === 'image_urls' ? ['string'] : undefined" :locked-url="path === 'image_urls'" allow-type-change array-item @update="value => value && patch({ items: value })" @invalid="(fieldPath, message) => emit('invalid', fieldPath, message)" @clear-errors="fieldPath => emit('clear-errors', fieldPath)" @rename="(from, to) => emit('rename', from, to)" />
+  <MediaFieldEditor v-if="field?.type === 'array' && depth < 7" :visible="visible && expanded" :path="`${path}[]`" name="items" :field="field.items || { type: 'string', ...(referenceURLArray ? { format: 'http_url' } : {}) }" default-type="string" :depth="depth + 1" :allowed-types="referenceURLArray ? ['string'] : undefined" :locked-url="referenceURLArray" allow-type-change array-item @update="value => value && patch({ items: value })" @invalid="(fieldPath, message) => emit('invalid', fieldPath, message)" @clear-errors="fieldPath => emit('clear-errors', fieldPath)" @rename="(from, to) => emit('rename', from, to)" />
   <tr v-if="field && depth >= 7 && nested" v-show="visible && expanded"><td colspan="7" class="px-4 py-2 text-xs text-gray-500">{{ label('已达到可配置的最大嵌套层级。', 'Maximum configurable nesting depth reached.') }}</td></tr>
 </template>
 
@@ -122,6 +122,7 @@ const constraintsExpanded = ref(false)
 const childName = computed({ get: () => draft.value.childName, set: value => { draft.value.childName = value } })
 const nameText = computed({ get: () => draft.value.nameText, set: value => { draft.value.nameText = value } })
 const nested = computed(() => props.field?.type === 'object' || props.field?.type === 'array')
+const referenceURLArray = computed(() => ['image_urls', 'images', 'audios'].includes(props.path))
 const primitive = computed(() => !!props.field && ['string', 'integer', 'number', 'boolean'].includes(props.field.type))
 const availableTypes = computed(() => {
   const allowed = props.allowedTypes || (props.allowTypeChange ? types : [props.field?.type || props.defaultType])

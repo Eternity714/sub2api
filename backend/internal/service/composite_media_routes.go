@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/mediacapability"
 )
 
@@ -16,7 +17,14 @@ func isMediaRouteEndpoint(endpoint string) bool {
 	return endpoint == CompositeRouteEndpointImages || endpoint == CompositeRouteEndpointVideos
 }
 func isMediaRoutePlatform(platform string) bool {
-	return platform == PlatformGrsai || platform == PlatformToAPIs
+	return platform == PlatformGrsai || platform == PlatformToAPIs || platform == PlatformKuaipao || platform == PlatformCentOS
+}
+
+// OpenAI image routes opt into unified tasks through an explicit capability.
+// Ordinary OpenAI routes continue to use their existing gateway handler.
+func isUnifiedMediaRoute(route CompositeModelRoute) bool {
+	return isMediaRoutePlatform(route.TargetPlatform) ||
+		(route.TargetPlatform == PlatformOpenAI && route.Endpoint == CompositeRouteEndpointImages && route.CapabilityModel != "")
 }
 
 // ResolveMediaCandidates only resolves explicit media routes. It deliberately avoids
@@ -64,7 +72,7 @@ func (r *CompositeRouteResolver) mediaRoutes(ctx context.Context, groupID int64,
 	}
 	result := make([]CompositeModelRoute, 0, len(routes))
 	for _, route := range routes {
-		if route.Enabled && route.GroupID == groupID && route.Endpoint == endpoint && route.MatchType == CompositeRouteMatchExact && isMediaRoutePlatform(route.TargetPlatform) {
+		if route.Enabled && route.GroupID == groupID && route.Endpoint == endpoint && route.MatchType == CompositeRouteMatchExact && isUnifiedMediaRoute(route) {
 			result = append(result, route)
 		}
 	}
@@ -78,10 +86,22 @@ func (r *CompositeRouteResolver) mediaRoutes(ctx context.Context, groupID int64,
 }
 
 type MediaCandidate struct {
-	Route      CompositeRouteDecision         `json:"route"`
-	Capability MediaCapabilitySnapshot        `json:"capability_snapshot"`
-	Compiled   *mediacapability.Compiled      `json:"-"`
-	Match      mediacapability.CandidateMatch `json:"match"`
+	ProviderManaged bool                           `json:"provider_managed,omitempty"`
+	AdapterProfile  *UnifiedMediaAdapterProfile    `json:"adapter_profile,omitempty"`
+	Route           CompositeRouteDecision         `json:"route"`
+	Capability      MediaCapabilitySnapshot        `json:"capability_snapshot"`
+	Compiled        *mediacapability.Compiled      `json:"-"`
+	Match           mediacapability.CandidateMatch `json:"match"`
+}
+
+func sortMediaDecisionsByResolution(routes []CompositeRouteDecision, resolution string) {
+	sort.SliceStable(routes, func(i, j int) bool {
+		left, right := routes[i].Route, routes[j].Route
+		if left.ResolutionPriority(resolution) != right.ResolutionPriority(resolution) {
+			return left.ResolutionPriority(resolution) < right.ResolutionPriority(resolution)
+		}
+		return left.ID < right.ID
+	})
 }
 
 type CompositeMediaRouteService struct {
@@ -117,6 +137,25 @@ func (s *CompositeMediaRouteService) MediaCandidates(ctx context.Context, groupI
 	for _, route := range routes {
 		capabilityModel := route.Route.CapabilityModel
 		if capabilityModel == "" {
+			plan, planErr := planUnifiedMediaProviderRequest(route.TargetPlatform, mediaType, route.UpstreamModel, normalized)
+			if planErr != nil {
+				var fields []mediacapability.FieldError
+				if json.Unmarshal([]byte(infraerrors.FromError(planErr).Metadata["fields"]), &fields) == nil && len(fields) > 0 {
+					failures = append(failures, fields...)
+				} else {
+					failures = append(failures, mediacapability.FieldError{Path: "model", Code: "unsupported_parameters", Message: "provider cannot adapt the requested parameters"})
+				}
+				continue
+			}
+			if plan != nil {
+				digest := sha256.Sum256(plan.Schema)
+				compiled, _ := mediacapability.Compile(mediaType, plan.Schema)
+				snapshot := MediaCapabilitySnapshot{PublicModel: route.UpstreamModel, MediaType: mediaType, SchemaVersion: 1, SchemaHash: hex.EncodeToString(digest[:]), Schema: plan.Schema}
+				result = append(result, MediaCandidate{Route: route, Capability: snapshot, Compiled: compiled, Match: plan.Match, ProviderManaged: true, AdapterProfile: plan.Profile})
+				continue
+			}
+		}
+		if capabilityModel == "" {
 			capabilityModel = model
 		}
 		row, err := s.capabilities.GetByModel(ctx, capabilityModel, mediaType)
@@ -145,6 +184,21 @@ func (s *CompositeMediaRouteService) MediaCandidates(ctx context.Context, groupI
 			failures = append(failures, mediacapability.FieldError{Path: "model", Code: "unsupported_parameters", Message: "no enabled media route capability supports the requested model and parameters"})
 		}
 		return nil, mediaCapabilityValidationError(failures)
+	}
+	if mediaType == "image" {
+		resolution := normalized.FixedImageResolution
+		if resolution == "" {
+			if metadata, ok := normalized.Values["metadata"].(map[string]any); ok {
+				resolution, _ = metadata["resolution"].(string)
+			}
+		}
+		sort.SliceStable(result, func(i, j int) bool {
+			left, right := result[i].Route.Route, result[j].Route.Route
+			if left.ResolutionPriority(resolution) != right.ResolutionPriority(resolution) {
+				return left.ResolutionPriority(resolution) < right.ResolutionPriority(resolution)
+			}
+			return left.ID < right.ID
+		})
 	}
 	return result, nil
 }

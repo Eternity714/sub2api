@@ -46,7 +46,9 @@
             type="text"
             class="input"
             :placeholder="
-              account.platform === 'toapis'
+              account.platform === 'kuaipao'
+                ? KUAIPAO_BASE_URL : account.platform === 'centos' ? CENTOS_BASE_URL
+                : account.platform === 'toapis'
                 ? TOAPIS_GLOBAL_BASE_URL
                 : account.platform === 'openai'
                 ? 'https://api.openai.com'
@@ -3313,6 +3315,8 @@ import {
   GRSAI_BASE_URL_PRESETS,
   GRSAI_GLOBAL_BASE_URL,
   TOAPIS_GLOBAL_BASE_URL,
+  KUAIPAO_BASE_URL,
+  CENTOS_BASE_URL,
   isCNProviderPlatform,
   HEADER_OVERRIDE_ENABLED_CREDENTIAL_KEY,
   HEADER_OVERRIDES_CREDENTIAL_KEY,
@@ -3331,6 +3335,7 @@ import {
   parseDateTimeLocalInput
 } from '@/utils/format'
 import { extractApiErrorMessage, extractI18nErrorMessage } from '@/utils/apiError'
+import { isNativeMediaPlatform } from '@/utils/publicPlatform'
 import { createStableObjectKeyResolver } from '@/utils/stableObjectKey'
 import { getAccountExpiryTimestamp } from '@/components/account/accountExpiry'
 import { allSelectedGroupsEnableLongContextPricing } from '@/components/account/longContextBilling'
@@ -3482,6 +3487,8 @@ const baseUrlHint = computed(() => {
   if (props.account.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
   if (props.account.platform === 'grok') return ''
   if (props.account.platform === 'toapis') return t('admin.accounts.toapis.baseUrlHint')
+  if (props.account.platform === 'kuaipao') return t('admin.accounts.kuaipao.baseUrlHint')
+  if (props.account.platform === 'centos') return t('admin.accounts.centos.baseUrlHint')
   if (props.account.platform === 'grsai') return t('admin.accounts.grsai.baseUrlHint')
   return t('admin.accounts.baseUrlHint')
 })
@@ -3809,7 +3816,7 @@ const autoResetCredit7dThreshold = ref(100)
 const upstreamBillingAutoProbeEnabled = ref(false)
 const upstreamBillingRateSyncEnabled = ref(false)
 const supportsUpstreamBillingProbe = computed(() =>
-  props.account?.type === 'apikey' && props.account.platform !== 'grsai' && props.account.platform !== 'toapis'
+  props.account?.type === 'apikey' && !isNativeMediaPlatform(props.account.platform)
 )
 const mixedScheduling = ref(false) // For antigravity accounts: enable mixed scheduling
 // 上游ID：直接上游声明请求标识的响应头名，留空不记录。
@@ -4200,6 +4207,8 @@ const defaultBaseUrl = computed(() => {
   if (props.account?.platform === 'grok') return 'https://api.x.ai/v1'
   if (props.account?.platform === 'typesafe') return 'https://api.typesafe.ai'
   if (props.account?.platform === 'toapis') return TOAPIS_GLOBAL_BASE_URL
+  if (props.account?.platform === 'kuaipao') return KUAIPAO_BASE_URL
+  if (props.account?.platform === 'centos') return CENTOS_BASE_URL
   if (props.account?.platform === 'grsai') return GRSAI_GLOBAL_BASE_URL
   // CN 供应商：按当前模式/协议回落到官方预设（清空输入框提交时使用），
   // 不能落到 anthropic 默认值（会被当 CC base 拼出错误端点）。
@@ -4652,13 +4661,15 @@ const syncFormFromAccount = (newAccount: Account | null) => {
             ? 'https://api.x.ai/v1'
             : newAccount.platform === 'typesafe'
               ? 'https://api.typesafe.ai'
-              : newAccount.platform === 'toapis'
-                ? TOAPIS_GLOBAL_BASE_URL
-                : newAccount.platform === 'grsai'
-                ? GRSAI_GLOBAL_BASE_URL
-                : isMultiProtocolApiKeyPlatform(newAccount.platform)
-                  ? defaultCNBaseUrl(newAccount.platform, currentOpenCodeOrCNMode(), editApiProtocol.value)
-                  : 'https://api.anthropic.com'
+              : newAccount.platform === 'kuaipao'
+                ? KUAIPAO_BASE_URL : newAccount.platform === 'centos' ? CENTOS_BASE_URL
+                : newAccount.platform === 'toapis'
+                  ? TOAPIS_GLOBAL_BASE_URL
+                  : newAccount.platform === 'grsai'
+                    ? GRSAI_GLOBAL_BASE_URL
+                    : isMultiProtocolApiKeyPlatform(newAccount.platform)
+                      ? defaultCNBaseUrl(newAccount.platform, currentOpenCodeOrCNMode(), editApiProtocol.value)
+                      : 'https://api.anthropic.com'
     editBaseUrl.value = isCNApiKeyAccount.value && editApiProtocol.value === 'adaptive'
       ? editAdaptiveBaseUrls.value.chat_completions
       : newAccount.platform === 'grsai'

@@ -4,7 +4,7 @@ description: nano-banana-2.1 图片生成 API 参数、输入模式、调用示�
 
 # nano-banana-2.1
 
-图片生成模型，使用[媒体 API 异步协议](/media-api)。参数核对日期：2026-10-16。
+图片生成模型，使用[媒体 API 异步协议](/media-api)。参数核对日期：2026-11-10。
 
 **模型 ID：`nano-banana-2.1`**。请原样填写，大小写不可替换。
 
@@ -19,47 +19,51 @@ description: nano-banana-2.1 图片生成 API 参数、输入模式、调用示�
 
 ## 请求参数
 
-以下为本模型当前开放的完整字段。顶层或嵌套对象中未列出的字段均不能传入；类型、枚举、范围或组合不符时返回 `400`，不创建任务、不预留额度。
+以下为本模型推荐使用的完整字段；[旧参数别名](/media-api#旧参数兼容)也继续兼容。除此之外，顶层或嵌套对象中未列出的字段均不能传入；类型、枚举、范围或组合不符时返回 `400`，不创建任务、不预留额度。
 
 <div class="media-parameters">
 
 | 字段 | 类型 | 必填性 | 默认值 | 用途 | 约束 |
 | --- | --- | --- | --- | --- | --- |
 | `model` | `string` | 必填 | 无 | 模型 ID，区分大小写，必须与本页完全一致。 | 仅限 `"nano-banana-2.1"` |
-| `prompt` | `string` | 必填 | 未声明 | 描述要生成的内容或对参考图的修改要求。 | 最少字符 1；不接受 null |
-| `size` | `string` | 可选，可省略并采用默认 | `"1:1"` | 图片宽高比，格式为正整数 a:b，不是像素尺寸。 | 仅限 `"1:1"`、`"4:3"`、`"3:4"`、`"16:9"`、`"9:16"`、`"3:2"`、`"2:3"`、`"5:4"`、`"4:5"`、`"21:9"`；不接受 null |
-| `n` | `integer` | 可选，可省略并采用默认 | `1` | 请求生成的图片结果数量。 | 最小值 1；最大值 8；不接受 null |
-| `image_urls` | `array` | 可选 | 未声明 | 参考图 URL 列表。传入前请确认素材可公开读取。 | 最少元素 1；最多元素 14；不接受 null |
-| `image_urls[]` | `string` | 每个数组元素 | 未声明 | 单个参考图片 URL。 | 无用户名或密码的绝对 HTTP(S) URL；不接受 null |
-| `metadata` | `object` | 可选，可省略并采用默认 | `{}` | 模型扩展参数对象，仅接受下列已声明的字段。 | 不接受 null |
-| `metadata.resolution` | `string` | 可选，可省略并采用默认 | `"1K"` | 输出分辨率档位，严格使用所列字符串及大小写。 | 仅限 `"1K"`、`"2K"`、`"4K"`；不接受 null |
+| `prompt` | `string` | 必填 | 未声明 | 描述要生成的内容或对参考图的修改要求。 | 最少字符 1；最多字符 32000；不接受 null |
+| `images` | `array` | 可选 | 未声明 | 参考图 HTTP(S) URL 列表，按输入顺序处理。 | 最少元素 1；不接受 null |
+| `images[]` | `string` | 每个数组元素 | 未声明 | 单个参考图片 URL。 | 无用户名或密码的绝对 HTTP(S) URL；不接受 null |
+| `aspectRatio` | `string` | 可选，可省略并采用默认 | `"auto"` | 输出宽高比；允许值和 auto 支持情况见本字段约束。 | 仅限 `"auto"`、`"1:1"`、`"16:9"`、`"9:16"`、`"4:3"`、`"3:4"`、`"3:2"`、`"2:3"`、`"5:4"`、`"4:5"`、`"21:9"`、`"9:21"`；不接受 null |
+| `imageSize` | `string` | 可选，可省略并采用默认 | `"1k"` | 图片分辨率档位，也接受 resolution 别名。 | 仅限 `"1k"`、`"2k"`、`"4k"`、`"1K"`、`"2K"`、`"4K"`；不接受 null |
+| `n` | `integer` | 可选，可省略并采用默认 | `1` | 请求生成的图片结果数量。 | 最小值 1；最大值 1；不接受 null |
+| `replyType` | `string` | 可选，可省略并采用默认 | `"async"` | 目前仅支持 async：创建任务后轮询查询。 | 仅限 `"async"`；不接受 null |
 
 </div>
 
 参数较多时可在表格内左右滚动查看。表中必填性按默认值填充后的请求判断。模式附加的必填和禁止字段见下节；嵌套字段的必填性仅在父对象存在时判断。默认值不代表任意扩展参数都会自动补齐。
 
-省略 `metadata` 时，本模型先采用默认 `{}`，再补入其已声明的子字段默认值。
-
-参考图必须替换为调用方实际可公开访问的 HTTP(S) 文件 URL；示例 `example.com` 仅占位，不能直接用来生成。不支持在 `image_urls` 中放入 Base64 字符串或本地文件路径。
+参考图必须替换为生成服务能够下载的 HTTP(S) 图片直链；示例 `example.com` 仅占位，不能直接用来生成。不支持在 `images` 中放入 Base64 字符串或本地路径。带签名的链接应在任务处理期间保持有效。
 
 ## 输入模式与组合限制
 
-本模型无额外的模式匹配条件，按上表的字段约束校验。参考图是否必填、可传数量以 `image_urls` 行为准。
+本模型无额外的模式匹配条件，按上表字段约束校验。参考图是否必填、可传数量以 `images` 行为准。
 
-`size` 仅表示宽高比，分辨率放在 `metadata.resolution`（仅在上表声明时可传）；不能传 `metadata.output_size`。
+使用 `imageSize` 选择 `1k`、`2k`、`4k`，省略时默认 `1k`；同时兼容对应大写 `1K`、`2K`、`4K`。三个分辨率档位采用同一单张价格。
+
+`aspectRatio` 默认 `auto`，交由生成服务自动决定比例；不会固定转换为正方形。支持比例见参数表。实际交付保留上游原图，分辨率表示档位，不承诺固定像素尺寸。
+
+主线路按请求的比例和分辨率处理；主线路不可用或并发已满时可能切换备用。备用采用生成服务的默认比例和分辨率，因此可能与请求的 `aspectRatio`、`imageSize` 不同；交付原图，不缩放、不裁剪，仍按本模型固定单价收费。参考图和提示词继续保留。
+
+不接受像素尺寸写法及 `quality` 参数。每次仅生成一张，`n:1`、`replyType:async` 可省略。
 
 当前能力未声明精确像素映射，分辨率是档位说明；本页不承诺某个固定像素尺寸。
 
 ## 创建任务示例
 
-以下 cURL 使用 Bash。设置当前密钥，示例不会自动提交或重试：
+以下 cURL 使用 Bash。创建请求只发送一次，拿到 id 后改用 GET 查询：
 
 ```bash
 export SUB2API_BASE_URL="https://www.gkotta.bid"
 export SUB2API_KEY="sk-YOUR_API_KEY"
 ```
 
-### 基础请求
+### 文生图（默认 auto、1k）
 
 ```bash
 curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
@@ -67,12 +71,40 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
   -H 'Content-Type: application/json' \
   --data '{
   "model": "nano-banana-2.1",
-  "prompt": "A quiet mountain lake at sunrise",
+  "prompt": "白色桌面上的蓝色陶瓷花瓶，柔和自然光"
+}'
+```
+
+### 竖幅生图（9:21、2k）
+
+```bash
+curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
+  -H "Authorization: Bearer $SUB2API_KEY" \
+  -H 'Content-Type: application/json' \
+  --data '{
+  "model": "nano-banana-2.1",
+  "prompt": "柔和光线中的蓝色陶瓷花瓶",
+  "aspectRatio": "9:21",
+  "imageSize": "2k",
   "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "1K"
-  }
+  "replyType": "async"
+}'
+```
+
+### 参考图生图（4K）
+
+```bash
+curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations" \
+  -H "Authorization: Bearer $SUB2API_KEY" \
+  -H 'Content-Type: application/json' \
+  --data '{
+  "model": "nano-banana-2.1",
+  "prompt": "保留参考图主体并改为柔和水彩风格",
+  "images": [
+    "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
+  ],
+  "aspectRatio": "auto",
+  "imageSize": "4K"
 }'
 ```
 
@@ -129,10 +161,10 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations/$TASK_ID" \
 
 按成功交付的图片结果数计费。创建任务时预留额度，全部文件保存及任务处理完成后结算；失败部分释放预留额度。
 
-当前价目档位：`1K`、`2K`、`4K`。价目档位不扩展可用参数范围；请求仍须满足本页字段及模式限制。
+核对时标价：**0.15 元/张**。实际价格及分组倍率以[可用渠道](https://www.gkotta.bid/available-channels)为准。
 
-批量图片等待整项任务结束后统一返回，部分成功时仅交付成功的文件并按成功部分收费。支持数量以 `n` 的约束为准。
+当前每次请求仅生成一张图片，`n` 只能为 1。
 
-实际单价及分组倍率以[可用渠道](https://www.gkotta.bid/available-channels)显示为准。
+旧字段兼容关系见[参数兼容说明](/media-api#旧参数兼容)。新旧别名同时传入时必须一致；`replyType` 当前仅支持 `async`。
 
 [返回媒体模型目录](/media-models/) · [统一协议与错误处理](/media-api)

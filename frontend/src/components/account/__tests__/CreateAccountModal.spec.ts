@@ -660,7 +660,7 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     const labels = (testid: string) =>
       wrapper.get(`[data-testid="${testid}"]`).findAll('button').map(button => button.text().trim())
     expect(labels('platform-row-cn')).toEqual(['Kimi', 'Zhipu GLM', 'DeepSeek', 'MiniMax'])
-    expect(labels('platform-row-aggregators')).toEqual(['OpenCode', 'Command Code', 'Cline', 'ToAPIs', 'GRS.AI'])
+    expect(labels('platform-row-aggregators')).toEqual(['OpenCode', 'Command Code', 'Cline', 'CentOS', '快跑 API', 'ToAPIs', 'GRS.AI'])
   })
 
   it('creates a Cline account without an account type and with only the Chat Completions endpoint', async () => {
@@ -1113,7 +1113,7 @@ describe('ToAPIs account creation', () => {
 })
 
 describe('原生媒体账号不使用旧上游账单探测', () => {
-  it.each([['toapis', 'ToAPIs'], ['grsai', 'GRS.AI']])('创建 %s 隐藏开关且不触发旧探测', async (platform, label) => {
+  it.each([['toapis', 'ToAPIs'], ['grsai', 'GRS.AI'], ['kuaipao', '快跑 API']])('创建 %s 隐藏开关且不触发旧探测', async (platform, label) => {
     authIsSimpleMode.value = true
     createAccountMock.mockReset().mockResolvedValue({ id: 97, platform, type: 'apikey' })
     probeUpstreamBillingMock.mockReset().mockResolvedValue({})
@@ -1126,6 +1126,41 @@ describe('原生媒体账号不使用旧上游账单探测', () => {
     await flushPromises()
     expect(createAccountMock).toHaveBeenCalledTimes(1)
     expect(createAccountMock.mock.calls[0]?.[0]?.upstream_billing_probe_enabled).toBeUndefined()
+    expect(probeUpstreamBillingMock).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+})
+
+describe('快跑账号创建', () => {
+  afterEach(() => resetPlatformCatalog())
+
+  it('使用独立 API Key 平台和官方 v2 地址，不继承 OpenAI OAuth 表单', async () => {
+    setPlatformCatalog({
+      platforms: [
+        ...BUILTIN_PLATFORM_CATALOG.platforms.filter(spec => spec.id !== 'kuaipao'),
+        { id: 'kuaipao', display_name: '快跑 API', gateway: 'kuaipao', cn_provider: false },
+      ],
+      composite_precedence: [...BUILTIN_PLATFORM_CATALOG.composite_precedence, 'kuaipao'],
+    })
+    createAccountMock.mockReset().mockResolvedValue({ id: 98, platform: 'kuaipao', type: 'apikey' })
+    probeUpstreamBillingMock.mockReset()
+    const wrapper = mountModal()
+    await wrapper.get('[data-testid="platform-button-kuaipao"]').trigger('click')
+    expect(wrapper.text()).toContain('快跑 API')
+    expect(wrapper.find('[data-tour="account-form-type"]').exists()).toBe(false)
+    expect(wrapper.findComponent(OAuthAuthorizationFlowStub).exists()).toBe(false)
+    const base = wrapper.findAll('input').find(input => input.attributes('placeholder') === 'https://image.kuaipao.pro/v2')!
+    expect(base).toBeDefined()
+    expect(base.element).toHaveProperty('value', 'https://image.kuaipao.pro/v2')
+    await wrapper.get('form#create-account-form input[type="text"]').setValue('快跑图片')
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('kuaipao-test-key')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+    expect(createAccountMock).toHaveBeenCalledWith(expect.objectContaining({
+      platform: 'kuaipao', type: 'apikey', credentials: expect.objectContaining({
+        api_key: 'kuaipao-test-key', base_url: 'https://image.kuaipao.pro/v2',
+      }),
+    }))
     expect(probeUpstreamBillingMock).not.toHaveBeenCalled()
     wrapper.unmount()
   })

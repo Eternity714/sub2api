@@ -11,6 +11,7 @@ describe('Composite channel platform options', () => {
   it('offers native media pricing for new channels', () => {
     expect(selectableChannelPlatforms()).toContain('openai')
     expect(selectableChannelPlatforms()).toContain('grsai')
+    expect(selectableChannelPlatforms()).toContain('kuaipao')
   })
 
   it('offers a single media section for existing channels', () => {
@@ -29,7 +30,7 @@ describe('Composite channel platform options', () => {
     expect(listPlatformIds()).toEqual(
       expect.arrayContaining(['kimi', 'zhipu', 'deepseek', 'minimax', 'opencode_go'])
     )
-    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis']))
+    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis', 'kuaipao']))
   })
 
   it('updates channel and composite options when the platform catalog changes', () => {
@@ -44,6 +45,6 @@ describe('Composite channel platform options', () => {
     expect(channelPlatformOrder).toContain('acme_router')
     expect(selectableChannelPlatforms()).toContain('acme_router')
     expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toContain('acme_router')
-    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis']))
+    expect(COMPOSITE_ROUTE_PLATFORM_OPTIONS.map(option => option.value)).toEqual(expect.arrayContaining(['grsai', 'toapis', 'kuaipao']))
   })
 })

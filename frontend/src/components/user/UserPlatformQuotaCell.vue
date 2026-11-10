@@ -31,6 +31,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { PlatformQuotaItem } from '@/api/admin/users'
 import { quotaPlatformIds } from '@/constants/platformCatalog'
+import { isNativeMediaPlatform } from '@/utils/publicPlatform'
 
 const props = defineProps<{ quotas?: PlatformQuotaItem[] }>()
 const { t } = useI18n()
@@ -45,7 +46,7 @@ function platformRank(platform: string): number {
 const configured = computed(() => {
   if (!props.quotas) return []
   return props.quotas
-    .filter(q => q.platform !== 'grsai')
+    .filter(q => !isNativeMediaPlatform(q.platform))
     .filter(
       (q) =>
         q.daily_limit_usd != null ||

@@ -41,6 +41,8 @@
         </span>
       </div>
 
+      <p v-if="account?.platform === 'kuaipao'" class="input-hint">{{ t('admin.accounts.kuaipao.imageTestHint') }}</p>
+      <p v-if="account?.platform === 'centos'" class="input-hint">{{ t('admin.accounts.centos.connectionTestHint') }}</p>
       <div class="space-y-1.5">
         <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
           {{ t('admin.accounts.selectTestModel') }}
@@ -304,7 +306,7 @@ const supportsGeminiImageTest = computed(() => {
 const supportsOpenAIImageTest = computed(() => {
   const modelID = selectedModelId.value.toLowerCase()
   if (!modelID.startsWith('gpt-image-')) return false
-  return props.account?.platform === 'openai'
+  return props.account?.platform === 'openai' || props.account?.platform === 'kuaipao'
 })
 
 const supportsImageTest = computed(() => supportsGeminiImageTest.value || supportsOpenAIImageTest.value)

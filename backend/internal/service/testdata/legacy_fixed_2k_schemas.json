@@ -1,0 +1,338 @@
+{
+  "models": [
+    {
+      "model": "gpt-image-2.6-2k",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 1,
+            "minimum": 1
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 16,
+            "min_items": 1
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 32000,
+            "min_length": 1
+          },
+          "quality": {
+            "enum": [
+              "auto",
+              "low",
+              "medium",
+              "high"
+            ],
+            "type": "string",
+            "default": "auto"
+          },
+          "replyType": {
+            "enum": [
+              "async"
+            ],
+            "type": "string",
+            "default": "async"
+          },
+          "aspectRatio": {
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "type": "string",
+            "default": "1:1"
+          }
+        },
+        "version": 1,
+        "fixed_image_resolution": "2K",
+        "auto_image_aspect_ratio": "1:1",
+        "image_specs": [
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "2K",
+            "width": 2048,
+            "height": 2048
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "2K",
+            "width": 2560,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "2K",
+            "width": 1440,
+            "height": 2560
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "2K",
+            "width": 2304,
+            "height": 1728
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "2K",
+            "width": 1728,
+            "height": 2304
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "2K",
+            "width": 2496,
+            "height": 1664
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "2K",
+            "width": 1664,
+            "height": 2496
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "2K",
+            "width": 2240,
+            "height": 1792
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "2K",
+            "width": 1792,
+            "height": 2240
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "2K",
+            "width": 3024,
+            "height": 1296
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "2K",
+            "width": 1296,
+            "height": 3024
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "2K",
+            "width": 1440,
+            "height": 2880
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "2K",
+            "width": 2880,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "2K",
+            "width": 1168,
+            "height": 3504
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "2K",
+            "width": 3504,
+            "height": 1168
+          }
+        ]
+      }
+    },
+    {
+      "model": "gpt-image-2.5-2k",
+      "schema": {
+        "batch": {
+          "allow_split": false,
+          "native_max_results": 1,
+          "semantically_linked": false
+        },
+        "fields": {
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "maximum": 1,
+            "minimum": 1
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "http_url"
+            },
+            "max_items": 16,
+            "min_items": 1
+          },
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "max_length": 32000,
+            "min_length": 1
+          },
+          "quality": {
+            "enum": [
+              "auto",
+              "low",
+              "medium",
+              "high"
+            ],
+            "type": "string",
+            "default": "auto"
+          },
+          "replyType": {
+            "enum": [
+              "async"
+            ],
+            "type": "string",
+            "default": "async"
+          },
+          "aspectRatio": {
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "type": "string",
+            "default": "1:1"
+          }
+        },
+        "version": 1,
+        "fixed_image_resolution": "2K",
+        "auto_image_aspect_ratio": "1:1",
+        "image_specs": [
+          {
+            "aspect_ratio": "1:1",
+            "resolution": "2K",
+            "width": 2048,
+            "height": 2048
+          },
+          {
+            "aspect_ratio": "16:9",
+            "resolution": "2K",
+            "width": 2560,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "9:16",
+            "resolution": "2K",
+            "width": 1440,
+            "height": 2560
+          },
+          {
+            "aspect_ratio": "4:3",
+            "resolution": "2K",
+            "width": 2304,
+            "height": 1728
+          },
+          {
+            "aspect_ratio": "3:4",
+            "resolution": "2K",
+            "width": 1728,
+            "height": 2304
+          },
+          {
+            "aspect_ratio": "3:2",
+            "resolution": "2K",
+            "width": 2496,
+            "height": 1664
+          },
+          {
+            "aspect_ratio": "2:3",
+            "resolution": "2K",
+            "width": 1664,
+            "height": 2496
+          },
+          {
+            "aspect_ratio": "5:4",
+            "resolution": "2K",
+            "width": 2240,
+            "height": 1792
+          },
+          {
+            "aspect_ratio": "4:5",
+            "resolution": "2K",
+            "width": 1792,
+            "height": 2240
+          },
+          {
+            "aspect_ratio": "21:9",
+            "resolution": "2K",
+            "width": 3024,
+            "height": 1296
+          },
+          {
+            "aspect_ratio": "9:21",
+            "resolution": "2K",
+            "width": 1296,
+            "height": 3024
+          },
+          {
+            "aspect_ratio": "1:2",
+            "resolution": "2K",
+            "width": 1440,
+            "height": 2880
+          },
+          {
+            "aspect_ratio": "2:1",
+            "resolution": "2K",
+            "width": 2880,
+            "height": 1440
+          },
+          {
+            "aspect_ratio": "1:3",
+            "resolution": "2K",
+            "width": 1168,
+            "height": 3504
+          },
+          {
+            "aspect_ratio": "3:1",
+            "resolution": "2K",
+            "width": 3504,
+            "height": 1168
+          }
+        ]
+      }
+    }
+  ]
+}

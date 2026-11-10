@@ -31,10 +31,49 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 	if len(rawFields["metadata"]) > MaxMetadataBytes {
 		return nil, []FieldError{fieldError("metadata", "size_limit", "metadata exceeds size limit")}
 	}
+	var requestedSpec *ImageSpec
+	if c.mediaType == "image" {
+		var pixelErrors []FieldError
+		requestedSpec, pixelErrors = requestedPixels(values, c.schema)
+		errs = append(errs, pixelErrors...)
+	}
+	errs = append(errs, canonicalInput(values, c.mediaType)...)
+	if metadata, exists := values["metadata"]; exists {
+		encoded, _ := json.Marshal(metadata)
+		if len(encoded) > MaxMetadataBytes {
+			errs = append(errs, fieldError("metadata", "size_limit", "metadata exceeds size limit"))
+		}
+	}
+	if len(errs) > 0 {
+		return nil, errs
+	}
+	// The task endpoint currently implements async replies only, including when
+	// validating a legacy schema which predates replyType.
+	replyType := ""
+	if reply, exists := values["replyType"]; exists {
+		if reply != "async" {
+			return nil, []FieldError{fieldError("replyType", "unsupported_reply_type", "only async task replies are supported")}
+		}
+		replyType = "async"
+		if _, declared := c.schema.Fields["replyType"]; !declared {
+			delete(values, "replyType")
+		}
+	}
 	provided := make([]string, 0)
 	collectProvided(values, "", &provided)
 	sort.Strings(provided)
 	applyObjectDefaults(c.schema.Fields, values)
+	// Auto has no fixed output geometry. It is valid only for image schemas
+	// which explicitly advertise it; video and legacy ratio rules stay bounded.
+	autoRatio := false
+	if c.mediaType == "image" && values["size"] == "auto" {
+		for _, allowed := range c.schema.Fields["size"].Enum {
+			if allowed == "auto" {
+				autoRatio = true
+				break
+			}
+		}
+	}
 	model, exists := values["model"]
 	if !exists {
 		errs = append(errs, fieldError("model", "required", "model is required"))
@@ -59,7 +98,7 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 	}
 	for _, key := range []string{"size", "aspect_ratio"} {
 		if value, exists := values[key]; exists && value != nil {
-			if text, ok := value.(string); ok && !ratioPattern.MatchString(text) {
+			if text, ok := value.(string); ok && !ratioPattern.MatchString(text) && !(key == "size" && autoRatio) {
 				errs = append(errs, fieldError(key, "format", "aspect ratio must contain two positive integers separated by a colon"))
 			}
 		}
@@ -115,9 +154,15 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 		}
 	}
 	var imageSpec *ImageSpec
-	if len(c.schema.ImageSpecs) > 0 {
+	if len(c.schema.ImageSpecs) > 0 && (!autoRatio || c.schema.AutoImageAspectRatio != "") {
 		size, _ := values["size"].(string)
 		resolution, _ := getPath(values, "metadata.resolution")
+		if c.schema.FixedImageResolution != "" {
+			resolution = c.schema.FixedImageResolution
+		}
+		if autoRatio && c.schema.AutoImageAspectRatio != "" {
+			size = c.schema.AutoImageAspectRatio
+		}
 		for _, spec := range c.schema.ImageSpecs {
 			if spec.AspectRatio == size && spec.Resolution == resolution {
 				copy := spec
@@ -132,7 +177,20 @@ func (c *Compiled) Validate(raw []byte) (*NormalizedRequest, []FieldError) {
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	return &NormalizedRequest{Values: values, Mode: modeID, ProvidedFields: provided, ImageSpec: imageSpec, RequestedCount: requestedCount, mediaType: c.mediaType}, nil
+	// An explicit automatic-ratio mapping binds the configured request geometry
+	// for every ratio and tier. Providers replay these captured target pixels.
+	if c.schema.AutoImageAspectRatio != "" && imageSpec != nil && requestedSpec == nil {
+		copy := *imageSpec
+		requestedSpec = &copy
+	}
+	if reply, exists := values["replyType"]; exists {
+		if reply != "async" {
+			return nil, []FieldError{fieldError("replyType", "unsupported_reply_type", "only async task replies are supported")}
+		}
+		replyType = "async"
+		delete(values, "replyType")
+	}
+	return &NormalizedRequest{FixedImageResolution: c.schema.FixedImageResolution, Values: values, Mode: modeID, ProvidedFields: provided, ImageSpec: imageSpec, RequestedImageSpec: requestedSpec, ReplyType: replyType, RequestedCount: requestedCount, AtomicBatch: requestedCount > 1 && (c.schema.Batch.SemanticallyLinked || !c.schema.Batch.AllowSplit), mediaType: c.mediaType}, nil
 }
 
 func collectProvided(values any, path string, provided *[]string) {

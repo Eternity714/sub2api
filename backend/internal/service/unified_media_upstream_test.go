@@ -14,17 +14,17 @@ import (
 )
 
 // AC-014 (adapter scope): translate normalized image fields/metadata without mutating the accepted request.
-func TestUnifiedMediaPayloadGRSNano(t *testing.T) {
+func TestUnifiedMediaPayloadGRSImage(t *testing.T) {
 	req := &mediacapability.NormalizedRequest{Values: map[string]any{"model": "public", "prompt": "cat", "size": "16:9", "n": json.Number("3"), "image_urls": []any{"https://example.com/in.png"}, "metadata": map[string]any{"resolution": "2K"}}, RequestedCount: 3}
-	body, path, err := BuildUnifiedMediaPayload("grsai", "image", "nano-banana-2", req, 1)
+	body, path, err := BuildUnifiedMediaPayload("grsai", "image", "fixture-image", req, 1)
 	require.NoError(t, err)
 	require.Equal(t, "/v1/api/generate", path)
 	var v map[string]any
 	require.NoError(t, json.Unmarshal(body, &v))
 	require.Equal(t, "async", v["replyType"])
-	require.Equal(t, "nano-banana-2", v["model"])
+	require.Equal(t, "fixture-image", v["model"])
 	require.Equal(t, "16:9", v["aspectRatio"])
-	require.Equal(t, "2K", v["imageSize"])
+	require.NotContains(t, v, "imageSize")
 	require.NotContains(t, v, "n")
 	require.NotContains(t, v, "metadata")
 	require.Equal(t, json.Number("3"), req.Values["n"])
@@ -95,7 +95,7 @@ func TestUnifiedMediaUpstreamAcceptedFailureMustNotFailOver(t *testing.T) {
 	}))
 	defer srv.Close()
 	account := &Account{Platform: PlatformGrsai, Type: AccountTypeAPIKey, Credentials: map[string]any{"base_url": srv.URL, "api_key": "secret"}}
-	result, err := NewUnifiedMediaUpstream(srv.Client()).Submit(context.Background(), account, "image", "nano-banana-2", &mediacapability.NormalizedRequest{Values: map[string]any{"prompt": "x"}}, 1)
+	result, err := NewUnifiedMediaUpstream(srv.Client()).Submit(context.Background(), account, "image", "fixture-image", &mediacapability.NormalizedRequest{Values: map[string]any{"prompt": "x"}}, 1)
 	require.NoError(t, err)
 	require.Equal(t, "accepted", result.Disposition)
 	require.Equal(t, "completed", result.Status)

@@ -439,6 +439,9 @@ func writeUnifiedMediaUsage(ctx context.Context, tx *sql.Tx, task *service.Unifi
 				resolution = text
 			}
 		}
+		if task.Payload.Normalized.FixedImageResolution != "" {
+			resolution = task.Payload.Normalized.FixedImageResolution
+		}
 		if value, ok := task.Payload.Normalized.Values["duration"].(json.Number); ok {
 			if n, err := value.Int64(); err == nil && n > 0 && n <= 2147483647 {
 				duration = n

@@ -12,7 +12,7 @@ vi.mock('vue-i18n', async () => {
 })
 
 describe('SupportedModelChip', () => {
-  it.each(['media', 'grsai', 'toapis'])('hides the %s source in the model label, icon and pricing tooltip', async platform => {
+  it.each(['media', 'grsai', 'toapis', 'kuaipao'])('hides the %s source in the model label, icon and pricing tooltip', async platform => {
     const wrapper = mount(SupportedModelChip, {
       attachTo: document.body,
       props: { model: { name: 'image-model', platform, pricing: null }, noPricingLabel: 'No pricing' },
@@ -25,7 +25,7 @@ describe('SupportedModelChip', () => {
       await nextTick()
       const tooltip = document.body.querySelector('[role="tooltip"]')
       expect(tooltip?.textContent).toContain('admin.groups.platforms.media')
-      expect(tooltip?.textContent).not.toMatch(/grsai|toapis|GRS\.AI/i)
+      expect(tooltip?.textContent).not.toMatch(/grsai|toapis|kuaipao|快跑|GRS\.AI/i)
     } finally {
       wrapper.unmount()
     }
@@ -36,7 +36,7 @@ describe('SupportedModelChip', () => {
     (pricingKeyPrefix) => {
       it.each([
         { name: 'gpt-image-2', perImagePrice: 0.06, imageTokenPrice: 0.00003, expected: '$0.06' },
-        { name: 'nano-banana-fast', perImagePrice: 0.044, imageTokenPrice: null, expected: '$0.044' },
+        { name: 'fixture-image', perImagePrice: 0.044, imageTokenPrice: null, expected: '$0.044' },
         { name: 'free-image', perImagePrice: 0, imageTokenPrice: 0.00003, expected: '$0' }
       ])('shows $name per-image price instead of its image-token price', async (fixture) => {
         const wrapper = mount(SupportedModelChip, {

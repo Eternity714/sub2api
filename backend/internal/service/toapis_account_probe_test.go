@@ -42,6 +42,21 @@ func TestToAPIsAccountTestUsesReadOnlyModelsEndpoint(t *testing.T) {
 	require.NotContains(t, rec.Body.String(), "toapis-private-key")
 }
 
+func TestCentOSAccountTestUsesReadOnlyModelCatalog(t *testing.T) {
+	svc, repo, requests, c, rec := toAPIsAccountTestFixture(t, http.StatusOK, `{"data":[{"id":"gpt-image-2.6-flare"}]}`)
+	repo.account.Platform = PlatformCentOS
+	repo.account.Credentials["base_url"] = CentOSDefaultBaseURL
+	require.NoError(t, svc.TestAccountConnection(c, 97, "gpt-image-2.6-flare", "do not generate", AccountTestModeDefault))
+	require.Len(t, *requests, 1)
+	req := (*requests)[0]
+	require.Equal(t, http.MethodGet, req.Method)
+	require.Equal(t, CentOSDefaultBaseURL+"/v1/models", req.URL.String())
+	require.True(t, HTTPUpstreamRedirectsDisabled(req.Context()))
+	require.Nil(t, req.Body)
+	require.Contains(t, rec.Body.String(), `"type":"test_complete"`)
+	require.NotContains(t, rec.Body.String(), "toapis-private-key")
+}
+
 func TestToAPIsAccountTestRejectionDoesNotLeakUpstreamBody(t *testing.T) {
 	for _, status := range []int{http.StatusUnauthorized, http.StatusForbidden} {
 		t.Run(http.StatusText(status), func(t *testing.T) {

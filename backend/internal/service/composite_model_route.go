@@ -50,24 +50,26 @@ var (
 // CompositeModelRoute maps one public model identifier in a composite group to
 // the concrete provider/model that should handle the request.
 type CompositeModelRoute struct {
-	ID              int64     `json:"id"`
-	GroupID         int64     `json:"group_id"`
-	PublicModel     string    `json:"public_model"`
-	MatchType       string    `json:"match_type"`
-	TargetPlatform  string    `json:"target_platform"`
-	UpstreamModel   string    `json:"upstream_model"`
-	CapabilityModel string    `json:"capability_model,omitempty"`
-	Endpoint        string    `json:"endpoint"`
-	Priority        int       `json:"priority"`
-	Enabled         bool      `json:"enabled"`
-	Notes           string    `json:"notes"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID                   int64          `json:"id"`
+	GroupID              int64          `json:"group_id"`
+	PublicModel          string         `json:"public_model"`
+	MatchType            string         `json:"match_type"`
+	TargetPlatform       string         `json:"target_platform"`
+	UpstreamModel        string         `json:"upstream_model"`
+	CapabilityModel      string         `json:"capability_model,omitempty"`
+	Endpoint             string         `json:"endpoint"`
+	Priority             int            `json:"priority"`
+	ResolutionPriorities map[string]int `json:"resolution_priorities,omitempty"`
+	Enabled              bool           `json:"enabled"`
+	Notes                string         `json:"notes"`
+	CreatedAt            time.Time      `json:"created_at"`
+	UpdatedAt            time.Time      `json:"updated_at"`
 }
 
 type CompositeRoutePreviewRequest struct {
-	Model    string `json:"model"`
-	Endpoint string `json:"endpoint"`
+	Model      string `json:"model"`
+	Endpoint   string `json:"endpoint"`
+	Resolution string `json:"resolution,omitempty"`
 }
 
 type CompositeRouteDecision struct {
@@ -84,15 +86,26 @@ type CompositeRouteDecision struct {
 }
 
 type CompositeRouteInput struct {
-	PublicModel     string
-	MatchType       string
-	TargetPlatform  string
-	UpstreamModel   string
-	CapabilityModel string
-	Endpoint        string
-	Priority        int
-	Enabled         bool
-	Notes           string
+	PublicModel          string
+	MatchType            string
+	TargetPlatform       string
+	UpstreamModel        string
+	CapabilityModel      string
+	Endpoint             string
+	Priority             int
+	ResolutionPriorities map[string]int
+	Enabled              bool
+	Notes                string
+}
+
+// ResolutionPriority applies reviewed tier overrides; other requests keep the base priority.
+func (r CompositeModelRoute) ResolutionPriority(resolution string) int {
+	if r.Endpoint == CompositeRouteEndpointImages && r.MatchType == CompositeRouteMatchExact {
+		if priority, ok := r.ResolutionPriorities[strings.ToUpper(resolution)]; ok {
+			return priority
+		}
+	}
+	return r.Priority
 }
 
 type CompositeModelRouteRepository interface {

@@ -2,10 +2,10 @@
 description: 使用 Gkotta 的 Grok 视频接口创建任务、查询状态、下载结果并编辑或续写视频。
 ---
 
-# 视频生成
+# Grok 视频 API
 
 ::: warning 媒体 API 分组请使用新的统一协议
-如果密钥使用“媒体 API”分组，请转到[媒体 API 接入指南](/media-api)和[视频模型参数目录](/media-models/)。该分组使用 `POST /v1/videos/generations` 创建任务，并通过 `GET /v1/videos/generations/{task_id}` 查询；分辨率放在 `metadata.resolution`。下文 Grok 的 `/v1/videos/{request_id}` 查询路径、顶层分辨率和原生响应格式不适用于媒体 API 分组。
+如果密钥使用“媒体 API”分组，请转到[媒体 API 接入指南](/media-api)和[视频模型参数目录](/media-models/)。该分组使用 `POST /v1/videos/generations` 创建任务，并通过 `GET /v1/videos/generations/{task_id}` 查询；使用 `aspectRatio/resolution/replyType`，详见[统一视频生成 API](/media-videos)。下文 Grok 的 `request_id`、查询路径及原生响应格式应配合对应的 Grok 分组使用。
 :::
 
 Gkotta 的 Grok 视频接口采用异步任务方式：提交提示词，保存任务 ID，使用同一密钥查询状态，完成后下载视频。Seedance 使用另一套原生协议，接入方法见 [Seedance API](/seedance-api)。

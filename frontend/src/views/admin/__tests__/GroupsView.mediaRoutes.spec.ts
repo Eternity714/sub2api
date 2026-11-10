@@ -3,8 +3,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AdminGroup } from '@/types'
 import GroupsView from '../GroupsView.vue'
-const { list, listRoutes, createRoute, preview } = vi.hoisted(() => ({ list: vi.fn(), listRoutes: vi.fn(), createRoute: vi.fn(), preview: vi.fn() }))
-vi.mock('@/api/admin', () => ({ adminAPI: { groups: { list, listCompositeRoutes: listRoutes, createCompositeRoute: createRoute, previewCompositeRoute: preview, getModelAllowlistCandidates: vi.fn().mockResolvedValue([]), getUsageSummary: vi.fn().mockResolvedValue([]), getCapacitySummary: vi.fn().mockResolvedValue([]), getLiveCapability: vi.fn().mockResolvedValue({ supported: false }) } } }))
+const { list, listRoutes, createRoute, updateRoute, preview } = vi.hoisted(() => ({ list: vi.fn(), listRoutes: vi.fn(), createRoute: vi.fn(), updateRoute: vi.fn(), preview: vi.fn() }))
+vi.mock('@/api/admin', () => ({ adminAPI: { groups: { list, listCompositeRoutes: listRoutes, createCompositeRoute: createRoute, updateCompositeRoute: updateRoute, previewCompositeRoute: preview, getModelAllowlistCandidates: vi.fn().mockResolvedValue([]), getUsageSummary: vi.fn().mockResolvedValue([]), getCapacitySummary: vi.fn().mockResolvedValue([]), getLiveCapability: vi.fn().mockResolvedValue({ supported: false }) } } }))
 vi.mock('@/stores/app', () => ({ useAppStore: () => ({ showSuccess: vi.fn(), showError: vi.fn() }) }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ isSimpleMode: false }) }))
 vi.mock('@/stores/onboarding', () => ({ useOnboardingStore: () => ({ isCurrentStep: () => false }) }))
@@ -110,6 +110,14 @@ function mountView() {
   })
 }
 
+async function openRoutes() {
+  const wrapper = mountView()
+  await flushPromises()
+  await wrapper.get('[data-testid="group-composite-routes"]').trigger('click')
+  await flushPromises()
+  return wrapper
+}
+
 
 describe('Composite 媒体候选路由', () => {
  beforeEach(() => {
@@ -117,12 +125,51 @@ describe('Composite 媒体候选路由', () => {
   list.mockResolvedValue({ items: [{ ...sourceGroup, platform: 'composite' }], total: 1, page: 1, page_size: 20, pages: 1 })
   listRoutes.mockResolvedValue([])
   createRoute.mockResolvedValue({ id: 1 })
+  updateRoute.mockResolvedValue({ id: 9 })
   preview.mockResolvedValue({ matched: true, source: 'route', group_id: 42, public_model: 'shared', endpoint: 'videos', target_platform: 'grsai', upstream_model: 'grs-video', candidates: [
-   { matched: true, source: 'route', group_id: 42, public_model: 'shared', endpoint: 'videos', target_platform: 'grsai', upstream_model: 'grs-video', route: { id: 1, priority: 10, capability_model: 'grs/shared' } },
-   { matched: true, source: 'route', group_id: 42, public_model: 'shared', endpoint: 'videos', target_platform: 'toapis', upstream_model: 'toa-video', route: { id: 2, priority: 20, capability_model: 'toa/shared' } },
+   { matched: true, source: 'route', group_id: 42, public_model: 'shared', endpoint: 'videos', target_platform: 'grsai', upstream_model: 'grs-video', route: { id: 1, priority: 10, capability_model: '' } },
+   { matched: true, source: 'route', group_id: 42, public_model: 'shared', endpoint: 'videos', target_platform: 'toapis', upstream_model: 'toa-video', route: { id: 2, priority: 20, capability_model: '' } },
   ] })
  })
- it('可创建视频候选并保留独立能力记录，预览显示全部候选顺序', async () => {
+ it('保存分辨率优先级并在预览中传递选中的档位', async () => {
+  listRoutes.mockResolvedValue([{
+   id: 9, group_id: 42, public_model: 'gpt-image-2.6-flare', match_type: 'exact', target_platform: 'kuaipao',
+   upstream_model: 'gpt-image-2.6-flare', endpoint: 'images', priority: 20,
+   resolution_priorities: { '4K': 30 }, enabled: true, notes: '',
+  }])
+  const wrapper = await openRoutes()
+  try {
+   expect(wrapper.get('[data-testid="composite-resolution-priorities"]').text()).toContain('4K: 30')
+   await wrapper.get('table button[title="common.edit"]').trigger('click')
+   expect((wrapper.get('[data-testid="composite-priority-4K"]').element as HTMLInputElement).value).toBe('30')
+   await wrapper.get('[data-testid="composite-priority-2K"]').setValue('15')
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(updateRoute).toHaveBeenCalledWith(42, 9, expect.objectContaining({ priority: 20, resolution_priorities: { '2K': 15, '4K': 30 } }))
+   await wrapper.get('[data-testid="composite-preview-model"]').setValue('gpt-image-2.6-flare')
+   await wrapper.get('[data-testid="composite-preview-endpoint"]').setValue('images')
+   await wrapper.get('[data-testid="composite-preview-resolution"]').setValue('4K')
+   await wrapper.get('[data-testid="composite-preview-submit"]').trigger('click')
+   await flushPromises()
+   expect(preview).toHaveBeenLastCalledWith(42, { model: 'gpt-image-2.6-flare', endpoint: 'images', resolution: '4K' })
+  } finally { wrapper.unmount() }
+ })
+ it('可以清除已有分辨率覆盖并回到默认优先级', async () => {
+  listRoutes.mockResolvedValue([{
+   id: 9, group_id: 42, public_model: 'gpt-image-2.6-flare', match_type: 'exact', target_platform: 'centos',
+   upstream_model: 'gpt-image-2.6-flare', endpoint: 'images', priority: 10,
+   resolution_priorities: { '4K': 20 }, enabled: true, notes: '',
+  }])
+  const wrapper = await openRoutes()
+  try {
+   await wrapper.get('table button[title="common.edit"]').trigger('click')
+   await wrapper.get('[data-testid="composite-priority-4K"]').setValue('')
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(updateRoute).toHaveBeenCalledWith(42, 9, expect.objectContaining({ target_platform: 'centos', priority: 10, resolution_priorities: {} }))
+  } finally { wrapper.unmount() }
+ })
+ it('可创建原生视频候选并由 Provider 适配，预览显示全部候选顺序', async () => {
   const wrapper = mountView()
   await flushPromises()
   await wrapper.get('[data-testid="group-composite-routes"]').trigger('click')
@@ -130,10 +177,10 @@ describe('Composite 媒体候选路由', () => {
   await wrapper.get('[data-testid="composite-public-model"]').setValue('shared')
   await wrapper.get('[data-testid="composite-endpoint"]').setValue('videos')
   await wrapper.get('[data-testid="composite-platform"]').setValue('toapis')
-  await wrapper.get('[data-testid="composite-capability-model"]').setValue('toa/shared')
+  expect(wrapper.find('[data-testid="composite-capability-model"]').exists()).toBe(false)
   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
   await flushPromises()
-  expect(createRoute).toHaveBeenCalledWith(42, expect.objectContaining({ public_model: 'shared', endpoint: 'videos', target_platform: 'toapis', capability_model: 'toa/shared' }))
+  expect(createRoute).toHaveBeenCalledWith(42, expect.objectContaining({ public_model: 'shared', endpoint: 'videos', target_platform: 'toapis', capability_model: '' }))
   await wrapper.get('[data-testid="composite-preview-model"]').setValue('shared')
   await wrapper.get('[data-testid="composite-preview-endpoint"]').setValue('videos')
   await wrapper.get('[data-testid="composite-preview-submit"]').trigger('click')
@@ -142,6 +189,166 @@ describe('Composite 媒体候选路由', () => {
   expect(candidates.text()).toContain('grs-video')
   expect(candidates.text()).toContain('toa-video')
   expect(candidates.text().indexOf('grs-video')).toBeLessThan(candidates.text().indexOf('toa-video'))
+  expect(candidates.text()).toContain('admin.groups.compositeRoutes.nativeProviderAdapterHint')
+  expect(candidates.text()).not.toMatch(/schema:|grs\/shared|toa\/shared/)
   wrapper.unmount()
+ })
+
+ it.each(['grsai', 'toapis', 'kuaipao'])('编辑 %s 仅改优先级和备注时只读展示并保留旧候选能力', async platform => {
+  listRoutes.mockResolvedValue([{
+   id: 9, group_id: 42, public_model: 'gpt-image-2.6', match_type: 'exact', target_platform: platform,
+   upstream_model: 'gpt-image-2.6-1k', capability_model: `${platform}/gpt-image-2.6-1k`,
+   endpoint: 'images', priority: 100, enabled: true, notes: '',
+  }])
+  const wrapper = await openRoutes()
+  try {
+   await wrapper.get('table button[title="common.edit"]').trigger('click')
+   expect(wrapper.find('[data-testid="composite-capability-model"]').exists()).toBe(false)
+   expect(wrapper.get('[data-testid="composite-legacy-capability"]').text()).toBe(`${platform}/gpt-image-2.6-1k`)
+   await wrapper.get('[data-testid="composite-route-form"] input[type="number"]').setValue(50)
+   await wrapper.get('[data-testid="composite-route-form"] textarea').setValue('仅更新备注')
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(updateRoute).toHaveBeenCalledWith(42, 9, expect.objectContaining({
+    public_model: 'gpt-image-2.6', target_platform: platform, upstream_model: 'gpt-image-2.6-1k',
+    endpoint: 'images', capability_model: `${platform}/gpt-image-2.6-1k`, priority: 50, notes: '仅更新备注',
+   }))
+  } finally { wrapper.unmount() }
+ })
+
+ it.each(['grsai', 'toapis', 'kuaipao'])('旧 %s 引用仅在明确切换 Provider 自动适配后才清空', async platform => {
+  listRoutes.mockResolvedValue([{
+   id: 9, group_id: 42, public_model: 'gpt-image-2.6', match_type: 'exact', target_platform: platform,
+   upstream_model: 'gpt-image-2.6-1k', capability_model: `${platform}/legacy`,
+   endpoint: 'images', priority: 100, enabled: true, notes: '',
+  }])
+  const wrapper = await openRoutes()
+  try {
+   await wrapper.get('table button[title="common.edit"]').trigger('click')
+   expect(wrapper.get('[data-testid="composite-legacy-capability"]').text()).toBe(`${platform}/legacy`)
+   await wrapper.get('[data-testid="composite-use-provider-adapter"]').trigger('click')
+   expect(wrapper.find('[data-testid="composite-legacy-capability"]').exists()).toBe(false)
+   expect(wrapper.get('[data-testid="composite-route-form"]').text()).toContain('admin.groups.compositeRoutes.nativeProviderAdapterHint')
+   expect(updateRoute).not.toHaveBeenCalled()
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(updateRoute).toHaveBeenCalledWith(42, 9, expect.objectContaining({ capability_model: '' }))
+  } finally { wrapper.unmount() }
+ })
+
+ it('旧原生引用切换到另一平台后清空，不带入不相关能力配置', async () => {
+  listRoutes.mockResolvedValue([{
+   id: 9, group_id: 42, public_model: 'gpt-image-2.6', match_type: 'exact', target_platform: 'grsai',
+   upstream_model: 'gpt-image-2.6-1k', capability_model: 'grsai/legacy', endpoint: 'images',
+   priority: 100, enabled: true, notes: '',
+  }])
+  const wrapper = await openRoutes()
+  try {
+   await wrapper.get('table button[title="common.edit"]').trigger('click')
+   expect(wrapper.get('[data-testid="composite-legacy-capability"]').text()).toBe('grsai/legacy')
+   await wrapper.get('[data-testid="composite-platform"]').setValue('toapis')
+   expect(wrapper.find('[data-testid="composite-legacy-capability"]').exists()).toBe(false)
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(updateRoute).toHaveBeenCalledWith(42, 9, expect.objectContaining({ target_platform: 'toapis', capability_model: '' }))
+  } finally { wrapper.unmount() }
+ })
+
+ it('旧原生候选预览明确展示兼容引用，不误报已切换为自动适配', async () => {
+  preview.mockResolvedValue({ matched: true, source: 'route', group_id: 42, public_model: 'gpt-image-2.6', endpoint: 'images', target_platform: 'kuaipao', upstream_model: 'gpt-image-2.6-1k', candidates: [
+   { target_platform: 'kuaipao', upstream_model: 'gpt-image-2.6-1k', public_model: 'gpt-image-2.6', route: { id: 9, priority: 100, capability_model: 'kuaipao/legacy' } },
+  ] })
+  const wrapper = await openRoutes()
+  try {
+   await wrapper.get('[data-testid="composite-preview-model"]').setValue('gpt-image-2.6')
+   await wrapper.get('[data-testid="composite-preview-endpoint"]').setValue('images')
+   await wrapper.get('[data-testid="composite-preview-submit"]').trigger('click')
+   await flushPromises()
+   const candidates = wrapper.get('[data-testid="composite-media-candidates"]')
+   expect(candidates.text()).toContain('kuaipao/legacy')
+   expect(candidates.text()).toContain('admin.groups.compositeRoutes.legacyCapability')
+   expect(candidates.text()).not.toContain('admin.groups.compositeRoutes.nativeProviderAdapterHint')
+  } finally { wrapper.unmount() }
+ })
+
+ it.each(['grsai', 'toapis', 'kuaipao'])('从 OpenAI 图片兼容切换到 %s 后不再提交旧候选能力', async platform => {
+  const wrapper = await openRoutes()
+  try {
+   await wrapper.get('[data-testid="composite-public-model"]').setValue('gpt-image-2.6')
+   await wrapper.get('[data-testid="composite-endpoint"]').setValue('images')
+   await wrapper.get('[data-testid="composite-capability-model"]').setValue('openai/legacy-image')
+   await wrapper.get('[data-testid="composite-platform"]').setValue(platform)
+   expect(wrapper.find('[data-testid="composite-capability-model"]').exists()).toBe(false)
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(createRoute).toHaveBeenCalledWith(42, expect.objectContaining({ target_platform: platform, capability_model: '' }))
+  } finally { wrapper.unmount() }
+ })
+
+ it('切回 OpenAI 时显示已清空的兼容字段，仍允许显式保存配置', async () => {
+  const wrapper = await openRoutes()
+  try {
+   await wrapper.get('[data-testid="composite-public-model"]').setValue('gpt-image-2.6')
+   await wrapper.get('[data-testid="composite-endpoint"]').setValue('images')
+   await wrapper.get('[data-testid="composite-capability-model"]').setValue('openai/old-image')
+   await wrapper.get('[data-testid="composite-platform"]').setValue('kuaipao')
+   await wrapper.get('[data-testid="composite-platform"]').setValue('openai')
+   expect(wrapper.get<HTMLInputElement>('[data-testid="composite-capability-model"]').element.value).toBe('')
+   await wrapper.get('[data-testid="composite-capability-model"]').setValue('openai/explicit-image')
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(createRoute).toHaveBeenCalledWith(42, expect.objectContaining({ target_platform: 'openai', endpoint: 'images', capability_model: 'openai/explicit-image' }))
+  } finally { wrapper.unmount() }
+ })
+
+ it.each([['openai', 'images'], ['grok', 'videos']])('编辑 %s/%s 保留已有兼容能力配置', async (platform, endpoint) => {
+  listRoutes.mockResolvedValue([{
+   id: 9, group_id: 42, public_model: 'public-model', match_type: 'exact', target_platform: platform,
+   upstream_model: 'upstream-model', capability_model: 'legacy/explicit-capability',
+   endpoint, priority: 100, enabled: true, notes: '',
+  }])
+  const wrapper = await openRoutes()
+  try {
+   await wrapper.get('table button[title="common.edit"]').trigger('click')
+   expect(wrapper.get<HTMLInputElement>('[data-testid="composite-capability-model"]').element.value).toBe('legacy/explicit-capability')
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(updateRoute).toHaveBeenCalledWith(42, 9, expect.objectContaining({ target_platform: platform, endpoint, capability_model: 'legacy/explicit-capability' }))
+  } finally { wrapper.unmount() }
+ })
+
+ it('保留其它视频路由的显式能力配置，文字路由不携带媒体能力', async () => {
+  const wrapper = await openRoutes()
+  try {
+   await wrapper.get('[data-testid="composite-public-model"]').setValue('grok-video')
+   await wrapper.get('[data-testid="composite-endpoint"]').setValue('videos')
+   await wrapper.get('[data-testid="composite-platform"]').setValue('grok')
+   await wrapper.get('[data-testid="composite-capability-model"]').setValue('grok/video-explicit')
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(createRoute).toHaveBeenLastCalledWith(42, expect.objectContaining({ target_platform: 'grok', endpoint: 'videos', capability_model: 'grok/video-explicit' }))
+   await wrapper.get('[data-testid="composite-public-model"]').setValue('gpt-chat')
+   await wrapper.get('[data-testid="composite-endpoint"]').setValue('responses')
+   expect(wrapper.find('[data-testid="composite-capability-model"]').exists()).toBe(false)
+   await wrapper.get('[data-testid="composite-route-form"]').trigger('submit')
+   await flushPromises()
+   expect(createRoute).toHaveBeenLastCalledWith(42, expect.objectContaining({ endpoint: 'responses', capability_model: '' }))
+  } finally { wrapper.unmount() }
+ })
+
+ it('OpenAI 图片候选预览仍显示显式兼容能力配置', async () => {
+  preview.mockResolvedValue({ matched: true, source: 'route', group_id: 42, public_model: 'gpt-image-2.6', endpoint: 'images', target_platform: 'openai', upstream_model: 'image-upstream', candidates: [
+   { target_platform: 'openai', upstream_model: 'image-upstream', public_model: 'gpt-image-2.6', route: { id: 9, priority: 100, capability_model: 'openai/image-explicit' } },
+  ] })
+  const wrapper = await openRoutes()
+  try {
+   await wrapper.get('[data-testid="composite-preview-model"]').setValue('gpt-image-2.6')
+   await wrapper.get('[data-testid="composite-preview-endpoint"]').setValue('images')
+   await wrapper.get('[data-testid="composite-preview-submit"]').trigger('click')
+   await flushPromises()
+   const candidates = wrapper.get('[data-testid="composite-media-candidates"]')
+   expect(candidates.text()).toContain('openai/image-explicit')
+   expect(candidates.text()).not.toContain('admin.groups.compositeRoutes.nativeProviderAdapterHint')
+  } finally { wrapper.unmount() }
  })
 })

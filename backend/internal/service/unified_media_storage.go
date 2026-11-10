@@ -37,7 +37,8 @@ func (p *UnifiedMediaS3Persister) Persist(ctx context.Context, taskID, mediaType
 	}
 	uploader, _ := p.resolve()
 	parsedURL, err := url.Parse(upstreamURL)
-	if err != nil || parsedURL == nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.User != nil || parsedURL.Hostname() == "" {
+	inlineImage := mediaType == "image" && isUnifiedInlineImageURL(upstreamURL)
+	if !inlineImage && (err != nil || parsedURL == nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.User != nil || parsedURL.Hostname() == "") {
 		return nil, errors.New("invalid upstream result URL")
 	}
 	// The shared uploader also serves existing protocols. Give unified media its

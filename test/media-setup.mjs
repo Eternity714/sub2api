@@ -24,7 +24,8 @@ async function api(path, { method = 'GET', body, headers = adminHeaders } = {}) 
   return payload.data ?? payload;
 }
 
-const model = process.env.SUB2API_TEST_MODEL;
+const model = (process.env.SUB2API_TEST_MODEL || '').trim();
+if (!model) throw new Error('Set SUB2API_TEST_MODEL to an explicitly configured image model');
 const users = await api('/admin/users?page_size=100');
 console.log('Admin API authentication verified; user count:', users.total);
 if (process.env.SETUP_DRY_RUN === 'true') process.exit(0);
@@ -34,7 +35,7 @@ let groups = await api('/admin/groups?page_size=100');
 let group = groups.items.find(item => item.name === names.group);
 if (group && group.platform !== 'grsai') throw new Error('Existing native media test group has an incompatible platform');
 if (!group) group = await api('/admin/groups', { method: 'POST', body: {
-  name: names.group, description: '本地 18081 nano-banana-2-lite 端到端测试，0.01 USD/张仅用于验证计费',
+  name: names.group, description: `本地 18081 ${model} 端到端测试，0.01 USD/张仅用于验证计费`,
   platform: 'grsai', subscription_type: 'standard', rate_multiplier: 1, is_exclusive: false,
   allow_image_generation: true, model_pricing: pricing,
 } });
@@ -53,7 +54,7 @@ let account = accounts.items.find(item => item.name === names.account);
 if (account && (account.platform !== 'grsai' || account.type !== 'apikey' ||
   !account.group_ids?.includes(group.id))) throw new Error('Existing native media account has incompatible configuration');
 if (!account) account = await api('/admin/accounts', { method: 'POST', body: {
-  name: names.account, notes: '本地 18081 GRS.AI 上游，测试模型 nano-banana-2-lite',
+  name: names.account, notes: `本地 18081 GRS.AI 上游，测试模型 ${model}`,
   platform: 'grsai', type: 'apikey',
   credentials: { base_url: process.env.UPSTREAM_BASE_URL, api_key: process.env.UPSTREAM_API_KEY },
   group_ids: [group.id], concurrency: 2, priority: 1, rate_multiplier: 1,

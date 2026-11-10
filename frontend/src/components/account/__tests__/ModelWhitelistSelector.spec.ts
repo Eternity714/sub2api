@@ -86,6 +86,16 @@ function findModelRow(wrapper: ReturnType<typeof mountSelector>, modelId: string
 }
 
 describe('ModelWhitelistSelector', () => {
+  it('仅提供快跑的真实图片模型，不列出 OpenAI 聊天模型或公开别名', async () => {
+    const wrapper = mountSelector({ platform: 'kuaipao', accountId: 98 })
+    const fill = wrapper.findAll('button').find(button => button.text().includes('admin.accounts.fillRelatedModels'))
+    expect(fill).toBeDefined()
+    await fill!.trigger('click')
+    expect(wrapper.emitted('update:modelValue')?.[0]?.[0]).toEqual(['gpt-image-2.6-sunburst', 'gpt-image-2.6-flare', 'gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'])
+    expect(wrapper.text()).not.toContain('admin.accounts.syncUpstreamModels')
+    wrapper.unmount()
+  })
+
   beforeEach(() => {
     copyToClipboard.mockClear()
     showError.mockReset()

@@ -24,6 +24,14 @@ describe("groups image pricing platform support", () => {
     expect(supportsImagePricingPlatform("grsai")).toBe(false);
   });
 
+  it.each(["toapis", "kuaipao"])("enables native media permission without generic image pricing for %s", platform => {
+    expect(supportsImageGenerationPlatform(platform)).toBe(true);
+    expect(supportsImagePricingPlatform(platform)).toBe(false);
+    expect(imagePricingI18nKey(platform, "allowImageGeneration")).toBe(
+      "admin.groups.imagePricing.allowMediaGeneration",
+    );
+  });
+
   it("uses the image/video permission for OpenAI and legacy media groups", () => {
     expect(supportsImageGenerationPlatform("openai")).toBe(true);
     expect(imagePricingI18nKey("openai", "allowImageGeneration")).toBe(

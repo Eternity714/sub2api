@@ -1,6 +1,7 @@
 import { reactive, watchSyncEffect } from 'vue'
 import type { AccountPlatform, GroupPlatform } from '@/types'
 import { listPlatforms } from './platformCatalog'
+import { publicPlatformId } from '@/utils/publicPlatform'
 
 // type 别名（而非 interface）以便赋给 Select 组件的 Record<string, unknown>[] 选项类型。
 export type PlatformOption<T extends string = string> = {
@@ -27,7 +28,7 @@ watchSyncEffect(() => {
   CONCRETE_PLATFORM_OPTIONS.splice(0, CONCRETE_PLATFORM_OPTIONS.length, ...concrete)
   const groups = concrete.map(option => ({
     ...option,
-    label: option.value === 'grsai' ? 'Media API' : option.label
+    label: publicPlatformId(option.value) === 'media' ? 'Media API' : option.label
   }))
   GROUP_PLATFORM_OPTIONS.splice(0, GROUP_PLATFORM_OPTIONS.length, ...groups, {
     value: 'composite',

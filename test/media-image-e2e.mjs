@@ -222,12 +222,13 @@ async function downloadImage(url, index) {
 
 async function main() {
   const key = (process.env.SUB2API_TEST_KEY || '').trim();
-  const model = (process.env.SUB2API_TEST_MODEL || 'nano-banana-2-lite').trim();
+  const model = (process.env.SUB2API_TEST_MODEL || '').trim();
   const requestedTaskId = (process.env.TASK_ID || '').trim();
   const newRun = process.argv.slice(2).includes('--new-run');
   assert(process.argv.slice(2).every((argument) => argument === '--new-run'), 'INVALID_ARGUMENT', '仅支持 --new-run 参数。');
   assert(!newRun || !requestedTaskId, 'CONFLICTING_ARGUMENTS', '--new-run 与 TASK_ID 不能同时使用。');
   assert(key, 'MISSING_TEST_KEY', '请在忽略的 media-test.env 配置 SUB2API_TEST_KEY。');
+  assert(model, 'MISSING_TEST_MODEL', '请显式配置 SUB2API_TEST_MODEL，脚本不再提供默认型号。');
   assert(/^[a-z0-9][a-z0-9._:/-]{0,127}$/i.test(model), 'INVALID_MODEL', '测试模型名称无效。');
   assert(!requestedTaskId || localTaskPattern.test(requestedTaskId), 'INVALID_TASK_ID', 'TASK_ID 必须为本地 media_ 或 grsai_ UUID。');
   try { baseURL = new URL(process.env.SUB2API_TEST_BASE_URL || 'http://host.docker.internal:18081'); }

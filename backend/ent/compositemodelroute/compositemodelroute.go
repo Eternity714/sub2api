@@ -37,6 +37,8 @@ const (
 	FieldEndpoint = "endpoint"
 	// FieldPriority holds the string denoting the priority field in the database.
 	FieldPriority = "priority"
+	// FieldResolutionPriorities holds the string denoting the resolution_priorities field in the database.
+	FieldResolutionPriorities = "resolution_priorities"
 	// FieldEnabled holds the string denoting the enabled field in the database.
 	FieldEnabled = "enabled"
 	// FieldNotes holds the string denoting the notes field in the database.
@@ -68,6 +70,7 @@ var Columns = []string{
 	FieldCapabilityModel,
 	FieldEndpoint,
 	FieldPriority,
+	FieldResolutionPriorities,
 	FieldEnabled,
 	FieldNotes,
 }
@@ -120,6 +123,8 @@ var (
 	EndpointValidator func(string) error
 	// DefaultPriority holds the default value on creation for the "priority" field.
 	DefaultPriority int
+	// DefaultResolutionPriorities holds the default value on creation for the "resolution_priorities" field.
+	DefaultResolutionPriorities map[string]int
 	// DefaultEnabled holds the default value on creation for the "enabled" field.
 	DefaultEnabled bool
 )

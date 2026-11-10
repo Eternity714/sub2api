@@ -15,8 +15,16 @@ import (
 // catalog. It never creates a generation task, even when the UI sends a model
 // or prompt intended for other account test protocols.
 func (s *AccountTestService) testToAPIsAccountConnection(c *gin.Context, account *Account) error {
+	return s.testNativeMediaCatalogConnection(c, account, "ToAPIs", true)
+}
+
+func (s *AccountTestService) testCentOSAccountConnection(c *gin.Context, account *Account) error {
+	return s.testNativeMediaCatalogConnection(c, account, "CentOS", false)
+}
+
+func (s *AccountTestService) testNativeMediaCatalogConnection(c *gin.Context, account *Account, brand string, allTypes bool) error {
 	if account.Type != AccountTypeAPIKey {
-		return s.sendErrorAndEnd(c, "ToAPIs only supports API key accounts")
+		return s.sendErrorAndEnd(c, brand+" only supports API key accounts")
 	}
 	apiKey := strings.TrimSpace(account.GetCredential("api_key"))
 	if apiKey == "" {
@@ -24,27 +32,30 @@ func (s *AccountTestService) testToAPIsAccountConnection(c *gin.Context, account
 	}
 	configuredBase := strings.TrimSpace(account.GetCredential("base_url"))
 	if configuredBase == "" {
-		return s.sendErrorAndEnd(c, "ToAPIs base URL must be configured explicitly")
+		return s.sendErrorAndEnd(c, brand+" base URL must be configured explicitly")
 	}
 	baseURL, err := s.validateUpstreamBaseURL(configuredBase)
 	if err != nil {
-		return s.sendErrorAndEnd(c, "Invalid ToAPIs base URL")
+		return s.sendErrorAndEnd(c, "Invalid "+brand+" base URL")
 	}
 	endpoint, err := url.Parse(baseURL)
 	if err != nil {
-		return s.sendErrorAndEnd(c, "Invalid ToAPIs base URL")
+		return s.sendErrorAndEnd(c, "Invalid "+brand+" base URL")
 	}
 	endpoint.Path = strings.TrimRight(endpoint.Path, "/")
 	if !strings.HasSuffix(endpoint.Path, "/v1") {
 		endpoint.Path += "/v1"
 	}
 	endpoint.Path += "/models"
-	endpoint.RawQuery = "type=all"
+	endpoint.RawQuery = ""
+	if allTypes {
+		endpoint.RawQuery = "type=all"
+	}
 	endpoint.Fragment = ""
-	ctx := c.Request.Context()
+	ctx := WithHTTPUpstreamRedirectsDisabled(c.Request.Context())
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
 	if err != nil {
-		return s.sendErrorAndEnd(c, "Failed to create ToAPIs connection test")
+		return s.sendErrorAndEnd(c, "Failed to create "+brand+" connection test")
 	}
 	request.Header.Set("Authorization", "Bearer "+apiKey)
 	request.Header.Set("Accept", "application/json")
@@ -53,18 +64,18 @@ func (s *AccountTestService) testToAPIsAccountConnection(c *gin.Context, account
 	c.Writer.Header().Set("Connection", "keep-alive")
 	c.Writer.Header().Set("X-Accel-Buffering", "no")
 	c.Writer.Flush()
-	s.sendEvent(c, TestEvent{Type: "test_start", Model: "ToAPIs model catalog"})
+	s.sendEvent(c, TestEvent{Type: "test_start", Model: brand + " model catalog"})
 	proxyURL := ""
 	if account.ProxyID != nil && account.Proxy != nil {
 		proxyURL = account.Proxy.URL()
 	}
 	response, err := s.httpUpstream.Do(request, proxyURL, account.ID, account.Concurrency)
 	if err != nil {
-		return s.sendErrorAndEnd(c, "ToAPIs connection test failed; check endpoint and proxy settings")
+		return s.sendErrorAndEnd(c, brand+" connection test failed; check endpoint and proxy settings")
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
-		message := fmt.Sprintf("ToAPIs model catalog returned HTTP %d", response.StatusCode)
+		message := fmt.Sprintf(brand+" model catalog returned HTTP %d", response.StatusCode)
 		if (response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusForbidden) && s.accountRepo != nil {
 			_ = s.accountRepo.SetError(ctx, account.ID, message)
 		}
@@ -73,19 +84,19 @@ func (s *AccountTestService) testToAPIsAccountConnection(c *gin.Context, account
 	const maximumResponseBytes = 4 << 20
 	body, err := io.ReadAll(io.LimitReader(response.Body, maximumResponseBytes+1))
 	if err != nil || len(body) > maximumResponseBytes {
-		return s.sendErrorAndEnd(c, "Invalid ToAPIs model catalog response")
+		return s.sendErrorAndEnd(c, "Invalid "+brand+" model catalog response")
 	}
 	var catalog struct {
 		Data json.RawMessage `json:"data"`
 	}
 	if err = json.Unmarshal(body, &catalog); err != nil || len(catalog.Data) == 0 || catalog.Data[0] != '[' {
-		return s.sendErrorAndEnd(c, "Invalid ToAPIs model catalog response")
+		return s.sendErrorAndEnd(c, "Invalid "+brand+" model catalog response")
 	}
 	var models []json.RawMessage
 	if err = json.Unmarshal(catalog.Data, &models); err != nil {
-		return s.sendErrorAndEnd(c, "Invalid ToAPIs model catalog response")
+		return s.sendErrorAndEnd(c, "Invalid "+brand+" model catalog response")
 	}
-	s.sendEvent(c, TestEvent{Type: "content", Text: fmt.Sprintf("ToAPIs credentials verified. Model catalog contains %d entries. No generation request was sent.", len(models))})
+	s.sendEvent(c, TestEvent{Type: "content", Text: fmt.Sprintf(brand+" credentials verified. Model catalog contains %d entries. No generation request was sent.", len(models))})
 	s.sendEvent(c, TestEvent{Type: "test_complete", Success: true})
 	return nil
 }

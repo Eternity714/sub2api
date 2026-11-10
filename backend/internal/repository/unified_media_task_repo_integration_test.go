@@ -189,21 +189,25 @@ func (p unifiedMediaIntegrationPersister) Persist(ctx context.Context, id, media
 
 // AC-005, AC-023 (synthetic provider/storage scope): single and split requests return stored S3 results and settle exactly once.
 func TestUnifiedMediaRepositoryHTTPWorkerEndToEnd(t *testing.T) {
-	for _, count := range []int{1, 3} {
-		t.Run(fmt.Sprintf("n_%d", count), func(t *testing.T) {
+	for _, tc := range []struct {
+		count    int
+		upstream string
+	}{{1, "gpt-image-2.5"}, {3, "gpt-image-2.6"}} {
+		t.Run(fmt.Sprintf("%s/n_%d", tc.upstream, tc.count), func(t *testing.T) {
+			count := tc.count
 			ctx := context.Background()
 			repo, fixture, accountID := unifiedMediaIntegrationFixture(t)
 			model := "media-e2e-" + uuid.NewString()
 			fixture.Model = model
 			capRepo := NewMediaCapabilityRepository(integrationDB)
 			caps := service.NewMediaCapabilityService(capRepo)
-			cap, err := caps.Create(ctx, service.MediaCapabilityInput{PublicModel: model, MediaType: "image", Enabled: true, Schema: json.RawMessage(`{"version":1,"fields":{"prompt":{"type":"string","required":true},"n":{"type":"integer","minimum":1,"maximum":8,"default":1}},"batch":{"native_max_results":1,"allow_split":true}}`)})
+			cap, err := caps.Create(ctx, service.MediaCapabilityInput{PublicModel: model, MediaType: "image", Enabled: true, Schema: json.RawMessage(`{"version":1,"fields":{"prompt":{"type":"string","required":true},"images":{"type":"array","items":{"type":"string","format":"http_url"}},"aspectRatio":{"type":"string","default":"1:1"},"imageSize":{"type":"string","enum":["1K","2K"],"default":"1K"},"quality":{"type":"string","default":"auto"},"replyType":{"type":"string","enum":["async"],"default":"async"},"n":{"type":"integer","minimum":1,"maximum":8,"default":1}},"batch":{"native_max_results":1,"allow_split":true}}`)})
 			require.NoError(t, err)
 			t.Cleanup(func() {
 				_, _ = integrationDB.ExecContext(ctx, `DELETE FROM media_model_capabilities WHERE id=$1`, cap.ID)
 			})
 			routeRepo := NewCompositeModelRouteRepository(integrationEntClient)
-			route := &service.CompositeModelRoute{GroupID: fixture.GroupID, PublicModel: model, MatchType: "exact", TargetPlatform: "grsai", UpstreamModel: model, Endpoint: "images", Priority: 100, Enabled: true}
+			route := &service.CompositeModelRoute{GroupID: fixture.GroupID, PublicModel: model, MatchType: "exact", TargetPlatform: "grsai", UpstreamModel: tc.upstream, Endpoint: "images", Priority: 100, Enabled: true}
 			require.NoError(t, routeRepo.Create(ctx, route))
 			t.Cleanup(func() {
 				_, _ = integrationDB.ExecContext(ctx, `DELETE FROM composite_model_routes WHERE id=$1`, route.ID)
@@ -219,8 +223,11 @@ func TestUnifiedMediaRepositoryHTTPWorkerEndToEnd(t *testing.T) {
 					require.Equal(t, "Bearer synthetic-key", r.Header.Get("Authorization"))
 					var body map[string]any
 					require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
-					require.Equal(t, model, body["model"])
+					require.Equal(t, tc.upstream, body["model"])
 					require.Equal(t, "async", body["replyType"])
+					require.Equal(t, "3:2", body["aspectRatio"])
+					require.Equal(t, "auto", body["quality"])
+					require.Equal(t, []any{"https://example.com/reference.png"}, body["images"])
 					taskID := fmt.Sprintf("synthetic-task-%d", posts)
 					submitted[taskID] = true
 					_, _ = fmt.Fprintf(w, `{"id":%q,"status":"running"}`, taskID)
@@ -257,8 +264,17 @@ func TestUnifiedMediaRepositoryHTTPWorkerEndToEnd(t *testing.T) {
 			groupOverride := 99.0
 			group := &service.Group{ID: fixture.GroupID, Platform: service.PlatformComposite, RateMultiplier: 1, SubscriptionType: service.SubscriptionTypeStandard, ModelPricing: []service.ChannelModelPricing{{Models: []string{model}, BillingMode: service.BillingModeImage, PerRequestPrice: &groupOverride}}}
 			key := &service.APIKey{ID: fixture.APIKeyID, UserID: fixture.UserID, GroupID: &fixture.GroupID, Group: group}
-			task, err := svc.Create(ctx, service.UnifiedMediaTaskCreateInput{APIKey: key, MediaType: "image", Body: []byte(fmt.Sprintf(`{"model":%q,"prompt":"synthetic cat","n":%d}`, model, count))})
+			_, err = svc.Create(ctx, service.UnifiedMediaTaskCreateInput{APIKey: key, MediaType: "image", Body: []byte(fmt.Sprintf(`{"model":%q,"prompt":"unsupported 2K","imageSize":"2K","replyType":"async"}`, model))})
+			require.Error(t, err, "provider must reject 2K even when the public schema allows it")
+			var balanceBefore, frozenBefore float64
+			require.NoError(t, integrationDB.QueryRowContext(ctx, `SELECT balance,frozen_balance FROM users WHERE id=$1`, fixture.UserID).Scan(&balanceBefore, &frozenBefore))
+			require.Equal(t, 10.0, balanceBefore)
+			require.Zero(t, frozenBefore)
+			require.Zero(t, posts)
+			task, err := svc.Create(ctx, service.UnifiedMediaTaskCreateInput{APIKey: key, MediaType: "image", Body: []byte(fmt.Sprintf(`{"model":%q,"prompt":"synthetic cat","n":%d,"aspectRatio":"3:2","imageSize":"1K","quality":"auto","replyType":"async","images":["https://example.com/reference.png"]}`, model, count))})
 			require.NoError(t, err)
+			require.True(t, task.Payload.Candidates[0].ProviderManaged)
+			require.NotNil(t, task.Payload.Candidates[0].AdapterProfile)
 			require.Equal(t, "queued", task.PublicView().Status)
 			require.Zero(t, posts)
 			require.Equal(t, count, task.RequestedCount)

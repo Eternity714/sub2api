@@ -18,15 +18,17 @@ import (
 // UnifiedMediaAdapterProfile describes protocol differences using trusted, embedded
 // provider documentation. User metadata never selects an endpoint or transport.
 type UnifiedMediaAdapterProfile struct {
-	TopLevelMetadata    []string          `json:"top_level_metadata,omitempty"`
-	FieldMap            map[string]string `json:"field_map,omitempty"`
-	ImageURLObjects     bool              `json:"image_url_objects,omitempty"`
-	PixelSize           bool              `json:"pixel_size,omitempty"`
-	StringDuration      bool              `json:"string_duration,omitempty"`
-	ResolutionLowercase bool              `json:"resolution_lowercase,omitempty"`
-	SubmitPath          string            `json:"submit_path,omitempty"`
-	QueryPath           string            `json:"query_path,omitempty"`
-	FixedFields         map[string]any    `json:"fixed_fields,omitempty"`
+	TopLevelMetadata     []string          `json:"top_level_metadata,omitempty"`
+	FieldMap             map[string]string `json:"field_map,omitempty"`
+	ImageURLObjects      bool              `json:"image_url_objects,omitempty"`
+	PixelSize            bool              `json:"pixel_size,omitempty"`
+	StringDuration       bool              `json:"string_duration,omitempty"`
+	ResolutionLowercase  bool              `json:"resolution_lowercase,omitempty"`
+	ResolutionUppercase  bool              `json:"resolution_uppercase,omitempty"`
+	DefaultImageGeometry bool              `json:"default_image_geometry,omitempty"`
+	SubmitPath           string            `json:"submit_path,omitempty"`
+	QueryPath            string            `json:"query_path,omitempty"`
+	FixedFields          map[string]any    `json:"fixed_fields,omitempty"`
 }
 
 type unifiedMediaHTTPUpstream struct {
@@ -62,6 +64,31 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 	if metadata == nil {
 		metadata = map[string]any{}
 	}
+	if platform == PlatformKuaipao {
+		if mediaType != "image" {
+			return nil, "", errors.New("Kuaipao supports synchronous images only")
+		}
+		return buildUnifiedKuaipaoImagePayload(model, values, metadata, count)
+	}
+	if platform == PlatformOpenAI {
+		if mediaType != "image" {
+			return nil, "", errors.New("OpenAI unified media supports synchronous images only")
+		}
+		return buildUnifiedOpenAIImagePayload(model, request, values, metadata, count)
+	}
+	if platform == PlatformCentOS {
+		if mediaType != "image" {
+			return nil, "", errors.New("CentOS supports images only")
+		}
+		return buildUnifiedCentOSImagePayload(model, request, values, metadata, count)
+	}
+	profile := mediaAdapterProfile(platform, mediaType, model)
+	if len(request.AdapterProfile) > 0 {
+		profile = UnifiedMediaAdapterProfile{}
+		if err := json.Unmarshal(request.AdapterProfile, &profile); err != nil {
+			return nil, "", errors.New("captured media adapter profile is invalid")
+		}
+	}
 	if platform == PlatformGrsai {
 		out := map[string]any{"model": model, "replyType": "async"}
 		for _, field := range []string{"prompt", "duration"} {
@@ -73,19 +100,31 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 			out["images"] = images
 		}
 		if mediaType == "image" {
+			if profile.FieldMap["metadata.resolution"] == "imageSize" {
+				resolution, _ := metadata["resolution"].(string)
+				if profile.ResolutionUppercase {
+					resolution = strings.ToUpper(resolution)
+				}
+				switch resolution {
+				case "1K", "2K", "4K":
+					out["imageSize"] = resolution
+				default:
+					return nil, "", errors.New("GRS imageSize requires a supported resolution tier")
+				}
+			}
 			if size, ok := values["size"]; ok {
 				out["aspectRatio"] = size
 			}
-			if strings.HasPrefix(model, "nano-") {
-				if value, ok := metadata["resolution"]; ok {
-					out["imageSize"] = value
-				}
+			if request.RequestedImageSpec != nil {
+				out["aspectRatio"] = fmt.Sprintf("%dx%d", request.RequestedImageSpec.Width, request.RequestedImageSpec.Height)
 			}
 			if grsaiRequiresPixelSize(model) {
-				if request.ImageSpec == nil {
+				if request.ImageSpec == nil && request.RequestedImageSpec == nil {
 					return nil, "", errors.New("model requires a configured aspect ratio and resolution pixel mapping")
 				}
-				out["aspectRatio"] = fmt.Sprintf("%dx%d", request.ImageSpec.Width, request.ImageSpec.Height)
+				if request.RequestedImageSpec == nil {
+					out["aspectRatio"] = fmt.Sprintf("%dx%d", request.ImageSpec.Width, request.ImageSpec.Height)
+				}
 			}
 		} else {
 			if ratio, ok := values["aspect_ratio"]; ok {
@@ -127,7 +166,6 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 	if platform != "toapis" {
 		return nil, "", errors.New("unsupported unified media provider")
 	}
-	profile := mediaAdapterProfile(platform, mediaType, model)
 	out := map[string]any{"model": model}
 	fields := []string{"prompt", "image_urls"}
 	if mediaType == "image" {
@@ -228,7 +266,7 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 }
 
 func grsaiRequiresPixelSize(model string) bool {
-	return model == "gpt-image-2-vip" || strings.HasPrefix(model, "gpt-image-2.5-flare") || strings.HasPrefix(model, "gpt-image-2.5-sunburst")
+	return model == "gpt-image-2-vip" || strings.HasPrefix(model, "gpt-image-2.5-flare") || strings.HasPrefix(model, "gpt-image-2.5-sunburst") || strings.HasPrefix(model, "gpt-image-2.6-flare") || strings.HasPrefix(model, "gpt-image-2.6-sunburst")
 }
 func unifiedMediaTakePath(root map[string]any, path string) (any, bool) {
 	parts := strings.Split(path, ".")
@@ -269,6 +307,12 @@ func (u *unifiedMediaHTTPUpstream) Submit(ctx context.Context, account *Account,
 	if account == nil {
 		return &UnifiedMediaUpstreamResult{Disposition: "rejected"}, errors.New("media account unavailable")
 	}
+	if account.Platform == PlatformKuaipao {
+		return (&kuaipaoMediaProvider{transport: u}).Submit(ctx, account, mediaType, model, normalized, count)
+	}
+	if account.Platform == PlatformCentOS {
+		return (&centosMediaProvider{transport: u}).Submit(ctx, account, mediaType, model, normalized, count)
+	}
 	payload, endpoint, err := BuildUnifiedMediaPayload(account.Platform, mediaType, model, normalized, count)
 	if err != nil {
 		return &UnifiedMediaUpstreamResult{Disposition: "rejected", Error: err.Error()}, err
@@ -276,6 +320,15 @@ func (u *unifiedMediaHTTPUpstream) Submit(ctx context.Context, account *Account,
 	return u.do(ctx, account, http.MethodPost, endpoint, payload, mediaType, model)
 }
 func (u *unifiedMediaHTTPUpstream) Poll(ctx context.Context, account *Account, mediaType, model, taskID string) (*UnifiedMediaUpstreamResult, error) {
+	return u.PollWithProfile(ctx, account, mediaType, model, taskID, nil)
+}
+func (u *unifiedMediaHTTPUpstream) PollWithProfile(ctx context.Context, account *Account, mediaType, model, taskID string, captured *UnifiedMediaAdapterProfile) (*UnifiedMediaUpstreamResult, error) {
+	if account != nil && account.Platform == PlatformKuaipao {
+		return (&kuaipaoMediaProvider{transport: u}).Poll(ctx, account, mediaType, model, taskID)
+	}
+	if account != nil && account.Platform == PlatformCentOS {
+		return (&centosMediaProvider{transport: u}).Poll(ctx, account, mediaType, model, taskID)
+	}
 	if account == nil || strings.TrimSpace(taskID) == "" || len(taskID) > 512 || strings.ContainsAny(taskID, "/?#\\%") {
 		return nil, errors.New("media task is unavailable")
 	}
@@ -284,10 +337,13 @@ func (u *unifiedMediaHTTPUpstream) Poll(ctx context.Context, account *Account, m
 		endpoint = grsaiResultPath + "?id=" + url.QueryEscape(taskID)
 	} else {
 		profile := mediaAdapterProfile(account.Platform, mediaType, model)
+		if captured != nil {
+			profile = *captured
+		}
 		if profile.QueryPath != "" {
 			endpoint = strings.ReplaceAll(profile.QueryPath, "{id}", url.PathEscape(taskID))
 		}
-		if model == "midjourney" {
+		if model == "midjourney" && profile.QueryPath == "" {
 			endpoint = "/v1/midjourney/" + url.PathEscape(taskID)
 		}
 	}
@@ -295,7 +351,7 @@ func (u *unifiedMediaHTTPUpstream) Poll(ctx context.Context, account *Account, m
 }
 func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, method, endpoint string, payload []byte, mediaType, model string) (*UnifiedMediaUpstreamResult, error) {
 	result := &UnifiedMediaUpstreamResult{Disposition: "unknown", Status: "in_progress"}
-	if account.Type != AccountTypeAPIKey || (account.Platform != PlatformGrsai && account.Platform != "toapis") {
+	if account.Type != AccountTypeAPIKey || (account.Platform != PlatformGrsai && account.Platform != PlatformToAPIs && !((account.Platform == PlatformOpenAI || account.Platform == PlatformKuaipao) && mediaType == "image")) {
 		result.Disposition = "rejected"
 		return result, errors.New("invalid media account")
 	}
@@ -313,6 +369,10 @@ func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, met
 	if err != nil {
 		result.Disposition = "rejected"
 		return result, err
+	}
+	if account.Platform == PlatformOpenAI || account.Platform == PlatformKuaipao {
+		// Reuse the Images gateway URL rules after validating the base URL above.
+		target = buildOpenAIEndpointURL(base, parsedEndpoint.Path)
 	}
 	if parsedEndpoint.RawQuery != "" {
 		target += "?" + parsedEndpoint.RawQuery
@@ -351,7 +411,19 @@ func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, met
 		return result, errors.New("invalid upstream media response")
 	}
 	responseValid := false
-	if account.Platform == PlatformGrsai {
+	if account.Platform == PlatformOpenAI || account.Platform == PlatformKuaipao {
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			if account.Platform == PlatformKuaipao {
+				result.URLs = parseUnifiedImageResults(raw, true)
+			} else {
+				result.URLs = parseUnifiedOpenAIImageURLs(raw)
+			}
+			if len(result.URLs) > 0 {
+				result.Status = "completed"
+				responseValid = true
+			}
+		}
+	} else if account.Platform == PlatformGrsai {
 		grs, parseErr := parseGrsaiUpstreamResult(resp.StatusCode, raw, key)
 		if grs != nil {
 			responseValid = grs.Status != ""

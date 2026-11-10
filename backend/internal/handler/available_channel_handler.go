@@ -317,7 +317,7 @@ func userMediaAliasName(platform, name string) (string, bool) {
 	if platform != "media" {
 		return "", false
 	}
-	for _, prefix := range []string{service.PlatformGrsai + "/", service.PlatformToAPIs + "/"} {
+	for _, prefix := range []string{service.PlatformGrsai + "/", service.PlatformToAPIs + "/", service.PlatformKuaipao + "/", service.PlatformCentOS + "/"} {
 		if strings.HasPrefix(strings.ToLower(name), prefix) && len(name) > len(prefix) {
 			return name[len(prefix):], true
 		}

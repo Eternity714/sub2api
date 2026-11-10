@@ -1,5 +1,15 @@
 export default {
     accounts: {
+      centos: {
+        baseUrlHint: 'CentOS 官方优化节点为 https://frapi.centos.hk，也可手动设置 https://ai.centos.hk。保存后不会自动切换节点。',
+        apiKeyHint: '填写 CentOS API Key。账号额度由管理员配置，所有使用者共享。',
+        connectionTestHint: '连接测试仅读取模型列表，不生成图片；模型是否支持生图须单独验证。',
+      },
+      kuaipao: {
+        baseUrlHint: '快跑图片 API 默认地址为 https://image.kuaipao.pro/v2，请保留 /v2 路径。',
+        apiKeyHint: '填写快跑 API Key。账号额度由管理员配置，所有使用者共享。',
+        imageTestHint: '测试会实际生成一张图片，可能产生上游费用。',
+      },
       toapis: {
         connectionTestHint: '仅通过 GET /v1/models?type=all 检查连接和凭证，不创建生成任务，不产生生成费用。',
         baseUrlHint: '全球节点 https://toapis.com，中国大陆节点 https://toapis.cn。按账号接入地址明确配置；保存后不会自动切换节点。',
@@ -326,6 +336,7 @@ export default {
         opencode_go: 'OpenCode',
         typesafe: 'TypeSafe / Jev',
         toapis: 'ToAPIs',
+        kuaipao: '快跑 API',
         grsai: 'GRS.AI',
       },
       cnProviders: {

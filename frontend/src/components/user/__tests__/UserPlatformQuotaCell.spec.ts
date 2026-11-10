@@ -66,6 +66,8 @@ describe('UserPlatformQuotaCell', () => {
           item({ platform: 'anthropic', daily_limit_usd: 10 }),
           item({ platform: 'openai', daily_usage_usd: 9 }),
           item({ platform: 'grsai', daily_limit_usd: 5 }),
+          item({ platform: 'toapis', daily_limit_usd: 5 }),
+          item({ platform: 'kuaipao', daily_limit_usd: 5 }),
         ],
       },
     })
@@ -74,5 +76,7 @@ describe('UserPlatformQuotaCell', () => {
     expect(text.indexOf('gemini')).toBeLessThan(text.indexOf('typesafe'))
     expect(text).not.toContain('openai')
     expect(text).not.toContain('grsai')
+    expect(text).not.toContain('toapis')
+    expect(text).not.toContain('kuaipao')
   })
 })

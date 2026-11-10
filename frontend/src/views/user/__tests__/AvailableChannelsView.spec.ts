@@ -52,6 +52,22 @@ async function render(list: UserAvailableChannel[] = channels) {
 }
 
 describe('AvailableChannelsView plaza filters', () => {
+  it('shows a Kuaipao channel under the public media filter and keeps its public model', async () => {
+    const wrapper = await render([{
+      name: '统一图片', description: '', platforms: [{
+        platform: 'kuaipao', groups: [],
+        supported_models: [{ name: 'gpt-image-2.6', platform: 'kuaipao', pricing: null }],
+      }],
+    }])
+    try {
+      const media = wrapper.findAll('button').find(button => button.text() === '媒体 API')
+      expect(media).toBeDefined()
+      await media!.trigger('click')
+      expect(wrapper.get('table tbody').text()).toContain('gpt-image-2.6')
+      expect(wrapper.text()).not.toMatch(/kuaipao|快跑|gpt-image-2\.6-1k/i)
+    } finally { wrapper.unmount() }
+  })
+
   it('keeps a shared group selectable across all of its channel platforms', async () => {
     const list = structuredClone(channels)
     list[0]!.platforms.push({

@@ -1606,354 +1606,6 @@
   },
   {
     "platform": "toapis",
-    "upstream_model": "gemini-nano-banana-2.1",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1/generation",
-    "evidence": "documented_generation",
-    "profile": {},
-    "notes": "基础普通生成模板；未覆盖的高级模式不在白名单内。复制后核对账号、定价和渠道能力再启用。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9",
-            "1:4",
-            "4:1",
-            "1:8",
-            "8:1"
-          ]
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "1K",
-                "2K",
-                "4K"
-              ]
-            }
-          }
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "max_items": 14,
-          "min_items": 1
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "toapis/gemini-nano-banana-2.1",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "1K"
-      }
-    }
-  },
-  {
-    "platform": "toapis",
-    "upstream_model": "gemini-nano-banana-2.1-vip",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1/generation",
-    "evidence": "documented_generation",
-    "profile": {},
-    "notes": "基础普通生成模板；未覆盖的高级模式不在白名单内。复制后核对账号、定价和渠道能力再启用。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "grounding": {
-              "type": "string",
-              "enum": [
-                "none",
-                "web",
-                "image",
-                "web_image"
-              ]
-            },
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "1K",
-                "2K",
-                "4K"
-              ]
-            }
-          }
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9",
-            "1:4",
-            "4:1",
-            "1:8",
-            "8:1"
-          ]
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "max_items": 14,
-          "min_items": 1
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "toapis/gemini-nano-banana-2.1-vip",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "1K"
-      }
-    }
-  },
-  {
-    "platform": "toapis",
-    "upstream_model": "gemini-nano-banana-2.1-official",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1-official/generation",
-    "evidence": "documented_generation",
-    "profile": {},
-    "notes": "基础普通生成模板；未覆盖的高级模式不在白名单内。复制后核对账号、定价和渠道能力再启用。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "grounding": {
-              "type": "string",
-              "enum": [
-                "none",
-                "web",
-                "image",
-                "web_image"
-              ]
-            },
-            "temperature": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 2
-            },
-            "topP": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
-            },
-            "maxOutputTokens": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "personGeneration": {
-              "type": "string",
-              "enum": [
-                "ALLOW_ALL",
-                "ALLOW_ADULT",
-                "ALLOW_NONE"
-              ]
-            },
-            "imageOutputOptions": {
-              "type": "object",
-              "properties": {
-                "mimeType": {
-                  "type": "string",
-                  "enum": [
-                    "image/png",
-                    "image/jpeg",
-                    "image/webp"
-                  ]
-                },
-                "compressionQuality": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 100
-                }
-              }
-            },
-            "thinkingConfig": {
-              "type": "object",
-              "properties": {
-                "thinkingBudget": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 24576
-                },
-                "thinkingLevel": {
-                  "type": "string",
-                  "enum": [
-                    "LOW",
-                    "MEDIUM",
-                    "HIGH",
-                    "MINIMAL"
-                  ]
-                }
-              }
-            },
-            "safetySettings": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "category": {
-                    "type": "string",
-                    "enum": [
-                      "HARM_CATEGORY_HATE_SPEECH",
-                      "HARM_CATEGORY_DANGEROUS_CONTENT",
-                      "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                      "HARM_CATEGORY_HARASSMENT"
-                    ]
-                  },
-                  "threshold": {
-                    "type": "string",
-                    "enum": [
-                      "OFF",
-                      "BLOCK_LOW_AND_ABOVE",
-                      "BLOCK_MEDIUM_AND_ABOVE",
-                      "BLOCK_ONLY_HIGH"
-                    ]
-                  }
-                }
-              },
-              "max_items": 4
-            },
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "1K",
-                "2K",
-                "4K"
-              ]
-            }
-          }
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9",
-            "1:4",
-            "4:1",
-            "1:8",
-            "8:1",
-            "9:21"
-          ]
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "max_items": 14,
-          "min_items": 1
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "toapis/gemini-nano-banana-2.1-official",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "1K"
-      }
-    }
-  },
-  {
-    "platform": "toapis",
     "upstream_model": "gpt-image-2",
     "media_type": "image",
     "enabled": false,
@@ -2942,36 +2594,6 @@
     "enabled": false,
     "source": "https://docs.toapis.com/docs/cn/api-reference/images/grok-imagine-1.0/edits",
     "evidence": "documented_edit_operation",
-    "profile": {},
-    "notes": "文档缺少完整模式/字段约束或属于独立编辑，不能据相邻型号自动启用。"
-  },
-  {
-    "platform": "toapis",
-    "upstream_model": "nano_banana",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://docs.toapis.com/docs/cn/api-reference/models",
-    "evidence": "catalog_only_schema_unverified",
-    "profile": {},
-    "notes": "文档缺少完整模式/字段约束或属于独立编辑，不能据相邻型号自动启用。"
-  },
-  {
-    "platform": "toapis",
-    "upstream_model": "nano_banana_2",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://docs.toapis.com/docs/cn/api-reference/models",
-    "evidence": "catalog_only_schema_unverified",
-    "profile": {},
-    "notes": "文档缺少完整模式/字段约束或属于独立编辑，不能据相邻型号自动启用。"
-  },
-  {
-    "platform": "toapis",
-    "upstream_model": "nano_banana_pro",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://docs.toapis.com/docs/cn/api-reference/models",
-    "evidence": "catalog_only_schema_unverified",
     "profile": {},
     "notes": "文档缺少完整模式/字段约束或属于独立编辑，不能据相邻型号自动启用。"
   },
@@ -8054,799 +7676,6 @@
   },
   {
     "platform": "grsai",
-    "upstream_model": "nano-banana-2.1",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "min_items": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9"
-          ]
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "1K",
-                "2K",
-                "4K"
-              ]
-            }
-          }
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "grsai/nano-banana-2.1",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "1K"
-      }
-    }
-  },
-  {
-    "platform": "grsai",
-    "upstream_model": "nano-banana-pro",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "min_items": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9"
-          ]
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "1K",
-                "2K",
-                "4K"
-              ]
-            }
-          }
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "grsai/nano-banana-pro",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "1K"
-      }
-    }
-  },
-  {
-    "platform": "grsai",
-    "upstream_model": "nano-banana-2",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "min_items": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9"
-          ]
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "1K",
-                "2K",
-                "4K"
-              ]
-            }
-          }
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "grsai/nano-banana-2",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "1K"
-      }
-    }
-  },
-  {
-    "platform": "grsai",
-    "upstream_model": "nano-banana-2-lite",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
-    "evidence": "当前目录登记，但原生族 OpenAPI 的型号枚举未列；公告称与 nano-banana-fast 底层相同，不能据此默认任意参数兼容",
-    "profile": {},
-    "notes": "当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。 分辨率缺逐型号证据，因此不接受resolution。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "min_items": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9"
-          ]
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "grsai/nano-banana-2-lite",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1"
-    }
-  },
-  {
-    "platform": "grsai",
-    "upstream_model": "nano-banana-fast",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。 分辨率缺逐型号证据，因此不接受resolution。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "min_items": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9"
-          ]
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "grsai/nano-banana-fast",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1"
-    }
-  },
-  {
-    "platform": "grsai",
-    "upstream_model": "nano-banana-pro-cl",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "min_items": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9"
-          ]
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "1K"
-              ]
-            }
-          }
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "grsai/nano-banana-pro-cl",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "1K"
-      }
-    }
-  },
-  {
-    "platform": "grsai",
-    "upstream_model": "nano-banana-2-cl",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "min_items": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9"
-          ]
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "1K"
-              ]
-            }
-          }
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "grsai/nano-banana-2-cl",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "1K"
-      }
-    }
-  },
-  {
-    "platform": "grsai",
-    "upstream_model": "nano-banana-2-2k-cl",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "min_items": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9"
-          ]
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "2K"
-              ]
-            }
-          }
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "grsai/nano-banana-2-2k-cl",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "2K"
-      }
-    }
-  },
-  {
-    "platform": "grsai",
-    "upstream_model": "nano-banana-pro-vip",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "min_items": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9"
-          ]
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "1K",
-                "2K"
-              ]
-            }
-          }
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "grsai/nano-banana-pro-vip",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "1K"
-      }
-    }
-  },
-  {
-    "platform": "grsai",
-    "upstream_model": "nano-banana-pro-4k-vip",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "min_items": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9"
-          ]
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "4K"
-              ]
-            }
-          }
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "grsai/nano-banana-pro-4k-vip",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "4K"
-      }
-    }
-  },
-  {
-    "platform": "grsai",
-    "upstream_model": "nano-banana-2-4k-cl",
-    "media_type": "image",
-    "enabled": false,
-    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
-    "schema": {
-      "version": 1,
-      "fields": {
-        "prompt": {
-          "type": "string",
-          "min_length": 1,
-          "required": true
-        },
-        "n": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8,
-          "default": 1
-        },
-        "image_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "http_url"
-          },
-          "min_items": 1
-        },
-        "size": {
-          "type": "string",
-          "enum": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "3:2",
-            "2:3",
-            "5:4",
-            "4:5",
-            "21:9"
-          ]
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "resolution": {
-              "type": "string",
-              "enum": [
-                "4K"
-              ]
-            }
-          }
-        }
-      },
-      "batch": {
-        "native_max_results": 1,
-        "allow_split": true,
-        "semantically_linked": false
-      }
-    },
-    "example": {
-      "model": "grsai/nano-banana-2-4k-cl",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
-      "size": "1:1",
-      "metadata": {
-        "resolution": "4K"
-      }
-    }
-  },
-  {
-    "platform": "grsai",
     "upstream_model": "gpt-image-2",
     "media_type": "image",
     "enabled": false,
@@ -9264,9 +8093,9 @@
     "media_type": "image",
     "enabled": false,
     "source": "https://qmy27nhsd9.apifox.cn/452409160e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
+    "evidence": "documented_generation",
     "profile": {},
-    "notes": "当前官方目录登记，标记维护中；不据此启用调度；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
+    "notes": "普通 gpt-image-2.5 使用比例或1K像素；保守开放 auto 质量，单次一张，可按公开规则独立拆分。不继承 flare/sunburst 的2K/4K能力。",
     "schema": {
       "version": 1,
       "fields": {
@@ -9287,25 +8116,28 @@
             "type": "string",
             "format": "http_url"
           },
-          "min_items": 1
+          "min_items": 1,
+          "max_items": 16
         },
         "size": {
           "type": "string",
           "enum": [
+            "auto",
             "1:1",
-            "4:3",
-            "3:4",
             "16:9",
             "9:16",
+            "4:3",
+            "3:4",
             "3:2",
             "2:3",
             "5:4",
             "4:5",
             "21:9",
-            "2:1",
+            "9:21",
             "1:2",
-            "9:21"
-          ]
+            "2:1"
+          ],
+          "default": "1:1"
         },
         "metadata": {
           "type": "object",
@@ -9314,25 +8146,108 @@
               "type": "string",
               "enum": [
                 "1K"
-              ]
+              ],
+              "default": "1K"
             },
             "quality": {
               "type": "string",
               "enum": [
                 "auto"
-              ]
+              ],
+              "default": "auto"
             }
-          }
+          },
+          "default": {}
         }
       },
       "batch": {
         "native_max_results": 1,
         "allow_split": true,
         "semantically_linked": false
-      }
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1443,
+          "height": 1090
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 1090,
+          "height": 1443
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1672,
+          "height": 941
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 941,
+          "height": 1672
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1536
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1408,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 1408
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1920,
+          "height": 832
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1792,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 832,
+          "height": 1920
+        }
+      ]
     },
     "example": {
-      "model": "grsai/gpt-image-2.5",
+      "model": "gpt-image-2.5",
       "prompt": "A quiet mountain lake at sunrise",
       "n": 1,
       "size": "1:1",
@@ -9347,9 +8262,11 @@
     "media_type": "image",
     "enabled": false,
     "source": "https://qmy27nhsd9.apifox.cn/452409160e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，标记维护中；不据此启用调度；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
+    "evidence": "官方 GPT Image 文档与当前模型列表：Flare/Sunburst 接受 1K/2K/4K 档位，按公开像素表适配。",
+    "profile": {
+      "pixel_size": true
+    },
+    "notes": "同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。",
     "schema": {
       "version": 1,
       "fields": {
@@ -9376,18 +8293,20 @@
           "type": "string",
           "enum": [
             "1:1",
-            "4:3",
-            "3:4",
             "16:9",
             "9:16",
+            "4:3",
+            "3:4",
             "3:2",
             "2:3",
             "5:4",
             "4:5",
             "21:9",
-            "2:1",
+            "9:21",
             "1:2",
-            "9:21"
+            "2:1",
+            "1:3",
+            "3:1"
           ],
           "required": true
         },
@@ -9401,15 +8320,17 @@
                 "2K",
                 "4K"
               ],
-              "required": true
+              "default": "1K"
             },
             "quality": {
               "type": "string",
               "enum": [
+                "auto",
                 "low",
                 "medium",
                 "high"
-              ]
+              ],
+              "default": "auto"
             },
             "background": {
               "type": "string",
@@ -9660,16 +8581,53 @@
           "resolution": "4K",
           "width": 1920,
           "height": 3840
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "1K",
+          "width": 688,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "1K",
+          "width": 2048,
+          "height": 688
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3840,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "4K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1280
         }
       ]
     },
     "example": {
-      "model": "grsai/gpt-image-2.5-flare",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
+      "model": "gpt-image-2.5-flare",
+      "prompt": "A blue ceramic cup",
       "size": "1:1",
+      "n": 1,
       "metadata": {
-        "resolution": "1K"
+        "resolution": "1K",
+        "quality": "auto"
       }
     }
   },
@@ -9679,9 +8637,11 @@
     "media_type": "image",
     "enabled": false,
     "source": "https://qmy27nhsd9.apifox.cn/452409160e0.md",
-    "evidence": "当前目录 + 型号所在原生族 OpenAPI；schema 完整性尚需补文档缺口",
-    "profile": {},
-    "notes": "当前官方目录登记，标记维护中；不据此启用调度；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。",
+    "evidence": "官方 GPT Image 文档与当前模型列表：Flare/Sunburst 接受 1K/2K/4K 档位，按公开像素表适配。",
+    "profile": {
+      "pixel_size": true
+    },
+    "notes": "同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。",
     "schema": {
       "version": 1,
       "fields": {
@@ -9708,18 +8668,20 @@
           "type": "string",
           "enum": [
             "1:1",
-            "4:3",
-            "3:4",
             "16:9",
             "9:16",
+            "4:3",
+            "3:4",
             "3:2",
             "2:3",
             "5:4",
             "4:5",
             "21:9",
-            "2:1",
+            "9:21",
             "1:2",
-            "9:21"
+            "2:1",
+            "1:3",
+            "3:1"
           ],
           "required": true
         },
@@ -9733,17 +8695,19 @@
                 "2K",
                 "4K"
               ],
-              "required": true
+              "default": "1K"
             },
             "quality": {
               "type": "string",
               "enum": [
+                "auto",
                 "low",
                 "medium",
                 "high",
                 "xhigh",
                 "max"
-              ]
+              ],
+              "default": "auto"
             },
             "background": {
               "type": "string",
@@ -9994,16 +8958,53 @@
           "resolution": "4K",
           "width": 1920,
           "height": 3840
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "1K",
+          "width": 576,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "1K",
+          "width": 1728,
+          "height": 576
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1168,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3504,
+          "height": 1168
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "4K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1280
         }
       ]
     },
     "example": {
-      "model": "grsai/gpt-image-2.5-sunburst",
-      "prompt": "A quiet mountain lake at sunrise",
-      "n": 1,
+      "model": "gpt-image-2.5-sunburst",
+      "prompt": "A blue ceramic cup",
       "size": "1:1",
+      "n": 1,
       "metadata": {
-        "resolution": "1K"
+        "resolution": "1K",
+        "quality": "auto"
       }
     }
   },
@@ -10403,6 +9404,4213 @@
         "resolution": "1K",
         "quality": "high"
       }
+    }
+  },
+  {
+    "platform": "kuaipao",
+    "upstream_model": "gpt-image-2.6-1k",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://kuaipao.apifox.cn/521245164e0.md",
+    "evidence": "v2 图像参数规则：带 -1k 型号固定 1K；比例使用 aspect_ratio，auto 使用 size:auto 且不同时传 resolution；新增比例像素按文档所述 16 倍数和档位像素上限计算。",
+    "notes": "快跑 v2 同步接口；固定1K，按比例和档位适配，3:2实际像素为1248x832。GPT系列每次支持1至10张，公开规则可选择独立拆分。返回URL后统一转存与结算。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1"
+          ],
+          "default": "1:1"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1
+        },
+        "metadata": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            }
+          }
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1,
+          "max_items": 16
+        }
+      },
+      "batch": {
+        "native_max_results": 10,
+        "allow_split": true,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1248,
+          "height": 832
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 832,
+          "height": 1248
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1152,
+          "height": 864
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 864,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1456,
+          "height": 624
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 624,
+          "height": 1456
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1440,
+          "height": 720
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.6",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "1K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "grsai",
+    "upstream_model": "gpt-image-2.6",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://qmy27nhsd9.apifox.cn/452409160e0.md",
+    "evidence": "documented_generation",
+    "profile": {},
+    "notes": "普通 gpt-image-2.6 使用比例或1K像素；保守开放 auto 质量，单次一张，可按公开规则独立拆分。不继承 flare/sunburst 的2K/4K能力。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "min_length": 1,
+          "required": true
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 1
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1,
+          "max_items": 16
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1"
+          ],
+          "default": "1:1"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto"
+              ],
+              "default": "auto"
+            }
+          },
+          "default": {}
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": true,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1443,
+          "height": 1090
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 1090,
+          "height": 1443
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1672,
+          "height": 941
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 941,
+          "height": 1672
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1536
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1408,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 1408
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1920,
+          "height": 832
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1792,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 832,
+          "height": 1920
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.6",
+      "prompt": "A quiet mountain lake at sunrise",
+      "n": 1,
+      "size": "1:1",
+      "metadata": {
+        "resolution": "1K"
+      }
+    }
+  },
+  {
+    "platform": "kuaipao",
+    "upstream_model": "gpt-image-2.5-1k",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://kuaipao.apifox.cn/521245164e0.md",
+    "evidence": "v2 图像参数规则：带 -1k 型号固定 1K；比例使用 aspect_ratio，auto 使用 size:auto 且不同时传 resolution；新增比例像素按文档所述 16 倍数和档位像素上限计算。",
+    "notes": "快跑 v2 同步接口；固定1K，按比例和档位适配，3:2实际像素为1248x832。GPT系列每次支持1至10张，公开规则可选择独立拆分。返回URL后统一转存与结算。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1"
+          ],
+          "default": "1:1"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1
+        },
+        "metadata": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            }
+          }
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1,
+          "max_items": 16
+        }
+      },
+      "batch": {
+        "native_max_results": 10,
+        "allow_split": true,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1248,
+          "height": 832
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 832,
+          "height": 1248
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1152,
+          "height": 864
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 864,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1456,
+          "height": 624
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 624,
+          "height": 1456
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1440,
+          "height": 720
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.5",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "1K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "grsai",
+    "upstream_model": "gpt-image-2.6-flare",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://qmy27nhsd9.apifox.cn/452409160e0.md",
+    "evidence": "官方 GPT Image 文档与当前模型列表：Flare/Sunburst 接受 1K/2K/4K 档位，按公开像素表适配。",
+    "profile": {
+      "pixel_size": true
+    },
+    "notes": "同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "min_length": 1,
+          "required": true
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 1
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1",
+            "1:3",
+            "3:1"
+          ],
+          "required": true
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            },
+            "background": {
+              "type": "string",
+              "enum": [
+                "transparent"
+              ]
+            }
+          },
+          "required": true
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": true,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "4K",
+          "width": 2880,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 2160
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "width": 1152,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "4K",
+          "width": 2160,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1152,
+          "height": 864
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "2K",
+          "width": 2304,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "4K",
+          "width": 3264,
+          "height": 2448
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 864,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "2K",
+          "width": 1728,
+          "height": 2304
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "4K",
+          "width": 2448,
+          "height": 3264
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 1360
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "4K",
+          "width": 3504,
+          "height": 2336
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1536
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "2K",
+          "width": 1360,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "4K",
+          "width": 2336,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "2K",
+          "width": 2240,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "4K",
+          "width": 3200,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "2K",
+          "width": 1792,
+          "height": 2240
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "4K",
+          "width": 2560,
+          "height": 3200
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1456,
+          "height": 624
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "2K",
+          "width": 2912,
+          "height": 1248
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1648
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 624,
+          "height": 1456
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "2K",
+          "width": 1248,
+          "height": 2912
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "4K",
+          "width": 1648,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1536,
+          "height": 768
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "2K",
+          "width": 3072,
+          "height": 1536
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1920
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 768,
+          "height": 1536
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "2K",
+          "width": 1536,
+          "height": 3072
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "4K",
+          "width": 1920,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "1K",
+          "width": 688,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "1K",
+          "width": 2048,
+          "height": 688
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3840,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "4K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1280
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.6-flare",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "1K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "kuaipao",
+    "upstream_model": "gpt-image-2.6-2k",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://kuaipao.apifox.cn/521245164e0.md",
+    "evidence": "v2 图像参数规则：固定2K，按官方尺寸表及16倍数、2K像素上限计算像素映射。",
+    "notes": "快跑 v2 同步图片接口；型号固定2K，比例使用 aspect_ratio；支持auto/low/medium/high质量。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1",
+            "1:3",
+            "3:1"
+          ],
+          "default": "1:1"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1
+        },
+        "metadata": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "2K"
+              ],
+              "default": "2K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            }
+          }
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1,
+          "max_items": 16
+        }
+      },
+      "batch": {
+        "native_max_results": 10,
+        "allow_split": true,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "2K",
+          "width": 2304,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "2K",
+          "width": 1728,
+          "height": 2304
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "2K",
+          "width": 2496,
+          "height": 1664
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "2K",
+          "width": 1664,
+          "height": 2496
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "2K",
+          "width": 2240,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "2K",
+          "width": 1792,
+          "height": 2240
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "2K",
+          "width": 3024,
+          "height": 1296
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "2K",
+          "width": 1296,
+          "height": 3024
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "2K",
+          "width": 2880,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1168,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3504,
+          "height": 1168
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.6-2k",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "2K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "kuaipao",
+    "upstream_model": "gpt-image-2.5-2k",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://kuaipao.apifox.cn/521245164e0.md",
+    "evidence": "v2 图像参数规则：固定2K，按官方尺寸表及16倍数、2K像素上限计算像素映射。",
+    "notes": "快跑 v2 同步图片接口；型号固定2K，比例使用 aspect_ratio；支持auto/low/medium/high质量。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1",
+            "1:3",
+            "3:1"
+          ],
+          "default": "1:1"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1
+        },
+        "metadata": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "2K"
+              ],
+              "default": "2K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            }
+          }
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1,
+          "max_items": 16
+        }
+      },
+      "batch": {
+        "native_max_results": 10,
+        "allow_split": true,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "2K",
+          "width": 2304,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "2K",
+          "width": 1728,
+          "height": 2304
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "2K",
+          "width": 2496,
+          "height": 1664
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "2K",
+          "width": 1664,
+          "height": 2496
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "2K",
+          "width": 2240,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "2K",
+          "width": 1792,
+          "height": 2240
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "2K",
+          "width": 3024,
+          "height": 1296
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "2K",
+          "width": 1296,
+          "height": 3024
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "2K",
+          "width": 2880,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1168,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3504,
+          "height": 1168
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.5-2k",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "2K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "grsai",
+    "upstream_model": "gpt-image-2.6-sunburst",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://qmy27nhsd9.apifox.cn/452409160e0.md",
+    "evidence": "官方 GPT Image 文档与当前模型列表：Flare/Sunburst 接受 1K/2K/4K 档位，按公开像素表适配。",
+    "profile": {
+      "pixel_size": true
+    },
+    "notes": "同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "min_length": 1,
+          "required": true
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 1
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1",
+            "1:3",
+            "3:1"
+          ],
+          "required": true
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            },
+            "background": {
+              "type": "string",
+              "enum": [
+                "transparent"
+              ]
+            }
+          },
+          "required": true
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": true,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "4K",
+          "width": 2880,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 2160
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "width": 1152,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "4K",
+          "width": 2160,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1152,
+          "height": 864
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "2K",
+          "width": 2304,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "4K",
+          "width": 3264,
+          "height": 2448
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 864,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "2K",
+          "width": 1728,
+          "height": 2304
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "4K",
+          "width": 2448,
+          "height": 3264
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 1360
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "4K",
+          "width": 3504,
+          "height": 2336
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1536
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "2K",
+          "width": 1360,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "4K",
+          "width": 2336,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "2K",
+          "width": 2240,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "4K",
+          "width": 3200,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "2K",
+          "width": 1792,
+          "height": 2240
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "4K",
+          "width": 2560,
+          "height": 3200
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1456,
+          "height": 624
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "2K",
+          "width": 2912,
+          "height": 1248
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1648
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 624,
+          "height": 1456
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "2K",
+          "width": 1248,
+          "height": 2912
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "4K",
+          "width": 1648,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1536,
+          "height": 768
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "2K",
+          "width": 3072,
+          "height": 1536
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1920
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 768,
+          "height": 1536
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "2K",
+          "width": 1536,
+          "height": 3072
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "4K",
+          "width": 1920,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "1K",
+          "width": 688,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "1K",
+          "width": 2048,
+          "height": 688
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3840,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "4K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1280
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.6-sunburst",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "1K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "kuaipao",
+    "upstream_model": "gpt-image-2.6-sunburst",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://kuaipao.apifox.cn/521245164e0.md",
+    "evidence": "官方 GPT Image 文档与当前模型列表：Flare/Sunburst 接受 1K/2K/4K 档位，按公开像素表适配。",
+    "notes": "同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1",
+            "1:3",
+            "3:1"
+          ],
+          "default": "1:1"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1
+        },
+        "metadata": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            }
+          }
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1,
+          "max_items": 16
+        }
+      },
+      "batch": {
+        "native_max_results": 10,
+        "allow_split": true,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1152,
+          "height": 864
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 864,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1248,
+          "height": 832
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 832,
+          "height": 1248
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1456,
+          "height": 624
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 624,
+          "height": 1456
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1440,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "1K",
+          "width": 576,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "1K",
+          "width": 1728,
+          "height": 576
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "2K",
+          "width": 2304,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "2K",
+          "width": 1728,
+          "height": 2304
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "2K",
+          "width": 2496,
+          "height": 1664
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "2K",
+          "width": 1664,
+          "height": 2496
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "2K",
+          "width": 2240,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "2K",
+          "width": 1792,
+          "height": 2240
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "2K",
+          "width": 3024,
+          "height": 1296
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "2K",
+          "width": 1296,
+          "height": 3024
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "2K",
+          "width": 2880,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1168,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3504,
+          "height": 1168
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "4K",
+          "width": 2880,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 2160
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "4K",
+          "width": 2160,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "4K",
+          "width": 3264,
+          "height": 2448
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "4K",
+          "width": 2448,
+          "height": 3264
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "4K",
+          "width": 3504,
+          "height": 2336
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "4K",
+          "width": 2336,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "4K",
+          "width": 3200,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "4K",
+          "width": 2560,
+          "height": 3200
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "4K",
+          "width": 3808,
+          "height": 1632
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "4K",
+          "width": 1632,
+          "height": 3808
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "4K",
+          "width": 1920,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1920
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "4K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1280
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.6-sunburst",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "1K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "kuaipao",
+    "upstream_model": "gpt-image-2.6-flare",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://kuaipao.apifox.cn/521245164e0.md",
+    "evidence": "官方 GPT Image 文档与当前模型列表：Flare/Sunburst 接受 1K/2K/4K 档位，按公开像素表适配。",
+    "notes": "同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1",
+            "1:3",
+            "3:1"
+          ],
+          "default": "1:1"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1
+        },
+        "metadata": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            }
+          }
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1,
+          "max_items": 16
+        }
+      },
+      "batch": {
+        "native_max_results": 10,
+        "allow_split": true,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1152,
+          "height": 864
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 864,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1248,
+          "height": 832
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 832,
+          "height": 1248
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1456,
+          "height": 624
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 624,
+          "height": 1456
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1440,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "1K",
+          "width": 576,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "1K",
+          "width": 1728,
+          "height": 576
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "2K",
+          "width": 2304,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "2K",
+          "width": 1728,
+          "height": 2304
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "2K",
+          "width": 2496,
+          "height": 1664
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "2K",
+          "width": 1664,
+          "height": 2496
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "2K",
+          "width": 2240,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "2K",
+          "width": 1792,
+          "height": 2240
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "2K",
+          "width": 3024,
+          "height": 1296
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "2K",
+          "width": 1296,
+          "height": 3024
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "2K",
+          "width": 2880,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1168,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3504,
+          "height": 1168
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "4K",
+          "width": 2880,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 2160
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "4K",
+          "width": 2160,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "4K",
+          "width": 3264,
+          "height": 2448
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "4K",
+          "width": 2448,
+          "height": 3264
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "4K",
+          "width": 3504,
+          "height": 2336
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "4K",
+          "width": 2336,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "4K",
+          "width": 3200,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "4K",
+          "width": 2560,
+          "height": 3200
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "4K",
+          "width": 3808,
+          "height": 1632
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "4K",
+          "width": 1632,
+          "height": 3808
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "4K",
+          "width": 1920,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1920
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "4K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1280
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.6-flare",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "1K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "kuaipao",
+    "upstream_model": "gpt-image-2.5-sunburst",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://kuaipao.apifox.cn/521245164e0.md",
+    "evidence": "官方 GPT Image 文档与当前模型列表：Flare/Sunburst 接受 1K/2K/4K 档位，按公开像素表适配。",
+    "notes": "同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1",
+            "1:3",
+            "3:1"
+          ],
+          "default": "1:1"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1
+        },
+        "metadata": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            }
+          }
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1,
+          "max_items": 16
+        }
+      },
+      "batch": {
+        "native_max_results": 10,
+        "allow_split": true,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1152,
+          "height": 864
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 864,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1248,
+          "height": 832
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 832,
+          "height": 1248
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1456,
+          "height": 624
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 624,
+          "height": 1456
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1440,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "1K",
+          "width": 576,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "1K",
+          "width": 1728,
+          "height": 576
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "2K",
+          "width": 2304,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "2K",
+          "width": 1728,
+          "height": 2304
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "2K",
+          "width": 2496,
+          "height": 1664
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "2K",
+          "width": 1664,
+          "height": 2496
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "2K",
+          "width": 2240,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "2K",
+          "width": 1792,
+          "height": 2240
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "2K",
+          "width": 3024,
+          "height": 1296
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "2K",
+          "width": 1296,
+          "height": 3024
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "2K",
+          "width": 2880,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1168,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3504,
+          "height": 1168
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "4K",
+          "width": 2880,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 2160
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "4K",
+          "width": 2160,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "4K",
+          "width": 3264,
+          "height": 2448
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "4K",
+          "width": 2448,
+          "height": 3264
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "4K",
+          "width": 3504,
+          "height": 2336
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "4K",
+          "width": 2336,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "4K",
+          "width": 3200,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "4K",
+          "width": 2560,
+          "height": 3200
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "4K",
+          "width": 3808,
+          "height": 1632
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "4K",
+          "width": 1632,
+          "height": 3808
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "4K",
+          "width": 1920,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1920
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "4K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1280
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.5-sunburst",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "1K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "kuaipao",
+    "upstream_model": "gpt-image-2.5-flare",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://kuaipao.apifox.cn/521245164e0.md",
+    "evidence": "官方 GPT Image 文档与当前模型列表：Flare/Sunburst 接受 1K/2K/4K 档位，按公开像素表适配。",
+    "notes": "同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1",
+            "1:3",
+            "3:1"
+          ],
+          "default": "1:1"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1
+        },
+        "metadata": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            }
+          }
+        },
+        "image_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "min_items": 1,
+          "max_items": 16
+        }
+      },
+      "batch": {
+        "native_max_results": 10,
+        "allow_split": true,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1152,
+          "height": 864
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 864,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1248,
+          "height": 832
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 832,
+          "height": 1248
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1456,
+          "height": 624
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 624,
+          "height": 1456
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1440,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "1K",
+          "width": 576,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "1K",
+          "width": 1728,
+          "height": 576
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "2K",
+          "width": 2304,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "2K",
+          "width": 1728,
+          "height": 2304
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "2K",
+          "width": 2496,
+          "height": 1664
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "2K",
+          "width": 1664,
+          "height": 2496
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "2K",
+          "width": 2240,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "2K",
+          "width": 1792,
+          "height": 2240
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "2K",
+          "width": 3024,
+          "height": 1296
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "2K",
+          "width": 1296,
+          "height": 3024
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "2K",
+          "width": 2880,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1168,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3504,
+          "height": 1168
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "4K",
+          "width": 2880,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 2160
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "4K",
+          "width": 2160,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "4K",
+          "width": 3264,
+          "height": 2448
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "4K",
+          "width": 2448,
+          "height": 3264
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "4K",
+          "width": 3504,
+          "height": 2336
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "4K",
+          "width": 2336,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "4K",
+          "width": 3200,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "4K",
+          "width": 2560,
+          "height": 3200
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "4K",
+          "width": 3808,
+          "height": 1632
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "4K",
+          "width": 1632,
+          "height": 3808
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "4K",
+          "width": 1920,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1920
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "4K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1280
+        }
+      ]
+    },
+    "example": {
+      "model": "gpt-image-2.5-flare",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "1K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "grsai",
+    "upstream_model": "nano-banana-pro",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+    "evidence": "已核对官方Nano接口及异步查询；9:21在1K/2K/4K真实生成均成功，原图672x1584、1344x3168、2688x6336。",
+    "notes": "同名GRS原生型号；auto原样转发，图片档位转大写；只开放单图async与HTTP(S)参考图，不支持quality或像素写法。价格由渠道固定单价配置。",
+    "profile": {
+      "resolution_uppercase": true,
+      "field_map": {
+        "metadata.resolution": "imageSize"
+      }
+    },
+    "schema": {
+      "version": 1,
+      "allow_pixel_size": false,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "images": {
+          "type": "array",
+          "min_items": 1,
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          }
+        },
+        "aspectRatio": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21"
+          ],
+          "default": "auto"
+        },
+        "imageSize": {
+          "type": "string",
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "default": "1K"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "replyType": {
+          "type": "string",
+          "enum": [
+            "async"
+          ],
+          "default": "async"
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      }
+    },
+    "example": {
+      "model": "grsai/nano-banana-pro",
+      "prompt": "A blue ceramic vase",
+      "aspectRatio": "auto",
+      "imageSize": "1K",
+      "n": 1,
+      "replyType": "async"
+    }
+  },
+  {
+    "platform": "grsai",
+    "upstream_model": "nano-banana-2.1",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+    "evidence": "已核对官方Nano接口中的nano-banana-2.1；2026-11-10三档9:21真实生成均成功，原图672x1584、1344x3168、2688x6336。",
+    "notes": "同名GRS原生型号；auto原样转发，图片档位转大写；只开放单图async与HTTP(S)参考图，不支持quality或像素写法。价格由渠道固定单价配置。",
+    "profile": {
+      "resolution_uppercase": true,
+      "field_map": {
+        "metadata.resolution": "imageSize"
+      }
+    },
+    "schema": {
+      "version": 1,
+      "allow_pixel_size": false,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "images": {
+          "type": "array",
+          "min_items": 1,
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          }
+        },
+        "aspectRatio": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21"
+          ],
+          "default": "auto"
+        },
+        "imageSize": {
+          "type": "string",
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "default": "1K"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "replyType": {
+          "type": "string",
+          "enum": [
+            "async"
+          ],
+          "default": "async"
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      }
+    },
+    "example": {
+      "model": "grsai/nano-banana-2.1",
+      "prompt": "A blue ceramic vase",
+      "aspectRatio": "auto",
+      "imageSize": "1K",
+      "n": 1,
+      "replyType": "async"
+    }
+  },
+  {
+    "platform": "centos",
+    "upstream_model": "gpt-image-2.6-flare",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://doc.centos.hk/web/#/688145263/261667736",
+    "evidence": "2026-11-10已核对实时模型/价格列表与官方GPT教程；Flare流式1K已读取1024x1024原图，Sunburst流式4K返回完成事件。 Flare参考图multipart编辑已真实生成1024x1024原图，返回image_edit.completed事件。",
+    "profile": {
+      "pixel_size": true
+    },
+    "notes": "独立CentOS Provider使用官方优化节点；文生图走images/generations，HTTP(S)参考图由Provider安全下载并通过multipart转发images/edits；像素size、quality与上游stream由Provider处理。最多16张参考图、单张20MiB、合计32MiB；不支持的请求跳过该候选。Nano协议尚未验证，不登记可启用模板。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "min_length": 1,
+          "required": true
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1",
+            "1:3",
+            "3:1"
+          ],
+          "required": true
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            }
+          },
+          "required": true
+        },
+        "image_urls": {
+          "type": "array",
+          "min_items": 1,
+          "max_items": 16,
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          }
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1152,
+          "height": 864
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 864,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1248,
+          "height": 832
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 832,
+          "height": 1248
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1456,
+          "height": 624
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 624,
+          "height": 1456
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1440,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "1K",
+          "width": 576,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "1K",
+          "width": 1728,
+          "height": 576
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "2K",
+          "width": 2304,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "2K",
+          "width": 1728,
+          "height": 2304
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "2K",
+          "width": 2496,
+          "height": 1664
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "2K",
+          "width": 1664,
+          "height": 2496
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "2K",
+          "width": 2240,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "2K",
+          "width": 1792,
+          "height": 2240
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "2K",
+          "width": 3024,
+          "height": 1296
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "2K",
+          "width": 1296,
+          "height": 3024
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "2K",
+          "width": 2880,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1168,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3504,
+          "height": 1168
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "4K",
+          "width": 2880,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 2160
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "4K",
+          "width": 2160,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "4K",
+          "width": 3264,
+          "height": 2448
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "4K",
+          "width": 2448,
+          "height": 3264
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "4K",
+          "width": 3504,
+          "height": 2336
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "4K",
+          "width": 2336,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "4K",
+          "width": 3200,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "4K",
+          "width": 2560,
+          "height": 3200
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "4K",
+          "width": 3808,
+          "height": 1632
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "4K",
+          "width": 1632,
+          "height": 3808
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "4K",
+          "width": 1920,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1920
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "4K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1280
+        }
+      ]
+    },
+    "example": {
+      "model": "centos/gpt-image-2.6-flare",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "1K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "centos",
+    "upstream_model": "gpt-image-2.6-sunburst",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://doc.centos.hk/web/#/688145263/261667736",
+    "evidence": "2026-11-10已核对实时模型/价格列表与官方GPT教程；Flare流式1K已读取1024x1024原图，Sunburst流式4K返回完成事件。 Flare参考图multipart编辑已真实生成1024x1024原图，返回image_edit.completed事件。",
+    "profile": {
+      "pixel_size": true
+    },
+    "notes": "独立CentOS Provider使用官方优化节点；文生图走images/generations，HTTP(S)参考图由Provider安全下载并通过multipart转发images/edits；像素size、quality与上游stream由Provider处理。最多16张参考图、单张20MiB、合计32MiB；不支持的请求跳过该候选。Nano协议尚未验证，不登记可启用模板。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "min_length": 1,
+          "required": true
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21",
+            "1:2",
+            "2:1",
+            "1:3",
+            "3:1"
+          ],
+          "required": true
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "1K",
+                "2K",
+                "4K"
+              ],
+              "default": "1K"
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "low",
+                "medium",
+                "high"
+              ],
+              "default": "auto"
+            }
+          },
+          "required": true
+        },
+        "image_urls": {
+          "type": "array",
+          "min_items": 1,
+          "max_items": 16,
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          }
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      },
+      "image_specs": [
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1280
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "1K",
+          "width": 1152,
+          "height": 864
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "width": 864,
+          "height": 1152
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "1K",
+          "width": 1248,
+          "height": 832
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "1K",
+          "width": 832,
+          "height": 1248
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "1K",
+          "width": 1120,
+          "height": 896
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "1K",
+          "width": 896,
+          "height": 1120
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "1K",
+          "width": 1456,
+          "height": 624
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "1K",
+          "width": 624,
+          "height": 1456
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "1K",
+          "width": 720,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "1K",
+          "width": 1440,
+          "height": 720
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "1K",
+          "width": 576,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "1K",
+          "width": 1728,
+          "height": 576
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "width": 2560,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "2K",
+          "width": 2304,
+          "height": 1728
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "2K",
+          "width": 1728,
+          "height": 2304
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "2K",
+          "width": 2496,
+          "height": 1664
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "2K",
+          "width": 1664,
+          "height": 2496
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "2K",
+          "width": 2240,
+          "height": 1792
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "2K",
+          "width": 1792,
+          "height": 2240
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "2K",
+          "width": 3024,
+          "height": 1296
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "2K",
+          "width": 1296,
+          "height": 3024
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "2K",
+          "width": 1440,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "2K",
+          "width": 2880,
+          "height": 1440
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "2K",
+          "width": 1168,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "2K",
+          "width": 3504,
+          "height": 1168
+        },
+        {
+          "aspect_ratio": "1:1",
+          "resolution": "4K",
+          "width": 2880,
+          "height": 2880
+        },
+        {
+          "aspect_ratio": "16:9",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 2160
+        },
+        {
+          "aspect_ratio": "9:16",
+          "resolution": "4K",
+          "width": 2160,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "4:3",
+          "resolution": "4K",
+          "width": 3264,
+          "height": 2448
+        },
+        {
+          "aspect_ratio": "3:4",
+          "resolution": "4K",
+          "width": 2448,
+          "height": 3264
+        },
+        {
+          "aspect_ratio": "3:2",
+          "resolution": "4K",
+          "width": 3504,
+          "height": 2336
+        },
+        {
+          "aspect_ratio": "2:3",
+          "resolution": "4K",
+          "width": 2336,
+          "height": 3504
+        },
+        {
+          "aspect_ratio": "5:4",
+          "resolution": "4K",
+          "width": 3200,
+          "height": 2560
+        },
+        {
+          "aspect_ratio": "4:5",
+          "resolution": "4K",
+          "width": 2560,
+          "height": 3200
+        },
+        {
+          "aspect_ratio": "21:9",
+          "resolution": "4K",
+          "width": 3808,
+          "height": 1632
+        },
+        {
+          "aspect_ratio": "9:21",
+          "resolution": "4K",
+          "width": 1632,
+          "height": 3808
+        },
+        {
+          "aspect_ratio": "1:2",
+          "resolution": "4K",
+          "width": 1920,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "2:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1920
+        },
+        {
+          "aspect_ratio": "1:3",
+          "resolution": "4K",
+          "width": 1280,
+          "height": 3840
+        },
+        {
+          "aspect_ratio": "3:1",
+          "resolution": "4K",
+          "width": 3840,
+          "height": 1280
+        }
+      ]
+    },
+    "example": {
+      "model": "centos/gpt-image-2.6-sunburst",
+      "prompt": "A blue ceramic cup",
+      "size": "1:1",
+      "n": 1,
+      "metadata": {
+        "resolution": "1K",
+        "quality": "auto"
+      }
+    }
+  },
+  {
+    "platform": "centos",
+    "upstream_model": "gemini-3-pro-image-preview",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://doc.centos.hk/web/#/688145263/261667732",
+    "evidence": "2026-11-10 OpenAI非流式文生图及内联参考图实测均出图；原生接口报model is required。用户明确授权备用忽略比例和档位，交付上游默认原图。",
+    "notes": "仅作GRS之后的备用；独立CentOS Provider走chat/completions stream=false，从message.content提取内联图片。default_image_geometry策略进入冻结快照；不转发aspectRatio/imageSize，不承诺请求比例和分辨率，原图不缩放不裁剪。参考图安全下载后转内联，最多16张、单张20MiB、合计32MiB。",
+    "profile": {
+      "default_image_geometry": true,
+      "resolution_uppercase": true,
+      "submit_path": "/v1/chat/completions"
+    },
+    "schema": {
+      "version": 1,
+      "allow_pixel_size": false,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "images": {
+          "type": "array",
+          "min_items": 1,
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "max_items": 16
+        },
+        "aspectRatio": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21"
+          ],
+          "default": "auto"
+        },
+        "imageSize": {
+          "type": "string",
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "default": "1K"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "replyType": {
+          "type": "string",
+          "enum": [
+            "async"
+          ],
+          "default": "async"
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      }
+    },
+    "example": {
+      "model": "centos/gemini-3-pro-image-preview",
+      "prompt": "A blue ceramic vase",
+      "aspectRatio": "auto",
+      "imageSize": "1K",
+      "n": 1,
+      "replyType": "async"
+    }
+  },
+  {
+    "platform": "centos",
+    "upstream_model": "gemini-3.1-flash-image-preview",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://doc.centos.hk/web/#/688145263/261667732",
+    "evidence": "2026-11-10 OpenAI非流式文生图及内联参考图实测均出图；原生接口报model is required。用户明确授权备用忽略比例和档位，交付上游默认原图。",
+    "notes": "仅作GRS之后的备用；独立CentOS Provider走chat/completions stream=false，从message.content提取内联图片。default_image_geometry策略进入冻结快照；不转发aspectRatio/imageSize，不承诺请求比例和分辨率，原图不缩放不裁剪。参考图安全下载后转内联，最多16张、单张20MiB、合计32MiB。",
+    "profile": {
+      "default_image_geometry": true,
+      "resolution_uppercase": true,
+      "submit_path": "/v1/chat/completions"
+    },
+    "schema": {
+      "version": 1,
+      "allow_pixel_size": false,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "images": {
+          "type": "array",
+          "min_items": 1,
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          },
+          "max_items": 16
+        },
+        "aspectRatio": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21"
+          ],
+          "default": "auto"
+        },
+        "imageSize": {
+          "type": "string",
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "default": "1K"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "replyType": {
+          "type": "string",
+          "enum": [
+            "async"
+          ],
+          "default": "async"
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      }
+    },
+    "example": {
+      "model": "centos/gemini-3.1-flash-image-preview",
+      "prompt": "A blue ceramic vase",
+      "aspectRatio": "auto",
+      "imageSize": "1K",
+      "n": 1,
+      "replyType": "async"
     }
   }
 ]

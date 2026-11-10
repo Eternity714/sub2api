@@ -63,9 +63,9 @@ describe('public model plaza media identity', () => {
     }
   })
 
-  it('combines media source filters and keeps both groups visible with generic media icons', async () => {
+  it('combines media source filters and keeps all native media groups visible with generic media icons', async () => {
     const wrapper = mount(ModelPlazaContent, {
-      props: { response: { description: '', groups: [group(1, 'grsai'), group(2, 'toapis')] }, loading: false },
+      props: { response: { description: '', groups: [group(1, 'grsai'), group(2, 'toapis'), group(3, 'kuaipao')] }, loading: false },
       global: { plugins: [createPinia()] },
     })
     try {
@@ -74,7 +74,8 @@ describe('public model plaza media identity', () => {
       await mediaFilters[0].trigger('click')
       expect(wrapper.text()).toContain('Channel 1')
       expect(wrapper.text()).toContain('Channel 2')
-      expect(wrapper.text()).not.toMatch(/grsai|toapis|GRS\.AI/i)
+      expect(wrapper.text()).toContain('Channel 3')
+      expect(wrapper.text()).not.toMatch(/grsai|toapis|kuaipao|快跑|GRS\.AI/i)
       expect(wrapper.find('img[src*="grsai"]').exists()).toBe(false)
       for (const icon of wrapper.findAllComponents(PlatformIcon)) {
         expect(icon.props('platform')).toBe('media')
@@ -84,12 +85,12 @@ describe('public model plaza media identity', () => {
     }
   })
 
-  it.each(['grsai', 'toapis'])('hides %s on Composite model price badges', platform => {
+  it.each(['grsai', 'toapis', 'kuaipao'])('hides %s on Composite model price badges', platform => {
     const wrapper = mount(PlazaModelPricingTable, {
       props: { models: group(1, platform).models, platform: 'composite', rateMultiplier: 1 },
     })
     expect(wrapper.text()).toContain('admin.groups.platforms.media')
-    expect(wrapper.text()).not.toMatch(/grsai|toapis|GRS\.AI/i)
+    expect(wrapper.text()).not.toMatch(/grsai|toapis|kuaipao|快跑|GRS\.AI/i)
     wrapper.unmount()
   })
 })

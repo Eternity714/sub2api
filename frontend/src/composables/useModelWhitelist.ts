@@ -1,4 +1,5 @@
 import { getProviderProfile } from '@/constants/platformCatalog'
+import { isNativeMediaPlatform } from '@/utils/publicPlatform'
 
 // =====================
 // 模型列表（硬编码，与 new-api 一致）
@@ -23,6 +24,8 @@ const openaiModels = [
   // GPT Image 系列
   'gpt-image-1', 'gpt-image-1.5', 'gpt-image-2', 'gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'
 ]
+
+const kuaipaoModels = ['gpt-image-2.6-sunburst', 'gpt-image-2.6-flare', 'gpt-image-2.5-sunburst', 'gpt-image-2.5-flare']
 
 // Anthropic Claude
 export const claudeModels = [
@@ -286,6 +289,7 @@ const perplexityModels = [
 // 所有模型（去重）
 const allModelsList: string[] = [
   ...openaiModels,
+  ...kuaipaoModels,
   ...claudeModels,
   ...geminiModels,
   ...zhipuModels,
@@ -497,6 +501,8 @@ export const commonErrorCodes = [
 export function getModelsByPlatform(platform: string): string[] {
   switch (platform) {
     case 'openai': return openaiModels
+    case 'kuaipao': return kuaipaoModels
+    case 'centos': return ['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst', 'gemini-3-pro-image-preview', 'gemini-3.1-flash-image-preview']
     case 'anthropic':
     case 'claude': return claudeModels
     case 'gemini': return geminiModels
@@ -540,6 +546,7 @@ export function getModelsByPlatform(platform: string): string[] {
 
 // 按平台获取预设映射
 export function getPresetMappingsByPlatform(platform: string) {
+  if (isNativeMediaPlatform(platform)) return []
   if (platform === 'openai') return openaiPresetMappings
   if (platform === 'gemini') return geminiPresetMappings
   if (platform === 'grok' || platform === 'xai') return grokPresetMappings

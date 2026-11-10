@@ -236,7 +236,7 @@
               type="number" step="any" min="0" class="input text-sm" :placeholder="t('admin.channels.form.pricePlaceholder')" />
           </div>
 
-          <p v-if="platform === 'grsai' || platform === 'toapis'" class="mt-2 text-xs text-gray-400">
+          <p v-if="isNativeMediaPlatform(platform)" class="mt-2 text-xs text-gray-400">
             {{ t('admin.channels.form.unifiedMediaPricingHint') }}
           </p>
 
@@ -315,6 +315,7 @@ import { perTokenToMTok, getPlatformTagClass, isValidPositiveMultiplier, validat
 import { REASONING_EFFORT_LEVELS, type ReasoningEffortLevel } from '@/constants/channel'
 import type { BillingMode } from '@/api/admin/channels'
 import channelsAPI from '@/api/admin/channels'
+import { isNativeMediaPlatform } from '@/utils/publicPlatform'
 
 const { t } = useI18n()
 

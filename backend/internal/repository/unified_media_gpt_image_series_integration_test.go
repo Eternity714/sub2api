@@ -1,0 +1,184 @@
+//go:build integration
+
+package repository
+
+import (
+	"bytes"
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"image"
+	"image/png"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+)
+
+func TestUnifiedMediaRepositoryGPTImageSeriesTieredRestartSettlement(t *testing.T) {
+	cases := []struct {
+		name, tier, upstream string
+		fixed                bool
+	}{
+		{"1K", "1K", "gpt-image-2.6-sunburst", false},
+		{"2K", "2K", "gpt-image-2.6-sunburst", false},
+		{"4K", "4K", "gpt-image-2.6-sunburst", false},
+		{"gpt-image-2.5", "1K", "gpt-image-2.5-flare", true},
+		{"gpt-image-2.6", "1K", "gpt-image-2.6-flare", true},
+	}
+	for _, test := range cases {
+		tier, quality := test.tier, "high"
+		pixels := map[string]int{"1K": 1024, "2K": 2048, "4K": 2880}[tier]
+		price := map[string]float64{"1K": .12, "2K": .2, "4K": .35}[tier]
+		if test.fixed {
+			price, quality = .08, "auto"
+		}
+		var pngData bytes.Buffer
+		require.NoError(t, png.Encode(&pngData, image.NewRGBA(image.Rect(0, 0, pixels, pixels))))
+		inline := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngData.Bytes())
+		for _, platform := range []string{service.PlatformGrsai, service.PlatformKuaipao, service.PlatformCentOS} {
+			if platform == service.PlatformCentOS && test.upstream == "gpt-image-2.5-flare" {
+				continue
+			}
+			t.Run(test.name+"/"+platform, func(t *testing.T) {
+				ctx := context.Background()
+				repo, fixture, accountID := unifiedMediaIntegrationFixture(t)
+				_, err := integrationDB.ExecContext(ctx, `UPDATE accounts SET platform=$1 WHERE id=$2`, platform, accountID)
+				require.NoError(t, err)
+				model := "series-tiered-" + uuid.NewString()
+				upstreamModel := test.upstream
+				schema := json.RawMessage(`{"version":1,"allow_pixel_size":false,"auto_image_aspect_ratio":"1:1","fields":{"prompt":{"type":"string","required":true},"aspectRatio":{"type":"string","enum":["auto","1:1"],"default":"1:1"},"imageSize":{"type":"string","enum":["1K","2K","4K"],"default":"1K"},"quality":{"type":"string","enum":["auto","low","medium","high"],"default":"auto"},"n":{"type":"integer","minimum":1,"maximum":1,"default":1},"replyType":{"type":"string","enum":["async"],"default":"async"}},"image_specs":[{"aspect_ratio":"1:1","resolution":"1K","width":1024,"height":1024},{"aspect_ratio":"1:1","resolution":"2K","width":2048,"height":2048},{"aspect_ratio":"1:1","resolution":"4K","width":2880,"height":2880}]}`)
+				if test.fixed {
+					raw, err := os.ReadFile(filepath.Join("..", "..", "..", "docs", "media-api-catalog.json"))
+					require.NoError(t, err)
+					var catalog struct {
+						Models []struct {
+							Model  string          `json:"model"`
+							Schema json.RawMessage `json:"schema"`
+						} `json:"models"`
+					}
+					require.NoError(t, json.Unmarshal(raw, &catalog))
+					schema = nil
+					for _, entry := range catalog.Models {
+						if entry.Model == test.name {
+							schema = entry.Schema
+						}
+					}
+					require.NotEmpty(t, schema)
+				}
+				capRepo := NewMediaCapabilityRepository(integrationDB)
+				caps := service.NewMediaCapabilityService(capRepo)
+				capability, err := caps.Create(ctx, service.MediaCapabilityInput{PublicModel: model, MediaType: "image", Enabled: true, Schema: schema})
+				require.NoError(t, err)
+				t.Cleanup(func() {
+					_, _ = integrationDB.ExecContext(ctx, `DELETE FROM media_model_capabilities WHERE id=$1`, capability.ID)
+				})
+				routeRepo := NewCompositeModelRouteRepository(integrationEntClient)
+				route := &service.CompositeModelRoute{GroupID: fixture.GroupID, PublicModel: model, MatchType: "exact", TargetPlatform: platform, UpstreamModel: upstreamModel, Endpoint: "images", Priority: 10, Enabled: true}
+				require.NoError(t, routeRepo.Create(ctx, route))
+				t.Cleanup(func() {
+					_, _ = integrationDB.ExecContext(ctx, `DELETE FROM composite_model_routes WHERE id=$1`, route.ID)
+				})
+				posts := 0
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					posts++
+					var body map[string]any
+					require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+					require.Equal(t, upstreamModel, body["model"])
+					require.Equal(t, quality, body["quality"])
+					require.NotContains(t, body, "imageSize")
+					if platform == service.PlatformGrsai {
+						require.Equal(t, "/v1/api/generate", r.URL.Path)
+						require.Equal(t, fmt.Sprintf("%dx%d", pixels, pixels), body["aspectRatio"])
+						require.Equal(t, "async", body["replyType"])
+						_ = json.NewEncoder(w).Encode(map[string]any{"id": "captured-grs-task", "status": "succeeded", "results": []any{map[string]any{"url": inline}}})
+					} else if platform == service.PlatformCentOS {
+						require.Equal(t, "/v1/images/generations", r.URL.Path)
+						require.Equal(t, true, body["stream"])
+						require.Equal(t, fmt.Sprintf("%dx%d", pixels, pixels), body["size"])
+						w.Header().Set("Content-Type", "text/event-stream")
+						event, _ := json.Marshal(map[string]any{"type": "image_generation.completed", "url": inline})
+						_, _ = fmt.Fprintf(w, "data: %s\n\n", event)
+					} else {
+						require.Equal(t, "/v2/images/generations", r.URL.Path)
+						require.Equal(t, "1:1", body["aspect_ratio"])
+						require.Equal(t, tier, body["resolution"])
+						_ = json.NewEncoder(w).Encode(map[string]any{"data": []any{map[string]any{"url": inline}}})
+					}
+				}))
+				defer server.Close()
+				base := server.URL
+				if platform == service.PlatformKuaipao {
+					base += "/v2"
+				}
+				account := service.Account{ID: accountID, Platform: platform, Type: service.AccountTypeAPIKey, Status: service.StatusActive, Schedulable: true, Credentials: map[string]any{"api_key": "synthetic-key", "base_url": base}}
+				storage := &unifiedMediaIntegrationStorage{}
+				uploader := service.NewImageResultUploader(storage, "media/", 0, nil)
+				channels := service.NewChannelService(NewChannelRepository(integrationDB), nil, nil, nil, nil)
+				modelPricing := service.ChannelModelPricing{Platform: platform, Models: []string{model}, BillingMode: service.BillingModeImage, Intervals: []service.PricingInterval{{TierLabel: "1K", PerRequestPrice: seriesPricePointer(.12)}, {TierLabel: "2K", PerRequestPrice: seriesPricePointer(.2)}, {TierLabel: "4K", PerRequestPrice: seriesPricePointer(.35)}}}
+				if test.fixed {
+					modelPricing.Intervals = nil
+					modelPricing.PerRequestPrice = seriesPricePointer(.08)
+				}
+				channel, err := channels.Create(ctx, &service.CreateChannelInput{Name: "fixed-pricing-" + uuid.NewString(), GroupIDs: []int64{fixture.GroupID}, ModelPricing: []service.ChannelModelPricing{modelPricing}})
+				require.NoError(t, err)
+				t.Cleanup(func() { require.NoError(t, channels.Delete(ctx, channel.ID)) })
+				pricing := &service.UnifiedMediaPricingResolver{Resolver: service.NewModelPricingResolver(channels, nil)}
+				svc := service.NewUnifiedMediaTaskService(repo, caps, service.NewCompositeMediaRouteService(service.NewCompositeRouteResolver(routeRepo), capRepo), nil, pricing, nil, unifiedMediaIntegrationPersister{uploader: uploader})
+				group := &service.Group{ID: fixture.GroupID, Platform: service.PlatformComposite, RateMultiplier: 1}
+				key := &service.APIKey{ID: fixture.APIKeyID, UserID: fixture.UserID, GroupID: &fixture.GroupID, Group: group}
+				request := map[string]any{"model": model, "prompt": "private cup", "aspectRatio": "auto", "quality": quality}
+				if !test.fixed {
+					request["imageSize"] = tier
+				}
+				body, err := json.Marshal(request)
+				require.NoError(t, err)
+				task, err := svc.Create(ctx, service.UnifiedMediaTaskCreateInput{APIKey: key, MediaType: "image", Body: body})
+				require.NoError(t, err)
+				require.Equal(t, price, task.HeldAmount)
+				storedTask, err := repo.(*unifiedMediaTaskRepository).scan(integrationDB.QueryRowContext(ctx, `SELECT `+unifiedMediaTaskColumns+` FROM unified_media_tasks WHERE id=$1`, task.ID), true)
+				require.NoError(t, err)
+				if test.fixed {
+					require.Equal(t, "1K", storedTask.Payload.Normalized.FixedImageResolution)
+				} else {
+					require.Empty(t, storedTask.Payload.Normalized.FixedImageResolution)
+				}
+				require.Equal(t, tier, storedTask.Payload.Normalized.ImageSpec.Resolution)
+				require.Equal(t, storedTask.Payload.Normalized.ImageSpec, storedTask.Payload.Normalized.RequestedImageSpec)
+				require.Equal(t, pixels, storedTask.Payload.Normalized.ImageSpec.Width)
+				require.NoError(t, caps.Delete(ctx, capability.ID, capability.Revision))
+				// A fresh worker has no capability/routing/pricing services and must
+				// complete solely from encrypted payload and frozen provider rules.
+				worker := service.NewUnifiedMediaTaskService(repo, nil, nil, &unifiedMediaIntegrationAccounts{account: account}, nil, service.NewUnifiedMediaUpstream(server.Client()), unifiedMediaIntegrationPersister{uploader: uploader})
+				require.NoError(t, worker.RunOnce(ctx))
+				result, err := worker.GetOwned(ctx, fixture.UserID, fixture.APIKeyID, "image", task.ID)
+				require.NoError(t, err)
+				require.Equal(t, "completed", result.Status)
+				require.Empty(t, result.PublicView().Error)
+				require.Len(t, result.PublicView().Result.Data, 1)
+				require.Contains(t, result.PublicView().Result.Data[0], "https://s3.example/")
+				require.Empty(t, result.Units[0].URLs)
+				require.Equal(t, price, service.UnifiedMediaTaskCharge(result))
+				var balance, frozen, charged float64
+				var usageTier string
+				require.NoError(t, integrationDB.QueryRowContext(ctx, `SELECT balance,frozen_balance FROM users WHERE id=$1`, fixture.UserID).Scan(&balance, &frozen))
+				require.InDelta(t, 10-price, balance, 1e-9)
+				require.Zero(t, frozen)
+				require.NoError(t, integrationDB.QueryRowContext(ctx, `SELECT actual_cost,image_size FROM usage_logs WHERE request_id=$1`, "media_task:"+task.ID+":0").Scan(&charged, &usageTier))
+				require.Equal(t, price, charged)
+				require.Equal(t, tier, usageTier)
+				require.NoError(t, worker.RunOnce(ctx))
+				require.Equal(t, 1, posts)
+				require.Equal(t, 1, storage.saved)
+			})
+		}
+	}
+}
+
+func seriesPricePointer(value float64) *float64 { return &value }

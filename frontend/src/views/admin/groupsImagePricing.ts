@@ -1,3 +1,5 @@
+import { isNativeMediaPlatform } from "@/utils/publicPlatform";
+
 export const imagePricingPlatforms = new Set([
   "antigravity",
   "composite",
@@ -9,16 +11,16 @@ export const imagePricingPlatforms = new Set([
 export const supportsImagePricingPlatform = (platform: string): boolean =>
   imagePricingPlatforms.has(platform);
 
-// Legacy media groups use per-model pricing, so they need the media permission
+// Native media groups use per-model pricing, so they need the media permission
 // without the generic resolution-tier price controls.
 export const supportsImageGenerationPlatform = (platform: string): boolean =>
-  supportsImagePricingPlatform(platform) || platform === "grsai";
+  supportsImagePricingPlatform(platform) || isNativeMediaPlatform(platform);
 
 export const supportsVideoPricingPlatform = (platform: string): boolean =>
   platform === "grok";
 
 export const imagePricingI18nKey = (platform: string, key: string): string =>
-  `admin.groups.imagePricing.${(platform === "openai" || platform === "grsai") && key === "allowImageGeneration" ? "allowMediaGeneration" : key}`;
+  `admin.groups.imagePricing.${(platform === "openai" || isNativeMediaPlatform(platform)) && key === "allowImageGeneration" ? "allowMediaGeneration" : key}`;
 
 export const videoPricingI18nKey = (key: string): string =>
   `admin.groups.videoPricing.${key}`;

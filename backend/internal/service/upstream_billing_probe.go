@@ -1010,7 +1010,7 @@ func decodeUpstreamBillingProbeSnapshot(extra map[string]any) *UpstreamBillingPr
 // cannot turn the probe on.
 func IsUpstreamBillingProbeIdentity(platform, accountType string) bool {
 	// Native media providers do not expose the Sub2API relay billing protocol.
-	return accountType == AccountTypeAPIKey && platform != PlatformGrsai && platform != PlatformToAPIs && domain.IsConcretePlatform(platform)
+	return accountType == AccountTypeAPIKey && platform != PlatformGrsai && platform != PlatformToAPIs && platform != PlatformKuaipao && platform != PlatformCentOS && domain.IsConcretePlatform(platform)
 }
 
 func isUpstreamBillingProbeAccount(account *Account) bool {

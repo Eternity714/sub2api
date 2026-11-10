@@ -1,7 +1,7 @@
 # API 手册
 
 ::: warning 媒体 API 分组使用统一异步协议
-如果密钥选择的是“媒体 API”分组，请先阅读[媒体 API 接入指南](/media-api)和[逐模型参数文档](/media-models/)。图片和视频创建均返回 `202` 任务，查询分别使用 `/v1/images/generations/{task_id}`、`/v1/videos/generations/{task_id}`；图片 `size` 为宽高比，分辨率放在 `metadata.resolution`。不要直接套用本页链接中的其它原生协议示例。
+如果密钥选择的是“媒体 API”分组，请先阅读[媒体 API 接入指南](/media-api)和[逐模型参数文档](/media-models/)。图片和视频创建均返回 `202` 任务，查询分别使用 `/v1/images/generations/{task_id}`、`/v1/videos/generations/{task_id}`；统一使用 `images/aspectRatio`，GPT Image 通过 `imageSize` 选择 `1K/2K/4K`，视频分辨率用 `resolution`；`replyType` 目前仅支持 `async`。不要直接套用本页链接中的其它原生协议示例。
 :::
 
 Gkotta 提供多种模型协议。先选择密钥分组，再根据客户端使用的协议填写地址和请求体。所有示例中的密钥和模型 ID 都需要替换为自己的值。
@@ -41,7 +41,7 @@ Gkotta 提供多种模型协议。先选择密钥分组，再根据客户端使�
 | POST | `/v1/images/edits` | multipart 图片编辑 |
 | POST | `/v1beta/models/{model}:generateContent` | Gemini 原生图片生成与编辑 |
 
-媒体 API 请求格式见[统一接入指南](/media-api)及[模型目录](/media-models/)；其它图片协议、图片保存和分组条件见[图像生成 API](/image-generate)。需要支持的上游、图片模型及媒体生成权限，不能直接使用任意文本模型。
+媒体 API 请求格式见[图片生成 API](/media-images)及[模型目录](/media-models/)；其它图片协议、图片保存和分组条件见[图像生成 API](/image-generate)。需要支持的上游、图片模型及媒体生成权限，不能直接使用任意文本模型。
 
 ## 视频接口
 
@@ -57,7 +57,7 @@ Gkotta 提供多种模型协议。先选择密钥分组，再根据客户端使�
 | GET | `/api/v3/contents/generations/tasks/{id}` | 查询 Seedance 任务 |
 | DELETE | `/api/v3/contents/generations/tasks/{id}` | 删除 Seedance 任务 |
 
-媒体 API、Grok 和 Seedance 的任务 ID、查询路径、输入和完成状态不同。媒体 API 分组阅读[统一接入指南](/media-api)与[模型目录](/media-models/)；其它分组分别阅读[Grok 视频生成](/video-generation)、[Seedance API](/seedance-api)及[图片转视频](/image-to-video)。创建任务后保存 ID，使用创建时的同一 API Key 查询。
+媒体 API、Grok 和 Seedance 的任务 ID、查询路径、输入和完成状态不同。媒体 API 分组阅读[视频生成 API](/media-videos)与[模型目录](/media-models/)；其它分组分别阅读[Grok 视频生成](/video-generation)、[Seedance API](/seedance-api)及[图片转视频](/image-to-video)。创建任务后保存 ID，使用创建时的同一 API Key 查询。
 
 ## 账户、费用和错误
 

@@ -43,6 +43,7 @@
 
       <!-- Grok: mode first, then optional model / mode params -->
       <p v-if="isToAPIsAccount" class="rounded-lg bg-primary-50 p-3 text-sm text-primary-800 dark:bg-primary-900/20 dark:text-primary-200">{{ t('admin.accounts.toapis.connectionTestHint') }}</p>
+      <p v-if="account?.platform === 'kuaipao'" class="rounded-lg bg-primary-50 p-3 text-sm text-primary-800 dark:bg-primary-900/20 dark:text-primary-200">{{ t('admin.accounts.kuaipao.imageTestHint') }}</p>
 
       <div v-if="isGrokAccount" class="space-y-1.5">
         <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -451,7 +452,7 @@ const supportsGeminiImageTest = computed(() => {
 const supportsOpenAIImageTest = computed(() => {
   const modelID = selectedModelId.value.toLowerCase()
   if (!modelID.startsWith('gpt-image-')) return false
-  return props.account?.platform === 'openai'
+  return props.account?.platform === 'openai' || props.account?.platform === 'kuaipao'
 })
 
 const isGrokImageModel = (id: string) => {

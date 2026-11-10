@@ -48,6 +48,14 @@ const emittedEntries = (wrapper: ReturnType<typeof shallowMount>) =>
   (wrapper.emitted('update') ?? []).map(e => e[0] as PricingFormEntry)
 
 describe('PricingEntryCard default price auto-fill', () => {
+  it('shows unified media pricing guidance for the native Kuaipao image provider', () => {
+    const wrapper = shallowMount(PricingEntryCard, {
+      props: { entry: { ...createEntry(['gpt-image-2.6']), billing_mode: 'image' }, platform: 'kuaipao' },
+    })
+    expect(wrapper.text()).toContain('admin.channels.form.unifiedMediaPricingHint')
+    wrapper.unmount()
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     getModelDefaultPricing.mockResolvedValue({ found: true, input_price: 3e-6, output_price: 15e-6 })

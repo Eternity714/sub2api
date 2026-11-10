@@ -174,6 +174,12 @@ func (_u *CompositeModelRouteUpdate) AddPriority(v int) *CompositeModelRouteUpda
 	return _u
 }
 
+// SetResolutionPriorities sets the "resolution_priorities" field.
+func (_u *CompositeModelRouteUpdate) SetResolutionPriorities(v map[string]int) *CompositeModelRouteUpdate {
+	_u.mutation.SetResolutionPriorities(v)
+	return _u
+}
+
 // SetEnabled sets the "enabled" field.
 func (_u *CompositeModelRouteUpdate) SetEnabled(v bool) *CompositeModelRouteUpdate {
 	_u.mutation.SetEnabled(v)
@@ -348,6 +354,9 @@ func (_u *CompositeModelRouteUpdate) sqlSave(ctx context.Context) (_node int, er
 	}
 	if value, ok := _u.mutation.AddedPriority(); ok {
 		_spec.AddField(compositemodelroute.FieldPriority, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.ResolutionPriorities(); ok {
+		_spec.SetField(compositemodelroute.FieldResolutionPriorities, field.TypeJSON, value)
 	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(compositemodelroute.FieldEnabled, field.TypeBool, value)
@@ -549,6 +558,12 @@ func (_u *CompositeModelRouteUpdateOne) SetNillablePriority(v *int) *CompositeMo
 // AddPriority adds value to the "priority" field.
 func (_u *CompositeModelRouteUpdateOne) AddPriority(v int) *CompositeModelRouteUpdateOne {
 	_u.mutation.AddPriority(v)
+	return _u
+}
+
+// SetResolutionPriorities sets the "resolution_priorities" field.
+func (_u *CompositeModelRouteUpdateOne) SetResolutionPriorities(v map[string]int) *CompositeModelRouteUpdateOne {
+	_u.mutation.SetResolutionPriorities(v)
 	return _u
 }
 
@@ -756,6 +771,9 @@ func (_u *CompositeModelRouteUpdateOne) sqlSave(ctx context.Context) (_node *Com
 	}
 	if value, ok := _u.mutation.AddedPriority(); ok {
 		_spec.AddField(compositemodelroute.FieldPriority, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.ResolutionPriorities(); ok {
+		_spec.SetField(compositemodelroute.FieldResolutionPriorities, field.TypeJSON, value)
 	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(compositemodelroute.FieldEnabled, field.TypeBool, value)

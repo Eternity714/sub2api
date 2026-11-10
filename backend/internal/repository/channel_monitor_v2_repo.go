@@ -533,7 +533,7 @@ func (r *channelMonitorV2Repository) GetMatrix(ctx context.Context, filter servi
 // Project only aggregation identities. Scope, configured model selection and SQL
 // retain the real provider; facts and histograms merge before rates and health.
 func channelMonitorV2ViewerPlatform(platform string, admin bool) string {
-	if !admin && (platform == service.PlatformGrsai || platform == service.PlatformToAPIs) {
+	if !admin && (platform == service.PlatformGrsai || platform == service.PlatformToAPIs || platform == service.PlatformKuaipao || platform == service.PlatformCentOS) {
 		return "media"
 	}
 	return platform

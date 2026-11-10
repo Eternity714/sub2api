@@ -4,7 +4,7 @@
 
 **图片入口**：`POST /v1/images/generations`；**视频入口**：`POST /v1/videos/generations`。查询使用同路径追加 `/{task_id}`。统一协议仅供启用媒体路由的 Composite 分组。
 
-图片顶层仅允许 `model,prompt,size,n,image_urls,metadata`；视频顶层仅允许 `model,prompt,duration,aspect_ratio,image_urls,metadata`。`size` 和 `aspect_ratio` 是正整数宽高比；图片像素档位使用 `metadata.resolution`，不接受 `metadata.output_size`。所有未声明的字段均返回 400，不创建任务或预留额度。
+下游统一参数使用 GRS 风格 `images/aspectRatio/quality/imageSize`（或 `resolution`）和 `replyType:async`。下表保留内置 Provider 规则的内部字段名；`image_urls` 对应 `images`，`size/aspect_ratio` 对应 `aspectRatio`，`metadata.quality/resolution` 对应顶层 `quality/imageSize`。旧请求仍兼容，冲突别名会拒绝。图片像素写法及各上游差异见 [统一媒体协议](UNIFIED_MEDIA_API.md)。所有未声明的字段均返回 400，不创建任务或预留额度。
 
 图片 `n` 的本地整项上限为 8；模板采用单结果上游请求，可独立拆分多张。它不是上游单次张数承诺。有关联的连续组图、编辑、变体、父任务引用、角色/素材库管理及混合辅助结果不在这些基础模板内。Midjourney 图片四宫格作为 1 个图片结果交付。
 
@@ -12,12 +12,14 @@
 
 ## 模板覆盖
 
-目录登记 115 条，含 103 条基础生成模板和 12 条未发布 schema 的待核实条目。统计包含同名模型的不同媒体能力，不能当作不同模型数量或账号实测数量。
+目录登记 115 条，含 106 条基础生成模板和 9 条未发布 schema 的待核实条目。统计包含同名模型的不同媒体能力，不能当作不同模型数量或账号实测数量。
 
 | 平台 | 图片模板 | 视频模板 | 待核实/独立操作 |
 | --- | ---: | ---: | ---: |
-| grsai | 16 | 2 | 0 |
-| toapis | 39 | 46 | 12 |
+| grsai | 10 | 2 | 0 |
+| toapis | 38 | 46 | 9 |
+| kuaipao | 8 | 0 | 0 |
+| centos | 2 | 0 | 0 |
 
 ## 阅读参数表
 
@@ -620,120 +622,6 @@
 **未提供可启用 schema。** 保留目录线索，当前不会出现在可复制模板中。
 
 
-## toapis / gemini-nano-banana-2.1 / image
-
-官方来源：[gemini-nano-banana-2.1](https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1/generation)
-
-基础普通生成模板；未覆盖的高级模式不在白名单内。复制后核对账号、定价和渠道能力再启用。
-
-建议公开别名：`toapis/gemini-nano-banana-2.1`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9","1:4","4:1","1:8","8:1"]` |
-| `metadata` | object | 否 | — | — |
-| `metadata.resolution` | string | 否 | — | 枚举 `["1K","2K","4K"]` |
-| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 14 |
-
-请求示例：
-
-```json
-{
-  "model": "toapis/gemini-nano-banana-2.1",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "1K"
-  }
-}
-```
-
-
-## toapis / gemini-nano-banana-2.1-vip / image
-
-官方来源：[gemini-nano-banana-2.1-vip](https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1/generation)
-
-基础普通生成模板；未覆盖的高级模式不在白名单内。复制后核对账号、定价和渠道能力再启用。
-
-建议公开别名：`toapis/gemini-nano-banana-2.1-vip`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `metadata` | object | 否 | — | — |
-| `metadata.grounding` | string | 否 | — | 枚举 `["none","web","image","web_image"]` |
-| `metadata.resolution` | string | 否 | — | 枚举 `["1K","2K","4K"]` |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9","1:4","4:1","1:8","8:1"]` |
-| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 14 |
-
-请求示例：
-
-```json
-{
-  "model": "toapis/gemini-nano-banana-2.1-vip",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "1K"
-  }
-}
-```
-
-
-## toapis / gemini-nano-banana-2.1-official / image
-
-官方来源：[gemini-nano-banana-2.1-official](https://docs.toapis.com/docs/cn/api-reference/images/gemini-nano-banana-2.1-official/generation)
-
-基础普通生成模板；未覆盖的高级模式不在白名单内。复制后核对账号、定价和渠道能力再启用。
-
-建议公开别名：`toapis/gemini-nano-banana-2.1-official`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `metadata` | object | 否 | — | — |
-| `metadata.grounding` | string | 否 | — | 枚举 `["none","web","image","web_image"]` |
-| `metadata.temperature` | number | 否 | — | 最小 0；最大 2 |
-| `metadata.topP` | number | 否 | — | 最小 0；最大 1 |
-| `metadata.maxOutputTokens` | integer | 否 | — | 最小 1 |
-| `metadata.personGeneration` | string | 否 | — | 枚举 `["ALLOW_ALL","ALLOW_ADULT","ALLOW_NONE"]` |
-| `metadata.imageOutputOptions` | object | 否 | — | — |
-| `metadata.imageOutputOptions.mimeType` | string | 否 | — | 枚举 `["image/png","image/jpeg","image/webp"]` |
-| `metadata.imageOutputOptions.compressionQuality` | integer | 否 | — | 最小 0；最大 100 |
-| `metadata.thinkingConfig` | object | 否 | — | — |
-| `metadata.thinkingConfig.thinkingBudget` | integer | 否 | — | 最小 0；最大 24576 |
-| `metadata.thinkingConfig.thinkingLevel` | string | 否 | — | 枚举 `["LOW","MEDIUM","HIGH","MINIMAL"]` |
-| `metadata.safetySettings` | array<object> | 否 | — | 最多项 4 |
-| `metadata.safetySettings[].category` | string | 否 | — | 枚举 `["HARM_CATEGORY_HATE_SPEECH","HARM_CATEGORY_DANGEROUS_CONTENT","HARM_CATEGORY_SEXUALLY_EXPLICIT","HARM_CATEGORY_HARASSMENT"]` |
-| `metadata.safetySettings[].threshold` | string | 否 | — | 枚举 `["OFF","BLOCK_LOW_AND_ABOVE","BLOCK_MEDIUM_AND_ABOVE","BLOCK_ONLY_HIGH"]` |
-| `metadata.resolution` | string | 否 | — | 枚举 `["1K","2K","4K"]` |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9","1:4","4:1","1:8","8:1","9:21"]` |
-| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 14 |
-
-请求示例：
-
-```json
-{
-  "model": "toapis/gemini-nano-banana-2.1-official",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "1K"
-  }
-}
-```
-
-
 ## toapis / gpt-image-2.6-flare / image
 
 官方来源：[GPT-Image-2.6 普通版](https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2.6/generation)，核对日期：2026-11-07。
@@ -1186,33 +1074,6 @@
 ## toapis / grok-imagine-1.0-edit / image
 
 官方来源：[grok-imagine-1.0-edit](https://docs.toapis.com/docs/cn/api-reference/images/grok-imagine-1.0/edits)
-
-文档缺少完整模式/字段约束或属于独立编辑，不能据相邻型号自动启用。
-
-**未提供可启用 schema。** 保留目录线索，当前不会出现在可复制模板中。
-
-
-## toapis / nano_banana / image
-
-官方来源：[nano_banana](https://docs.toapis.com/docs/cn/api-reference/models)
-
-文档缺少完整模式/字段约束或属于独立编辑，不能据相邻型号自动启用。
-
-**未提供可启用 schema。** 保留目录线索，当前不会出现在可复制模板中。
-
-
-## toapis / nano_banana_2 / image
-
-官方来源：[nano_banana_2](https://docs.toapis.com/docs/cn/api-reference/models)
-
-文档缺少完整模式/字段约束或属于独立编辑，不能据相邻型号自动启用。
-
-**未提供可启用 schema。** 保留目录线索，当前不会出现在可复制模板中。
-
-
-## toapis / nano_banana_pro / image
-
-官方来源：[nano_banana_pro](https://docs.toapis.com/docs/cn/api-reference/models)
 
 文档缺少完整模式/字段约束或属于独立编辑，不能据相邻型号自动启用。
 
@@ -3214,359 +3075,6 @@
 ```
 
 
-## grsai / nano-banana-2.1 / image
-
-官方来源：[nano-banana-2.1](https://qmy27nhsd9.apifox.cn/452392911e0.md)
-
-当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
-
-建议公开别名：`grsai/nano-banana-2.1`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
-| `metadata` | object | 否 | — | — |
-| `metadata.resolution` | string | 否 | — | 枚举 `["1K","2K","4K"]` |
-
-请求示例：
-
-```json
-{
-  "model": "grsai/nano-banana-2.1",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "1K"
-  }
-}
-```
-
-
-## grsai / nano-banana-pro / image
-
-官方来源：[nano-banana-pro](https://qmy27nhsd9.apifox.cn/452392911e0.md)
-
-当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
-
-建议公开别名：`grsai/nano-banana-pro`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
-| `metadata` | object | 否 | — | — |
-| `metadata.resolution` | string | 否 | — | 枚举 `["1K","2K","4K"]` |
-
-请求示例：
-
-```json
-{
-  "model": "grsai/nano-banana-pro",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "1K"
-  }
-}
-```
-
-
-## grsai / nano-banana-2 / image
-
-官方来源：[nano-banana-2](https://qmy27nhsd9.apifox.cn/452392911e0.md)
-
-当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
-
-建议公开别名：`grsai/nano-banana-2`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
-| `metadata` | object | 否 | — | — |
-| `metadata.resolution` | string | 否 | — | 枚举 `["1K","2K","4K"]` |
-
-请求示例：
-
-```json
-{
-  "model": "grsai/nano-banana-2",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "1K"
-  }
-}
-```
-
-
-## grsai / nano-banana-2-lite / image
-
-官方来源：[nano-banana-2-lite](https://qmy27nhsd9.apifox.cn/452392911e0.md)
-
-当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。 分辨率缺逐型号证据，因此不接受resolution。
-
-建议公开别名：`grsai/nano-banana-2-lite`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
-
-请求示例：
-
-```json
-{
-  "model": "grsai/nano-banana-2-lite",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1"
-}
-```
-
-
-## grsai / nano-banana-fast / image
-
-官方来源：[nano-banana-fast](https://qmy27nhsd9.apifox.cn/452392911e0.md)
-
-当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。 分辨率缺逐型号证据，因此不接受resolution。
-
-建议公开别名：`grsai/nano-banana-fast`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
-
-请求示例：
-
-```json
-{
-  "model": "grsai/nano-banana-fast",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1"
-}
-```
-
-
-## grsai / nano-banana-pro-cl / image
-
-官方来源：[nano-banana-pro-cl](https://qmy27nhsd9.apifox.cn/452392911e0.md)
-
-当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
-
-建议公开别名：`grsai/nano-banana-pro-cl`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
-| `metadata` | object | 否 | — | — |
-| `metadata.resolution` | string | 否 | — | 枚举 `["1K"]` |
-
-请求示例：
-
-```json
-{
-  "model": "grsai/nano-banana-pro-cl",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "1K"
-  }
-}
-```
-
-
-## grsai / nano-banana-2-cl / image
-
-官方来源：[nano-banana-2-cl](https://qmy27nhsd9.apifox.cn/452392911e0.md)
-
-当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
-
-建议公开别名：`grsai/nano-banana-2-cl`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
-| `metadata` | object | 否 | — | — |
-| `metadata.resolution` | string | 否 | — | 枚举 `["1K"]` |
-
-请求示例：
-
-```json
-{
-  "model": "grsai/nano-banana-2-cl",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "1K"
-  }
-}
-```
-
-
-## grsai / nano-banana-2-2k-cl / image
-
-官方来源：[nano-banana-2-2k-cl](https://qmy27nhsd9.apifox.cn/452392911e0.md)
-
-当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
-
-建议公开别名：`grsai/nano-banana-2-2k-cl`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
-| `metadata` | object | 否 | — | — |
-| `metadata.resolution` | string | 否 | — | 枚举 `["2K"]` |
-
-请求示例：
-
-```json
-{
-  "model": "grsai/nano-banana-2-2k-cl",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "2K"
-  }
-}
-```
-
-
-## grsai / nano-banana-pro-vip / image
-
-官方来源：[nano-banana-pro-vip](https://qmy27nhsd9.apifox.cn/452392911e0.md)
-
-当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
-
-建议公开别名：`grsai/nano-banana-pro-vip`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
-| `metadata` | object | 否 | — | — |
-| `metadata.resolution` | string | 否 | — | 枚举 `["1K","2K"]` |
-
-请求示例：
-
-```json
-{
-  "model": "grsai/nano-banana-pro-vip",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "1K"
-  }
-}
-```
-
-
-## grsai / nano-banana-pro-4k-vip / image
-
-官方来源：[nano-banana-pro-4k-vip](https://qmy27nhsd9.apifox.cn/452392911e0.md)
-
-当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
-
-建议公开别名：`grsai/nano-banana-pro-4k-vip`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
-| `metadata` | object | 否 | — | — |
-| `metadata.resolution` | string | 否 | — | 枚举 `["4K"]` |
-
-请求示例：
-
-```json
-{
-  "model": "grsai/nano-banana-pro-4k-vip",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "4K"
-  }
-}
-```
-
-
-## grsai / nano-banana-2-4k-cl / image
-
-官方来源：[nano-banana-2-4k-cl](https://qmy27nhsd9.apifox.cn/452392911e0.md)
-
-当前官方目录登记，未标维护；未实测；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
-
-建议公开别名：`grsai/nano-banana-2-4k-cl`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
-
-| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
-| --- | --- | --- | --- | --- |
-| `model` | string | 是 | — | 已配置的公开模型别名 |
-| `prompt` | string | 是 | — | 最短字符 1 |
-| `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9"]` |
-| `metadata` | object | 否 | — | — |
-| `metadata.resolution` | string | 否 | — | 枚举 `["4K"]` |
-
-请求示例：
-
-```json
-{
-  "model": "grsai/nano-banana-2-4k-cl",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
-  "size": "1:1",
-  "metadata": {
-    "resolution": "4K"
-  }
-}
-```
-
-
 ## grsai / gpt-image-2 / image
 
 官方来源：[gpt-image-2](https://qmy27nhsd9.apifox.cn/452409160e0.md)
@@ -3684,26 +3192,42 @@
 
 官方来源：[gpt-image-2.5](https://qmy27nhsd9.apifox.cn/452409160e0.md)
 
-当前官方目录登记，标记维护中；不据此启用调度；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
+普通 gpt-image-2.5 使用比例或1K像素；保守开放 auto 质量，单次一张，可按公开规则独立拆分。不继承 flare/sunburst 的2K/4K能力。
 
-建议公开别名：`grsai/gpt-image-2.5`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
+以下为 Provider 内部支持规则，公开下游字段采用 GRS 风格；旧字段作为兼容格式。
 
 | 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
 | --- | --- | --- | --- | --- |
 | `model` | string | 是 | — | 已配置的公开模型别名 |
 | `prompt` | string | 是 | — | 最短字符 1 |
 | `n` | integer | 否 | `1` | 最小 1；最大 8 |
-| `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 否 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9","2:1","1:2","9:21"]` |
-| `metadata` | object | 否 | — | — |
-| `metadata.resolution` | string | 否 | — | 枚举 `["1K"]` |
-| `metadata.quality` | string | 否 | — | 枚举 `["auto"]` |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16 |
+| `size` | string | 否 | `"1:1"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1"]` |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto"]` |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `1K` | 1024 | 1024 |
+| `4:3` | `1K` | 1443 | 1090 |
+| `3:4` | `1K` | 1090 | 1443 |
+| `16:9` | `1K` | 1672 | 941 |
+| `9:16` | `1K` | 941 | 1672 |
+| `3:2` | `1K` | 1536 | 1024 |
+| `2:3` | `1K` | 1024 | 1536 |
+| `5:4` | `1K` | 1408 | 1120 |
+| `4:5` | `1K` | 1120 | 1408 |
+| `21:9` | `1K` | 1920 | 832 |
+| `2:1` | `1K` | 1792 | 896 |
+| `1:2` | `1K` | 896 | 1792 |
+| `9:21` | `1K` | 832 | 1920 |
 
 请求示例：
 
 ```json
 {
-  "model": "grsai/gpt-image-2.5",
+  "model": "gpt-image-2.5",
   "prompt": "A quiet mountain lake at sunrise",
   "n": 1,
   "size": "1:1",
@@ -3712,15 +3236,14 @@
   }
 }
 ```
-
 
 ## grsai / gpt-image-2.5-flare / image
 
-官方来源：[gpt-image-2.5-flare](https://qmy27nhsd9.apifox.cn/452409160e0.md)
+官方来源：https://qmy27nhsd9.apifox.cn/452409160e0.md
 
-当前官方目录登记，标记维护中；不据此启用调度；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
+同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。
 
-建议公开别名：`grsai/gpt-image-2.5-flare`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
+基础模板不自动启用；下游参数与价格由公开能力和渠道配置。像素表用于构造请求，实际交付保留上游原图。
 
 | 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
 | --- | --- | --- | --- | --- |
@@ -3728,16 +3251,14 @@
 | `prompt` | string | 是 | — | 最短字符 1 |
 | `n` | integer | 否 | `1` | 最小 1；最大 8 |
 | `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 是 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9","2:1","1:2","9:21"]` |
+| `size` | string | 是 | — | 枚举 `["1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
 | `metadata` | object | 是 | — | — |
-| `metadata.resolution` | string | 是 | — | 枚举 `["1K","2K","4K"]` |
-| `metadata.quality` | string | 否 | — | 枚举 `["low","medium","high"]` |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
 | `metadata.background` | string | 否 | — | 枚举 `["transparent"]` |
 
-像素映射只允许 schema 中列出的 39 个 `size + metadata.resolution` 组合；未列组合返回 400，不能按档位猜像素。
-
-| size | metadata.resolution | width | height |
-| --- | --- | ---: | ---: |
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
 | `1:1` | `1K` | 1024 | 1024 |
 | `1:1` | `2K` | 2048 | 2048 |
 | `1:1` | `4K` | 2880 | 2880 |
@@ -3777,29 +3298,35 @@
 | `1:2` | `1K` | 768 | 1536 |
 | `1:2` | `2K` | 1536 | 3072 |
 | `1:2` | `4K` | 1920 | 3840 |
+| `1:3` | `1K` | 688 | 2048 |
+| `1:3` | `2K` | 1280 | 3840 |
+| `3:1` | `1K` | 2048 | 688 |
+| `3:1` | `2K` | 3840 | 1280 |
+| `1:3` | `4K` | 1280 | 3840 |
+| `3:1` | `4K` | 3840 | 1280 |
 
 请求示例：
 
 ```json
 {
-  "model": "grsai/gpt-image-2.5-flare",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
+  "model": "gpt-image-2.5-flare",
+  "prompt": "A blue ceramic cup",
   "size": "1:1",
+  "n": 1,
   "metadata": {
-    "resolution": "1K"
+    "resolution": "1K",
+    "quality": "auto"
   }
 }
 ```
-
 
 ## grsai / gpt-image-2.5-sunburst / image
 
-官方来源：[gpt-image-2.5-sunburst](https://qmy27nhsd9.apifox.cn/452409160e0.md)
+官方来源：https://qmy27nhsd9.apifox.cn/452409160e0.md
 
-当前官方目录登记，标记维护中；不据此启用调度；基础模板不自动启用，未证实的蒙版/指定首尾帧不开放。
+同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。
 
-建议公开别名：`grsai/gpt-image-2.5-sunburst`。管理员可以另设统一别名，并用候选能力配置区分渠道限制。
+基础模板不自动启用；下游参数与价格由公开能力和渠道配置。像素表用于构造请求，实际交付保留上游原图。
 
 | 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
 | --- | --- | --- | --- | --- |
@@ -3807,16 +3334,14 @@
 | `prompt` | string | 是 | — | 最短字符 1 |
 | `n` | integer | 否 | `1` | 最小 1；最大 8 |
 | `image_urls` | array<string> | 否 | — | 最少项 1 |
-| `size` | string | 是 | — | 枚举 `["1:1","4:3","3:4","16:9","9:16","3:2","2:3","5:4","4:5","21:9","2:1","1:2","9:21"]` |
+| `size` | string | 是 | — | 枚举 `["1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
 | `metadata` | object | 是 | — | — |
-| `metadata.resolution` | string | 是 | — | 枚举 `["1K","2K","4K"]` |
-| `metadata.quality` | string | 否 | — | 枚举 `["low","medium","high","xhigh","max"]` |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high","xhigh","max"]` |
 | `metadata.background` | string | 否 | — | 枚举 `["transparent"]` |
 
-像素映射只允许 schema 中列出的 39 个 `size + metadata.resolution` 组合；未列组合返回 400，不能按档位猜像素。
-
-| size | metadata.resolution | width | height |
-| --- | --- | ---: | ---: |
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
 | `1:1` | `1K` | 1024 | 1024 |
 | `1:1` | `2K` | 2048 | 2048 |
 | `1:1` | `4K` | 2880 | 2880 |
@@ -3856,21 +3381,27 @@
 | `1:2` | `1K` | 768 | 1536 |
 | `1:2` | `2K` | 1536 | 3072 |
 | `1:2` | `4K` | 1920 | 3840 |
+| `1:3` | `1K` | 576 | 1728 |
+| `3:1` | `1K` | 1728 | 576 |
+| `1:3` | `2K` | 1168 | 3504 |
+| `3:1` | `2K` | 3504 | 1168 |
+| `1:3` | `4K` | 1280 | 3840 |
+| `3:1` | `4K` | 3840 | 1280 |
 
 请求示例：
 
 ```json
 {
-  "model": "grsai/gpt-image-2.5-sunburst",
-  "prompt": "A quiet mountain lake at sunrise",
-  "n": 1,
+  "model": "gpt-image-2.5-sunburst",
+  "prompt": "A blue ceramic cup",
   "size": "1:1",
+  "n": 1,
   "metadata": {
-    "resolution": "1K"
+    "resolution": "1K",
+    "quality": "auto"
   }
 }
 ```
-
 
 ## grsai / minimax-h3 / video
 
@@ -3938,5 +3469,1043 @@
   "metadata": {
     "resolution": "720p"
   }
+}
+```
+
+## kuaipao / gpt-image-2.6-1k / image
+
+官方来源：[gpt-image-2.6-1k](https://kuaipao.apifox.cn/521245164e0.md)
+
+快跑 v2 同步接口；固定1K，按比例和档位适配，3:2实际像素为1248x832。GPT系列每次支持1至10张，公开规则可选择独立拆分。返回URL后统一转存与结算。
+
+以下为 Provider 内部支持规则，公开下游字段采用 GRS 风格；旧字段作为兼容格式。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `size` | string | 否 | `"1:1"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 10 |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16 |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `1K` | 1024 | 1024 |
+| `3:2` | `1K` | 1248 | 832 |
+| `2:3` | `1K` | 832 | 1248 |
+| `4:3` | `1K` | 1152 | 864 |
+| `3:4` | `1K` | 864 | 1152 |
+| `16:9` | `1K` | 1280 | 720 |
+| `9:16` | `1K` | 720 | 1280 |
+| `5:4` | `1K` | 1120 | 896 |
+| `4:5` | `1K` | 896 | 1120 |
+| `21:9` | `1K` | 1456 | 624 |
+| `9:21` | `1K` | 624 | 1456 |
+| `1:2` | `1K` | 720 | 1440 |
+| `2:1` | `1K` | 1440 | 720 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.6",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "1K",
+    "quality": "auto"
+  }
+}
+```
+
+## grsai / gpt-image-2.6 / image
+
+官方来源：[gpt-image-2.6](https://qmy27nhsd9.apifox.cn/452409160e0.md)
+
+普通 gpt-image-2.6 使用比例或1K像素；保守开放 auto 质量，单次一张，可按公开规则独立拆分。不继承 flare/sunburst 的2K/4K能力。
+
+以下为 Provider 内部支持规则，公开下游字段采用 GRS 风格；旧字段作为兼容格式。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1 |
+| `n` | integer | 否 | `1` | 最小 1；最大 8 |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16 |
+| `size` | string | 否 | `"1:1"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1"]` |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto"]` |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `1K` | 1024 | 1024 |
+| `4:3` | `1K` | 1443 | 1090 |
+| `3:4` | `1K` | 1090 | 1443 |
+| `16:9` | `1K` | 1672 | 941 |
+| `9:16` | `1K` | 941 | 1672 |
+| `3:2` | `1K` | 1536 | 1024 |
+| `2:3` | `1K` | 1024 | 1536 |
+| `5:4` | `1K` | 1408 | 1120 |
+| `4:5` | `1K` | 1120 | 1408 |
+| `21:9` | `1K` | 1920 | 832 |
+| `2:1` | `1K` | 1792 | 896 |
+| `1:2` | `1K` | 896 | 1792 |
+| `9:21` | `1K` | 832 | 1920 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.6",
+  "prompt": "A quiet mountain lake at sunrise",
+  "n": 1,
+  "size": "1:1",
+  "metadata": {
+    "resolution": "1K"
+  }
+}
+```
+
+## kuaipao / gpt-image-2.5-1k / image
+
+官方来源：[gpt-image-2.5-1k](https://kuaipao.apifox.cn/521245164e0.md)
+
+快跑 v2 同步接口；固定1K，按比例和档位适配，3:2实际像素为1248x832。GPT系列每次支持1至10张，公开规则可选择独立拆分。返回URL后统一转存与结算。
+
+以下为 Provider 内部支持规则，公开下游字段采用 GRS 风格；旧字段作为兼容格式。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `size` | string | 否 | `"1:1"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 10 |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16 |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `1K` | 1024 | 1024 |
+| `3:2` | `1K` | 1248 | 832 |
+| `2:3` | `1K` | 832 | 1248 |
+| `4:3` | `1K` | 1152 | 864 |
+| `3:4` | `1K` | 864 | 1152 |
+| `16:9` | `1K` | 1280 | 720 |
+| `9:16` | `1K` | 720 | 1280 |
+| `5:4` | `1K` | 1120 | 896 |
+| `4:5` | `1K` | 896 | 1120 |
+| `21:9` | `1K` | 1456 | 624 |
+| `9:21` | `1K` | 624 | 1456 |
+| `1:2` | `1K` | 720 | 1440 |
+| `2:1` | `1K` | 1440 | 720 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.5",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "1K",
+    "quality": "auto"
+  }
+}
+```
+
+## grsai / gpt-image-2.6-flare / image
+
+官方来源：https://qmy27nhsd9.apifox.cn/452409160e0.md
+
+同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。
+
+基础模板不自动启用；下游参数与价格由公开能力和渠道配置。像素表用于构造请求，实际交付保留上游原图。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1 |
+| `n` | integer | 否 | `1` | 最小 1；最大 8 |
+| `image_urls` | array<string> | 否 | — | 最少项 1 |
+| `size` | string | 是 | — | 枚举 `["1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
+| `metadata` | object | 是 | — | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+| `metadata.background` | string | 否 | — | 枚举 `["transparent"]` |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `1K` | 1024 | 1024 |
+| `1:1` | `2K` | 2048 | 2048 |
+| `1:1` | `4K` | 2880 | 2880 |
+| `16:9` | `1K` | 1280 | 720 |
+| `16:9` | `2K` | 2048 | 1152 |
+| `16:9` | `4K` | 3840 | 2160 |
+| `9:16` | `1K` | 720 | 1280 |
+| `9:16` | `2K` | 1152 | 2048 |
+| `9:16` | `4K` | 2160 | 3840 |
+| `4:3` | `1K` | 1152 | 864 |
+| `4:3` | `2K` | 2304 | 1728 |
+| `4:3` | `4K` | 3264 | 2448 |
+| `3:4` | `1K` | 864 | 1152 |
+| `3:4` | `2K` | 1728 | 2304 |
+| `3:4` | `4K` | 2448 | 3264 |
+| `3:2` | `1K` | 1536 | 1024 |
+| `3:2` | `2K` | 2048 | 1360 |
+| `3:2` | `4K` | 3504 | 2336 |
+| `2:3` | `1K` | 1024 | 1536 |
+| `2:3` | `2K` | 1360 | 2048 |
+| `2:3` | `4K` | 2336 | 3504 |
+| `5:4` | `1K` | 1120 | 896 |
+| `5:4` | `2K` | 2240 | 1792 |
+| `5:4` | `4K` | 3200 | 2560 |
+| `4:5` | `1K` | 896 | 1120 |
+| `4:5` | `2K` | 1792 | 2240 |
+| `4:5` | `4K` | 2560 | 3200 |
+| `21:9` | `1K` | 1456 | 624 |
+| `21:9` | `2K` | 2912 | 1248 |
+| `21:9` | `4K` | 3840 | 1648 |
+| `9:21` | `1K` | 624 | 1456 |
+| `9:21` | `2K` | 1248 | 2912 |
+| `9:21` | `4K` | 1648 | 3840 |
+| `2:1` | `1K` | 1536 | 768 |
+| `2:1` | `2K` | 3072 | 1536 |
+| `2:1` | `4K` | 3840 | 1920 |
+| `1:2` | `1K` | 768 | 1536 |
+| `1:2` | `2K` | 1536 | 3072 |
+| `1:2` | `4K` | 1920 | 3840 |
+| `1:3` | `1K` | 688 | 2048 |
+| `1:3` | `2K` | 1280 | 3840 |
+| `3:1` | `1K` | 2048 | 688 |
+| `3:1` | `2K` | 3840 | 1280 |
+| `1:3` | `4K` | 1280 | 3840 |
+| `3:1` | `4K` | 3840 | 1280 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.6-flare",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "1K",
+    "quality": "auto"
+  }
+}
+```
+
+## kuaipao / gpt-image-2.6-2k / image
+
+官方来源：https://kuaipao.apifox.cn/521245164e0.md
+
+快跑 v2 同步图片接口；型号固定2K，比例使用 aspect_ratio；支持auto/low/medium/high质量。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `size` | string | 否 | `"1:1"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 10 |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"2K"` | 枚举 `["2K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16；格式 http_url |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `2K` | 2048 | 2048 |
+| `16:9` | `2K` | 2560 | 1440 |
+| `9:16` | `2K` | 1440 | 2560 |
+| `4:3` | `2K` | 2304 | 1728 |
+| `3:4` | `2K` | 1728 | 2304 |
+| `3:2` | `2K` | 2496 | 1664 |
+| `2:3` | `2K` | 1664 | 2496 |
+| `5:4` | `2K` | 2240 | 1792 |
+| `4:5` | `2K` | 1792 | 2240 |
+| `21:9` | `2K` | 3024 | 1296 |
+| `9:21` | `2K` | 1296 | 3024 |
+| `1:2` | `2K` | 1440 | 2880 |
+| `2:1` | `2K` | 2880 | 1440 |
+| `1:3` | `2K` | 1168 | 3504 |
+| `3:1` | `2K` | 3504 | 1168 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.6-2k",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "2K",
+    "quality": "auto"
+  }
+}
+```
+
+## kuaipao / gpt-image-2.5-2k / image
+
+官方来源：https://kuaipao.apifox.cn/521245164e0.md
+
+快跑 v2 同步图片接口；型号固定2K，比例使用 aspect_ratio；支持auto/low/medium/high质量。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `size` | string | 否 | `"1:1"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 10 |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"2K"` | 枚举 `["2K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16；格式 http_url |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `2K` | 2048 | 2048 |
+| `16:9` | `2K` | 2560 | 1440 |
+| `9:16` | `2K` | 1440 | 2560 |
+| `4:3` | `2K` | 2304 | 1728 |
+| `3:4` | `2K` | 1728 | 2304 |
+| `3:2` | `2K` | 2496 | 1664 |
+| `2:3` | `2K` | 1664 | 2496 |
+| `5:4` | `2K` | 2240 | 1792 |
+| `4:5` | `2K` | 1792 | 2240 |
+| `21:9` | `2K` | 3024 | 1296 |
+| `9:21` | `2K` | 1296 | 3024 |
+| `1:2` | `2K` | 1440 | 2880 |
+| `2:1` | `2K` | 2880 | 1440 |
+| `1:3` | `2K` | 1168 | 3504 |
+| `3:1` | `2K` | 3504 | 1168 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.5-2k",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "2K",
+    "quality": "auto"
+  }
+}
+```
+
+## grsai / gpt-image-2.6-sunburst / image
+
+官方来源：https://qmy27nhsd9.apifox.cn/452409160e0.md
+
+同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。
+
+基础模板不自动启用；下游参数与价格由公开能力和渠道配置。像素表用于构造请求，实际交付保留上游原图。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1 |
+| `n` | integer | 否 | `1` | 最小 1；最大 8 |
+| `image_urls` | array<string> | 否 | — | 最少项 1 |
+| `size` | string | 是 | — | 枚举 `["1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
+| `metadata` | object | 是 | — | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+| `metadata.background` | string | 否 | — | 枚举 `["transparent"]` |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `1K` | 1024 | 1024 |
+| `1:1` | `2K` | 2048 | 2048 |
+| `1:1` | `4K` | 2880 | 2880 |
+| `16:9` | `1K` | 1280 | 720 |
+| `16:9` | `2K` | 2048 | 1152 |
+| `16:9` | `4K` | 3840 | 2160 |
+| `9:16` | `1K` | 720 | 1280 |
+| `9:16` | `2K` | 1152 | 2048 |
+| `9:16` | `4K` | 2160 | 3840 |
+| `4:3` | `1K` | 1152 | 864 |
+| `4:3` | `2K` | 2304 | 1728 |
+| `4:3` | `4K` | 3264 | 2448 |
+| `3:4` | `1K` | 864 | 1152 |
+| `3:4` | `2K` | 1728 | 2304 |
+| `3:4` | `4K` | 2448 | 3264 |
+| `3:2` | `1K` | 1536 | 1024 |
+| `3:2` | `2K` | 2048 | 1360 |
+| `3:2` | `4K` | 3504 | 2336 |
+| `2:3` | `1K` | 1024 | 1536 |
+| `2:3` | `2K` | 1360 | 2048 |
+| `2:3` | `4K` | 2336 | 3504 |
+| `5:4` | `1K` | 1120 | 896 |
+| `5:4` | `2K` | 2240 | 1792 |
+| `5:4` | `4K` | 3200 | 2560 |
+| `4:5` | `1K` | 896 | 1120 |
+| `4:5` | `2K` | 1792 | 2240 |
+| `4:5` | `4K` | 2560 | 3200 |
+| `21:9` | `1K` | 1456 | 624 |
+| `21:9` | `2K` | 2912 | 1248 |
+| `21:9` | `4K` | 3840 | 1648 |
+| `9:21` | `1K` | 624 | 1456 |
+| `9:21` | `2K` | 1248 | 2912 |
+| `9:21` | `4K` | 1648 | 3840 |
+| `2:1` | `1K` | 1536 | 768 |
+| `2:1` | `2K` | 3072 | 1536 |
+| `2:1` | `4K` | 3840 | 1920 |
+| `1:2` | `1K` | 768 | 1536 |
+| `1:2` | `2K` | 1536 | 3072 |
+| `1:2` | `4K` | 1920 | 3840 |
+| `1:3` | `1K` | 688 | 2048 |
+| `1:3` | `2K` | 1280 | 3840 |
+| `3:1` | `1K` | 2048 | 688 |
+| `3:1` | `2K` | 3840 | 1280 |
+| `1:3` | `4K` | 1280 | 3840 |
+| `3:1` | `4K` | 3840 | 1280 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.6-sunburst",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "1K",
+    "quality": "auto"
+  }
+}
+```
+
+## kuaipao / gpt-image-2.6-sunburst / image
+
+官方来源：https://kuaipao.apifox.cn/521245164e0.md
+
+同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。
+
+基础模板不自动启用；下游参数与价格由公开能力和渠道配置。像素表用于构造请求，实际交付保留上游原图。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `size` | string | 否 | `"1:1"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 10 |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16 |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `1K` | 1024 | 1024 |
+| `16:9` | `1K` | 1280 | 720 |
+| `9:16` | `1K` | 720 | 1280 |
+| `4:3` | `1K` | 1152 | 864 |
+| `3:4` | `1K` | 864 | 1152 |
+| `3:2` | `1K` | 1248 | 832 |
+| `2:3` | `1K` | 832 | 1248 |
+| `5:4` | `1K` | 1120 | 896 |
+| `4:5` | `1K` | 896 | 1120 |
+| `21:9` | `1K` | 1456 | 624 |
+| `9:21` | `1K` | 624 | 1456 |
+| `1:2` | `1K` | 720 | 1440 |
+| `2:1` | `1K` | 1440 | 720 |
+| `1:3` | `1K` | 576 | 1728 |
+| `3:1` | `1K` | 1728 | 576 |
+| `1:1` | `2K` | 2048 | 2048 |
+| `16:9` | `2K` | 2560 | 1440 |
+| `9:16` | `2K` | 1440 | 2560 |
+| `4:3` | `2K` | 2304 | 1728 |
+| `3:4` | `2K` | 1728 | 2304 |
+| `3:2` | `2K` | 2496 | 1664 |
+| `2:3` | `2K` | 1664 | 2496 |
+| `5:4` | `2K` | 2240 | 1792 |
+| `4:5` | `2K` | 1792 | 2240 |
+| `21:9` | `2K` | 3024 | 1296 |
+| `9:21` | `2K` | 1296 | 3024 |
+| `1:2` | `2K` | 1440 | 2880 |
+| `2:1` | `2K` | 2880 | 1440 |
+| `1:3` | `2K` | 1168 | 3504 |
+| `3:1` | `2K` | 3504 | 1168 |
+| `1:1` | `4K` | 2880 | 2880 |
+| `16:9` | `4K` | 3840 | 2160 |
+| `9:16` | `4K` | 2160 | 3840 |
+| `4:3` | `4K` | 3264 | 2448 |
+| `3:4` | `4K` | 2448 | 3264 |
+| `3:2` | `4K` | 3504 | 2336 |
+| `2:3` | `4K` | 2336 | 3504 |
+| `5:4` | `4K` | 3200 | 2560 |
+| `4:5` | `4K` | 2560 | 3200 |
+| `21:9` | `4K` | 3808 | 1632 |
+| `9:21` | `4K` | 1632 | 3808 |
+| `1:2` | `4K` | 1920 | 3840 |
+| `2:1` | `4K` | 3840 | 1920 |
+| `1:3` | `4K` | 1280 | 3840 |
+| `3:1` | `4K` | 3840 | 1280 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.6-sunburst",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "1K",
+    "quality": "auto"
+  }
+}
+```
+
+## kuaipao / gpt-image-2.6-flare / image
+
+官方来源：https://kuaipao.apifox.cn/521245164e0.md
+
+同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。
+
+基础模板不自动启用；下游参数与价格由公开能力和渠道配置。像素表用于构造请求，实际交付保留上游原图。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `size` | string | 否 | `"1:1"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 10 |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16 |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `1K` | 1024 | 1024 |
+| `16:9` | `1K` | 1280 | 720 |
+| `9:16` | `1K` | 720 | 1280 |
+| `4:3` | `1K` | 1152 | 864 |
+| `3:4` | `1K` | 864 | 1152 |
+| `3:2` | `1K` | 1248 | 832 |
+| `2:3` | `1K` | 832 | 1248 |
+| `5:4` | `1K` | 1120 | 896 |
+| `4:5` | `1K` | 896 | 1120 |
+| `21:9` | `1K` | 1456 | 624 |
+| `9:21` | `1K` | 624 | 1456 |
+| `1:2` | `1K` | 720 | 1440 |
+| `2:1` | `1K` | 1440 | 720 |
+| `1:3` | `1K` | 576 | 1728 |
+| `3:1` | `1K` | 1728 | 576 |
+| `1:1` | `2K` | 2048 | 2048 |
+| `16:9` | `2K` | 2560 | 1440 |
+| `9:16` | `2K` | 1440 | 2560 |
+| `4:3` | `2K` | 2304 | 1728 |
+| `3:4` | `2K` | 1728 | 2304 |
+| `3:2` | `2K` | 2496 | 1664 |
+| `2:3` | `2K` | 1664 | 2496 |
+| `5:4` | `2K` | 2240 | 1792 |
+| `4:5` | `2K` | 1792 | 2240 |
+| `21:9` | `2K` | 3024 | 1296 |
+| `9:21` | `2K` | 1296 | 3024 |
+| `1:2` | `2K` | 1440 | 2880 |
+| `2:1` | `2K` | 2880 | 1440 |
+| `1:3` | `2K` | 1168 | 3504 |
+| `3:1` | `2K` | 3504 | 1168 |
+| `1:1` | `4K` | 2880 | 2880 |
+| `16:9` | `4K` | 3840 | 2160 |
+| `9:16` | `4K` | 2160 | 3840 |
+| `4:3` | `4K` | 3264 | 2448 |
+| `3:4` | `4K` | 2448 | 3264 |
+| `3:2` | `4K` | 3504 | 2336 |
+| `2:3` | `4K` | 2336 | 3504 |
+| `5:4` | `4K` | 3200 | 2560 |
+| `4:5` | `4K` | 2560 | 3200 |
+| `21:9` | `4K` | 3808 | 1632 |
+| `9:21` | `4K` | 1632 | 3808 |
+| `1:2` | `4K` | 1920 | 3840 |
+| `2:1` | `4K` | 3840 | 1920 |
+| `1:3` | `4K` | 1280 | 3840 |
+| `3:1` | `4K` | 3840 | 1280 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.6-flare",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "1K",
+    "quality": "auto"
+  }
+}
+```
+
+## kuaipao / gpt-image-2.5-sunburst / image
+
+官方来源：https://kuaipao.apifox.cn/521245164e0.md
+
+同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。
+
+基础模板不自动启用；下游参数与价格由公开能力和渠道配置。像素表用于构造请求，实际交付保留上游原图。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `size` | string | 否 | `"1:1"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 10 |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16 |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `1K` | 1024 | 1024 |
+| `16:9` | `1K` | 1280 | 720 |
+| `9:16` | `1K` | 720 | 1280 |
+| `4:3` | `1K` | 1152 | 864 |
+| `3:4` | `1K` | 864 | 1152 |
+| `3:2` | `1K` | 1248 | 832 |
+| `2:3` | `1K` | 832 | 1248 |
+| `5:4` | `1K` | 1120 | 896 |
+| `4:5` | `1K` | 896 | 1120 |
+| `21:9` | `1K` | 1456 | 624 |
+| `9:21` | `1K` | 624 | 1456 |
+| `1:2` | `1K` | 720 | 1440 |
+| `2:1` | `1K` | 1440 | 720 |
+| `1:3` | `1K` | 576 | 1728 |
+| `3:1` | `1K` | 1728 | 576 |
+| `1:1` | `2K` | 2048 | 2048 |
+| `16:9` | `2K` | 2560 | 1440 |
+| `9:16` | `2K` | 1440 | 2560 |
+| `4:3` | `2K` | 2304 | 1728 |
+| `3:4` | `2K` | 1728 | 2304 |
+| `3:2` | `2K` | 2496 | 1664 |
+| `2:3` | `2K` | 1664 | 2496 |
+| `5:4` | `2K` | 2240 | 1792 |
+| `4:5` | `2K` | 1792 | 2240 |
+| `21:9` | `2K` | 3024 | 1296 |
+| `9:21` | `2K` | 1296 | 3024 |
+| `1:2` | `2K` | 1440 | 2880 |
+| `2:1` | `2K` | 2880 | 1440 |
+| `1:3` | `2K` | 1168 | 3504 |
+| `3:1` | `2K` | 3504 | 1168 |
+| `1:1` | `4K` | 2880 | 2880 |
+| `16:9` | `4K` | 3840 | 2160 |
+| `9:16` | `4K` | 2160 | 3840 |
+| `4:3` | `4K` | 3264 | 2448 |
+| `3:4` | `4K` | 2448 | 3264 |
+| `3:2` | `4K` | 3504 | 2336 |
+| `2:3` | `4K` | 2336 | 3504 |
+| `5:4` | `4K` | 3200 | 2560 |
+| `4:5` | `4K` | 2560 | 3200 |
+| `21:9` | `4K` | 3808 | 1632 |
+| `9:21` | `4K` | 1632 | 3808 |
+| `1:2` | `4K` | 1920 | 3840 |
+| `2:1` | `4K` | 3840 | 1920 |
+| `1:3` | `4K` | 1280 | 3840 |
+| `3:1` | `4K` | 3840 | 1280 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.5-sunburst",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "1K",
+    "quality": "auto"
+  }
+}
+```
+
+## kuaipao / gpt-image-2.5-flare / image
+
+官方来源：https://kuaipao.apifox.cn/521245164e0.md
+
+同名原生型号；公开模型采用16种比例与四种质量，价格由渠道分辨率档位配置。
+
+基础模板不自动启用；下游参数与价格由公开能力和渠道配置。像素表用于构造请求，实际交付保留上游原图。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `size` | string | 否 | `"1:1"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 10 |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16 |
+
+| 比例 | 分辨率 | 宽 | 高 |
+| --- | --- | --- | --- |
+| `1:1` | `1K` | 1024 | 1024 |
+| `16:9` | `1K` | 1280 | 720 |
+| `9:16` | `1K` | 720 | 1280 |
+| `4:3` | `1K` | 1152 | 864 |
+| `3:4` | `1K` | 864 | 1152 |
+| `3:2` | `1K` | 1248 | 832 |
+| `2:3` | `1K` | 832 | 1248 |
+| `5:4` | `1K` | 1120 | 896 |
+| `4:5` | `1K` | 896 | 1120 |
+| `21:9` | `1K` | 1456 | 624 |
+| `9:21` | `1K` | 624 | 1456 |
+| `1:2` | `1K` | 720 | 1440 |
+| `2:1` | `1K` | 1440 | 720 |
+| `1:3` | `1K` | 576 | 1728 |
+| `3:1` | `1K` | 1728 | 576 |
+| `1:1` | `2K` | 2048 | 2048 |
+| `16:9` | `2K` | 2560 | 1440 |
+| `9:16` | `2K` | 1440 | 2560 |
+| `4:3` | `2K` | 2304 | 1728 |
+| `3:4` | `2K` | 1728 | 2304 |
+| `3:2` | `2K` | 2496 | 1664 |
+| `2:3` | `2K` | 1664 | 2496 |
+| `5:4` | `2K` | 2240 | 1792 |
+| `4:5` | `2K` | 1792 | 2240 |
+| `21:9` | `2K` | 3024 | 1296 |
+| `9:21` | `2K` | 1296 | 3024 |
+| `1:2` | `2K` | 1440 | 2880 |
+| `2:1` | `2K` | 2880 | 1440 |
+| `1:3` | `2K` | 1168 | 3504 |
+| `3:1` | `2K` | 3504 | 1168 |
+| `1:1` | `4K` | 2880 | 2880 |
+| `16:9` | `4K` | 3840 | 2160 |
+| `9:16` | `4K` | 2160 | 3840 |
+| `4:3` | `4K` | 3264 | 2448 |
+| `3:4` | `4K` | 2448 | 3264 |
+| `3:2` | `4K` | 3504 | 2336 |
+| `2:3` | `4K` | 2336 | 3504 |
+| `5:4` | `4K` | 3200 | 2560 |
+| `4:5` | `4K` | 2560 | 3200 |
+| `21:9` | `4K` | 3808 | 1632 |
+| `9:21` | `4K` | 1632 | 3808 |
+| `1:2` | `4K` | 1920 | 3840 |
+| `2:1` | `4K` | 3840 | 1920 |
+| `1:3` | `4K` | 1280 | 3840 |
+| `3:1` | `4K` | 3840 | 1280 |
+
+请求示例：
+
+```json
+{
+  "model": "gpt-image-2.5-flare",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "1K",
+    "quality": "auto"
+  }
+}
+```
+
+
+## grsai / nano-banana-pro / image
+
+官方来源：[Nano Banana系列接口](https://qmy27nhsd9.apifox.cn/452392911e0.md)，[异步查询](https://qmy27nhsd9.apifox.cn/452409577e0.md)。
+
+公开参数为`prompt`、可选HTTP(S)参考图`images`、默认`auto`的`aspectRatio`、默认`1k`且兼容大小写的`imageSize`；`n`仅1、`replyType`仅async，禁止quality和像素写法。三个分辨率统一0.2元/张。
+
+比例：`auto`、`1:1`、`16:9`、`9:16`、`4:3`、`3:4`、`3:2`、`2:3`、`5:4`、`4:5`、`21:9`、`9:21`。9:21三档最小实测均成功，原图依次为672×1584、1344×3168、2688×6336；保留服务原图，档位不承诺固定像素。
+
+Provider冻结`resolution_uppercase=true`和`metadata.resolution -> imageSize`映射，复制请求后转为GRS的1K/2K/4K；auto原样发送，不套用GPT正方形规则。提交`POST /v1/api/generate`，固定replyType=async，n不转发；按ID查询`GET /v1/api/result`。
+
+
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `images` | array<string> | 否 | — | 最少项 1 |
+| `aspectRatio` | string | 否 | `"auto"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21"]` |
+| `imageSize` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 1 |
+| `replyType` | string | 否 | `"async"` | 枚举 `["async"]` |
+
+请求示例：
+
+```json
+{
+  "model": "grsai/nano-banana-pro",
+  "prompt": "A blue ceramic vase",
+  "aspectRatio": "auto",
+  "imageSize": "1K",
+  "n": 1,
+  "replyType": "async"
+}
+```
+## grsai / nano-banana-2.1 / image
+
+官方来源：[Nano Banana系列接口](https://qmy27nhsd9.apifox.cn/452392911e0.md)，[异步查询](https://qmy27nhsd9.apifox.cn/452409577e0.md)。
+
+公开参数为`prompt`、可选HTTP(S)参考图`images`、默认`auto`的`aspectRatio`、默认`1k`且兼容大小写的`imageSize`；`n`仅1、`replyType`仅async，禁止quality和像素写法。三个分辨率统一0.15元/张。
+
+比例：`auto`、`1:1`、`16:9`、`9:16`、`4:3`、`3:4`、`3:2`、`2:3`、`5:4`、`4:5`、`21:9`、`9:21`。9:21三档最小实测均成功，原图依次为672×1584、1344×3168、2688×6336；保留服务原图，档位不承诺固定像素。
+
+Provider冻结`resolution_uppercase=true`和`metadata.resolution -> imageSize`映射，复制请求后转为GRS的1K/2K/4K；auto原样发送，不套用GPT正方形规则。提交`POST /v1/api/generate`，固定replyType=async，n不转发；按ID查询`GET /v1/api/result`。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `images` | array<string> | 否 | — | 最少项 1 |
+| `aspectRatio` | string | 否 | `"auto"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21"]` |
+| `imageSize` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 1 |
+| `replyType` | string | 否 | `"async"` | 枚举 `["async"]` |
+
+请求示例：
+
+```json
+{
+  "model": "grsai/nano-banana-2.1",
+  "prompt": "A blue ceramic vase",
+  "aspectRatio": "auto",
+  "imageSize": "1K",
+  "n": 1,
+  "replyType": "async"
+}
+```
+
+
+## centos / gpt-image-2.6-flare / image
+
+官方来源：https://doc.centos.hk/web/#/688145263/261667736
+
+独立CentOS Provider使用官方优化节点；文生图走images/generations，HTTP(S)参考图由Provider安全下载并通过multipart转发images/edits；像素size、quality与上游stream由Provider处理。最多16张参考图、单张20MiB、合计32MiB；不支持的请求跳过该候选。Nano协议尚未验证，不登记可启用模板。
+
+2026-11-10已核对实时模型/价格列表与官方GPT教程；Flare流式1K已读取1024x1024原图，Sunburst流式4K返回完成事件。 Flare参考图multipart编辑已真实生成1024x1024原图，返回image_edit.completed事件。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1 |
+| `n` | integer | 否 | `1` | 最小 1；最大 1 |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16 |
+| `size` | string | 是 | — | 枚举 `["1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
+| `metadata` | object | 是 | — | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+
+| 比例 | 档位 | 宽 | 高 |
+| --- | --- | ---: | ---: |
+| `1:1` | `1K` | 1024 | 1024 |
+| `16:9` | `1K` | 1280 | 720 |
+| `9:16` | `1K` | 720 | 1280 |
+| `4:3` | `1K` | 1152 | 864 |
+| `3:4` | `1K` | 864 | 1152 |
+| `3:2` | `1K` | 1248 | 832 |
+| `2:3` | `1K` | 832 | 1248 |
+| `5:4` | `1K` | 1120 | 896 |
+| `4:5` | `1K` | 896 | 1120 |
+| `21:9` | `1K` | 1456 | 624 |
+| `9:21` | `1K` | 624 | 1456 |
+| `1:2` | `1K` | 720 | 1440 |
+| `2:1` | `1K` | 1440 | 720 |
+| `1:3` | `1K` | 576 | 1728 |
+| `3:1` | `1K` | 1728 | 576 |
+| `1:1` | `2K` | 2048 | 2048 |
+| `16:9` | `2K` | 2560 | 1440 |
+| `9:16` | `2K` | 1440 | 2560 |
+| `4:3` | `2K` | 2304 | 1728 |
+| `3:4` | `2K` | 1728 | 2304 |
+| `3:2` | `2K` | 2496 | 1664 |
+| `2:3` | `2K` | 1664 | 2496 |
+| `5:4` | `2K` | 2240 | 1792 |
+| `4:5` | `2K` | 1792 | 2240 |
+| `21:9` | `2K` | 3024 | 1296 |
+| `9:21` | `2K` | 1296 | 3024 |
+| `1:2` | `2K` | 1440 | 2880 |
+| `2:1` | `2K` | 2880 | 1440 |
+| `1:3` | `2K` | 1168 | 3504 |
+| `3:1` | `2K` | 3504 | 1168 |
+| `1:1` | `4K` | 2880 | 2880 |
+| `16:9` | `4K` | 3840 | 2160 |
+| `9:16` | `4K` | 2160 | 3840 |
+| `4:3` | `4K` | 3264 | 2448 |
+| `3:4` | `4K` | 2448 | 3264 |
+| `3:2` | `4K` | 3504 | 2336 |
+| `2:3` | `4K` | 2336 | 3504 |
+| `5:4` | `4K` | 3200 | 2560 |
+| `4:5` | `4K` | 2560 | 3200 |
+| `21:9` | `4K` | 3808 | 1632 |
+| `9:21` | `4K` | 1632 | 3808 |
+| `1:2` | `4K` | 1920 | 3840 |
+| `2:1` | `4K` | 3840 | 1920 |
+| `1:3` | `4K` | 1280 | 3840 |
+| `3:1` | `4K` | 3840 | 1280 |
+
+请求示例：
+
+```json
+{
+  "model": "centos/gpt-image-2.6-flare",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "1K",
+    "quality": "auto"
+  }
+}
+```
+
+
+## centos / gpt-image-2.6-sunburst / image
+
+官方来源：https://doc.centos.hk/web/#/688145263/261667736
+
+独立CentOS Provider使用官方优化节点；文生图走images/generations，HTTP(S)参考图由Provider安全下载并通过multipart转发images/edits；像素size、quality与上游stream由Provider处理。最多16张参考图、单张20MiB、合计32MiB；不支持的请求跳过该候选。Nano协议尚未验证，不登记可启用模板。
+
+2026-11-10已核对实时模型/价格列表与官方GPT教程；Flare流式1K已读取1024x1024原图，Sunburst流式4K返回完成事件。 Flare参考图multipart编辑已真实生成1024x1024原图，返回image_edit.completed事件。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1 |
+| `n` | integer | 否 | `1` | 最小 1；最大 1 |
+| `image_urls` | array<string> | 否 | — | 最少项 1；最多项 16 |
+| `size` | string | 是 | — | 枚举 `["1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21","1:2","2:1","1:3","3:1"]` |
+| `metadata` | object | 是 | — | — |
+| `metadata.resolution` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `metadata.quality` | string | 否 | `"auto"` | 枚举 `["auto","low","medium","high"]` |
+
+| 比例 | 档位 | 宽 | 高 |
+| --- | --- | ---: | ---: |
+| `1:1` | `1K` | 1024 | 1024 |
+| `16:9` | `1K` | 1280 | 720 |
+| `9:16` | `1K` | 720 | 1280 |
+| `4:3` | `1K` | 1152 | 864 |
+| `3:4` | `1K` | 864 | 1152 |
+| `3:2` | `1K` | 1248 | 832 |
+| `2:3` | `1K` | 832 | 1248 |
+| `5:4` | `1K` | 1120 | 896 |
+| `4:5` | `1K` | 896 | 1120 |
+| `21:9` | `1K` | 1456 | 624 |
+| `9:21` | `1K` | 624 | 1456 |
+| `1:2` | `1K` | 720 | 1440 |
+| `2:1` | `1K` | 1440 | 720 |
+| `1:3` | `1K` | 576 | 1728 |
+| `3:1` | `1K` | 1728 | 576 |
+| `1:1` | `2K` | 2048 | 2048 |
+| `16:9` | `2K` | 2560 | 1440 |
+| `9:16` | `2K` | 1440 | 2560 |
+| `4:3` | `2K` | 2304 | 1728 |
+| `3:4` | `2K` | 1728 | 2304 |
+| `3:2` | `2K` | 2496 | 1664 |
+| `2:3` | `2K` | 1664 | 2496 |
+| `5:4` | `2K` | 2240 | 1792 |
+| `4:5` | `2K` | 1792 | 2240 |
+| `21:9` | `2K` | 3024 | 1296 |
+| `9:21` | `2K` | 1296 | 3024 |
+| `1:2` | `2K` | 1440 | 2880 |
+| `2:1` | `2K` | 2880 | 1440 |
+| `1:3` | `2K` | 1168 | 3504 |
+| `3:1` | `2K` | 3504 | 1168 |
+| `1:1` | `4K` | 2880 | 2880 |
+| `16:9` | `4K` | 3840 | 2160 |
+| `9:16` | `4K` | 2160 | 3840 |
+| `4:3` | `4K` | 3264 | 2448 |
+| `3:4` | `4K` | 2448 | 3264 |
+| `3:2` | `4K` | 3504 | 2336 |
+| `2:3` | `4K` | 2336 | 3504 |
+| `5:4` | `4K` | 3200 | 2560 |
+| `4:5` | `4K` | 2560 | 3200 |
+| `21:9` | `4K` | 3808 | 1632 |
+| `9:21` | `4K` | 1632 | 3808 |
+| `1:2` | `4K` | 1920 | 3840 |
+| `2:1` | `4K` | 3840 | 1920 |
+| `1:3` | `4K` | 1280 | 3840 |
+| `3:1` | `4K` | 3840 | 1280 |
+
+请求示例：
+
+```json
+{
+  "model": "centos/gpt-image-2.6-sunburst",
+  "prompt": "A blue ceramic cup",
+  "size": "1:1",
+  "n": 1,
+  "metadata": {
+    "resolution": "1K",
+    "quality": "auto"
+  }
+}
+```
+
+## centos / gemini-3-pro-image-preview / image
+
+来源：https://doc.centos.hk/web/#/688145263/261667732
+
+2026-11-10 OpenAI非流式文生图及内联参考图实测均出图；原生接口报model is required。用户明确授权备用忽略比例和档位，交付上游默认原图。
+
+仅作GRS之后的备用；独立CentOS Provider走chat/completions stream=false，从message.content提取内联图片。default_image_geometry策略进入冻结快照；不转发aspectRatio/imageSize，不承诺请求比例和分辨率，原图不缩放不裁剪。参考图安全下载后转内联，最多16张、单张20MiB、合计32MiB。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `images` | array<string> | 否 | — | 最少项 1；最多项 16 |
+| `aspectRatio` | string | 否 | `"auto"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21"]` |
+| `imageSize` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 1 |
+| `replyType` | string | 否 | `"async"` | 枚举 `["async"]` |
+
+请求示例：
+
+```json
+{
+  "model": "centos/gemini-3-pro-image-preview",
+  "prompt": "A blue ceramic vase",
+  "aspectRatio": "auto",
+  "imageSize": "1K",
+  "n": 1,
+  "replyType": "async"
+}
+```
+## centos / gemini-3.1-flash-image-preview / image
+
+来源：https://doc.centos.hk/web/#/688145263/261667732
+
+2026-11-10 OpenAI非流式文生图及内联参考图实测均出图；原生接口报model is required。用户明确授权备用忽略比例和档位，交付上游默认原图。
+
+仅作GRS之后的备用；独立CentOS Provider走chat/completions stream=false，从message.content提取内联图片。default_image_geometry策略进入冻结快照；不转发aspectRatio/imageSize，不承诺请求比例和分辨率，原图不缩放不裁剪。参考图安全下载后转内联，最多16张、单张20MiB、合计32MiB。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `images` | array<string> | 否 | — | 最少项 1；最多项 16 |
+| `aspectRatio` | string | 否 | `"auto"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21"]` |
+| `imageSize` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 1 |
+| `replyType` | string | 否 | `"async"` | 枚举 `["async"]` |
+
+请求示例：
+
+```json
+{
+  "model": "centos/gemini-3.1-flash-image-preview",
+  "prompt": "A blue ceramic vase",
+  "aspectRatio": "auto",
+  "imageSize": "1K",
+  "n": 1,
+  "replyType": "async"
 }
 ```

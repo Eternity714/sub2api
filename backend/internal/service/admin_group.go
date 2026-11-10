@@ -224,11 +224,15 @@ func (s *adminServiceImpl) PreviewCompositeRoute(ctx context.Context, groupID in
 		resolver = NewCompositeRouteResolver(s.compositeRouteRepo)
 	}
 	if isMediaRouteEndpoint(input.Endpoint) {
+		if input.Resolution != "" && (input.Endpoint != CompositeRouteEndpointImages || (input.Resolution != "1K" && input.Resolution != "2K" && input.Resolution != "4K")) {
+			return nil, fmt.Errorf("resolution must be 1K, 2K or 4K on an images route")
+		}
 		candidates, err := resolver.ResolveMediaCandidates(ctx, groupID, input.Model, input.Endpoint)
 		if err != nil {
 			return nil, err
 		}
 		if len(candidates) > 0 {
+			sortMediaDecisionsByResolution(candidates, input.Resolution)
 			decision := candidates[0]
 			decision.Candidates = candidates
 			return &decision, nil
@@ -277,26 +281,40 @@ func compositeRouteFromInput(groupID int64, input CompositeRouteInput) (*Composi
 		return nil, fmt.Errorf("model identifiers must contain at most 200 characters")
 	}
 	if isMediaRoutePlatform(input.TargetPlatform) {
+		if (input.TargetPlatform == PlatformKuaipao || input.TargetPlatform == PlatformCentOS) && input.Endpoint != CompositeRouteEndpointImages {
+			return nil, fmt.Errorf("this media provider requires an exact images route")
+		}
 		if !isMediaRouteEndpoint(input.Endpoint) || input.MatchType != CompositeRouteMatchExact {
 			return nil, fmt.Errorf("GRS.AI and ToAPIs require an exact images or videos route")
 		}
 	} else if input.CapabilityModel != "" {
-		return nil, fmt.Errorf("capability_model is only supported by GRS.AI or ToAPIs media routes")
+		if input.TargetPlatform != PlatformOpenAI || input.Endpoint != CompositeRouteEndpointImages || input.MatchType != CompositeRouteMatchExact {
+			return nil, fmt.Errorf("capability_model requires a GRS.AI/ToAPIs media route or an exact OpenAI images route")
+		}
 	}
 	if input.Priority == 0 {
 		input.Priority = 100
 	}
+	if len(input.ResolutionPriorities) > 0 && (input.Endpoint != CompositeRouteEndpointImages || input.MatchType != CompositeRouteMatchExact) {
+		return nil, fmt.Errorf("resolution priorities require an exact images route")
+	}
+	for tier, priority := range input.ResolutionPriorities {
+		if (tier != "1K" && tier != "2K" && tier != "4K") || priority < 1 || priority > 1000000 {
+			return nil, fmt.Errorf("resolution priorities require 1K/2K/4K with an integer priority from 1 to 1000000")
+		}
+	}
 	return &CompositeModelRoute{
-		GroupID:         groupID,
-		PublicModel:     input.PublicModel,
-		MatchType:       input.MatchType,
-		TargetPlatform:  input.TargetPlatform,
-		UpstreamModel:   input.UpstreamModel,
-		CapabilityModel: input.CapabilityModel,
-		Endpoint:        input.Endpoint,
-		Priority:        input.Priority,
-		Enabled:         input.Enabled,
-		Notes:           input.Notes,
+		GroupID:              groupID,
+		PublicModel:          input.PublicModel,
+		MatchType:            input.MatchType,
+		TargetPlatform:       input.TargetPlatform,
+		UpstreamModel:        input.UpstreamModel,
+		CapabilityModel:      input.CapabilityModel,
+		Endpoint:             input.Endpoint,
+		Priority:             input.Priority,
+		ResolutionPriorities: input.ResolutionPriorities,
+		Enabled:              input.Enabled,
+		Notes:                input.Notes,
 	}, nil
 }
 

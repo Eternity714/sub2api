@@ -75,6 +75,7 @@ services:
           src/views/admin/__tests__/platformFilterCatalogUsage.spec.ts \
           src/views/admin/__tests__/channelPlatformOptions.spec.ts \
           src/views/admin/__tests__/GroupsView.compositePlatforms.spec.ts \
+          src/views/admin/__tests__/GroupsView.mediaRoutes.spec.ts \
           src/views/admin/__tests__/GroupsView.duplicate.spec.ts \
           src/views/admin/__tests__/groupsImagePricing.spec.ts \
           src/components/user/__tests__/UserPlatformQuotaCell.spec.ts \

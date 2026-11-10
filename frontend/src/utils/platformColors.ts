@@ -7,6 +7,7 @@
  */
 
 import { getPlatformSpec } from '@/constants/platformCatalog'
+import { publicPlatformId } from '@/utils/publicPlatform'
 
 export type Platform =
   | 'anthropic'
@@ -374,7 +375,7 @@ export function platformGradientSubtextClass(p: string): string {
 }
 
 export function platformDisplayValue(p: string): string {
-  return p === 'grsai' || p === 'media' ? 'Media API' : p
+  return publicPlatformId(p) === 'media' ? 'Media API' : p
 }
 
 /** 平台展示名：来自平台清单（后端 domain/platforms.go），用户侧媒体标识使用能力名。 */
