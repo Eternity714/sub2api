@@ -1,0 +1,1621 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Gkotta GPT Image 生图 API",
+    "version": "2026-11-10",
+    "description": "六款GPT Image公开模型的创建与查询。只支持async、n=1；本文件为推荐参数及有界兼容别名。字段冲突、HTTP(S)链接及枚举仍由服务端校验。创建仅POST一次；保存id后使用原Key查询，不支持Idempotency-Key去重。"
+  },
+  "servers": [
+    {
+      "url": "https://www.gkotta.bid"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "GPT Image",
+      "description": "文生图与HTTP(S)参考图生图。"
+    }
+  ],
+  "paths": {
+    "/v1/images/generations": {
+      "post": {
+        "tags": [
+          "GPT Image"
+        ],
+        "summary": "创建GPT Image生图任务",
+        "operationId": "createGPTImage",
+        "description": "Content-Type: application/json。请求体上限1MiB。HTTP202表示已受理，尚未交付图片；不支持同步或流式返回。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/GPTImage26_sunburst"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GPTImage26_flare"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GPTImage25_sunburst"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GPTImage25_flare"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GPTImage25"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GPTImage26"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "model",
+                  "mapping": {
+                    "gpt-image-2.6-sunburst": "#/components/schemas/GPTImage26_sunburst",
+                    "gpt-image-2.6-flare": "#/components/schemas/GPTImage26_flare",
+                    "gpt-image-2.5-sunburst": "#/components/schemas/GPTImage25_sunburst",
+                    "gpt-image-2.5-flare": "#/components/schemas/GPTImage25_flare",
+                    "gpt-image-2.5": "#/components/schemas/GPTImage25",
+                    "gpt-image-2.6": "#/components/schemas/GPTImage26"
+                  }
+                }
+              },
+              "examples": {
+                "GPTImage26_sunburst_1": {
+                  "summary": "gpt-image-2.6-sunburst 文生图（1K）",
+                  "value": {
+                    "model": "gpt-image-2.6-sunburst",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "1:1",
+                    "imageSize": "1K",
+                    "quality": "auto",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage26_sunburst_2": {
+                  "summary": "gpt-image-2.6-sunburst 文生图（2K）",
+                  "value": {
+                    "model": "gpt-image-2.6-sunburst",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "16:9",
+                    "imageSize": "2K",
+                    "quality": "medium",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage26_sunburst_3": {
+                  "summary": "gpt-image-2.6-sunburst 文生图（4K）",
+                  "value": {
+                    "model": "gpt-image-2.6-sunburst",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "21:9",
+                    "imageSize": "4K",
+                    "quality": "high",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage26_sunburst_4": {
+                  "summary": "gpt-image-2.6-sunburst 参考图生图（4K）",
+                  "value": {
+                    "model": "gpt-image-2.6-sunburst",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "21:9",
+                    "imageSize": "4K",
+                    "quality": "high",
+                    "replyType": "async",
+                    "n": 1,
+                    "images": [
+                      "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
+                    ]
+                  }
+                },
+                "GPTImage26_flare_1": {
+                  "summary": "gpt-image-2.6-flare 文生图（1K）",
+                  "value": {
+                    "model": "gpt-image-2.6-flare",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "1:1",
+                    "imageSize": "1K",
+                    "quality": "auto",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage26_flare_2": {
+                  "summary": "gpt-image-2.6-flare 文生图（2K）",
+                  "value": {
+                    "model": "gpt-image-2.6-flare",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "16:9",
+                    "imageSize": "2K",
+                    "quality": "medium",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage26_flare_3": {
+                  "summary": "gpt-image-2.6-flare 文生图（4K）",
+                  "value": {
+                    "model": "gpt-image-2.6-flare",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "21:9",
+                    "imageSize": "4K",
+                    "quality": "high",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage26_flare_4": {
+                  "summary": "gpt-image-2.6-flare 参考图生图（4K）",
+                  "value": {
+                    "model": "gpt-image-2.6-flare",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "21:9",
+                    "imageSize": "4K",
+                    "quality": "high",
+                    "replyType": "async",
+                    "n": 1,
+                    "images": [
+                      "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
+                    ]
+                  }
+                },
+                "GPTImage25_sunburst_1": {
+                  "summary": "gpt-image-2.5-sunburst 文生图（1K）",
+                  "value": {
+                    "model": "gpt-image-2.5-sunburst",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "1:1",
+                    "imageSize": "1K",
+                    "quality": "auto",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage25_sunburst_2": {
+                  "summary": "gpt-image-2.5-sunburst 文生图（2K）",
+                  "value": {
+                    "model": "gpt-image-2.5-sunburst",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "16:9",
+                    "imageSize": "2K",
+                    "quality": "medium",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage25_sunburst_3": {
+                  "summary": "gpt-image-2.5-sunburst 文生图（4K）",
+                  "value": {
+                    "model": "gpt-image-2.5-sunburst",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "21:9",
+                    "imageSize": "4K",
+                    "quality": "high",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage25_sunburst_4": {
+                  "summary": "gpt-image-2.5-sunburst 参考图生图（4K）",
+                  "value": {
+                    "model": "gpt-image-2.5-sunburst",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "21:9",
+                    "imageSize": "4K",
+                    "quality": "high",
+                    "replyType": "async",
+                    "n": 1,
+                    "images": [
+                      "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
+                    ]
+                  }
+                },
+                "GPTImage25_flare_1": {
+                  "summary": "gpt-image-2.5-flare 文生图（1K）",
+                  "value": {
+                    "model": "gpt-image-2.5-flare",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "1:1",
+                    "imageSize": "1K",
+                    "quality": "auto",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage25_flare_2": {
+                  "summary": "gpt-image-2.5-flare 文生图（2K）",
+                  "value": {
+                    "model": "gpt-image-2.5-flare",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "16:9",
+                    "imageSize": "2K",
+                    "quality": "medium",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage25_flare_3": {
+                  "summary": "gpt-image-2.5-flare 文生图（4K）",
+                  "value": {
+                    "model": "gpt-image-2.5-flare",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "21:9",
+                    "imageSize": "4K",
+                    "quality": "high",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage25_flare_4": {
+                  "summary": "gpt-image-2.5-flare 参考图生图（4K）",
+                  "value": {
+                    "model": "gpt-image-2.5-flare",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "21:9",
+                    "imageSize": "4K",
+                    "quality": "high",
+                    "replyType": "async",
+                    "n": 1,
+                    "images": [
+                      "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
+                    ]
+                  }
+                },
+                "GPTImage25_1": {
+                  "summary": "gpt-image-2.5 文生图（固定 1K）",
+                  "value": {
+                    "model": "gpt-image-2.5",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "1:1",
+                    "quality": "auto",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage25_2": {
+                  "summary": "gpt-image-2.5 参考图生图（固定 1K）",
+                  "value": {
+                    "model": "gpt-image-2.5",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "1:1",
+                    "quality": "auto",
+                    "replyType": "async",
+                    "n": 1,
+                    "images": [
+                      "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
+                    ]
+                  }
+                },
+                "GPTImage26_1": {
+                  "summary": "gpt-image-2.6 文生图（固定 1K）",
+                  "value": {
+                    "model": "gpt-image-2.6",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "1:1",
+                    "quality": "auto",
+                    "replyType": "async",
+                    "n": 1
+                  }
+                },
+                "GPTImage26_2": {
+                  "summary": "gpt-image-2.6 参考图生图（固定 1K）",
+                  "value": {
+                    "model": "gpt-image-2.6",
+                    "prompt": "白色桌面上的蓝色陶瓷杯，柔和自然光",
+                    "aspectRatio": "1:1",
+                    "quality": "auto",
+                    "replyType": "async",
+                    "n": 1,
+                    "images": [
+                      "https://example.com/REPLACE_WITH_YOUR_REFERENCE.png"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "已受理，请保存id并轮询。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaImageCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数、模型或余额不符，不创建任务。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "密钥无效。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权限。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "路径、模型或原密钥/任务不匹配。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "额度或速率限制。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务异常。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/images/generations/{task_id}": {
+      "get": {
+        "tags": [
+          "GPT Image"
+        ],
+        "summary": "查询生图状态与结果",
+        "operationId": "getGPTImageTask",
+        "description": "使用创建时的同一个API Key，每5–10秒查询。completed表示处理结束，成功需result.data有URL且error为空。",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "description": "POST返回的本地media_任务ID。",
+            "schema": {
+              "type": "string",
+              "pattern": "^media_",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "任务状态；生成失败也可能是HTTP200。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaImageTask"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "结果已过期。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数、模型或余额不符，不创建任务。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "密钥无效。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "路径、模型或原密钥/任务不匹配。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "额度或速率限制。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务异常。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂不可用。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaHTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API Key",
+        "description": "媒体API分组的Sub2API密钥。"
+      }
+    },
+    "schemas": {
+      "GPTImage26_sunburst": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "gpt-image-2.6-sunburst"
+            ],
+            "description": "公开模型 ID，区分大小写。"
+          },
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "minimum": 1,
+            "maximum": 1,
+            "description": "每次仅生成一张。"
+          },
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "可选参考图，1–16 个 HTTP(S) 图片直链；没有参考图时省略，不传空数组。"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000,
+            "description": "提示词，描述图像内容或对参考图的修改要求。"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "low",
+              "medium",
+              "high"
+            ],
+            "default": "auto",
+            "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+          },
+          "replyType": {
+            "type": "string",
+            "enum": [
+              "async"
+            ],
+            "default": "async",
+            "description": "仅async：返回任务ID，再轮询查询。"
+          },
+          "aspectRatio": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "default": "1:1",
+            "description": "画面比例；auto 也按1:1构造请求。仅允许比例，不接受像素尺寸写法。"
+          },
+          "imageSize": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "default": "1K",
+            "description": "分辨率档位，默认1K，按此档位收费；4K正方形目标为2880×2880。"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "description": "兼容字段，推荐使用aspectRatio；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "image_urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "兼容字段，推荐使用images；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "description": "兼容字段，推荐使用imageSize；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "deprecated": true,
+            "properties": {
+              "quality": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "low",
+                  "medium",
+                  "high"
+                ],
+                "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+              },
+              "resolution": {
+                "type": "string",
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "description": "分辨率档位，默认1K，按此档位收费；4K正方形目标为2880×2880。"
+              }
+            },
+            "description": "旧客户端的质量/分辨率兼容字段；与顶层字段同时传入必须一致。固定1K型号不能传metadata.resolution。"
+          }
+        },
+        "description": "gpt-image-2.6-sunburst：1K/2K/4K分别0.12/0.20/0.35元/张；按分辨率收费。"
+      },
+      "GPTImage26_flare": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "gpt-image-2.6-flare"
+            ],
+            "description": "公开模型 ID，区分大小写。"
+          },
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "minimum": 1,
+            "maximum": 1,
+            "description": "每次仅生成一张。"
+          },
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "可选参考图，1–16 个 HTTP(S) 图片直链；没有参考图时省略，不传空数组。"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000,
+            "description": "提示词，描述图像内容或对参考图的修改要求。"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "low",
+              "medium",
+              "high"
+            ],
+            "default": "auto",
+            "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+          },
+          "replyType": {
+            "type": "string",
+            "enum": [
+              "async"
+            ],
+            "default": "async",
+            "description": "仅async：返回任务ID，再轮询查询。"
+          },
+          "aspectRatio": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "default": "1:1",
+            "description": "画面比例；auto 也按1:1构造请求。仅允许比例，不接受像素尺寸写法。"
+          },
+          "imageSize": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "default": "1K",
+            "description": "分辨率档位，默认1K，按此档位收费；4K正方形目标为2880×2880。"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "description": "兼容字段，推荐使用aspectRatio；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "image_urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "兼容字段，推荐使用images；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "description": "兼容字段，推荐使用imageSize；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "deprecated": true,
+            "properties": {
+              "quality": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "low",
+                  "medium",
+                  "high"
+                ],
+                "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+              },
+              "resolution": {
+                "type": "string",
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "description": "分辨率档位，默认1K，按此档位收费；4K正方形目标为2880×2880。"
+              }
+            },
+            "description": "旧客户端的质量/分辨率兼容字段；与顶层字段同时传入必须一致。固定1K型号不能传metadata.resolution。"
+          }
+        },
+        "description": "gpt-image-2.6-flare：1K/2K/4K分别0.12/0.20/0.35元/张；按分辨率收费。"
+      },
+      "GPTImage25_sunburst": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "gpt-image-2.5-sunburst"
+            ],
+            "description": "公开模型 ID，区分大小写。"
+          },
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "minimum": 1,
+            "maximum": 1,
+            "description": "每次仅生成一张。"
+          },
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "可选参考图，1–16 个 HTTP(S) 图片直链；没有参考图时省略，不传空数组。"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000,
+            "description": "提示词，描述图像内容或对参考图的修改要求。"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "low",
+              "medium",
+              "high"
+            ],
+            "default": "auto",
+            "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+          },
+          "replyType": {
+            "type": "string",
+            "enum": [
+              "async"
+            ],
+            "default": "async",
+            "description": "仅async：返回任务ID，再轮询查询。"
+          },
+          "aspectRatio": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "default": "1:1",
+            "description": "画面比例；auto 也按1:1构造请求。仅允许比例，不接受像素尺寸写法。"
+          },
+          "imageSize": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "default": "1K",
+            "description": "分辨率档位，默认1K，按此档位收费；4K正方形目标为2880×2880。"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "description": "兼容字段，推荐使用aspectRatio；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "image_urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "兼容字段，推荐使用images；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "description": "兼容字段，推荐使用imageSize；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "deprecated": true,
+            "properties": {
+              "quality": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "low",
+                  "medium",
+                  "high"
+                ],
+                "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+              },
+              "resolution": {
+                "type": "string",
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "description": "分辨率档位，默认1K，按此档位收费；4K正方形目标为2880×2880。"
+              }
+            },
+            "description": "旧客户端的质量/分辨率兼容字段；与顶层字段同时传入必须一致。固定1K型号不能传metadata.resolution。"
+          }
+        },
+        "description": "gpt-image-2.5-sunburst：1K/2K/4K分别0.12/0.20/0.35元/张；按分辨率收费。"
+      },
+      "GPTImage25_flare": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "gpt-image-2.5-flare"
+            ],
+            "description": "公开模型 ID，区分大小写。"
+          },
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "minimum": 1,
+            "maximum": 1,
+            "description": "每次仅生成一张。"
+          },
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "可选参考图，1–16 个 HTTP(S) 图片直链；没有参考图时省略，不传空数组。"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000,
+            "description": "提示词，描述图像内容或对参考图的修改要求。"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "low",
+              "medium",
+              "high"
+            ],
+            "default": "auto",
+            "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+          },
+          "replyType": {
+            "type": "string",
+            "enum": [
+              "async"
+            ],
+            "default": "async",
+            "description": "仅async：返回任务ID，再轮询查询。"
+          },
+          "aspectRatio": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "default": "1:1",
+            "description": "画面比例；auto 也按1:1构造请求。仅允许比例，不接受像素尺寸写法。"
+          },
+          "imageSize": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "default": "1K",
+            "description": "分辨率档位，默认1K，按此档位收费；4K正方形目标为2880×2880。"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1",
+              "1:3",
+              "3:1"
+            ],
+            "description": "兼容字段，推荐使用aspectRatio；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "image_urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "兼容字段，推荐使用images；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "1K",
+              "2K",
+              "4K"
+            ],
+            "description": "兼容字段，推荐使用imageSize；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "deprecated": true,
+            "properties": {
+              "quality": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "low",
+                  "medium",
+                  "high"
+                ],
+                "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+              },
+              "resolution": {
+                "type": "string",
+                "enum": [
+                  "1K",
+                  "2K",
+                  "4K"
+                ],
+                "description": "分辨率档位，默认1K，按此档位收费；4K正方形目标为2880×2880。"
+              }
+            },
+            "description": "旧客户端的质量/分辨率兼容字段；与顶层字段同时传入必须一致。固定1K型号不能传metadata.resolution。"
+          }
+        },
+        "description": "gpt-image-2.5-flare：1K/2K/4K分别0.12/0.20/0.35元/张；按分辨率收费。"
+      },
+      "GPTImage25": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "gpt-image-2.5"
+            ],
+            "description": "公开模型 ID，区分大小写。"
+          },
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "minimum": 1,
+            "maximum": 1,
+            "description": "每次仅生成一张。"
+          },
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "可选参考图，1–16 个 HTTP(S) 图片直链；没有参考图时省略，不传空数组。"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000,
+            "description": "提示词，描述图像内容或对参考图的修改要求。"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "auto"
+            ],
+            "default": "auto",
+            "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+          },
+          "replyType": {
+            "type": "string",
+            "enum": [
+              "async"
+            ],
+            "default": "async",
+            "description": "仅async：返回任务ID，再轮询查询。"
+          },
+          "aspectRatio": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1"
+            ],
+            "default": "1:1",
+            "description": "画面比例；auto 也按1:1构造请求。仅允许比例，不接受像素尺寸写法。"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1"
+            ],
+            "description": "兼容字段，推荐使用aspectRatio；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "image_urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "兼容字段，推荐使用images；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "deprecated": true,
+            "properties": {
+              "quality": {
+                "type": "string",
+                "enum": [
+                  "auto"
+                ],
+                "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+              }
+            },
+            "description": "旧客户端的质量/分辨率兼容字段；与顶层字段同时传入必须一致。固定1K型号不能传metadata.resolution。"
+          }
+        },
+        "description": "gpt-image-2.5：固定1K、quality仅auto，0.08元/张；禁止imageSize及分辨率别名。"
+      },
+      "GPTImage26": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "gpt-image-2.6"
+            ],
+            "description": "公开模型 ID，区分大小写。"
+          },
+          "n": {
+            "type": "integer",
+            "default": 1,
+            "minimum": 1,
+            "maximum": 1,
+            "description": "每次仅生成一张。"
+          },
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "可选参考图，1–16 个 HTTP(S) 图片直链；没有参考图时省略，不传空数组。"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32000,
+            "description": "提示词，描述图像内容或对参考图的修改要求。"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "auto"
+            ],
+            "default": "auto",
+            "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+          },
+          "replyType": {
+            "type": "string",
+            "enum": [
+              "async"
+            ],
+            "default": "async",
+            "description": "仅async：返回任务ID，再轮询查询。"
+          },
+          "aspectRatio": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1"
+            ],
+            "default": "1:1",
+            "description": "画面比例；auto 也按1:1构造请求。仅允许比例，不接受像素尺寸写法。"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "5:4",
+              "4:5",
+              "21:9",
+              "9:21",
+              "1:2",
+              "2:1"
+            ],
+            "description": "兼容字段，推荐使用aspectRatio；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "image_urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "description": "无需登录的绝对 HTTP(S) URL；不能含用户名或密码，不支持 Base64 或 data URL。"
+            },
+            "description": "兼容字段，推荐使用images；与推荐字段同时传入时值必须一致。",
+            "deprecated": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "deprecated": true,
+            "properties": {
+              "quality": {
+                "type": "string",
+                "enum": [
+                  "auto"
+                ],
+                "description": "质量选项，默认auto；同一分辨率下各允许质量同价。"
+              }
+            },
+            "description": "旧客户端的质量/分辨率兼容字段；与顶层字段同时传入必须一致。固定1K型号不能传metadata.resolution。"
+          }
+        },
+        "description": "gpt-image-2.6：固定1K、quality仅auto，0.08元/张；禁止imageSize及分辨率别名。"
+      },
+      "MediaImageCreated": {
+        "type": "object",
+        "required": [
+          "id",
+          "model",
+          "status",
+          "progress",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^media_"
+          },
+          "model": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued"
+            ]
+          },
+          "progress": {
+            "type": "integer",
+            "enum": [
+              0
+            ]
+          },
+          "created_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix秒"
+          }
+        }
+      },
+      "MediaImageTask": {
+        "type": "object",
+        "required": [
+          "id",
+          "model",
+          "status",
+          "progress",
+          "created_at",
+          "result",
+          "error"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^media_"
+          },
+          "model": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "in_progress",
+              "completed"
+            ]
+          },
+          "progress": {
+            "type": "integer",
+            "enum": [
+              0,
+              50,
+              100
+            ]
+          },
+          "created_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix秒"
+          },
+          "completed_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "终态返回，Unix秒。"
+          },
+          "expires_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "有成功结果时返回，Unix秒；过期返回410。"
+          },
+          "result": {
+            "type": "object",
+            "required": [
+              "type",
+              "data"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "image"
+                ]
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "description": "图片URL数组。处理中或失败时为空，成功交付一张。"
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "description": "无错误时为空字符串；completed仍须检查本字段与result.data。"
+          }
+        }
+      },
+      "MediaHTTPError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "type",
+              "message"
+            ],
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "fields": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "path",
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

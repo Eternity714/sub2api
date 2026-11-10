@@ -18,7 +18,7 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/models" \
   -H "Authorization: Bearer $SUB2API_KEY"
 ```
 
-当前图片模型的数量、档位和参考图限制以各模型页为准。同一个 `1K` 档位不保证各生成服务输出完全相同的像素。
+六款 GPT Image 的型号对照、完整参数、分辨率表、Python 示例与 OpenAPI 文件见[GPT Image 系列接口](/gpt-image)。当前图片模型的数量、档位和参考图限制以各模型页为准。同一个 `1K` 档位不保证各生成服务输出完全相同的像素。
 
 ## 请求参数
 
@@ -28,9 +28,9 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/models" \
 | --- | --- | --- |
 | `model` | string | 必填，当前分组开放的公开模型 ID |
 | `prompt` | string | 描述主体、场景、风格，或对参考图的修改要求 |
-| `images` | string[] | 可选参考图 HTTP(S) 直链，按数组顺序处理 |
+| `images` | string[] | 可选参考图 HTTP(S) 直链，按数组顺序处理；GPT Image 为 1–16 项，无参考图时省略 |
 | `aspectRatio` | string | 比例，如 `1:1`、`3:2`、`2:3`；允许范围见模型页 |
-| `imageSize` | string | 分辨率档位；GPT Image 支持 `1K/2K/4K`，默认 `1K` |
+| `imageSize` | string | 分辨率档位；GPT Image Flare/Sunburst 支持 `1K/2K/4K`，默认 `1K`；固定 1K 简化型号禁止传入 |
 | `quality` | string | 质量，仅在模型页声明时传入，按模型枚举填写 |
 | `n` | integer | 结果数；当前图片模型仅允许 `1` |
 | `replyType` | string | 目前仅支持 `async` |
@@ -40,9 +40,11 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/models" \
 
 ### 比例与像素
 
-GPT Image 仅开放 `gpt-image-2.6-sunburst`、`gpt-image-2.6-flare`、`gpt-image-2.5-sunburst`、`gpt-image-2.5-flare`。使用 `imageSize` 选择 `1K/2K/4K`，默认 `1K`，售价分别为 **0.12/0.20/0.35 元/张**。同一分辨率的 `auto/low/medium/high` 四种质量同价。
+GPT Image 当前开放六款。`gpt-image-2.5`、`gpt-image-2.6` 固定 **1K、0.08 元/张**，仅支持 `quality:auto` 与指定的 14 个比例值，不接受 `imageSize`、`resolution` 或 `metadata.resolution`，即使值为 `1K` 也不能传入。
 
-三个档位均支持模型页列出的 16 个比例值，默认 `1:1`。`aspectRatio:auto` 按正方形构造请求，目标尺寸分别为 1024×1024、2048×2048、2880×2880。交付保留生成服务原图，实际像素可能存在差异，不因尺寸差异缩放、裁剪或重试；仍按请求的 `imageSize` 档位收费。
+`gpt-image-2.6-sunburst`、`gpt-image-2.6-flare`、`gpt-image-2.5-sunburst`、`gpt-image-2.5-flare` 使用 `imageSize` 选择 `1K/2K/4K`，默认 `1K`，售价分别为 **0.12/0.20/0.35 元/张**。同一分辨率的 `auto/low/medium/high` 四种质量同价。
+
+Flare/Sunburst 三个档位均支持模型页列出的 16 个比例值，含 `1:3/3:1`；固定 1K 简化型号不含这两个比例。全部六款默认 `1:1`，`aspectRatio:auto` 也按正方形构造请求，1K/2K/4K 的目标尺寸分别为 1024×1024、2048×2048、2880×2880。交付保留生成服务原图，实际像素可能存在差异，不因尺寸差异缩放、裁剪、重试或改变计费档位。
 
 不接受像素尺寸写法；`n` 仅为 1，`replyType` 仅为 `async`。旧的固定 `-1k/-2k` 型号停止创建任务，历史任务继续按创建时的快照查询和结算。参数别名说明见[旧参数兼容](/media-api#旧参数兼容)。
 

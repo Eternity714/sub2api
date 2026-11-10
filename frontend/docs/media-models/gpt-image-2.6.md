@@ -40,6 +40,38 @@ description: gpt-image-2.6 图片生成 API 参数、输入模式、调用示例
 
 参考图必须替换为生成服务能够下载的 HTTP(S) 图片直链；示例 `example.com` 仅占位，不能直接用来生成。不支持在 `images` 中放入 Base64 字符串或本地路径。带签名的链接应在任务处理期间保持有效。
 
+## 参数使用说明
+
+### model 与 prompt
+
+本页只接受 `model: "gpt-image-2.6"`。`prompt` 为必填字符串，长度 1–32000 个字符，描述主体、场景、构图、风格或参考图修改要求。
+
+### images：参考图
+
+文生图时省略 `images`。参考图生图时传入 1–16 个 HTTP(S) 图片直链，按数组顺序描述各图用途。没有参考图时不要传空数组 `[]` 或 `null`；不接受 Base64、data URL、本地路径和带用户名密码的 URL。链接应无需网页登录，并在任务处理期间有效。
+
+### aspectRatio：画面比例
+
+省略时为 `1:1`；`auto` 也按正方形构造请求，不会根据参考图自动继承比例。完整允许值见上方参数表。仅接受 `16:9` 这样的比例字符串，不接受 `1024x1024` 或 `2048x2048` 等像素尺寸。实际原图可能与下表目标尺寸存在差异。
+
+### imageSize：分辨率档位
+
+本模型固定为 **1K**，请求中必须省略 `imageSize`、`resolution` 和 `metadata.resolution`，即使传 `1K` 也会返回 400。需要 2K/4K 或更多质量选项时，请选择[同版本 Flare](/media-models/gpt-image-2.6-flare)或[同版本 Sunburst](/media-models/gpt-image-2.6-sunburst)。
+
+### quality：生成质量
+
+仅接受 `auto`，也可省略。`low`、`medium`、`high`、`xhigh`、`max` 均未开放。每张统一标价 **0.08 元**。
+
+### n 与 replyType
+
+`n` 默认为 `1`，且只能为 `1`。`replyType` 默认为 `async`，且只能为 `async`：先接收任务 ID，再轮询结果；不支持 `json` 同步返回或 `stream` 流式返回。
+
+### 未开放的参数
+
+`background`、`outputFormat`、`response_format`、`mask`、`webhook` 等未列出的字段不能传入。当前没有通过参数指定透明背景、GIF/SVG 输出或蒙版编辑的能力。字段名、字符串枚举、大小写或别名冲突不符时，创建前返回 400，不创建任务、不预留额度。
+
+六个型号的对照、Python / JavaScript 示例及 OpenAPI 下载见[GPT Image 系列调用指南](/gpt-image)。
+
 ## 输入模式与组合限制
 
 本模型无额外的模式匹配条件，按上表字段约束校验。参考图是否必填、可传数量以 `images` 行为准。
@@ -52,9 +84,9 @@ description: gpt-image-2.6 图片生成 API 参数、输入模式、调用示例
 
 ### 比例与输出尺寸
 
-下表为固定档位的像素映射，分辨率无需通过请求参数指定。
+下表为固定档位的目标像素映射，分辨率无需通过请求参数指定。
 
-| aspectRatio | 像素尺寸 |
+| aspectRatio | 目标像素尺寸 |
 | --- | --- |
 | `1:1` | 1024 × 1024 |
 | `16:9` | 1280 × 720 |
@@ -162,6 +194,32 @@ curl --fail-with-body "$SUB2API_BASE_URL/v1/images/generations/$TASK_ID" \
 `result.data` 为文件 URL 字符串数组；无成功结果时为空，有错误时由 `error` 字符串说明。所有终态返回 `completed_at`，仅有成功结果时返回 `expires_at`，时间均为 Unix 秒。请在过期前下载自己的实际结果 URL。
 
 完整响应规则、部分成功、错误码与轮询程序见[媒体 API 接入指南](/media-api#查询任务与下载结果)。模型或媒体类型不匹配、字段非法、未开放能力会在创建前拒绝；创建成功后的执行失败通过查询响应的 `completed + error` 返回。
+
+### 处理中与失败
+
+处理中返回 `status:queued/in_progress`、`progress:0/50`，`result.data` 为空；此时继续 GET 查询。终态为 `completed/100`，必须同时检查 `result.data` 和 `error`。
+
+生成失败仍可能是 HTTP 200，例如：
+
+```json
+{
+  "id": "media_EXAMPLE_TASK_ID",
+  "model": "gpt-image-2.6",
+  "status": "completed",
+  "progress": 100,
+  "created_at": 1794182400,
+  "completed_at": 1794268800,
+  "result": {
+    "type": "image",
+    "data": []
+  },
+  "error": "media_task_expired"
+}
+```
+
+上例没有图片，不应按成功处理；`expires_at` 仅在有成功结果时返回。请保存任务 ID，使用原 Key 继续查询；查询不会再次生成。不要将 `completed`、HTTP 200 或仅有 `id` 当作已生成图片。
+
+创建前的参数错误使用 HTTP 400，`error` 为包含 `type`、`message` 和可选 `fields` 的对象；任务查询中的 `error` 为字符串。完整错误码和客户端重试规则见[错误处理](/media-api#错误处理)。
 
 ## 计费与交付
 

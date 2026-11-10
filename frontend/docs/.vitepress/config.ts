@@ -48,6 +48,7 @@ export default defineConfig({
       { text: '图片与视频', items: [
         { text: '媒体 API 接入总览', link: '/media-api' },
         { text: '图片生成 API', link: '/media-images' },
+        { text: 'GPT Image 系列接口', link: '/gpt-image' },
         { text: '视频生成 API', link: '/media-videos' },
         { text: '当前模型与参数', link: '/media-models/' },
         ...mediaModelSidebar,

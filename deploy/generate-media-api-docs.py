@@ -3,9 +3,17 @@
 import argparse
 import hashlib
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
+sys.dont_write_bytecode = True
+from media_gpt_image_docs import (
+    openapi as gpt_image_openapi,
+    parameter_notes as gpt_image_parameter_notes,
+    response_notes as gpt_image_response_notes,
+    series_page as gpt_image_series_page,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "docs/media-api-catalog.json"
@@ -167,6 +175,7 @@ def fenced(value, language="json"):
 def model_page(model, date):
     name, schema, media = model["model"], model["schema"], model["media_type"]
     image = media == "image"
+    gpt_image = image and name.startswith("gpt-image-")
     kind = "图片" if image else "视频"
     endpoint = "/v1/" + ("images" if image else "videos") + "/generations"
     fields = schema["fields"]
@@ -190,6 +199,8 @@ def model_page(model, date):
     reference_field = "images" if "images" in fields else "image_urls"
     if reference_field in fields:
         lines += ["参考图必须替换为生成服务能够下载的 HTTP(S) 图片直链；示例 " + code("example.com") + " 仅占位，不能直接用来生成。不支持在 " + code(reference_field) + " 中放入 Base64 字符串或本地路径。带签名的链接应在任务处理期间保持有效。", ""]
+    if gpt_image:
+        lines += gpt_image_parameter_notes(model)
     lines += ["## 输入模式与组合限制", ""]
     if schema.get("modes"):
         lines += ["补入默认值后，请求必须且只能匹配下表的一种模式。未传与 " + code("null") + " 不等价，仅当字段明确允许时才能传 " + code("null") + "。", "", "| 模式 | 同时满足的条件 | 附加必填 | 禁止传入 |", "| --- | --- | --- | --- |"]
@@ -220,7 +231,8 @@ def model_page(model, date):
             lines += ["统一使用 " + code("aspectRatio") + " 与 " + code("imageSize") + " 指定比例和档位；同一档位的实际像素可以因生成服务而不同。显式像素写法只会选择能保留该尺寸的服务，无法支持时在创建前拒绝。不支持 " + code("metadata.output_size") + "。", ""]
         if schema.get("image_specs"):
             fixed = bool(schema.get("fixed_image_resolution"))
-            lines += ["### 比例与输出尺寸" if fixed else "### 有效比例与分辨率组合", "", "下表为固定档位的像素映射，分辨率无需通过请求参数指定。" if fixed else "只接受以下成对组合，不能把比例和分辨率枚举任意交叉。像素尺寸是该组合的配置映射。", "", "| aspectRatio | 像素尺寸 |" if fixed else "| aspectRatio | imageSize | 像素尺寸 |", "| --- | --- |" if fixed else "| --- | --- | --- |"]
+            combinations = "本模型列出的比例支持全部三个分辨率档位。下表是请求的目标像素映射；auto使用对应档位的1:1映射，实际交付像素允许存在差异。" if gpt_image else "只接受以下成对组合，不能把比例和分辨率枚举任意交叉。像素尺寸是该组合的配置映射。"
+            lines += ["### 比例与输出尺寸" if fixed else "### 有效比例与分辨率组合", "", "下表为固定档位的目标像素映射，分辨率无需通过请求参数指定。" if fixed else combinations, "", "| aspectRatio | 目标像素尺寸 |" if fixed else "| aspectRatio | imageSize | 目标像素尺寸 |", "| --- | --- |" if fixed else "| --- | --- | --- |"]
             for spec in schema["image_specs"]:
                 lines.append(f'| {code(spec["aspect_ratio"])} | ' + ("" if fixed else f'{code(spec["resolution"])} | ') + f'{spec["width"]} × {spec["height"]} |')
             lines.append("")
@@ -247,7 +259,10 @@ def model_page(model, date):
               code("queued/0") + " 为排队，" + code("in_progress/50") + " 为处理中，" + code("completed/100") + " 为已结束。只有 " + code("completed") + " 才读取最终结果；完成并不表示成功。", "", "成功结果示例（HTTP 200）：", ""]
     lines += fenced({"id": "media_EXAMPLE_TASK_ID", "model": name, "status": "completed", "progress": 100, "created_at": 1792108800, "completed_at": 1792109100, "expires_at": 1792195500, "result": {"type": media, "data": ["https://files.example.com/media/result." + ("png" if image else "mp4")]}, "error": ""})
     lines += [code("result.data") + " 为文件 URL 字符串数组；无成功结果时为空，有错误时由 " + code("error") + " 字符串说明。所有终态返回 " + code("completed_at") + "，仅有成功结果时返回 " + code("expires_at") + "，时间均为 Unix 秒。请在过期前下载自己的实际结果 URL。", "",
-              "完整响应规则、部分成功、错误码与轮询程序见[媒体 API 接入指南](/media-api#查询任务与下载结果)。模型或媒体类型不匹配、字段非法、未开放能力会在创建前拒绝；创建成功后的执行失败通过查询响应的 " + code("completed + error") + " 返回。", "", "## 计费与交付", ""]
+              "完整响应规则、部分成功、错误码与轮询程序见[媒体 API 接入指南](/media-api#查询任务与下载结果)。模型或媒体类型不匹配、字段非法、未开放能力会在创建前拒绝；创建成功后的执行失败通过查询响应的 " + code("completed + error") + " 返回。", ""]
+    if gpt_image:
+        lines += gpt_image_response_notes(model)
+    lines += ["## 计费与交付", ""]
     units = {"image": "按成功交付的图片结果数计费", "video": "按成功交付的视频时长（秒）计费", "per_request": "按成功交付的生成次数计费"}
     lines += [units[model["pricing"]["billing_mode"]] + "。创建任务时预留额度，全部文件保存及任务处理完成后结算；失败部分释放预留额度。", ""]
     if model["pricing"].get("unit_price") is not None:
@@ -293,6 +308,9 @@ def generate(catalog):
     date = datetime.fromisoformat(catalog["snapshot_at"]).astimezone(ZoneInfo("Asia/Shanghai")).date()
     outputs, slugs = {}, set()
     active = {(model["model"], model["media_type"]) for model in models}
+    gpt_models = [model for model in models if model["model"].startswith("gpt-image-") and model["media_type"] == "image"]
+    outputs["frontend/docs/gpt-image.md"] = gpt_image_series_page(gpt_models, date)
+    outputs["frontend/docs/public/openapi/gpt-image.json"] = json.dumps(gpt_image_openapi(gpt_models, date), ensure_ascii=False, indent=2) + "\n"
     for model in models:
         assert model["callable"] and model["pricing_available"] and model["examples"], model["model"]
         value = slug(model, models)
@@ -378,7 +396,7 @@ def main():
             stale.append(f"Unexpected model page: {target}")
     if stale:
         raise SystemExit("Generated documentation is stale:\n" + "\n".join(stale))
-    print(dump({"action": "checked" if args.check else "generated", "models": len(catalog["models"]), "pages": len(outputs) - 1, "snapshot": catalog["snapshot_at"], "catalog_sha256": hashlib.sha256(source).hexdigest()}))
+    print(dump({"action": "checked" if args.check else "generated", "models": len(catalog["models"]), "pages": sum(path.endswith(".md") for path in outputs), "snapshot": catalog["snapshot_at"], "catalog_sha256": hashlib.sha256(source).hexdigest()}))
 
 
 if __name__ == "__main__":

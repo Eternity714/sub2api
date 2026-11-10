@@ -52,6 +52,7 @@ Claude Code 地址不含 `/v1`，其配置使用 `ANTHROPIC_AUTH_TOKEN`。Codex 
 | --- | --- |
 | `/docs/media-api` | 共用地址与鉴权、异步任务状态、结果下载、错误处理和计费 |
 | `/docs/media-images` | 统一图片参数、文生图与参考图生图、Bash/PowerShell 示例 |
+| `/docs/gpt-image` | 六款 GPT Image 型号对照、逐字段说明、目标尺寸、计费、异步示例及 OpenAPI 下载 |
 | `/docs/media-videos` | 统一视频参数、参考素材、开放状态与独立视频协议对照 |
 | `/docs/media-models/` 及模型页 | 当前可用模型、精确字段约束、示例和价格快照，全部由生成器维护 |
 
@@ -72,6 +73,8 @@ Claude Code 地址不含 `/v1`，其配置使用 `ANTHROPIC_AUTH_TOKEN`。Codex 
 `pnpm --dir frontend build` 先构建主应用，再运行 `docs:build` 将 VitePress 产物写入 `backend/internal/web/dist/docs`。现有 Dockerfile 会把整个 dist 嵌入同一个 Go 二进制。构建顺序不能反过来，否则主应用构建清空 dist 时会删除文档产物。
 
 后端同时支持 `/docs`、clean URL 文章直达、资源缓存和文档 404，并为 HTML 脚本注入 CSP nonce。原 `/docs/batch-image` 属于主应用登录功能，保留原入口，禁止复用该文档 slug。
+
+GPT Image 系列说明由 `deploy/media_gpt_image_docs.py` 和 `deploy/templates/gpt-image.md` 维护；同一生成命令同步输出系列指南、六个模型页与 `frontend/docs/public/openapi/gpt-image.json`。型号枚举、字段范围、默认值、示例及价格来自公开能力快照，不另写一套手工 Schema。发布前校验 OpenAPI，并用实际后端校验器与生产能力快照离线核对所有示例；文档验证不提交付费生图任务。
 
 ## 主机目录与文档更新
 
