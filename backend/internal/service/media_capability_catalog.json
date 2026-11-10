@@ -12520,5 +12520,181 @@
         "quality": "auto"
       }
     }
+  },
+  {
+    "platform": "grsai",
+    "upstream_model": "nano-banana-pro",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+    "evidence": "已核对官方Nano接口及异步查询；9:21在1K/2K/4K真实生成均成功，原图672x1584、1344x3168、2688x6336。",
+    "notes": "同名GRS原生型号；auto原样转发，图片档位转大写；只开放单图async与HTTP(S)参考图，不支持quality或像素写法。价格由渠道固定单价配置。",
+    "profile": {
+      "resolution_uppercase": true,
+      "field_map": {
+        "metadata.resolution": "imageSize"
+      }
+    },
+    "schema": {
+      "version": 1,
+      "allow_pixel_size": false,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "images": {
+          "type": "array",
+          "min_items": 1,
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          }
+        },
+        "aspectRatio": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21"
+          ],
+          "default": "auto"
+        },
+        "imageSize": {
+          "type": "string",
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "default": "1K"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "replyType": {
+          "type": "string",
+          "enum": [
+            "async"
+          ],
+          "default": "async"
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      }
+    },
+    "example": {
+      "model": "grsai/nano-banana-pro",
+      "prompt": "A blue ceramic vase",
+      "aspectRatio": "auto",
+      "imageSize": "1K",
+      "n": 1,
+      "replyType": "async"
+    }
+  },
+  {
+    "platform": "grsai",
+    "upstream_model": "nano-banana-2",
+    "media_type": "image",
+    "enabled": false,
+    "source": "https://qmy27nhsd9.apifox.cn/452392911e0.md",
+    "evidence": "已核对官方Nano接口及异步查询；9:21在1K/2K/4K真实生成均成功，原图672x1584、1344x3168、2688x6336。",
+    "notes": "同名GRS原生型号；auto原样转发，图片档位转大写；只开放单图async与HTTP(S)参考图，不支持quality或像素写法。价格由渠道固定单价配置。",
+    "profile": {
+      "resolution_uppercase": true,
+      "field_map": {
+        "metadata.resolution": "imageSize"
+      }
+    },
+    "schema": {
+      "version": 1,
+      "allow_pixel_size": false,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1,
+          "max_length": 32000
+        },
+        "images": {
+          "type": "array",
+          "min_items": 1,
+          "items": {
+            "type": "string",
+            "format": "http_url"
+          }
+        },
+        "aspectRatio": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "5:4",
+            "4:5",
+            "21:9",
+            "9:21"
+          ],
+          "default": "auto"
+        },
+        "imageSize": {
+          "type": "string",
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "default": "1K"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "replyType": {
+          "type": "string",
+          "enum": [
+            "async"
+          ],
+          "default": "async"
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      }
+    },
+    "example": {
+      "model": "grsai/nano-banana-2",
+      "prompt": "A blue ceramic vase",
+      "aspectRatio": "auto",
+      "imageSize": "1K",
+      "n": 1,
+      "replyType": "async"
+    }
   }
 ]

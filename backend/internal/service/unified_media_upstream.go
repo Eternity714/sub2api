@@ -24,6 +24,7 @@ type UnifiedMediaAdapterProfile struct {
 	PixelSize           bool              `json:"pixel_size,omitempty"`
 	StringDuration      bool              `json:"string_duration,omitempty"`
 	ResolutionLowercase bool              `json:"resolution_lowercase,omitempty"`
+	ResolutionUppercase bool              `json:"resolution_uppercase,omitempty"`
 	SubmitPath          string            `json:"submit_path,omitempty"`
 	QueryPath           string            `json:"query_path,omitempty"`
 	FixedFields         map[string]any    `json:"fixed_fields,omitempty"`
@@ -74,6 +75,13 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 		}
 		return buildUnifiedOpenAIImagePayload(model, request, values, metadata, count)
 	}
+	profile := mediaAdapterProfile(platform, mediaType, model)
+	if len(request.AdapterProfile) > 0 {
+		profile = UnifiedMediaAdapterProfile{}
+		if err := json.Unmarshal(request.AdapterProfile, &profile); err != nil {
+			return nil, "", errors.New("captured media adapter profile is invalid")
+		}
+	}
 	if platform == PlatformGrsai {
 		out := map[string]any{"model": model, "replyType": "async"}
 		for _, field := range []string{"prompt", "duration"} {
@@ -85,6 +93,18 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 			out["images"] = images
 		}
 		if mediaType == "image" {
+			if profile.FieldMap["metadata.resolution"] == "imageSize" {
+				resolution, _ := metadata["resolution"].(string)
+				if profile.ResolutionUppercase {
+					resolution = strings.ToUpper(resolution)
+				}
+				switch resolution {
+				case "1K", "2K", "4K":
+					out["imageSize"] = resolution
+				default:
+					return nil, "", errors.New("GRS imageSize requires a supported resolution tier")
+				}
+			}
 			if size, ok := values["size"]; ok {
 				out["aspectRatio"] = size
 			}
@@ -138,13 +158,6 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 	}
 	if platform != "toapis" {
 		return nil, "", errors.New("unsupported unified media provider")
-	}
-	profile := mediaAdapterProfile(platform, mediaType, model)
-	if len(request.AdapterProfile) > 0 {
-		profile = UnifiedMediaAdapterProfile{}
-		if err := json.Unmarshal(request.AdapterProfile, &profile); err != nil {
-			return nil, "", errors.New("captured media adapter profile is invalid")
-		}
 	}
 	out := map[string]any{"model": model}
 	fields := []string{"prompt", "image_urls"}

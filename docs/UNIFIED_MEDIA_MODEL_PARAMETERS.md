@@ -12,11 +12,11 @@
 
 ## 模板覆盖
 
-目录登记 111 条，含 102 条基础生成模板和 9 条未发布 schema 的待核实条目。统计包含同名模型的不同媒体能力，不能当作不同模型数量或账号实测数量。
+目录登记 113 条，含 104 条基础生成模板和 9 条未发布 schema 的待核实条目。统计包含同名模型的不同媒体能力，不能当作不同模型数量或账号实测数量。
 
 | 平台 | 图片模板 | 视频模板 | 待核实/独立操作 |
 | --- | ---: | ---: | ---: |
-| grsai | 8 | 2 | 0 |
+| grsai | 10 | 2 | 0 |
 | toapis | 38 | 46 | 9 |
 | kuaipao | 8 | 0 | 0 |
 
@@ -4211,5 +4211,73 @@
     "resolution": "1K",
     "quality": "auto"
   }
+}
+```
+
+
+## grsai / nano-banana-pro / image
+
+官方来源：[Nano Banana系列接口](https://qmy27nhsd9.apifox.cn/452392911e0.md)，[异步查询](https://qmy27nhsd9.apifox.cn/452409577e0.md)。
+
+公开参数为`prompt`、可选HTTP(S)参考图`images`、默认`auto`的`aspectRatio`、默认`1k`且兼容大小写的`imageSize`；`n`仅1、`replyType`仅async，禁止quality和像素写法。三个分辨率统一0.2元/张。
+
+比例：`auto`、`1:1`、`16:9`、`9:16`、`4:3`、`3:4`、`3:2`、`2:3`、`5:4`、`4:5`、`21:9`、`9:21`。9:21三档最小实测均成功，原图依次为672×1584、1344×3168、2688×6336；保留服务原图，档位不承诺固定像素。
+
+Provider冻结`resolution_uppercase=true`和`metadata.resolution -> imageSize`映射，复制请求后转为GRS的1K/2K/4K；auto原样发送，不套用GPT正方形规则。提交`POST /v1/api/generate`，固定replyType=async，n不转发；按ID查询`GET /v1/api/result`。
+
+
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `images` | array<string> | 否 | — | 最少项 1 |
+| `aspectRatio` | string | 否 | `"auto"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21"]` |
+| `imageSize` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 1 |
+| `replyType` | string | 否 | `"async"` | 枚举 `["async"]` |
+
+请求示例：
+
+```json
+{
+  "model": "grsai/nano-banana-pro",
+  "prompt": "A blue ceramic vase",
+  "aspectRatio": "auto",
+  "imageSize": "1K",
+  "n": 1,
+  "replyType": "async"
+}
+```
+## grsai / nano-banana-2 / image
+
+官方来源：[Nano Banana系列接口](https://qmy27nhsd9.apifox.cn/452392911e0.md)，[异步查询](https://qmy27nhsd9.apifox.cn/452409577e0.md)。
+
+公开参数为`prompt`、可选HTTP(S)参考图`images`、默认`auto`的`aspectRatio`、默认`1k`且兼容大小写的`imageSize`；`n`仅1、`replyType`仅async，禁止quality和像素写法。三个分辨率统一0.15元/张。
+
+比例：`auto`、`1:1`、`16:9`、`9:16`、`4:3`、`3:4`、`3:2`、`2:3`、`5:4`、`4:5`、`21:9`、`9:21`。9:21三档最小实测均成功，原图依次为672×1584、1344×3168、2688×6336；保留服务原图，档位不承诺固定像素。
+
+Provider冻结`resolution_uppercase=true`和`metadata.resolution -> imageSize`映射，复制请求后转为GRS的1K/2K/4K；auto原样发送，不套用GPT正方形规则。提交`POST /v1/api/generate`，固定replyType=async，n不转发；按ID查询`GET /v1/api/result`。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1；最长字符 32000 |
+| `images` | array<string> | 否 | — | 最少项 1 |
+| `aspectRatio` | string | 否 | `"auto"` | 枚举 `["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3","5:4","4:5","21:9","9:21"]` |
+| `imageSize` | string | 否 | `"1K"` | 枚举 `["1K","2K","4K"]` |
+| `n` | integer | 否 | `1` | 最小 1；最大 1 |
+| `replyType` | string | 否 | `"async"` | 枚举 `["async"]` |
+
+请求示例：
+
+```json
+{
+  "model": "grsai/nano-banana-2",
+  "prompt": "A blue ceramic vase",
+  "aspectRatio": "auto",
+  "imageSize": "1K",
+  "n": 1,
+  "replyType": "async"
 }
 ```

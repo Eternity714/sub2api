@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/mediacapability"
 )
@@ -34,7 +35,7 @@ func planUnifiedMediaProviderRequest(platform, mediaType, model string, original
 		if err != nil {
 			return nil, err
 		}
-		request, err := adaptUnifiedMediaProviderRequest(mediaType, providerSchema, original)
+		request, err := adaptUnifiedMediaProviderRequest(mediaType, providerSchema, original, &profile)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +83,7 @@ func planUnifiedMediaProviderRequest(platform, mediaType, model string, original
 
 // Replay the frozen schema, never the current catalog. Image models bind their
 // captured request tier/geometry; explicit quality levels stay exact.
-func adaptUnifiedMediaProviderRequest(mediaType string, schemaJSON json.RawMessage, original *mediacapability.NormalizedRequest) (*mediacapability.NormalizedRequest, error) {
+func adaptUnifiedMediaProviderRequest(mediaType string, schemaJSON json.RawMessage, original *mediacapability.NormalizedRequest, profile *UnifiedMediaAdapterProfile) (*mediacapability.NormalizedRequest, error) {
 	if original == nil || original.Values == nil {
 		return nil, errors.New("media normalized payload is unavailable")
 	}
@@ -99,6 +100,15 @@ func adaptUnifiedMediaProviderRequest(mediaType string, schemaJSON json.RawMessa
 	decoder.UseNumber()
 	if err := decoder.Decode(&values); err != nil {
 		return nil, err
+	}
+	// Canonicalize only the provider's copied request. The accepted public
+	// spelling stays in the snapshot, and replay uses this frozen profile.
+	if profile != nil && profile.ResolutionUppercase {
+		if metadata, ok := values["metadata"].(map[string]any); ok {
+			if resolution, ok := metadata["resolution"].(string); ok {
+				metadata["resolution"] = strings.ToUpper(resolution)
+			}
+		}
 	}
 	if original.FixedImageResolution != "" || original.RequestedImageSpec != nil {
 		if mediaType != "image" || original.ImageSpec == nil || (original.FixedImageResolution != "" && original.ImageSpec.Resolution != original.FixedImageResolution) {

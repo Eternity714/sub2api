@@ -224,6 +224,10 @@ def model_page(model, date):
             lines += ["使用 " + code("imageSize") + " 选择 **1K、2K、4K**，省略时默认 **1K**；" + code("aspectRatio:auto") + " 按 " + code(schema["auto_image_aspect_ratio"]) + " 构造请求，三个档位的正方形目标尺寸分别为 1024×1024、2048×2048、2880×2880。", "",
                       "下表为请求的目标尺寸映射。实际交付保留生成服务原图，像素尺寸可能存在差异，不因该差异自动缩放、裁剪或重试。按请求的 " + code("imageSize") + " 档位计费，不根据结果像素重新分档。", "",
                       "仅接受比例写法，不接受 " + code("aspectRatio:1024x1024") + " 等像素尺寸。四种质量在同一分辨率下同价。", ""]
+        elif name in ["nano-banana-pro", "nano-banana-2"]:
+            lines += ["使用 " + code("imageSize") + " 选择 " + paths(["1k", "2k", "4k"]) + "，省略时默认 " + code("1k") + "；同时兼容对应大写 " + paths(["1K", "2K", "4K"]) + "。三个分辨率档位采用同一单张价格。", "",
+                      code("aspectRatio") + " 默认 " + code("auto") + "，交由生成服务自动决定比例；不会固定转换为正方形。支持比例见参数表。实际交付保留上游原图，分辨率表示档位，不承诺固定像素尺寸。", "",
+                      "不接受像素尺寸写法及 " + code("quality") + " 参数。每次仅生成一张，" + code("n:1") + "、" + code("replyType:async") + " 可省略。", ""]
         elif name.endswith("-1k") and "imageSize" not in fields:
             lines += ["本模型固定为 **1K**，只使用 " + code("aspectRatio") + " 选择上表列出的比例。" + code("auto") + " 由生成服务自动决定比例，不承诺固定像素。同一比例的实际像素可因生成服务而不同。", "",
                       "不接受 " + paths(["imageSize", "resolution", "metadata.resolution"]) + "，也不接受像素尺寸写法；质量仅支持 " + code("quality:auto") + "。", ""]

@@ -761,7 +761,7 @@ func UnifiedMediaTaskResultExpiry(task *UnifiedMediaTask) *time.Time {
 }
 func unifiedMediaCandidateRequest(original *mediacapability.NormalizedRequest, candidate UnifiedMediaCandidateSnapshot) (*mediacapability.NormalizedRequest, error) {
 	if candidate.ProviderManaged {
-		request, err := adaptUnifiedMediaProviderRequest(candidate.Capability.MediaType, candidate.Capability.Schema, original)
+		request, err := adaptUnifiedMediaProviderRequest(candidate.Capability.MediaType, candidate.Capability.Schema, original, candidate.AdapterProfile)
 		if err != nil {
 			return nil, err
 		}
