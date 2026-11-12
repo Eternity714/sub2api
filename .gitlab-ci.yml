@@ -17,6 +17,7 @@ default:
 
 variables:
   GO_IMAGE: golang:1.27.4-alpine
+  GO_TEST_IMAGE: golang:1.27.4
   GOPROXY: https://goproxy.cn,direct
   GOSUMDB: sum.golang.google.cn
   GOTOOLCHAIN: local
@@ -39,15 +40,21 @@ variables:
 backend-check:
   extends: .go-cache
   stage: verify
-  image: $GO_IMAGE
+  image: $GO_TEST_IMAGE
   timeout: 40m
   script:
-    - apk add --no-cache git build-base python3 docker-cli docker-cli-compose
-    - /bin/sh deploy/tests/docker-compose-simple-mode-env-test.sh
     - cd backend
     - go version
     - go test -tags=unit ./...
     - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+compose-config:
+  stage: verify
+  image: docker:28.5.2-cli
+  timeout: 15m
+  script:
+    - apk add --no-cache python3
+    - /bin/sh deploy/tests/docker-compose-simple-mode-env-test.sh
 
 frontend-check:
   stage: verify
@@ -87,12 +94,12 @@ frontend-check:
 backend-integration:
   extends: [.docker-service, .go-cache]
   stage: verify
-  image: $GO_IMAGE
+  image: $GO_TEST_IMAGE
   timeout: 40m
   variables:
     TESTCONTAINERS_HOST_OVERRIDE: docker
   script:
-    - apk add --no-cache git build-base docker-cli
+    - apt-get update && apt-get install -y --no-install-recommends docker-cli
     - docker info
     - cd backend
     - go test -tags=integration ./...
@@ -101,6 +108,8 @@ backend-lint:
   stage: verify
   image: golangci/golangci-lint:v2.14.0
   timeout: 35m
+  variables:
+    GOTOOLCHAIN: go1.27.4
   script:
     - cd backend
     - golangci-lint run --timeout=30m

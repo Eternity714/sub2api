@@ -11,6 +11,7 @@
 受保护的默认分支在检查通过后构建 Linux amd64 镜像并推送至
 `ghcr.io/eternity714/sub2api:sha-<完整 commit SHA>`，不生成 `latest` 或 `main` 标签。
 构建使用 Go 1.27.4，避开 Go 1.27.3 的 GO-2026-6859。
+后端测试使用含编译工具的 Debian Go 镜像；golangci-lint 明确选择 Go 1.27.4 工具链。
 GitLab 任务与镜像构建通过 `APK_MIRROR` 使用阿里云 Alpine 镜像源；
 可在 CI 变量中调整。直接使用 Dockerfile 时该参数默认空，沿用原软件源。
 已存在的 SHA 标签不会被覆盖；发布任务的 `image.env` 和 `image-metadata.json`
