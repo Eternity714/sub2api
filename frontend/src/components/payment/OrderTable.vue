@@ -60,10 +60,10 @@ const props = defineProps<{
 
 function formatDate(dateStr: string) { return new Date(dateStr).toLocaleString() }
 
-const creditedAmountSymbol = currencySymbol('CNY')
+const creditedAmountSymbol = currencySymbol('USD')
 
 function paymentAmountSymbol(order: PaymentOrder): string {
-  return currencySymbol(order.payment_type === 'balance' ? 'CNY' : order.currency)
+  return currencySymbol(order.currency)
 }
 
 const columns = computed((): Column[] => {

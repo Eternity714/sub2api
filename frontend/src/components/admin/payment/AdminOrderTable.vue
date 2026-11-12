@@ -171,10 +171,10 @@ const emit = defineEmits<{
 
 const searchQuery = ref('')
 const filters = reactive({ status: '', payment_type: '', order_type: '' })
-const creditedAmountSymbol = currencySymbol('CNY')
+const creditedAmountSymbol = currencySymbol('USD')
 
 function paymentAmountSymbol(order: PaymentOrder): string {
-  return currencySymbol(order.payment_type === 'balance' ? 'CNY' : order.currency)
+  return currencySymbol(order.currency)
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
