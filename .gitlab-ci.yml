@@ -1,0 +1,136 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+
+stages:
+  - verify
+  - build
+
+default:
+  tags: [linux, podman]
+  interruptible: true
+
+variables:
+  GO_IMAGE: golang:1.27.4-alpine
+  GOPROXY: https://goproxy.cn,direct
+  GOSUMDB: sum.golang.google.cn
+  GOTOOLCHAIN: local
+  GOMAXPROCS: "2"
+  GOFLAGS: -p=2
+  GOMEMLIMIT: 2GiB
+  GHCR_IMAGE: ghcr.io/eternity714/sub2api
+
+backend-check:
+  stage: verify
+  image: $GO_IMAGE
+  timeout: 40m
+  variables:
+    GOMODCACHE: $CI_PROJECT_DIR/.cache/go-mod
+    GOCACHE: $CI_PROJECT_DIR/.cache/go-build
+  cache:
+    key:
+      prefix: go-1.27.4
+      files: [backend/go.sum]
+    paths: [.cache/go-mod/, .cache/go-build/]
+  script:
+    - apk add --no-cache git build-base python3 docker-cli docker-cli-compose
+    - /bin/sh deploy/tests/docker-compose-simple-mode-env-test.sh
+    - cd backend
+    - go version
+    - go test -tags=unit ./...
+    - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+frontend-check:
+  stage: verify
+  image: node:24-alpine
+  timeout: 30m
+  cache:
+    key:
+      prefix: pnpm-9
+      files: [frontend/pnpm-lock.yaml]
+    paths: [.cache/pnpm/]
+  script:
+    - apk add --no-cache python3 make
+    - corepack enable && corepack prepare pnpm@9.15.9 --activate
+    - pnpm --dir frontend install --frozen-lockfile --store-dir "$CI_PROJECT_DIR/.cache/pnpm"
+    - make test-frontend
+    - pnpm --dir frontend audit --prod --audit-level=high --json > frontend/audit.json || true
+    - >-
+      node -e 'const a = JSON.parse(require("fs").readFileSync("frontend/audit.json", "utf8"));
+      if (a.error || !a.metadata || !a.metadata.vulnerabilities) throw new Error("pnpm audit did not return a vulnerability report")'
+    - python3 tools/check_pnpm_audit_exceptions.py --audit frontend/audit.json --exceptions .github/audit-exceptions.yml
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths: [frontend/audit.json]
+
+.docker-service:
+  services:
+    - name: docker:28.5.2-dind
+      alias: docker
+      command: ["--tls=false"]
+  variables:
+    FF_NETWORK_PER_BUILD: "true"
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    HEALTHCHECK_TCP_PORT: "2375"
+
+backend-integration:
+  extends: .docker-service
+  stage: verify
+  image: $GO_IMAGE
+  timeout: 40m
+  variables:
+    TESTCONTAINERS_HOST_OVERRIDE: docker
+  script:
+    - apk add --no-cache git build-base docker-cli
+    - docker info
+    - cd backend
+    - go test -tags=integration ./...
+
+backend-lint:
+  stage: verify
+  image: golangci/golangci-lint:v2.14.0
+  timeout: 35m
+  script:
+    - cd backend
+    - golangci-lint run --timeout=30m
+
+release-helpers:
+  stage: verify
+  image: python:3.12-alpine
+  timeout: 15m
+  script:
+    - apk add --no-cache bash rsync coreutils findutils
+    - python -m pip install -r .github/release-tools/requirements-release.txt
+    - python -m unittest discover -s .github/release-tools -p 'test_release_matrix.py'
+    - bash -n .github/release-tools/release-images.sh
+    - bash -n deploy/gray-prepare-documentation.sh
+    - bash deploy/tests/gray-prepare-documentation-test.sh
+
+build-image:
+  extends: .docker-service
+  stage: build
+  image: docker:28.5.2-cli
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
+  resource_group: ghcr-image
+  interruptible: false
+  timeout: 90m
+  before_script:
+    - apk add --no-cache jq
+    - docker info
+    - test -n "$GHCR_USERNAME" && test -n "$GHCR_TOKEN"
+    - printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+  script:
+    - sh deploy/gitlab-build-image.sh
+  after_script:
+    - docker logout ghcr.io
+  artifacts:
+    expire_in: 30 days
+    paths: [image.env, image-metadata.json]
+    reports:
+      dotenv: image.env
