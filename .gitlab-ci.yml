@@ -149,12 +149,12 @@ build-image:
   timeout: 90m
   before_script:
     - if test -n "${APK_MIRROR:-}"; then sed -i "s|https://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR%/}|g" /etc/apk/repositories; fi
-    - apk add --no-cache jq git
+    - apk add --no-cache jq git bash
     - docker info
     - test -n "$GHCR_USERNAME" && test -n "$GHCR_TOKEN"
     - printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
   script:
-    - sh deploy/gitlab-build-image.sh
+    - bash deploy/gitlab-build-image.sh
   after_script:
     - docker logout ghcr.io
   artifacts:

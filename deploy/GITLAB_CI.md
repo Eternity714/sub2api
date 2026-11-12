@@ -29,6 +29,8 @@ GitLab 任务与镜像构建通过 `APK_MIRROR` 使用阿里云 Alpine 镜像源
 Docker daemon 只在任务内部网络提供服务，不向宿主机发布端口。
 DinD 与 BuildKit 均通过 `docker.m.daocloud.io` 拉取 Docker Hub 镜像，
 适配 Runner 直连 Docker Hub 超时的网络环境；GHCR 发布地址保持不变。
+镜像导出/推送前的暂时性下载错误最多重试三次，并保留同一构建器的缓存；
+一旦进入发布阶段便不自动重建，以免改写已经发布的 SHA 标签。
 流水线不持有生产 SSH 凭据，也不自动部署、切流或晋升。
 
 镜像就绪后的部署继续遵循 `AGENTS.md`：先在服务器运行 `gray-status.sh`，
