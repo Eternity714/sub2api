@@ -132,9 +132,9 @@ const props = defineProps<{
   order: PaymentOrder | null
 }>()
 
-const creditedAmountSymbol = currencySymbol('USD')
+const creditedAmountSymbol = currencySymbol('CNY')
 
-const paymentAmountSymbol = computed(() => currencySymbol(props.order?.currency))
+const paymentAmountSymbol = computed(() => currencySymbol(props.order?.payment_type === 'balance' ? 'CNY' : props.order?.currency))
 
 /** 充值金额 (base amount before fee) = pay_amount - fee = pay_amount / (1 + fee_rate/100) */
 const baseAmount = computed(() => {

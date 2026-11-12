@@ -96,11 +96,11 @@
                 </div>
                 <div v-if="showBonusRow" class="flex justify-between" :class="{ 'border-t border-gray-200 pt-2 dark:border-dark-600': !showActualPay }" data-testid="recharge-bonus-row">
                   <span class="text-gray-500 dark:text-gray-400">{{ t('payment.rechargeBonus.amountLabelWithPercent', { percent: formatRechargeBonusNumber(bonusQuote.percent) }) }}</span>
-                  <span class="font-medium text-red-600 dark:text-red-400">+${{ bonusQuote.bonus.toFixed(2) }}</span>
+                  <span class="font-medium text-red-600 dark:text-red-400">+￥{{ bonusQuote.bonus.toFixed(2) }}</span>
                 </div>
                 <div v-if="showCreditedBalance" class="flex justify-between" :class="{ 'border-t border-gray-200 pt-2 dark:border-dark-600': !showActualPay && !showBonusRow }" data-testid="recharge-credited-row">
                   <span class="text-gray-500 dark:text-gray-400">{{ t('payment.creditedBalance') }}</span>
-                  <span :class="bonusQuote.percent > 0 ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'">${{ creditedAmount.toFixed(2) }}</span>
+                  <span :class="bonusQuote.percent > 0 ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'">￥{{ creditedAmount.toFixed(2) }}</span>
                 </div>
                 <p v-if="balanceRechargeMultiplier !== 1" class="border-t border-gray-200 pt-2 text-xs text-gray-500 dark:border-dark-600 dark:text-gray-400">
                   {{ t('payment.rechargeRatePreview', { currency: selectedCurrency, usd: formatBalanceRechargeMultiplier(balanceRechargeMultiplier) }) }}
@@ -123,8 +123,8 @@
               <p class="text-sm text-gray-600 dark:text-gray-400">{{ selectedPlan?.name }}</p>
               <dl class="space-y-2 text-sm">
                 <div class="flex justify-between"><dt>{{ t('payment.orders.orderId') }}</dt><dd>#{{ balanceSubscriptionResult.order_id }}</dd></div>
-                <div class="flex justify-between"><dt>{{ t('payment.balanceSubscription.charge') }}</dt><dd>{{ formatPaymentAmount(balanceSubscriptionResult.pay_amount, 'USD', localeCode) }}</dd></div>
-                <div class="flex justify-between"><dt>{{ t('payment.balanceSubscription.balanceAfterPayment') }}</dt><dd>{{ formatUsdBalance(balanceSubscriptionResult.balance) }}</dd></div>
+                <div class="flex justify-between"><dt>{{ t('payment.balanceSubscription.charge') }}</dt><dd>{{ formatPaymentAmount(balanceSubscriptionResult.pay_amount, 'CNY', localeCode) }}</dd></div>
+                <div class="flex justify-between"><dt>{{ t('payment.balanceSubscription.balanceAfterPayment') }}</dt><dd>{{ formatBalanceAmount(balanceSubscriptionResult.balance) }}</dd></div>
               </dl>
               <p v-if="balanceSubscriptionRefreshWarning" data-testid="balance-subscription-refresh-warning" class="text-sm text-amber-700 dark:text-amber-300">{{ t('payment.balanceSubscription.refreshWarning') }}</p>
               <div class="flex flex-wrap gap-3">
@@ -171,15 +171,15 @@
                   </div>
                   <div v-if="selectedPlan.daily_limit_usd != null">
                     <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payment.planCard.dailyLimit') }}</span>
-                    <div class="text-lg font-semibold text-gray-800 dark:text-gray-200">${{ selectedPlan.daily_limit_usd }}</div>
+                    <div class="text-lg font-semibold text-gray-800 dark:text-gray-200">￥{{ selectedPlan.daily_limit_usd }}</div>
                   </div>
                   <div v-if="selectedPlan.weekly_limit_usd != null">
                     <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payment.planCard.weeklyLimit') }}</span>
-                    <div class="text-lg font-semibold text-gray-800 dark:text-gray-200">${{ selectedPlan.weekly_limit_usd }}</div>
+                    <div class="text-lg font-semibold text-gray-800 dark:text-gray-200">￥{{ selectedPlan.weekly_limit_usd }}</div>
                   </div>
                   <div v-if="selectedPlan.monthly_limit_usd != null">
                     <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payment.planCard.monthlyLimit') }}</span>
-                    <div class="text-lg font-semibold text-gray-800 dark:text-gray-200">${{ selectedPlan.monthly_limit_usd }}</div>
+                    <div class="text-lg font-semibold text-gray-800 dark:text-gray-200">￥{{ selectedPlan.monthly_limit_usd }}</div>
                   </div>
                   <div v-if="selectedPlan.daily_limit_usd == null && selectedPlan.weekly_limit_usd == null && selectedPlan.monthly_limit_usd == null">
                     <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payment.planCard.quota') }}</span>
@@ -200,11 +200,11 @@
               <div v-if="isSubscriptionBalancePayment" data-testid="balance-subscription-quote" class="card space-y-3 p-6">
                 <p class="text-sm text-gray-600 dark:text-gray-400">{{ t(hasUnresolvedBalanceSubscription ? 'payment.balanceSubscription.unknown' : 'payment.balanceSubscription.notice') }}</p>
                 <dl class="space-y-2 text-sm">
-                  <div class="flex justify-between"><dt>{{ t('payment.currentBalance') }}</dt><dd>{{ formatUsdBalance(subscriptionAccountBalance) }}</dd></div>
-                  <div class="flex justify-between"><dt>{{ t('payment.balanceSubscription.charge') }}</dt><dd data-testid="balance-subscription-charge" class="font-semibold">{{ formatPaymentAmount(subscriptionBalanceAmount, 'USD', localeCode) }}</dd></div>
-                  <div v-if="!hasUnresolvedBalanceSubscription && subscriptionBalanceShortfall <= 0" class="flex justify-between"><dt>{{ t('payment.balanceSubscription.remaining') }}</dt><dd data-testid="balance-subscription-remaining">{{ formatUsdBalance(subscriptionAccountBalance - subscriptionBalanceAmount) }}</dd></div>
+                  <div class="flex justify-between"><dt>{{ t('payment.currentBalance') }}</dt><dd>{{ formatBalanceAmount(subscriptionAccountBalance) }}</dd></div>
+                  <div class="flex justify-between"><dt>{{ t('payment.balanceSubscription.charge') }}</dt><dd data-testid="balance-subscription-charge" class="font-semibold">{{ formatPaymentAmount(subscriptionBalanceAmount, 'CNY', localeCode) }}</dd></div>
+                  <div v-if="!hasUnresolvedBalanceSubscription && subscriptionBalanceShortfall <= 0" class="flex justify-between"><dt>{{ t('payment.balanceSubscription.remaining') }}</dt><dd data-testid="balance-subscription-remaining">{{ formatBalanceAmount(subscriptionAccountBalance - subscriptionBalanceAmount) }}</dd></div>
                 </dl>
-                <p v-if="!hasUnresolvedBalanceSubscription && subscriptionBalanceShortfall > 0" data-testid="balance-subscription-insufficient" role="alert" class="text-sm text-amber-700 dark:text-amber-300">{{ t('payment.balanceSubscription.insufficient', { amount: formatPaymentAmount(subscriptionBalanceShortfall, 'USD', localeCode) }) }}</p>
+                <p v-if="!hasUnresolvedBalanceSubscription && subscriptionBalanceShortfall > 0" data-testid="balance-subscription-insufficient" role="alert" class="text-sm text-amber-700 dark:text-amber-300">{{ t('payment.balanceSubscription.insufficient', { amount: formatPaymentAmount(subscriptionBalanceShortfall, 'CNY', localeCode) }) }}</p>
                 <p v-if="balanceSubscriptionError" data-testid="balance-subscription-error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ balanceSubscriptionError }}</p>
                 <button v-if="balanceSubscriptionPriceUnavailable" data-testid="refresh-balance-subscription-price" class="btn btn-secondary" :disabled="submitting" @click="refreshBalanceSubscriptionPrice">{{ t('payment.balanceSubscription.refreshPrice') }}</button>
               </div>
@@ -230,7 +230,7 @@
                   {{ t('common.processing') }}
                 </span>
                 <span v-else-if="isSubscriptionBalancePayment && hasUnresolvedBalanceSubscription">{{ t('payment.balanceSubscription.verify') }}</span>
-                <span v-else-if="isSubscriptionBalancePayment">{{ t('payment.balanceSubscription.confirm') }} {{ formatPaymentAmount(subscriptionBalanceAmount, 'USD', localeCode) }}</span>
+                <span v-else-if="isSubscriptionBalancePayment">{{ t('payment.balanceSubscription.confirm') }} {{ formatPaymentAmount(subscriptionBalanceAmount, 'CNY', localeCode) }}</span>
                 <span v-else>{{ t('payment.createOrder') }} {{ formatSelectedPaymentAmount(subTotalAmount) }}</span>
               </button>
               <button data-testid="cancel-subscription-plan" class="btn btn-secondary w-full" :disabled="submitting || hasUnresolvedBalanceSubscription" @click="cancelSubscriptionPlan">{{ t('common.cancel') }}</button>
@@ -725,11 +725,11 @@ function subscriptionPaymentAmountForCurrency(value: number, currency: string): 
 }
 
 function formatSelectedPaymentAmount(value: number): string {
-  return formatPaymentAmount(value, selectedCurrency.value, localeCode.value)
+  return formatPaymentAmount(value, isSubscriptionBalancePayment.value ? 'CNY' : selectedCurrency.value, localeCode.value)
 }
 
-function formatUsdBalance(value: number): string {
-  return new Intl.NumberFormat(localeCode.value, { style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol', minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value)
+function formatBalanceAmount(value: number): string {
+  return new Intl.NumberFormat(localeCode.value, { style: 'currency', currency: 'CNY', currencyDisplay: 'narrowSymbol', minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(value).replace(/¥/g, '￥')
 }
 
 function formatSelectedSubscriptionPaymentAmount(value: number): string {

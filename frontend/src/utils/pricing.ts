@@ -1,16 +1,17 @@
 /**
- * formatScaled formats a per-token (or per-request) USD price scaled by `scale`.
+ * formatScaled formats a per-token (or per-request) CNY price scaled by `scale`.
  *
- *   formatScaled(0.000003, 1_000_000)    → "$3"      // per 1M tokens
- *   formatScaled(0.5,        1)          → "$0.5"    // per request
+ *   formatScaled(0.000003, 1_000_000)    → "￥3"      // per 1M tokens
+ *   formatScaled(0.5,        1)          → "￥0.5"    // per request
  *   formatScaled(null,       1_000_000)  → "-"
- *   formatScaled(0.000003, 1_000_000, 2) → "$3.00"   // pad to ≥2 decimals
- *   formatScaled(1.25e-8,  1_000_000, 2) → "$0.0125" // longer decimals kept as-is
+ *   formatScaled(0.000003, 1_000_000, 2) → "￥3.00"   // pad to ≥2 decimals
+ *   formatScaled(1.25e-8,  1_000_000, 2) → "￥0.0125" // longer decimals kept as-is
  *
  * Uses toPrecision(10) then strips trailing zeros to avoid IEEE 754 display noise.
  * `minFractionDigits` pads the result back up to a minimum number of decimals.
+ * `symbol` preserves the source currency for external reference prices without conversion.
  */
-export function formatScaled(value: number | null, scale: number, minFractionDigits = 0): string {
+export function formatScaled(value: number | null, scale: number, minFractionDigits = 0, symbol = '￥'): string {
   if (value == null) return '-'
   let s = Number((value * scale).toPrecision(10)).toString()
   if (minFractionDigits > 0 && !s.includes('e')) {
@@ -20,7 +21,7 @@ export function formatScaled(value: number | null, scale: number, minFractionDig
       s = (dot === -1 ? `${s}.` : s) + '0'.repeat(minFractionDigits - digits)
     }
   }
-  return `$${s}`
+  return `${symbol}${s}`
 }
 
 import type { UserPricingInterval } from '@/api/channels'

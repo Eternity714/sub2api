@@ -55,7 +55,7 @@
       </label>
       <div class="relative">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-dark-500">
-          $
+          ￥
         </span>
         <input
           type="text"
@@ -143,7 +143,7 @@ function secondLine(amt: number): string {
   if (props.bonusMode === 'discount') {
     return t('payment.rechargeBonus.payShort', { amount: formatPaymentAmount(quote.payBase, props.currency) })
   }
-  return t('payment.rechargeBonus.creditedShort', { amount: '$' + quote.credited.toFixed(2) })
+  return t('payment.rechargeBonus.creditedShort', { amount: '￥' + quote.credited.toFixed(2) })
 }
 
 const placeholderText = computed(() => {

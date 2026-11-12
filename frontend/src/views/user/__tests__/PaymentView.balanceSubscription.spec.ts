@@ -95,11 +95,11 @@ describe('subscription balance payment', () => {
   })
 
   // AC-031.3: balance subscription prices use USD with no provider fee or recharge promotion.
-  it('supports balance-only checkout and displays USD without external rate, fee or recharge discounts', async () => {
+  it('supports balance-only checkout and displays CNY without external rate, fee or recharge discounts', async () => {
     const wrapper = await mountPage()
     expect(wrapper.getComponent(PaymentMethodSelector).props('selected')).toBe('balance')
-    expect(wrapper.get('[data-testid="balance-subscription-charge"]').text()).toBe('$10.00')
-    expect(wrapper.get('[data-testid="balance-subscription-remaining"]').text()).toBe('$20.00')
+    expect(wrapper.get('[data-testid="balance-subscription-charge"]').text()).toBe('￥10.00')
+    expect(wrapper.get('[data-testid="balance-subscription-remaining"]').text()).toBe('￥20.00')
     expect(wrapper.get('[data-testid="confirm-balance-subscription"]').text()).toContain('payment.balanceSubscription.confirm')
     expect(wrapper.get('[data-testid="confirm-balance-subscription"]').attributes('disabled')).toBeUndefined()
     expect(mocks.purchaseSubscriptionWithBalance).not.toHaveBeenCalled()
@@ -121,11 +121,11 @@ describe('subscription balance payment', () => {
     mocks.setUser({ id: 9, username: 'demo', balance: 10 })
     mocks.purchaseSubscriptionWithBalance.mockResolvedValue(completed({ balance: 0 }))
     const wrapper = await mountPage()
-    expect(wrapper.get('[data-testid="balance-subscription-remaining"]').text()).toBe('$0.00')
+    expect(wrapper.get('[data-testid="balance-subscription-remaining"]').text()).toBe('￥0.00')
     expect(wrapper.get('[data-testid="confirm-balance-subscription"]').attributes('disabled')).toBeUndefined()
     await wrapper.get('[data-testid="confirm-balance-subscription"]').trigger('click')
     await flushPromises()
-    expect(wrapper.get('[data-testid="balance-subscription-success"]').text()).toContain('$0.00')
+    expect(wrapper.get('[data-testid="balance-subscription-success"]').text()).toContain('￥0.00')
     expect(wrapper.get('[data-testid="balance-subscription-success"]').text()).toContain('payment.balanceSubscription.balanceAfterPayment')
     expect(mocks.purchaseSubscriptionWithBalance).toHaveBeenCalledTimes(1)
   })
@@ -154,7 +154,7 @@ describe('subscription balance payment', () => {
     selectBalance(wrapper)
     await flushPromises()
     expect(wrapper.getComponent(PaymentMethodSelector).props('selected')).toBe('balance')
-    expect(wrapper.get('[data-testid="balance-subscription-charge"]').text()).toBe('$10.00')
+    expect(wrapper.get('[data-testid="balance-subscription-charge"]').text()).toBe('￥10.00')
   })
 
   // AC-031.10: a pending purchase locks all controls that could create a second intent.
@@ -223,12 +223,12 @@ describe('subscription balance payment', () => {
     const verify = secondPage.get('[data-testid="confirm-balance-subscription"]')
     expect(verify.attributes('disabled')).toBeUndefined()
     expect(verify.text()).toContain('payment.balanceSubscription.verify')
-    expect(secondPage.get('[data-testid="balance-subscription-charge"]').text()).toBe('$10.00')
+    expect(secondPage.get('[data-testid="balance-subscription-charge"]').text()).toBe('￥10.00')
     expect(secondPage.find('[data-testid="balance-subscription-insufficient"]').exists()).toBe(false)
     await verify.trigger('click')
     await flushPromises()
     expect(mocks.purchaseSubscriptionWithBalance.mock.calls[1][0]).toEqual(first)
-    expect(secondPage.get('[data-testid="balance-subscription-success"]').text()).toContain('$0.00')
+    expect(secondPage.get('[data-testid="balance-subscription-success"]').text()).toContain('￥0.00')
   })
 
   // AC-031.3, AC-031.10: changed prices require a new explicit confirmation, not an automatic retry.
@@ -247,7 +247,7 @@ describe('subscription balance payment', () => {
     expect(first.expected_amount).toBe(10)
     expect(mocks.getCheckoutInfo).toHaveBeenCalledTimes(2)
     expect(mocks.purchaseSubscriptionWithBalance).toHaveBeenCalledTimes(1)
-    expect(wrapper.get('[data-testid="balance-subscription-charge"]').text()).toBe('$20.00')
+    expect(wrapper.get('[data-testid="balance-subscription-charge"]').text()).toBe('￥20.00')
     expect(wrapper.get('[data-testid="balance-subscription-error"]').text()).toContain('payment.balanceSubscription.priceChanged')
     const confirm = wrapper.get('[data-testid="confirm-balance-subscription"]')
     expect(confirm.text()).toContain('payment.balanceSubscription.confirm')
@@ -271,7 +271,7 @@ describe('subscription balance payment', () => {
     mocks.getCheckoutInfo.mockResolvedValue({ data: checkout({ plans: [{ ...checkout().plans[0], price: 12 }] }) })
     await wrapper.get('[data-testid="refresh-balance-subscription-price"]').trigger('click')
     await flushPromises()
-    expect(wrapper.get('[data-testid="balance-subscription-charge"]').text()).toBe('$12.00')
+    expect(wrapper.get('[data-testid="balance-subscription-charge"]').text()).toBe('￥12.00')
     expect(wrapper.get('[data-testid="confirm-balance-subscription"]').attributes('disabled')).toBeUndefined()
     expect(mocks.purchaseSubscriptionWithBalance).toHaveBeenCalledTimes(1)
   })

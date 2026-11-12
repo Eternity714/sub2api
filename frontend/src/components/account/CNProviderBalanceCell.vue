@@ -117,7 +117,7 @@ const currentEntries = computed<CNProviderBalanceEntry[]>(() => {
 
 const formatEntry = (entry: CNProviderBalanceEntry): string => {
   const fixed = entry.balance >= 100 ? entry.balance.toFixed(0) : entry.balance.toFixed(2)
-  return `${entry.currency || '¥'} ${fixed}`
+  return `${entry.currency || '￥'} ${fixed}`
 }
 
 const balanceLabel = computed(() => {

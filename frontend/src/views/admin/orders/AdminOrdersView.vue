@@ -157,10 +157,10 @@ const refundRequireForce = ref(false)
 const refundWarning = ref('')
 const refundQueryingIds = ref(new Set<number>())
 const orderAuditLogs = ref<AuditLog[]>([])
-const creditedAmountSymbol = currencySymbol('USD')
+const creditedAmountSymbol = currencySymbol('CNY')
 
 function paymentAmountSymbol(order: PaymentOrder | null | undefined): string {
-  return currencySymbol(order?.currency)
+  return currencySymbol(order?.payment_type === 'balance' ? 'CNY' : order?.currency)
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null

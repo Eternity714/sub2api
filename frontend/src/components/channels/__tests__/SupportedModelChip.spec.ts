@@ -35,9 +35,9 @@ describe('SupportedModelChip', () => {
     'image pricing using %s translations',
     (pricingKeyPrefix) => {
       it.each([
-        { name: 'gpt-image-2', perImagePrice: 0.06, imageTokenPrice: 0.00003, expected: '$0.06' },
-        { name: 'nano-banana-fast', perImagePrice: 0.044, imageTokenPrice: null, expected: '$0.044' },
-        { name: 'free-image', perImagePrice: 0, imageTokenPrice: 0.00003, expected: '$0' }
+        { name: 'gpt-image-2', perImagePrice: 0.06, imageTokenPrice: 0.00003, expected: '￥0.06' },
+        { name: 'nano-banana-fast', perImagePrice: 0.044, imageTokenPrice: null, expected: '￥0.044' },
+        { name: 'free-image', perImagePrice: 0, imageTokenPrice: 0.00003, expected: '￥0' }
       ])('shows $name per-image price instead of its image-token price', async (fixture) => {
         const wrapper = mount(SupportedModelChip, {
           attachTo: document.body,
@@ -66,7 +66,7 @@ describe('SupportedModelChip', () => {
           const tooltip = document.body.querySelector('[role="tooltip"]')
           expect(tooltip?.textContent).toContain(`${pricingKeyPrefix}.imagePrice`)
           expect(tooltip?.textContent).toContain(`${fixture.expected} ${pricingKeyPrefix}.unitPerImage`)
-          expect(tooltip?.textContent).not.toContain('$0.00003')
+          expect(tooltip?.textContent).not.toContain('￥0.00003')
           expect(tooltip?.textContent).not.toContain(`${pricingKeyPrefix}.unitPerRequest`)
         } finally {
           wrapper.unmount()
@@ -100,7 +100,7 @@ describe('SupportedModelChip', () => {
           await nextTick()
           const tooltip = document.body.querySelector('[role="tooltip"]')
           expect(tooltip?.textContent).toContain(`${pricingKeyPrefix}.imagePrice-`)
-          expect(tooltip?.textContent).not.toContain('$0.00003')
+          expect(tooltip?.textContent).not.toContain('￥0.00003')
         } finally {
           wrapper.unmount()
         }
@@ -135,8 +135,8 @@ describe('SupportedModelChip', () => {
           await wrapper.find('[tabindex="0"]').trigger('mouseenter')
           await nextTick()
           const tooltip = document.body.querySelector('[role="tooltip"]')
-          expect(tooltip?.textContent).toContain(`1K$0 ${pricingKeyPrefix}.unitPerImage`)
-          expect(tooltip?.textContent).toContain(`2K$0.09 ${pricingKeyPrefix}.unitPerImage`)
+          expect(tooltip?.textContent).toContain(`1K￥0 ${pricingKeyPrefix}.unitPerImage`)
+          expect(tooltip?.textContent).toContain(`2K￥0.09 ${pricingKeyPrefix}.unitPerImage`)
         } finally {
           wrapper.unmount()
         }
@@ -177,22 +177,22 @@ describe('SupportedModelChip', () => {
         const tooltip = document.body.querySelector('[role="tooltip"]')
         expect(tooltip?.textContent).toContain(`${pricingKeyPrefix}.billingModeVideo`)
         expect(tooltip?.textContent).toContain(`${pricingKeyPrefix}.videoPrice`)
-        expect(tooltip?.textContent).toContain(`$0.05 ${pricingKeyPrefix}.unitPerSecond`)
+        expect(tooltip?.textContent).toContain(`￥0.05 ${pricingKeyPrefix}.unitPerSecond`)
         expect(tooltip?.textContent).toContain('480p')
-        expect(tooltip?.textContent).toContain(`$0 ${pricingKeyPrefix}.unitPerSecond`)
+        expect(tooltip?.textContent).toContain(`￥0 ${pricingKeyPrefix}.unitPerSecond`)
         expect(tooltip?.textContent).toContain('720p')
-        expect(tooltip?.textContent).toContain(`$0.12 ${pricingKeyPrefix}.unitPerSecond`)
+        expect(tooltip?.textContent).toContain(`￥0.12 ${pricingKeyPrefix}.unitPerSecond`)
         const model = wrapper.props('model')
         await wrapper.setProps({
           model: { ...model, pricing: { ...model.pricing!, per_request_price: null } }
         })
         expect(tooltip?.textContent).not.toContain(`${pricingKeyPrefix}.videoPrice`)
-        expect(tooltip?.textContent).toContain(`$0.12 ${pricingKeyPrefix}.unitPerSecond`)
+        expect(tooltip?.textContent).toContain(`￥0.12 ${pricingKeyPrefix}.unitPerSecond`)
         await wrapper.setProps({
           model: { ...model, pricing: { ...model.pricing!, per_request_price: 0 } }
         })
         expect(tooltip?.textContent).toContain(`${pricingKeyPrefix}.videoPrice`)
-        expect(wrapper.findComponent({ name: 'PricingRow' }).text()).toContain(`$0 ${pricingKeyPrefix}.unitPerSecond`)
+        expect(wrapper.findComponent({ name: 'PricingRow' }).text()).toContain(`￥0 ${pricingKeyPrefix}.unitPerSecond`)
       } finally {
         wrapper.unmount()
       }
@@ -235,7 +235,7 @@ describe('SupportedModelChip', () => {
     await wrapper.find('[tabindex="0"]').trigger('mouseenter')
     await nextTick()
 
-    expect(document.body.textContent).toContain('$20 / $75')
+    expect(document.body.textContent).toContain('￥20 / ￥75')
     wrapper.unmount()
   })
 })

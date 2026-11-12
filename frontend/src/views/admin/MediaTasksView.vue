@@ -70,7 +70,7 @@ function filter(){page.value=1;void load()}
 function changePage(value:number){page.value=value;void load()}
 function changePageSize(value:number){pageSize.value=value;filter()}
 function toggle(id:string){if(expanded.has(id))expanded.delete(id);else expanded.add(id)}
-function money(value:number|string){const amount=Number(value);return Number.isFinite(amount)?`$${amount.toFixed(6)}`:'—'}
+function money(value:number|string){const amount=Number(value);return Number.isFinite(amount)?`￥${amount.toFixed(6)}`:'—'}
 function timestamp(value:number){const date=new Date(value*1000);return Number.isNaN(date.getTime())?'—':date.toLocaleString()}
 onMounted(()=>{void load()})
 onBeforeUnmount(()=>{active=false;revision++})

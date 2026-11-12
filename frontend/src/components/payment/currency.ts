@@ -2,8 +2,8 @@ export const DEFAULT_PAYMENT_CURRENCY = 'CNY'
 
 const PAYMENT_CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$',
-  CNY: '¥',
-  RMB: '¥',
+  CNY: '￥',
+  RMB: '￥',
   EUR: '€',
   GBP: '£',
   JPY: '¥',
@@ -46,13 +46,14 @@ export function formatPaymentAmount(amount: number, currency?: string | null, lo
   const normalized = normalizePaymentCurrency(currency)
   const fractionDigits = paymentCurrencyFractionDigits(normalized)
   try {
-    return new Intl.NumberFormat(locale || undefined, {
+    const formatted = new Intl.NumberFormat(locale || undefined, {
       style: 'currency',
       currency: normalized,
       currencyDisplay: 'narrowSymbol',
       minimumFractionDigits: fractionDigits,
       maximumFractionDigits: fractionDigits,
     }).format(Number.isFinite(amount) ? amount : 0)
+    return normalized === 'CNY' || normalized === 'RMB' ? formatted.replace(/¥/g, '￥') : formatted
   } catch {
     return `${normalized} ${(Number.isFinite(amount) ? amount : 0).toFixed(fractionDigits)}`
   }

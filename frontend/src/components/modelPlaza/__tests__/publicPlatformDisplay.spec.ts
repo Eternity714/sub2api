@@ -55,8 +55,8 @@ describe('public model plaza media identity', () => {
       await wrapper.setProps({ models: [...models].reverse() })
       const rows = wrapper.findAll('tbody tr')
       expect(rows).toHaveLength(4)
-      expect(rows[0].text()).toContain('$0.20')
-      expect(rows[2].text()).toContain('$0.10')
+      expect(rows[0].text()).toContain('￥0.20')
+      expect(rows[2].text()).toContain('￥0.10')
       expect(warnings.some(message => /duplicate keys/i.test(message))).toBe(false)
     } finally {
       wrapper.unmount()

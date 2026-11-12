@@ -94,7 +94,7 @@ describe('AvailableChannelsView plaza filters', () => {
       expect(wrapper.text()).not.toContain('媒体渠道')
       expect(wrapper.get('section').text()).toContain('分组 2')
       expect(wrapper.get('section').text()).not.toContain('分组 1')
-      expect(wrapper.get('table tbody').text()).toContain('$3.00')
+      expect(wrapper.get('table tbody').text()).toContain('￥3.00')
       expect(wrapper.text()).toContain('渠道标价')
     } finally { wrapper.unmount() }
   })
