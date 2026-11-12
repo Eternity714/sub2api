@@ -12,6 +12,8 @@ stages:
 default:
   tags: [linux, podman]
   interruptible: true
+  before_script:
+    - if test -f /etc/alpine-release && test -n "${APK_MIRROR:-}"; then sed -i "s|https://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR%/}|g" /etc/apk/repositories; fi
 
 variables:
   GO_IMAGE: golang:1.27.4-alpine
@@ -22,11 +24,9 @@ variables:
   GOFLAGS: -p=2
   GOMEMLIMIT: 2GiB
   GHCR_IMAGE: ghcr.io/eternity714/sub2api
+  APK_MIRROR: https://mirrors.aliyun.com/alpine
 
-backend-check:
-  stage: verify
-  image: $GO_IMAGE
-  timeout: 40m
+.go-cache:
   variables:
     GOMODCACHE: $CI_PROJECT_DIR/.cache/go-mod
     GOCACHE: $CI_PROJECT_DIR/.cache/go-build
@@ -35,6 +35,12 @@ backend-check:
       prefix: go-1.27.4
       files: [backend/go.sum]
     paths: [.cache/go-mod/, .cache/go-build/]
+
+backend-check:
+  extends: .go-cache
+  stage: verify
+  image: $GO_IMAGE
+  timeout: 40m
   script:
     - apk add --no-cache git build-base python3 docker-cli docker-cli-compose
     - /bin/sh deploy/tests/docker-compose-simple-mode-env-test.sh
@@ -79,7 +85,7 @@ frontend-check:
     HEALTHCHECK_TCP_PORT: "2375"
 
 backend-integration:
-  extends: .docker-service
+  extends: [.docker-service, .go-cache]
   stage: verify
   image: $GO_IMAGE
   timeout: 40m
@@ -121,6 +127,7 @@ build-image:
   interruptible: false
   timeout: 90m
   before_script:
+    - if test -n "${APK_MIRROR:-}"; then sed -i "s|https://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR%/}|g" /etc/apk/repositories; fi
     - apk add --no-cache jq
     - docker info
     - test -n "$GHCR_USERNAME" && test -n "$GHCR_TOKEN"

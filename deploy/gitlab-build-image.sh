@@ -32,6 +32,7 @@ docker buildx build \
   --build-arg "COMMIT=${CI_COMMIT_SHA}" \
   --build-arg "DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --build-arg "GO_CACHE_SCOPE=sub2api-go-1.27.4" \
+  --build-arg "APK_MIRROR=${APK_MIRROR:-}" \
   --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}" \
   --label "org.opencontainers.image.source=${CI_PROJECT_URL}" \
   --tag "$image" \
