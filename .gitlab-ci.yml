@@ -26,19 +26,27 @@ variables:
   GOMEMLIMIT: 2GiB
   GHCR_IMAGE: ghcr.io/eternity714/sub2api
   APK_MIRROR: https://mirrors.aliyun.com/alpine
+  BUILDKIT_IMAGE: docker.m.daocloud.io/moby/buildkit:v0.35.0@sha256:aa632b921ef07411d2cb77292cd34213d4f7b384001d6fceef1e1f25bf9752bb
 
 .go-cache:
   variables:
     GOMODCACHE: $CI_PROJECT_DIR/.cache/go-mod
     GOCACHE: $CI_PROJECT_DIR/.cache/go-build
+    GOLANGCI_LINT_CACHE: $CI_PROJECT_DIR/.cache/golangci-lint
   cache:
     key:
       prefix: go-1.27.4
       files: [backend/go.sum]
-    paths: [.cache/go-mod/, .cache/go-build/]
+    paths: [.cache/go-mod/, .cache/go-build/, .cache/golangci-lint/]
+
+.verification:
+  rules:
+    - if: '($CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api") && $CANDIDATE_ONLY == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
+      when: never
+    - when: on_success
 
 backend-check:
-  extends: .go-cache
+  extends: [.go-cache, .verification]
   stage: verify
   image: $GO_TEST_IMAGE
   timeout: 40m
@@ -49,6 +57,7 @@ backend-check:
     - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
 compose-config:
+  extends: .verification
   stage: verify
   image: docker:28.5.2-cli
   timeout: 15m
@@ -57,6 +66,7 @@ compose-config:
     - /bin/sh deploy/tests/docker-compose-simple-mode-env-test.sh
 
 frontend-check:
+  extends: .verification
   stage: verify
   image: node:24-alpine
   timeout: 30m
@@ -84,7 +94,7 @@ frontend-check:
   services:
     - name: docker:28.5.2-dind
       alias: docker
-      command: ["--tls=false"]
+      command: ["--tls=false", "--registry-mirror=https://docker.m.daocloud.io"]
   variables:
     FF_NETWORK_PER_BUILD: "true"
     DOCKER_HOST: tcp://docker:2375
@@ -92,7 +102,7 @@ frontend-check:
     HEALTHCHECK_TCP_PORT: "2375"
 
 backend-integration:
-  extends: [.docker-service, .go-cache]
+  extends: [.docker-service, .go-cache, .verification]
   stage: verify
   image: $GO_TEST_IMAGE
   timeout: 40m
@@ -105,6 +115,7 @@ backend-integration:
     - go test -tags=integration ./...
 
 backend-lint:
+  extends: [.go-cache, .verification]
   stage: verify
   image: golangci/golangci-lint:v2.14.0
   timeout: 35m
@@ -115,6 +126,7 @@ backend-lint:
     - golangci-lint run --timeout=30m
 
 release-helpers:
+  extends: .verification
   stage: verify
   image: python:3.12-alpine
   timeout: 15m
@@ -137,7 +149,7 @@ build-image:
   timeout: 90m
   before_script:
     - if test -n "${APK_MIRROR:-}"; then sed -i "s|https://dl-cdn.alpinelinux.org/alpine|${APK_MIRROR%/}|g" /etc/apk/repositories; fi
-    - apk add --no-cache jq
+    - apk add --no-cache jq git
     - docker info
     - test -n "$GHCR_USERNAME" && test -n "$GHCR_TOKEN"
     - printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
