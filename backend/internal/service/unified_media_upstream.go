@@ -124,6 +124,9 @@ func BuildUnifiedMediaPayload(platform, mediaType, model string, request *mediac
 		encoded, err := json.Marshal(out)
 		return encoded, grsaiGeneratePath, err
 	}
+	if platform == PlatformGrok {
+		return buildUnifiedSeedancePayload(mediaType, model, values, metadata, count)
+	}
 	if platform != "toapis" {
 		return nil, "", errors.New("unsupported unified media provider")
 	}
@@ -266,7 +269,7 @@ func unifiedMediaSetPath(root map[string]any, path string, value any) bool {
 }
 
 func (u *unifiedMediaHTTPUpstream) Submit(ctx context.Context, account *Account, mediaType, model string, normalized *mediacapability.NormalizedRequest, count int) (*UnifiedMediaUpstreamResult, error) {
-	if account == nil {
+	if account == nil || (account.Platform == PlatformGrok && !usesOpenAIVideoProtocol(account)) {
 		return &UnifiedMediaUpstreamResult{Disposition: "rejected"}, errors.New("media account unavailable")
 	}
 	payload, endpoint, err := BuildUnifiedMediaPayload(account.Platform, mediaType, model, normalized, count)
@@ -282,6 +285,8 @@ func (u *unifiedMediaHTTPUpstream) Poll(ctx context.Context, account *Account, m
 	endpoint := "/v1/" + mediaType + "s/generations/" + url.PathEscape(taskID)
 	if account.Platform == PlatformGrsai {
 		endpoint = grsaiResultPath + "?id=" + url.QueryEscape(taskID)
+	} else if account.Platform == PlatformGrok && usesOpenAIVideoProtocol(account) && mediaType == "video" && model == "seedance-2.5" {
+		endpoint = "/v1/videos/" + url.PathEscape(taskID)
 	} else {
 		profile := mediaAdapterProfile(account.Platform, mediaType, model)
 		if profile.QueryPath != "" {
@@ -295,7 +300,7 @@ func (u *unifiedMediaHTTPUpstream) Poll(ctx context.Context, account *Account, m
 }
 func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, method, endpoint string, payload []byte, mediaType, model string) (*UnifiedMediaUpstreamResult, error) {
 	result := &UnifiedMediaUpstreamResult{Disposition: "unknown", Status: "in_progress"}
-	if account.Type != AccountTypeAPIKey || (account.Platform != PlatformGrsai && account.Platform != "toapis") {
+	if account.Type != AccountTypeAPIKey || (account.Platform != PlatformGrsai && account.Platform != "toapis" && !(usesOpenAIVideoProtocol(account) && mediaType == "video" && model == "seedance-2.5")) {
 		result.Disposition = "rejected"
 		return result, errors.New("invalid media account")
 	}
@@ -441,6 +446,10 @@ func (u *unifiedMediaHTTPUpstream) do(ctx context.Context, account *Account, met
 	}
 	if method == http.MethodGet && (resp.StatusCode < 200 || resp.StatusCode >= 300 || !responseValid) {
 		return result, errors.New("upstream media status lookup failed")
+	}
+	if account.Platform == PlatformGrok {
+		result.URLs = nil
+		result.AuthenticatedVideo = result.Status == "completed" && result.Error == "" && validUnifiedVideoTaskID(result.TaskID)
 	}
 	if result.TaskID != "" {
 		result.Disposition = "accepted"

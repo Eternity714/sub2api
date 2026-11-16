@@ -4,7 +4,7 @@ description: 媒体 API 已开放模型目录，每个模型的参数、输入�
 
 # 媒体模型目录
 
-本目录包含 62 个当前开放的模型能力（25 个图片、37 个视频），参数核对日期：2026-10-16。点击模型查看完整参数和可复制示例。
+本目录包含 63 个当前开放的模型能力（25 个图片、38 个视频），参数核对日期：2026-10-16。点击模型查看完整参数和可复制示例。
 
 请先阅读[媒体 API 接入指南](/media-api)，确认 API Key 使用媒体 API 分组。模型 ID 区分大小写，可用模型与实际价格以[可用渠道](https://www.gkotta.bid/available-channels)为准。
 
@@ -69,6 +69,7 @@ description: 媒体 API 已开放模型目录，每个模型的参数、输入�
 | [MiniMax-Hailuo-2.3](/media-models/minimax-hailuo-2.3) | `768P` | 支持，最多 1 张，以模式限制为准 |
 | [MiniMax-Hailuo-2.3-Fast](/media-models/minimax-hailuo-2.3-fast) | `768P` | 必填，最多 1 张，以模式限制为准 |
 | [seedance-2-fast-ext](/media-models/seedance-2-fast-ext) | `480p`、`720p`、`1080p` | 支持，最多 9 张，以模式限制为准 |
+| [seedance-2.5](/media-models/seedance-2.5) | `480p`、`720p`、`1080p` | 未开放 |
 | [sora-2-official](/media-models/sora-2-official) | 见模型参数 | 支持，最多 1 张，以模式限制为准 |
 | [veo3.1-fast](/media-models/veo3.1-fast) | `720p`、`1080p` | 必填，最多 2 张，以模式限制为准 |
 | [Veo3.1-fast-official](/media-models/veo3.1-fast-official) | `720p`、`1080p`、`4k` | 支持，最多 1 张，以模式限制为准 |

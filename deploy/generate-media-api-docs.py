@@ -160,6 +160,7 @@ def fenced(value, language="json"):
 
 
 def model_page(model, date):
+    date = model.get("verified_at", date)
     name, schema, media = model["model"], model["schema"], model["media_type"]
     image = media == "image"
     kind = "图片" if image else "视频"
@@ -170,6 +171,8 @@ def model_page(model, date):
              f"**模型 ID：{code(name)}**。请原样填写，大小写不可替换。", ""]
     if name in ["MiniMax-H3", "minimax-h3"]:
         lines += ["::: warning 模型 ID 区分大小写", TICK + "MiniMax-H3" + TICK + " 与 " + TICK + "minimax-h3" + TICK + " 是两项独立能力，支持的时长、分辨率和参数不同。请按当前页调用。", ":::", ""]
+    if model.get("notes"):
+        lines += [model["notes"], ""]
     lines += ["## 接口与认证", "", "| 方法 | 路径 | 用途 |", "| --- | --- | --- |",
               f"| POST | {code(endpoint)} | 创建任务，成功返回 HTTP 202 |",
               f'| GET | {code(endpoint + "/{task_id}")} | 使用创建响应的 id 查询状态和结果 |', "",

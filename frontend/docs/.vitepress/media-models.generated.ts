@@ -107,7 +107,7 @@ export const mediaModelSidebar = [
     ]
   },
   {
-    "text": "视频模型（37）",
+    "text": "视频模型（38）",
     "collapsed": true,
     "items": [
       {
@@ -201,6 +201,10 @@ export const mediaModelSidebar = [
       {
         "text": "seedance-2-fast-ext",
         "link": "/media-models/seedance-2-fast-ext"
+      },
+      {
+        "text": "seedance-2.5",
+        "link": "/media-models/seedance-2.5"
       },
       {
         "text": "sora-2-official",

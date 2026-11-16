@@ -276,7 +276,7 @@ func compositeRouteFromInput(groupID int64, input CompositeRouteInput) (*Composi
 	if utf8.RuneCountInString(input.PublicModel) > 200 || utf8.RuneCountInString(input.UpstreamModel) > 200 || utf8.RuneCountInString(input.CapabilityModel) > 200 {
 		return nil, fmt.Errorf("model identifiers must contain at most 200 characters")
 	}
-	if isMediaRoutePlatform(input.TargetPlatform) {
+	if isMediaRoutePlatform(input.TargetPlatform) && (input.TargetPlatform != PlatformGrok || isMediaRouteEndpoint(input.Endpoint)) {
 		if !isMediaRouteEndpoint(input.Endpoint) || input.MatchType != CompositeRouteMatchExact {
 			return nil, fmt.Errorf("GRS.AI and ToAPIs require an exact images or videos route")
 		}

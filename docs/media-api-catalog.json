@@ -7605,6 +7605,100 @@
           }
         }
       ]
+    },
+    {
+      "model": "seedance-2.5",
+      "media_type": "video",
+      "schema": {
+        "version": 1,
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "min_length": 1
+          },
+          "duration": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 30,
+            "default": 4
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:3",
+              "3:4",
+              "21:9"
+            ],
+            "default": "16:9"
+          },
+          "metadata": {
+            "type": "object",
+            "default": {},
+            "properties": {
+              "resolution": {
+                "type": "string",
+                "enum": [
+                  "480p",
+                  "720p",
+                  "1080p"
+                ],
+                "default": "720p"
+              }
+            }
+          }
+        },
+        "batch": {
+          "native_max_results": 1,
+          "allow_split": false,
+          "semantically_linked": false
+        }
+      },
+      "schema_sha256": "5e347d8e8c391a2f9546ceb1918a13457c54f20e8b722365e96506001999cee0",
+      "example": {
+        "model": "seedance-2.5",
+        "prompt": "A blue ceramic cup slowly rotating on a wooden table in soft daylight",
+        "duration": 4,
+        "aspect_ratio": "16:9",
+        "metadata": {
+          "resolution": "480p"
+        }
+      },
+      "examples": [
+        {
+          "label": "4 秒 480p 文生视频",
+          "request": {
+            "model": "seedance-2.5",
+            "prompt": "A blue ceramic cup slowly rotating on a wooden table in soft daylight",
+            "duration": 4,
+            "aspect_ratio": "16:9",
+            "metadata": {
+              "resolution": "480p"
+            }
+          }
+        }
+      ],
+      "pricing_available": true,
+      "callable": true,
+      "pricing": {
+        "billing_mode": "video",
+        "intervals": [
+          {
+            "tier_label": "480p"
+          },
+          {
+            "tier_label": "720p"
+          },
+          {
+            "tier_label": "1080p"
+          }
+        ]
+      },
+      "verified_at": "2026-11-16",
+      "notes": "当前仅开放文生视频，每次生成一个视频。参考图片、音频、视频、首帧、编辑及扩展尚未开放。客户端直接下载 result.data 中的文件 URL，无需调用 /content。"
     }
   ]
 }

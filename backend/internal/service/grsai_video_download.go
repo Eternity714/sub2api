@@ -89,6 +89,9 @@ func publicIP(ip net.IP) bool {
 	return ip != nil && ip.IsGlobalUnicast() && !ip.IsPrivate() && !ip.IsLoopback() && !ip.IsLinkLocalUnicast() && !ip.IsLinkLocalMulticast() && !ip.IsUnspecified()
 }
 func (d *grsaiVideoDownloader) Download(ctx context.Context, raw string) (io.ReadCloser, int64, error) {
+	return d.download(ctx, raw, "")
+}
+func (d *grsaiVideoDownloader) download(ctx context.Context, raw, authorization string) (io.ReadCloser, int64, error) {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil {
 		return nil, 0, err
@@ -99,6 +102,9 @@ func (d *grsaiVideoDownloader) Download(ctx context.Context, raw string) (io.Rea
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, 0, err
+	}
+	if authorization != "" {
+		req.Header.Set("Authorization", authorization)
 	}
 	resp, err := d.client.Do(req)
 	if err != nil {

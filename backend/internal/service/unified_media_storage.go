@@ -74,6 +74,10 @@ func (p *UnifiedMediaS3Persister) Persist(ctx context.Context, taskID, mediaType
 	if err != nil {
 		return nil, err
 	}
+	return unifiedMediaStoredResult(stored)
+}
+
+func unifiedMediaStoredResult(stored *GrsaiStoredResult) (*UnifiedMediaStoredResult, error) {
 	if stored == nil {
 		return nil, ErrImageTaskUnavailable
 	}
@@ -109,4 +113,31 @@ func (s unifiedMediaValidatedImageStorage) SaveWithMetadata(ctx context.Context,
 		return ImageStorageSaveMetadata{}, errors.New("unsupported result image format")
 	}
 	return s.ImageStorageWithMetadata.SaveWithMetadata(ctx, key, contentType, data)
+}
+
+// PersistOpenAIVideo downloads from an account-derived endpoint, never a URL
+// supplied by an upstream response or by a downstream caller.
+func (p *UnifiedMediaS3Persister) PersistOpenAIVideo(ctx context.Context, taskID string, unitIndex, resultIndex int, account *Account, upstreamTaskID string) (*UnifiedMediaStoredResult, error) {
+	if !p.Ready() {
+		return nil, ErrImageTaskUnavailable
+	}
+	if !usesOpenAIVideoProtocol(account) || !validUnifiedVideoTaskID(upstreamTaskID) || account.GetCredential("api_key") == "" {
+		return nil, errors.New("native video content is unavailable")
+	}
+	target, err := buildGrsaiEndpointURL(account.GetCredential("base_url"), "/v1/videos/"+upstreamTaskID+"/content")
+	if err != nil {
+		return nil, err
+	}
+	uploader, _ := p.resolve()
+	storage, ok := uploader.storage.(VideoStorageWithMetadata)
+	if !ok {
+		return nil, ErrImageTaskUnavailable
+	}
+	downloader := newOpenAIVideoContentDownloader(nil, account.GetCredential("api_key"))
+	id := fmt.Sprintf("%s-unit-%d-output-%d", taskID, unitIndex, resultIndex)
+	stored, err := NewGrsaiVideoPersister(downloader, storage).PersistGrsaiVideo(ctx, id, &GrsaiUpstreamResult{Status: GrsaiUpstreamStatusSucceeded, ImageURLs: []string{target}})
+	if err != nil {
+		return nil, err
+	}
+	return unifiedMediaStoredResult(stored)
 }

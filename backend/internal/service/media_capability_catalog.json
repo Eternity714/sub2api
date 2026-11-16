@@ -10404,5 +10404,72 @@
         "quality": "high"
       }
     }
+  },
+  {
+    "platform": "grok",
+    "upstream_model": "seedance-2.5",
+    "media_type": "video",
+    "enabled": false,
+    "source": "https://docs.dragon3api.com/model/video-seedance-2-5-generation",
+    "evidence": "documented_generation",
+    "profile": {},
+    "notes": "Seedance 2.5 普通文生视频。4–30 秒；参考图、音频、视频、首帧、编辑和扩展暂未开放。要求账号显式启用 OpenAI 视频协议；完成后由服务端鉴权下载并转存 S3。",
+    "schema": {
+      "version": 1,
+      "fields": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "min_length": 1
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 30,
+          "default": 4
+        },
+        "aspect_ratio": {
+          "type": "string",
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4",
+            "21:9"
+          ],
+          "default": "16:9"
+        },
+        "metadata": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "480p",
+                "720p",
+                "1080p"
+              ],
+              "default": "720p"
+            }
+          }
+        }
+      },
+      "batch": {
+        "native_max_results": 1,
+        "allow_split": false,
+        "semantically_linked": false
+      }
+    },
+    "example": {
+      "model": "seedance-2.5",
+      "prompt": "A blue ceramic cup slowly rotating on a wooden table in soft daylight",
+      "duration": 4,
+      "aspect_ratio": "16:9",
+      "metadata": {
+        "resolution": "480p"
+      }
+    }
   }
 ]

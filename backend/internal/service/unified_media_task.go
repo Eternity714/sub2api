@@ -26,12 +26,13 @@ var (
 )
 
 type UnifiedMediaUpstreamResult struct {
-	Disposition string
-	HTTPStatus  int
-	TaskID      string
-	Status      string
-	URLs        []string
-	Error       string
+	AuthenticatedVideo bool
+	Disposition        string
+	HTTPStatus         int
+	TaskID             string
+	Status             string
+	URLs               []string
+	Error              string
 }
 type UnifiedMediaUpstream interface {
 	Submit(context.Context, *Account, string, string, *mediacapability.NormalizedRequest, int) (*UnifiedMediaUpstreamResult, error)
@@ -45,6 +46,10 @@ type UnifiedMediaStoredResult struct {
 type UnifiedMediaResultPersister interface {
 	Persist(context.Context, string, string, int, int, string) (*UnifiedMediaStoredResult, error)
 }
+type UnifiedMediaAuthenticatedVideoPersister interface {
+	PersistOpenAIVideo(context.Context, string, int, int, *Account, string) (*UnifiedMediaStoredResult, error)
+}
+
 type UnifiedMediaCandidateSnapshot struct {
 	Platform         string                  `json:"platform"`
 	Model            string                  `json:"model"`
@@ -66,6 +71,7 @@ type UnifiedMediaOutput struct {
 }
 
 type UnifiedMediaUnit struct {
+	AuthenticatedVideo    bool                       `json:"authenticated_video,omitempty"`
 	State                 string                     `json:"state"`
 	Count                 int                        `json:"count"`
 	AccountID             int64                      `json:"account_id,omitempty"`
@@ -617,7 +623,11 @@ func (s *UnifiedMediaTaskService) acceptResult(ctx context.Context, task *Unifie
 		unit.Error = "unexpected_upstream_result_count"
 		return s.Repo.Save(ctx, task, s.Now())
 	}
-	if len(unit.URLs) == 0 {
+	if result.AuthenticatedVideo && result.Error == "" && task.MediaType == "video" && unit.Platform == PlatformGrok && unit.Count == 1 && validUnifiedVideoTaskID(unit.UpstreamTaskID) {
+		unit.AuthenticatedVideo = true
+		unit.URLs = nil
+		unit.State = "persisting"
+	} else if len(unit.URLs) == 0 {
 		unit.State = "failed"
 		unit.Error = "upstream_generation_failed"
 	} else {
@@ -631,7 +641,11 @@ func (s *UnifiedMediaTaskService) acceptResult(ctx context.Context, task *Unifie
 func (s *UnifiedMediaTaskService) persist(ctx context.Context, task *UnifiedMediaTask, index int) error {
 	unit := &task.Units[index]
 	if len(unit.Outputs) == 0 {
-		unit.Outputs = make([]UnifiedMediaOutput, len(unit.URLs))
+		count := len(unit.URLs)
+		if unit.AuthenticatedVideo {
+			count = 1
+		}
+		unit.Outputs = make([]UnifiedMediaOutput, count)
 		// Older snapshots stored only the successfully persisted prefix.
 		for resultIndex := range unit.Stored {
 			if resultIndex >= len(unit.Outputs) {
@@ -646,7 +660,22 @@ func (s *UnifiedMediaTaskService) persist(ctx context.Context, task *UnifiedMedi
 		if output.State == "completed" || output.State == "failed" || (!output.NextAttemptAt.IsZero() && s.Now().Before(output.NextAttemptAt)) {
 			continue
 		}
-		stored, err := s.Persister.Persist(ctx, task.ID, task.MediaType, index, resultIndex, unit.URLs[resultIndex])
+		var stored *UnifiedMediaStoredResult
+		var err error
+		if unit.AuthenticatedVideo {
+			var account *Account
+			account, err = s.Accounts.GetByID(ctx, unit.AccountID)
+			if err == nil {
+				persister, ok := s.Persister.(UnifiedMediaAuthenticatedVideoPersister)
+				if !ok {
+					err = ErrImageTaskUnavailable
+				} else {
+					stored, err = persister.PersistOpenAIVideo(ctx, task.ID, index, resultIndex, account, unit.UpstreamTaskID)
+				}
+			}
+		} else {
+			stored, err = s.Persister.Persist(ctx, task.ID, task.MediaType, index, resultIndex, unit.URLs[resultIndex])
+		}
 		if err != nil || stored == nil || stored.URL == "" {
 			output.Failures++
 			limit := s.MaxFailures

@@ -3940,3 +3940,35 @@
   }
 }
 ```
+
+
+## grok / seedance-2.5 / video
+
+官方来源：[seedance-2.5](https://docs.dragon3api.com/model/video-seedance-2-5-generation)
+
+仅开放普通文生视频，账号必须显式启用 OpenAI 视频协议。统一请求字段由服务端转换；视频完成后鉴权下载并转存 S3，下游使用 result.data 中的 URL。参考图、音频、视频、首帧、编辑和扩展未开放。模板不自动启用。
+
+公开模型名：`seedance-2.5`；使用 `seedance分组` 和独立渠道定价，分组与视频倍率均为 1x。
+
+| 字段 | 类型 | 全局必填 | 默认 | 允许值/范围 |
+| --- | --- | --- | --- | --- |
+| `model` | string | 是 | — | 已配置的公开模型别名 |
+| `prompt` | string | 是 | — | 最短字符 1 |
+| `duration` | integer | 否 | `4` | 最小 4；最大 30 |
+| `aspect_ratio` | string | 否 | `"16:9"` | 枚举 `["16:9","9:16","1:1","4:3","3:4","21:9"]` |
+| `metadata` | object | 否 | `{}` | — |
+| `metadata.resolution` | string | 否 | `"720p"` | 枚举 `["480p","720p","1080p"]` |
+
+请求示例：
+
+```json
+{
+  "model": "seedance-2.5",
+  "prompt": "A blue ceramic cup slowly rotating on a wooden table in soft daylight",
+  "duration": 4,
+  "aspect_ratio": "16:9",
+  "metadata": {
+    "resolution": "480p"
+  }
+}
+```

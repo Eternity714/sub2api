@@ -16,7 +16,7 @@ func isMediaRouteEndpoint(endpoint string) bool {
 	return endpoint == CompositeRouteEndpointImages || endpoint == CompositeRouteEndpointVideos
 }
 func isMediaRoutePlatform(platform string) bool {
-	return platform == PlatformGrsai || platform == PlatformToAPIs
+	return platform == PlatformGrsai || platform == PlatformToAPIs || platform == PlatformGrok
 }
 
 // ResolveMediaCandidates only resolves explicit media routes. It deliberately avoids
@@ -64,7 +64,7 @@ func (r *CompositeRouteResolver) mediaRoutes(ctx context.Context, groupID int64,
 	}
 	result := make([]CompositeModelRoute, 0, len(routes))
 	for _, route := range routes {
-		if route.Enabled && route.GroupID == groupID && route.Endpoint == endpoint && route.MatchType == CompositeRouteMatchExact && isMediaRoutePlatform(route.TargetPlatform) {
+		if route.Enabled && route.GroupID == groupID && route.Endpoint == endpoint && route.MatchType == CompositeRouteMatchExact && isMediaRoutePlatform(route.TargetPlatform) && (route.TargetPlatform != PlatformGrok || route.Endpoint == CompositeRouteEndpointVideos && (route.UpstreamModel == "seedance-2.5" || route.UpstreamModel == "" && route.PublicModel == "seedance-2.5")) {
 			result = append(result, route)
 		}
 	}
