@@ -84,7 +84,7 @@ func validateOpenAIVideoRelayRequest(contentType string, body []byte) error {
 		if name == "seconds" || name == "resolution" {
 			value, readErr := io.ReadAll(part)
 			if readErr != nil {
-				part.Close()
+				_ = part.Close()
 				return fmt.Errorf("invalid multipart video request")
 			}
 			if name == "seconds" {
@@ -94,18 +94,18 @@ func validateOpenAIVideoRelayRequest(contentType string, body []byte) error {
 			}
 		}
 		if name == "reference_videos" || name == "reference_video_seconds" || name == "duration" {
-			part.Close()
+			_ = part.Close()
 			return fmt.Errorf("use seconds; reference-video billing is not yet supported on this channel")
 		}
 		if name == "content" {
 			data, _ := io.ReadAll(part)
 			for _, item := range gjson.ParseBytes(data).Array() {
 				if strings.Contains(strings.ToLower(item.Get("type").String()), "video") {
-					part.Close()
+					_ = part.Close()
 					return fmt.Errorf("reference-video billing is not yet supported on this channel")
 				}
 			}
 		}
-		part.Close()
+		_ = part.Close()
 	}
 }
