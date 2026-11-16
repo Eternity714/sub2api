@@ -153,6 +153,8 @@ func parseGrokMediaJSONRequest(body []byte, info *GrokMediaRequestInfo) {
 	assignGrokMediaResolution(strings.TrimSpace(gjson.GetBytes(body, "resolution").String()), info)
 	if duration := gjson.GetBytes(body, "duration"); duration.Exists() && duration.Type == gjson.Number {
 		info.DurationSeconds = int(duration.Int())
+	} else if seconds := gjson.GetBytes(body, "seconds"); seconds.Exists() {
+		info.DurationSeconds, _ = strconv.Atoi(seconds.String())
 	}
 	if n := gjson.GetBytes(body, "n"); n.Exists() && n.Type == gjson.Number {
 		info.N = int(n.Int())
@@ -269,7 +271,7 @@ func parseGrokMediaMultipartRequest(contentType string, body []byte, info *GrokM
 			info.AspectRatio = value
 		case "resolution":
 			assignGrokMediaResolution(value, info)
-		case "duration":
+		case "duration", "seconds":
 			if duration, err := strconv.Atoi(value); err == nil {
 				info.DurationSeconds = duration
 			}
@@ -674,6 +676,12 @@ func (s *OpenAIGatewayService) ForwardGrokMedia(
 		return nil, err
 	}
 
+	if usesOpenAIVideoProtocol(account) && endpoint == GrokMediaEndpointVideosGenerations {
+		if err := validateOpenAIVideoRelayRequest(contentType, body); err != nil {
+			writeGrokMediaErrorResponse(c, http.StatusBadRequest, "invalid_request_error", err.Error())
+			return nil, err
+		}
+	}
 	body, contentType, err = prepareGrokMediaForwardBody(endpoint, body, contentType)
 	if err != nil {
 		return nil, err
@@ -733,6 +741,12 @@ func (s *OpenAIGatewayService) ForwardGrokMedia(
 	resp, err := s.httpUpstream.Do(upstreamReq, proxyURL, account.ID, account.Concurrency)
 	SetOpsLatencyMs(c, OpsUpstreamLatencyMsKey, time.Since(upstreamStart).Milliseconds())
 	if err != nil {
+		if usesOpenAIVideoProtocol(account) && endpoint == GrokMediaEndpointVideosGenerations {
+			// The relay may have accepted the paid task before the connection failed.
+			// Do not automatically create another task on a different account.
+			writeGrokMediaErrorResponse(c, http.StatusBadGateway, "upstream_error", "Video submission outcome is unknown; do not resubmit automatically")
+			return nil, fmt.Errorf("video relay submission transport failed")
+		}
 		return nil, s.handleOpenAIUpstreamTransportError(ctx, c, account, err, false)
 	}
 	defer func() { _ = resp.Body.Close() }()
@@ -766,7 +780,7 @@ func (s *OpenAIGatewayService) ForwardGrokMedia(
 		)
 	}
 	writeGrokMediaResponse(c, resp, respBody, s.responseHeaderFilter)
-	usage := grokMediaUsageFromResponse(endpoint, requestInfo, respBody)
+	usage := grokMediaUsageForAccount(account, endpoint, requestInfo, respBody)
 	resultModel := requestModel
 	resultBillingModel := requestModel
 	if endpoint == GrokMediaEndpointVideoStatus {
@@ -855,7 +869,10 @@ func (s *OpenAIGatewayService) forwardGrokMediaVideoContent(
 		return nil, err
 	}
 
-	contentURL, err := grokMediaSignedVideoContentURL(statusBody, requestID)
+	contentURL := ""
+	if !usesOpenAIVideoProtocol(account) {
+		contentURL, err = grokMediaSignedVideoContentURL(statusBody, requestID)
+	}
 	if err != nil {
 		SetOpsLatencyMs(c, OpsUpstreamLatencyMsKey, time.Since(upstreamStart).Milliseconds())
 		return nil, err
@@ -920,11 +937,11 @@ func (s *OpenAIGatewayService) forwardGrokMediaVideoContent(
 		ResponseHeaders: contentResp.Header.Clone(),
 		Duration:        time.Since(startTime),
 	}
-	if billed := ExtractGrokVideoBillingFromStatusBody(statusBody, nil, requestID); billed != nil {
+	if billed := grokMediaUsageForAccount(account, GrokMediaEndpointVideoStatus, GrokMediaRequestInfo{}, statusBody); billed.VideoCount > 0 && contentResp.StatusCode < 300 {
 		result.ResponseID = firstNonEmpty(billed.ResponseID, strings.TrimSpace(requestID))
 		result.Model = billed.Model
 		result.BillingModel = billed.BillingModel
-		result.UpstreamModel = billed.UpstreamModel
+		result.UpstreamModel = billed.Model
 		result.VideoCount = billed.VideoCount
 		result.VideoResolution = billed.VideoResolution
 		result.VideoDurationSeconds = billed.VideoDurationSeconds
@@ -1269,6 +1286,12 @@ func (s *OpenAIGatewayService) handleGrokMediaErrorResponse(
 	upstreamMsg := sanitizeUpstreamErrorMessage(strings.TrimSpace(extractUpstreamErrorMessage(body)))
 	if upstreamMsg == "" {
 		upstreamMsg = fmt.Sprintf("xAI upstream returned status %d", resp.StatusCode)
+	}
+
+	if usesOpenAIVideoProtocol(account) && c != nil && c.Request != nil && c.Request.Method == http.MethodPost {
+		MarkResponseCommitted(c)
+		writeGrokMediaErrorResponse(c, resp.StatusCode, grokMediaErrorType(resp.StatusCode), upstreamMsg)
+		return nil, fmt.Errorf("video relay submission failed with status %d", resp.StatusCode)
 	}
 
 	upstreamDetail := ""

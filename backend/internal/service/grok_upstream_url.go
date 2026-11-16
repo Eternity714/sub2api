@@ -123,10 +123,20 @@ func buildGrokMediaURL(account *Account, cfg *config.Config, endpoint GrokMediaE
 	case GrokMediaEndpointImagesEdits:
 		return xai.BuildImagesEditsURLWithValidator(baseURL, validator)
 	case GrokMediaEndpointVideosGenerations:
-		return xai.BuildVideosGenerationsURLWithValidator(baseURL, validator)
+		target, err := xai.BuildVideosGenerationsURLWithValidator(baseURL, validator)
+		if usesOpenAIVideoProtocol(account) {
+			target = strings.TrimSuffix(target, "/generations")
+		}
+		return target, err
 	case GrokMediaEndpointVideosEdits:
+		if usesOpenAIVideoProtocol(account) {
+			return "", fmt.Errorf("video editing is not supported by this relay")
+		}
 		return xai.BuildVideosEditsURLWithValidator(baseURL, validator)
 	case GrokMediaEndpointVideosExtensions:
+		if usesOpenAIVideoProtocol(account) {
+			return "", fmt.Errorf("video extension is not supported by this relay")
+		}
 		return xai.BuildVideosExtensionsURLWithValidator(baseURL, validator)
 	case GrokMediaEndpointVideoStatus:
 		return xai.BuildVideoURLWithValidator(baseURL, requestID, validator)
