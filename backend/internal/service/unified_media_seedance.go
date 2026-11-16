@@ -58,7 +58,11 @@ func newOpenAIVideoContentDownloader(client *http.Client, key string) *openAIVid
 	}
 	clone := *client
 	clone.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	return &openAIVideoContentDownloader{downloader: NewGrsaiVideoDownloader(&clone, 0, "").(*grsaiVideoDownloader), key: key}
+	downloader, ok := NewGrsaiVideoDownloader(&clone, 0, "").(*grsaiVideoDownloader)
+	if !ok {
+		panic("native video downloader constructor returned an unexpected implementation")
+	}
+	return &openAIVideoContentDownloader{downloader: downloader, key: key}
 }
 func (d *openAIVideoContentDownloader) Download(ctx context.Context, raw string) (body io.ReadCloser, size int64, err error) {
 	return d.downloader.download(ctx, raw, "Bearer "+d.key)
